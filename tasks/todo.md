@@ -58,7 +58,7 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
   - Files: `src/engine/ledger.ts`, `tests/ledger.test.ts`
   - Depends on: T3, T5, T6
 
-- [ ] **T8: `eta`** (M)
+- [x] **T8: `eta`** (M)
   - Acceptance: FORECAST label; rate = average of last two known paces (hours used returned); skips breaks and clear-by; rolls past shift end into Day 2; field-balance basis labeled when vessel remaining unknown; zero remaining → no completion time; required rate and infeasible target; forecast error per milestone.
   - Verify: B10, B15 (finish 14:00, 240/hour required), B28 (+12 min, cars only); parity with tracker `etaCalc` on Day 1 and Day 2 cases.
   - Files: `src/engine/eta.ts`, `tests/eta.test.ts`
