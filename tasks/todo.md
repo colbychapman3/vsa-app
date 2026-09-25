@@ -14,14 +14,14 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Files: `src/storage/db.ts`, `src/storage/schema.ts`, `tests/store.test.ts`
   - Depends on: T1
 
-- [ ] **T3: Store API** (M)
+- [x] **T3: Store API** (M)
   - Acceptance: `createVessel` (Glovis only as TEST; baseline validated), `listVessels`, `load` (baseline + events + `project()` state), `append` (validate with engine, one transaction, re-delivery skipped, other-operation events refused).
   - Verify: storage tests 1, 2, 3, 5, 6, 7 on a real file, closed and reopened. Includes the kit 1,969 replay and the Phase 1 parity shifts from storage.
   - Files: `src/storage/store.ts`, `tests/store.test.ts`
   - Depends on: T2
 
 ### Checkpoint A
-- [ ] `npm test`, `npm run typecheck`, `npx expo export --platform ios` pass
+- [x] `npm test`, `npm run typecheck`, `npx expo export --platform ios` pass
 
 - [ ] **T4: Check screen** (S)
   - Acceptance: `App.tsx` opens the store on the phone. Buttons: create TEST Glovis vessel; log the next test hour (fixed TEST counts); show field, vessel remaining, event count, last error; **Replay check** reloads the stored log, compares with the in-memory state and shows PASS/FAIL. Large tap targets; labeled TEST.

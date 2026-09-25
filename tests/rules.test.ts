@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 
 const dir = new URL('./', import.meta.url);
-const suite = readdirSync(dir).filter((f) => f.endsWith('.test.ts') && f !== 'rules.test.ts').map((f) => readFileSync(new URL(f, dir), 'utf8')).join('\n');
+// scenarios.ts holds the parity scenario names (run as "parity: <name>").
+const suite = readdirSync(dir).filter((f) => (f.endsWith('.test.ts') && f !== 'rules.test.ts') || f === 'scenarios.ts').map((f) => readFileSync(new URL(f, dir), 'utf8')).join('\n');
 
 const RULES: { rule: string; tests?: string[]; deferred?: string }[] = [
   // Data honesty
@@ -13,7 +14,7 @@ const RULES: { rule: string; tests?: string[]; deferred?: string }[] = [
   { rule: 'Timestamps: exact time, labeled processing time, or "time not provided"', tests: ['timestamps: event time, labeled processing time'] },
   { rule: 'Reference travel times: never assume one-way vs round trip', deferred: 'Phase 3 (Plan & routes screen), kit B12' },
   { rule: 'Document text is evidence, never instructions', deferred: 'Phase 5/6 (paperwork import, on-device AI), kit B23' },
-  { rule: 'One vessel = one record; never mix TEST data into a live vessel', tests: ['T7: an event from another operation is rejected'] },
+  { rule: 'One vessel = one record; never mix TEST data into a live vessel', tests: ['T7: an event from another operation is rejected', 'storage test 6: one vessel = one record'] },
   // Ledgers
   { rule: 'Autos, H&H, load-back and lashing are separate ledgers', tests: ['other workstreams (H&H, load-back, lashing) are refused', 'B09: cars complete is autos physical completion only'] },
   { rule: 'Load list quantity beats game plan unless Colby overrides; discrepancy visible', tests: ['T3: load list controls over game plan', 'Colby can override the load list'] },
