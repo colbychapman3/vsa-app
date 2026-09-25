@@ -9,3 +9,15 @@ android/
 !.env.example
 .DS_Store
 Thumbs.db
+expo-env.d.ts
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-health-check*
+npm-debug.*
+*.pem
+*.tsbuildinfo

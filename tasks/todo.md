@@ -1,8 +1,8 @@
 # Phase 2 tasks — offline storage
 
-Commands: `npm test`, `npm run typecheck`, `npx expo export --platform ios`. Every task ends with them passing and a commit.
+Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends with them passing and a commit.
 
-- [ ] **T1: Expo app shell** (M)
+- [x] **T1: Expo app shell** (M)
   - Acceptance: Expo SDK 57 blank TypeScript app in the project root (`App.tsx`, `app.json` named "VSA", `index.ts`); existing scripts, tests, `.gitignore` entries and docs kept; `App.tsx` imports the engine and shows the Glovis TEST start total (1,969) to prove the engine bundles.
   - Verify: `npm test` (82 still pass), `npm run typecheck`, `npx expo export --platform ios` succeeds.
   - Files: `package.json`, `app.json`, `App.tsx`, `index.ts`, `tsconfig.json`, `.gitignore`

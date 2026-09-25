@@ -1,16 +1,11 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
     "strict": true,
-    "noEmit": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
-    "resolveJsonModule": true,
-    "types": ["node"],
-    "skipLibCheck": true
+    "types": ["node"]
   },
-  "include": ["src", "tests"]
+  "include": ["App.tsx", "index.ts", "src", "tests"]
 }

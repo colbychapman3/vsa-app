@@ -3,11 +3,24 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "start": "expo start",
+    "ios": "expo start --ios",
     "test": "node --test --experimental-strip-types --no-warnings=ExperimentalWarning \"tests/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:ios": "expo export --platform ios --output-dir dist"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
-    "typescript": "^7.0.2"
+    "typescript": "~6.0.3",
+    "@types/react": "~19.2.2"
+  },
+  "main": "index.ts",
+  "version": "1.0.0",
+  "dependencies": {
+    "expo": "~57.0.25",
+    "expo-sqlite": "~57.0.3",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
   }
 }
