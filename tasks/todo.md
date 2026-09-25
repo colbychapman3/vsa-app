@@ -72,5 +72,5 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
 
 ### Checkpoint C — Phase 1 done
 - [x] All spec success criteria checked
-- [ ] Colby reviews parity results and approves
-- [ ] ROADMAP.md status updated
+- [x] Colby reviews parity results and approves (2026-09-25)
+- [x] ROADMAP.md status updated

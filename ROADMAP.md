@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 1 built and tested (2026-09-25), awaiting Colby's review. Phase 0 partly done: repo, docs and spec are in; the Expo app and whole-app spec are deferred to Phase 3.
+**Current status:** Phase 1 complete (approved 2026-09-25). Phase 2 in spec. Phase 0 leftovers: the Expo app is created in Phase 2 (needed for expo-sqlite); the whole-app spec is still deferred.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
