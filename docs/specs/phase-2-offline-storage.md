@@ -1,6 +1,6 @@
 # Spec: Phase 2 — Offline storage
 
-Status: **DRAFT — awaiting Colby's approval.** No code until approved.
+Status: **APPROVED by Colby 2026-09-25.** Plan: `tasks/plan.md`.
 
 ## Objective
 
