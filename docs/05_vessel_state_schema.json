@@ -1,0 +1,1028 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "1.0"
+      ]
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vessel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "voyage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operation_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        },
+        "berth": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "enum": [
+            1,
+            2,
+            3,
+            null
+          ]
+        },
+        "mode": {
+          "enum": [
+            "test",
+            "live"
+          ]
+        }
+      },
+      "required": [
+        "operation_id",
+        "vessel",
+        "voyage",
+        "operation_date",
+        "timezone",
+        "berth",
+        "mode"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/source"
+      }
+    },
+    "inventory": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/inventory_line"
+      }
+    },
+    "field_intervals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/field_interval"
+      }
+    },
+    "vessel_progress": {
+      "$ref": "#/definitions/evidence"
+    },
+    "field_total": {
+      "$ref": "#/definitions/evidence"
+    },
+    "reconciliation_variance": {
+      "$ref": "#/definitions/evidence"
+    },
+    "loadback": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/load_line"
+      }
+    },
+    "milestones": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/milestone"
+      }
+    },
+    "discrepancies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/discrepancy"
+      }
+    },
+    "forecasts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/forecast"
+      }
+    },
+    "timeline_event_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "last_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reconciled": {
+      "type": "boolean"
+    },
+    "operation_timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scheduled_start": {
+          "$ref": "#/definitions/evidence"
+        },
+        "productive_start": {
+          "$ref": "#/definitions/evidence"
+        },
+        "reporting_coverage_notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "scheduled_start",
+        "productive_start",
+        "reporting_coverage_notes"
+      ]
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "car_gang_drivers": {
+            "$ref": "#/definitions/evidence"
+          },
+          "vans_checked_out": {
+            "$ref": "#/definitions/evidence"
+          },
+          "vans_staffed_operational": {
+            "$ref": "#/definitions/evidence"
+          },
+          "car_gang_vans": {
+            "$ref": "#/definitions/evidence"
+          },
+          "heavy_gang_vans": {
+            "$ref": "#/definitions/evidence"
+          },
+          "source_event_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "start",
+          "end",
+          "car_gang_drivers",
+          "vans_checked_out",
+          "vans_staffed_operational",
+          "car_gang_vans",
+          "heavy_gang_vans",
+          "source_event_ids"
+        ]
+      }
+    },
+    "interruptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "$ref": "#/definitions/scope"
+          },
+          "kind": {
+            "enum": [
+              "break",
+              "safety_meeting",
+              "cutoff",
+              "stoppage",
+              "deck_transition",
+              "other"
+            ]
+          },
+          "start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "actual_or_planned": {
+            "enum": [
+              "actual",
+              "planned",
+              "unknown"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_event_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "kind",
+          "start",
+          "end",
+          "actual_or_planned",
+          "reason",
+          "source_event_ids"
+        ]
+      }
+    },
+    "route_context": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "destination": {
+            "type": "string",
+            "minLength": 1
+          },
+          "berth": {
+            "enum": [
+              1,
+              2,
+              3,
+              null
+            ]
+          },
+          "side": {
+            "enum": [
+              "Northside",
+              "Southside",
+              null
+            ]
+          },
+          "distance_miles": {
+            "$ref": "#/definitions/evidence"
+          },
+          "cutoff_minutes": {
+            "$ref": "#/definitions/evidence"
+          },
+          "travel_minutes": {
+            "$ref": "#/definitions/evidence"
+          },
+          "travel_scope": {
+            "enum": [
+              "one_way",
+              "round_trip",
+              "full_cycle",
+              "unspecified"
+            ]
+          },
+          "distance_reference_revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_event_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "destination",
+          "berth",
+          "side",
+          "distance_miles",
+          "cutoff_minutes",
+          "travel_minutes",
+          "travel_scope",
+          "distance_reference_revision",
+          "source_event_ids"
+        ]
+      }
+    },
+    "clearance_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "$ref": "#/definitions/scope"
+          },
+          "cargo_category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "units_in_assignment": {
+            "$ref": "#/definitions/evidence"
+          },
+          "units_inspected": {
+            "$ref": "#/definitions/evidence"
+          },
+          "cargo_stow_height_cm": {
+            "$ref": "#/definitions/evidence"
+          },
+          "deck_clear_height_cm": {
+            "$ref": "#/definitions/evidence"
+          },
+          "minimum_route_height_cm": {
+            "$ref": "#/definitions/evidence"
+          },
+          "required_clearance_cm": {
+            "$ref": "#/definitions/evidence"
+          },
+          "SOP_locator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "SOP_revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "applicability_verified": {
+            "type": "boolean"
+          },
+          "route_verified": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "unknown",
+              "partial",
+              "verified",
+              "incompatible"
+            ]
+          },
+          "restrictions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "source_event_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "cargo_category",
+          "units_in_assignment",
+          "units_inspected",
+          "cargo_stow_height_cm",
+          "deck_clear_height_cm",
+          "minimum_route_height_cm",
+          "required_clearance_cm",
+          "SOP_locator",
+          "SOP_revision",
+          "applicability_verified",
+          "route_verified",
+          "status",
+          "restrictions",
+          "source_event_ids"
+        ]
+      }
+    },
+    "ledger_status": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scope": {
+            "$ref": "#/definitions/scope"
+          },
+          "physical_status": {
+            "$ref": "#/definitions/status"
+          },
+          "count_reconciliation": {
+            "enum": [
+              "unknown",
+              "pending",
+              "matched",
+              "discrepancy",
+              "not_applicable"
+            ]
+          },
+          "completion_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "evidence_event_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "scope",
+          "physical_status",
+          "count_reconciliation",
+          "completion_time",
+          "evidence_event_ids"
+        ]
+      }
+    },
+    "restrictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "$ref": "#/definitions/scope"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "class": {
+            "enum": [
+              "source_fact",
+              "user_report",
+              "forecast",
+              "unknown"
+            ]
+          },
+          "source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "resolved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "description",
+          "class",
+          "source_ids",
+          "resolved"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "operation",
+    "sources",
+    "inventory",
+    "field_intervals",
+    "vessel_progress",
+    "field_total",
+    "reconciliation_variance",
+    "loadback",
+    "milestones",
+    "discrepancies",
+    "forecasts",
+    "timeline_event_ids",
+    "last_sequence",
+    "reconciled",
+    "operation_timing",
+    "resources",
+    "interruptions",
+    "route_context",
+    "clearance_checks",
+    "ledger_status",
+    "restrictions"
+  ],
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VSA canonical vessel state 1.0",
+  "description": "D1 migration contract; cross-field semantics are specified in file 15. Unknown data is null with unknown provenance.",
+  "definitions": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class": {
+          "enum": [
+            "source_fact",
+            "user_report",
+            "calculated",
+            "forecast",
+            "unknown"
+          ]
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "input_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "as_of": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "unit",
+        "class",
+        "source_ids",
+        "input_event_ids",
+        "as_of",
+        "note"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "document",
+            "user",
+            "clock",
+            "calculation",
+            "forecast",
+            "historical"
+          ]
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "locator",
+        "revision",
+        "operation_id"
+      ]
+    },
+    "status": {
+      "enum": [
+        "not_started",
+        "active",
+        "paused",
+        "complete",
+        "unknown",
+        "not_applicable"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workstream": {
+          "enum": [
+            "auto_discharge",
+            "hh_discharge",
+            "static_discharge",
+            "auto_loadback",
+            "hh_loadback",
+            "lashing",
+            "operation"
+          ]
+        },
+        "deck": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hatch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "commodity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "destination": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "workstream",
+        "deck",
+        "hatch",
+        "commodity",
+        "destination"
+      ]
+    },
+    "discrepancy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/scope"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "status": {
+          "enum": [
+            "open",
+            "resolved"
+          ]
+        },
+        "resolution_event_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "description",
+        "source_ids",
+        "status",
+        "resolution_event_id"
+      ]
+    },
+    "milestone": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "$ref": "#/definitions/scope"
+        },
+        "status": {
+          "$ref": "#/definitions/status"
+        },
+        "occurred_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "logged_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "evidence_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "scope",
+        "status",
+        "occurred_at",
+        "logged_at",
+        "evidence_event_ids"
+      ]
+    },
+    "inventory_line": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/scope"
+        },
+        "starting": {
+          "$ref": "#/definitions/evidence"
+        },
+        "cleared": {
+          "$ref": "#/definitions/evidence"
+        },
+        "remaining": {
+          "$ref": "#/definitions/evidence"
+        },
+        "status": {
+          "$ref": "#/definitions/status"
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "starting",
+        "cleared",
+        "remaining",
+        "status"
+      ]
+    },
+    "field_interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/scope"
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "productive_minutes": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "driver_segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "drivers": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minutes": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "drivers",
+              "minutes"
+            ]
+          }
+        }
+      },
+      "required": [
+        "event_id",
+        "scope",
+        "start",
+        "end",
+        "units",
+        "productive_minutes",
+        "driver_segments"
+      ]
+    },
+    "load_line": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/scope"
+        },
+        "planned": {
+          "$ref": "#/definitions/evidence"
+        },
+        "authoritative": {
+          "$ref": "#/definitions/evidence"
+        },
+        "loaded": {
+          "$ref": "#/definitions/evidence"
+        },
+        "remaining": {
+          "$ref": "#/definitions/evidence"
+        },
+        "pickup": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/status"
+        },
+        "clearance_status": {
+          "enum": [
+            "unknown",
+            "partial",
+            "verified",
+            "incompatible"
+          ]
+        },
+        "clearance_evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "planned",
+        "authoritative",
+        "loaded",
+        "remaining",
+        "pickup",
+        "status",
+        "clearance_status",
+        "clearance_evidence_ids"
+      ]
+    },
+    "forecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/scope"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "estimated_completion": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "rate_per_hour": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "input_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "class": {
+          "enum": [
+            "forecast"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "issued_at",
+        "estimated_completion",
+        "rate_per_hour",
+        "input_event_ids",
+        "assumptions",
+        "class"
+      ]
+    }
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "1.0"
+      ]
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_type": {
+      "enum": [
+        "initialize",
+        "observation",
+        "correction",
+        "status_change",
+        "pause",
+        "resume",
+        "discrepancy_opened",
+        "discrepancy_resolved",
+        "forecast_created"
+      ]
+    },
+    "scope": {
+      "$ref": "#/definitions/scope"
+    },
+    "occurred_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "provenance": {
+      "enum": [
+        "source_fact",
+        "user_report",
+        "calculated",
+        "forecast",
+        "unknown"
+      ]
+    },
+    "supersedes_event_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "count_kind": {
+          "enum": [
+            "interval",
+            "cumulative",
+            "remaining",
+            "not_applicable"
+          ]
+        },
+        "period_start": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "period_end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "metric",
+        "value",
+        "unit",
+        "count_kind",
+        "period_start",
+        "period_end",
+        "reason",
+        "input_event_ids"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "operation_id",
+    "sequence",
+    "idempotency_key",
+    "event_type",
+    "scope",
+    "occurred_at",
+    "recorded_at",
+    "actor",
+    "source_ids",
+    "provenance",
+    "supersedes_event_id",
+    "payload"
+  ],
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VSA append-only event 1.0",
+  "definitions": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workstream": {
+          "enum": [
+            "auto_discharge",
+            "hh_discharge",
+            "static_discharge",
+            "auto_loadback",
+            "hh_loadback",
+            "lashing",
+            "operation"
+          ]
+        },
+        "deck": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hatch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "commodity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "destination": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "workstream",
+        "deck",
+        "hatch",
+        "commodity",
+        "destination"
+      ]
+    }
+  },
+  "description": "One JSON object per JSONL line; never delete or rewrite accepted events. Cross-event rules in file 15."
+}
