@@ -40,15 +40,15 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
   - Files: `src/engine/events.ts`, `tests/events.test.ts`
   - Depends on: T2, T3
 
-- [ ] **T6: `production`** (M)
+- [x] **T6: `production`** (M)
   - Acceptance: short pre-break hour needs a stop time (pace `null` with reason until set); pace by productive minutes; H.A. = field ÷ counted hours with the denominator; time-weighted driver rate; stoppage hours with merged overlaps; cumulative → interval, decreasing cumulative rejected; zero or unknown denominators → unavailable with reason.
   - Verify: T6 (120 in 11:00–11:30 → 240/active hour, 6/driver), B14 (4.8), B20 (300 → 540 = 240), B21; parity with tracker period pace/delta/H.A.
   - Files: `src/engine/production.ts`, `tests/production.test.ts`
   - Depends on: T2
 
 ### Checkpoint B
-- [ ] `npm test` and `npm run typecheck` pass
-- [ ] Replay test green
+- [x] `npm test` and `npm run typecheck` pass
+- [x] Replay test green
 
 ## Ledger and forecast
 
