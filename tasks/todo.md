@@ -34,7 +34,7 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
 
 ## Core
 
-- [ ] **T5: `events` and replay** (M)
+- [x] **T5: `events` and replay** (M)
   - Acceptance: event envelope typed after kit file 06; replay applies in sequence order; exact re-delivery is a no-op; reused key with different content, other operation, unknown correction target, double supersession, and overlapping active field interval are each rejected with a message; correction supersedes, keeps history, reports net change.
   - Verify: kit replay → 1,969 with 275 active and 250 in history; replay twice → identical state; T5 (net +25); B19; T7 (cross-operation rejected).
   - Files: `src/engine/events.ts`, `tests/events.test.ts`
