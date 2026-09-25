@@ -140,11 +140,11 @@ Every rule in `CLAUDE.md`'s domain section maps to at least one test, and the te
 
 ## Success Criteria
 
-- [ ] `npm test` passes: all engine kit tests, the replay test, and all tracker parity scenarios.
-- [ ] `npm run typecheck` passes with `strict: true`.
-- [ ] Each domain rule in `CLAUDE.md` has a named test.
-- [ ] Deferred kit tests are listed in the test file with the phase that owns them.
-- [ ] Engine files import nothing outside `src/engine/` and Node built-ins are used only in tests.
+- [x] `npm test` passes: all engine kit tests, the replay test, and all tracker parity scenarios. (82 tests, 2026-09-25)
+- [x] `npm run typecheck` passes with `strict: true`.
+- [x] Each domain rule in `CLAUDE.md` has a named test (`tests/rules.test.ts` enforces it).
+- [x] Deferred kit tests are listed in the test file with the phase that owns them (`tests/kit.test.ts`).
+- [x] Engine files import nothing outside `src/engine/` and Node built-ins are used only in tests.
 - [ ] Colby reviews the parity results and approves Phase 1 complete; ROADMAP.md is updated.
 
 ## Open Questions
@@ -153,4 +153,4 @@ These have defaults. I'll build with the default unless Colby says otherwise.
 
 1. **Clear-by with mixed destinations.** The tracker applies the largest clear-by of any destination (30 min if any Southside destination) to the whole-vessel ETA. The docs define clear-by per destination but don't say how to combine them for one vessel ETA. *Default: keep the tracker's behavior (the more cautious one).*
 2. **ETA rate.** The tracker averages the pace of the last two hours with a known pace. The docs only say "comparable recent rate". *Default: keep the tracker's rule and return the hours it used.*
-3. **Parity harness risk.** If `vsa-live.html` can't run in a Node sandbox without a browser, the fallback is expected numbers captured once from the tracker in a browser and saved as fixtures.
+3. **Parity harness risk.** *(Resolved: the tracker runs in a Node sandbox; no fallback needed.)* If `vsa-live.html` can't run in a Node sandbox without a browser, the fallback is expected numbers captured once from the tracker in a browser and saved as fixtures.

@@ -103,3 +103,8 @@ test('parity: heights match the tracker on every Glovis deck, confirmed or not',
     assert.deepEqual([got.current, got.canLower, got.level, got.lowest], [w.hi.cur, w.hi.canLower, w.hi.level, w.hi.lowest], w.id);
   }
 });
+
+test('baseline hatch order is kept (H4 → H1)', () => {
+  assert.deepEqual(deckCalc(deck('D12')).hatches.map((h) => h.h), ['H4', 'H3', 'H2', 'H1']);
+  assert.deepEqual(deckCalc(deck('UPP')).hatches.map((h) => h.h), ['H4', 'H3', 'H2']);
+});

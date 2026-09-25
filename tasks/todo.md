@@ -64,13 +64,13 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
   - Files: `src/engine/eta.ts`, `tests/eta.test.ts`
   - Depends on: T6, T7
 
-- [ ] **T9: `project()` and full parity** (M)
+- [x] **T9: `project()` and full parity** (M)
   - Acceptance: `project(baseline, events)` returns the full state or the first rejection; kit test file covers every engine case and lists deferred ones with owning phase; each `CLAUDE.md` domain rule has a named test.
   - Verify: all spec parity scenarios on Glovis (start, mixed progress, Active deck no count, short hour ±stop time, lunch, ship = field, ship ahead, field ahead, Day 2 ETA) match the tracker.
   - Files: `src/engine/index.ts`, `tests/kit.test.ts`, `tests/parity.test.ts`, `tests/rules.test.ts`
   - Depends on: T7, T8
 
 ### Checkpoint C — Phase 1 done
-- [ ] All spec success criteria checked
+- [x] All spec success criteria checked
 - [ ] Colby reviews parity results and approves
 - [ ] ROADMAP.md status updated
