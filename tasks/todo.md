@@ -8,7 +8,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Files: `package.json`, `app.json`, `App.tsx`, `index.ts`, `tsconfig.json`, `.gitignore`
   - Depends on: none
 
-- [ ] **T2: Schema and driver adapter** (S)
+- [x] **T2: Schema and driver adapter** (S)
   - Acceptance: `db.ts` adapter (expo-sqlite and node:sqlite); schema v1 per spec with WAL, `user_version`, append-only triggers, TEST/LIVE lock.
   - Verify: storage test 4 (UPDATE/DELETE on events fails; `is_test` and `baseline_json` can't change); migration runs once on a new file and is a no-op on reopen.
   - Files: `src/storage/db.ts`, `src/storage/schema.ts`, `tests/store.test.ts`
