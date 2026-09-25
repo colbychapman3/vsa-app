@@ -52,7 +52,7 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
 
 ## Ledger and forecast
 
-- [ ] **T7: `ledger` and reconciliation** (M)
+- [x] **T7: `ledger` and reconciliation** (M)
   - Acceptance: vessel remaining (`null` + missing decks list when unknown); field balance labeled; in transit never negative; percent (starting 0 → not applicable); brand ledgers; clerk remaining sets progress once; field total above starting rejected with overage; during work: gap noted, no alarm; at break or shift end: match/warning/alarm overall and per brand; completion is autos-scoped only.
   - Verify: T4 (640/610 → 360 remaining, 30 in transit, flagged at lunch), B08, B09, B13, B24 (1,005 of 1,000 → over by 5); parity with tracker `compute` fields.
   - Files: `src/engine/ledger.ts`, `tests/ledger.test.ts`

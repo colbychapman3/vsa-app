@@ -46,11 +46,12 @@ Build order: `time`, `baseline`, `fit` → `decks`, `production` → `events` �
 - In transit = progress − field when progress ≥ field. Field above progress → mismatch flagged; in transit `null` (never negative).
 - Percent = progress ÷ starting × 100; starting 0 → not applicable, not 100%.
 - Brand ledgers per tracker `deckCalc` rules (a mixed hatch that's partly done makes those brands `null`).
-- Clerk remaining R gives progress = S − R once. It's never also added from hourly counts.
+- The chief clerk's remaining count is a cross-check at breaks ("matches clerk" / "off by N"), as in the tracker. Vessel remaining always comes from deck progress (`CLAUDE.md`). *(Corrected during T7: this spec first said the clerk count sets progress, from an optional line in doc 07.)*
 
 **Reconciliation**
 - During work: report the gap, and note it if field runs ahead or the gap exceeds the driver count. No alarm.
-- At a break or shift end: overall and by brand, match → `match` (green), ship ahead → `warning`, field ahead → `alarm` (red). Zero overall variance doesn't clear a brand mismatch.
+- At a break or shift end: overall and by brand, match → `match` (green), ship ahead → `warning`, field ahead → `alarm` (red). Zero overall variance doesn't clear a brand mismatch. By brand this follows `CLAUDE.md`; the tracker shows every brand mismatch red.
+- Counts only "match" when overall and every brand match. Hours logged without a brand split leave the brand check unknown, so they can't confirm a match.
 
 **Production**
 - An hour is short if a break starts at its end. It needs a stop time (:30 or :45 for Southside/Northside); until set, pace for that hour is `null` and the engine says so.
