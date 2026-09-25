@@ -1,0 +1,18 @@
+{"vessel":"Glovis Condor 101","date":"9/21/2026","port":"SSI","berth":2,"start":"08:00","breaks":["12:00","18:00"],
+"sources":["Game plan 9/21/2026","Labor order 9/21/26","Stow plan (SSI blocks, deck heights)"],
+"labor":{"autoDrivers":70,"gangs":[35,35],"vanDrivers":10,"heavyGang":0},
+"destinations":[{"name":"Zone 3","side":"N","clearBy":15,"mi":1.00,"ref":"ref ~8 min (Berth 2)","brands":["Hyundai","Kia"],"autos":1969}],
+"hh":[],
+"verification":{"status":"verified","discrepancies":[],"missing":[],"checks":["Game plan 1,969 = labor order 829 Kia + 1,140 Hyundai = stow plan SSI blocks","Every deck and hatch matches the game plan hatch list (H4 → H1)","Deck 1 H3 = 57, confirmed by weight (96.9 KT ÷ 1.70)","Deck 4 H1 (4A) = 7 Kia per stow plan note","Only SSI cargo aboard (PHL already discharged)"]},
+"decks":[
+{"id":"UPP","label":"Upper","heights":[{"m":1.85,"current":true}],"hatches":[{"h":"H4","items":[{"brand":"Kia","qty":58}]},{"h":"H3","items":[{"brand":"Kia","qty":106}]},{"h":"H2","items":[{"brand":"Kia","qty":35}]}]},
+{"id":"D12","label":"D12","heights":[{"m":1.85,"current":true}],"hatches":[{"h":"H4","items":[{"brand":"Hyundai","qty":87}]},{"h":"H3","items":[{"brand":"Hyundai","qty":155}]},{"h":"H2","items":[{"brand":"Hyundai","qty":65},{"brand":"Kia","qty":78}]},{"h":"H1","items":[{"brand":"Kia","qty":72}]}]},
+{"id":"D9","label":"D9","heights":[{"m":2.00,"current":true},{"m":1.70,"current":false}],"hatches":[{"h":"H4","items":[{"brand":"Hyundai","qty":103}]},{"h":"H3","items":[{"brand":"Hyundai","qty":123}]},{"h":"H2","items":[{"brand":"Hyundai","qty":103}]},{"h":"H1","items":[{"brand":"Hyundai","qty":69}]}]},
+{"id":"D8","label":"D8","heights":[{"m":4.00,"current":false},{"m":2.30,"current":false},{"m":2.00,"current":true}],"hatches":[{"h":"H4","items":[{"brand":"Hyundai","qty":70}]},{"h":"H3","items":[{"brand":"Hyundai","qty":89}]}]},
+{"id":"D7","label":"D7","heights":[{"m":2.00,"current":true},{"m":1.70,"current":false}],"hatches":[{"h":"H2","items":[{"brand":"Hyundai","qty":132}]},{"h":"H1","items":[{"brand":"Hyundai","qty":31}]}]},
+{"id":"D6","label":"D6","heights":[{"m":2.20,"current":true},{"m":2.00,"current":false},{"m":1.70,"current":false}],"hatches":[{"h":"Ramp","items":[{"brand":"Hyundai","qty":11}]}]},
+{"id":"D5","label":"D5","heights":[{"m":6.50,"current":false},{"m":4.40,"current":false},{"m":2.70,"current":false},{"m":2.20,"current":true}],"hatches":[{"h":"H2","items":[{"brand":"Hyundai","qty":84}]},{"h":"H1","items":[{"brand":"Hyundai","qty":18}]}]},
+{"id":"D4","label":"D4","heights":[{"m":2.20,"current":true},{"m":1.70,"current":false}],"hatches":[{"h":"H3","items":[{"brand":"Kia","qty":118}]},{"h":"H2","items":[{"brand":"Kia","qty":105}]},{"h":"H1","items":[{"brand":"Kia","qty":7}]}]},
+{"id":"D2","label":"D2","heights":[{"m":2.00,"current":true},{"m":1.70,"current":false}],"hatches":[{"h":"H3","items":[{"brand":"Kia","qty":41}]},{"h":"H2","items":[{"brand":"Kia","qty":85}]}]},
+{"id":"D1","label":"D1","heights":[{"m":4.00,"current":false},{"m":2.30,"current":false},{"m":2.00,"current":true}],"hatches":[{"h":"H3","items":[{"brand":"Kia","qty":57}]},{"h":"H2","items":[{"brand":"Kia","qty":67}]}]}
+]}

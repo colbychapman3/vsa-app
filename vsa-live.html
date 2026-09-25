@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VSA Live · Vessel Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F1EA;--card:#FFFFFF;--ink:#15171A;--muted:#4A4F57;--line:#D9D3C7;--soft:#E6E0D4;--row:#EFEAE0;
+  --blue:#1D4ED8;--on-blue:#FFFFFF;--orange:#B45309;--on-orange:#FFFFFF;--o-bg:#FFF7ED;--o-ink:#7C2D12;
+  --red:#B91C1C;--r-bg:#FEE2E2;--r-ink:#7F1D1D;--green:#15803D;--g-bg:#DCFCE7;--g-ink:#14532D;
+  --head:#15171A;--head-ink:#F4F1EA;--head-muted:#D6D1C6;--accent:#FDBA74;--done:#5A5F66;
+  --display:'Barlow Condensed','Arial Narrow',sans-serif;--body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:84px}
+header.top{background:var(--head);color:var(--head-ink);padding:18px 20px 16px;display:flex;flex-direction:column;gap:6px}
+.top-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chip{font-size:12px;font-weight:600;padding:4px 8px;border-radius:4px}
+.chip.live{background:var(--accent);color:#15171A}
+.chip.off{background:var(--soft);color:var(--ink)}
+h1{margin:0;font-family:var(--display);font-weight:700;font-size:32px;line-height:1.05}
+.sub{font-size:14px;color:var(--head-muted)}
+.strip{background:var(--card);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:14px}
+.strip .r{margin-left:auto;color:var(--muted)}
+.strip strong{color:var(--ink);font-weight:600}
+.alert{padding:12px 20px;display:flex;flex-direction:column;gap:2px;border-bottom:3px solid}
+.alert b{font-size:15px;font-weight:600}
+.alert span{font-size:14px}
+.alert.o{background:var(--o-bg);border-color:var(--orange);color:var(--o-ink)}
+.alert.r{background:var(--r-bg);border-color:var(--red);color:var(--r-ink)}
+.alert.brk{background:var(--accent);border-color:var(--accent);color:#15171A;flex-direction:row;justify-content:space-between;align-items:center}
+.alert.brk b{font-family:var(--display);font-size:22px;letter-spacing:.04em}
+main{padding:20px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
+.pad{padding:18px 20px}
+.lbl{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
+.big{font-family:var(--display);font-weight:700;line-height:.9}
+.hero-n{font-size:112px}
+.bar{height:14px;background:var(--soft);border-radius:7px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--ink);border-radius:7px}
+.bar.sm{height:8px}.bar.sm>i{background:var(--blue)}
+.kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:15px}
+.kv .k{color:var(--muted)}
+.hr{border-top:1px solid var(--soft);margin-top:6px;padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{padding:16px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;text-align:left;cursor:pointer}
+.tile.fc{border:2px solid var(--orange)}
+.tile.fc.dash{border-style:dashed}
+.tag{align-self:flex-start;font-size:11px;font-weight:600;letter-spacing:.08em;padding:3px 6px;border-radius:4px}
+.tag.fc{background:var(--orange);color:var(--on-orange)}
+.tag.calc{background:var(--soft);color:var(--ink)}
+.tag.bad{background:var(--r-ink);color:var(--card)}
+.tile .v{font-size:56px}
+.note{font-size:13px;color:var(--muted);line-height:1.4}
+.link{font-size:13px;font-weight:600;color:var(--blue);margin-top:2px}
+h2{margin:0;font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:.02em}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.sec-h span{font-size:14px;color:var(--muted)}
+.banner{background:var(--head);color:var(--head-ink);border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.banner .big{font-size:36px}
+.rows{display:flex;flex-direction:column;overflow:hidden}
+.row{padding:12px 16px;border-bottom:1px solid var(--row);display:flex;flex-direction:column;gap:8px}
+.row:last-child{border-bottom:0}
+.rowbtn{background:none;border:0;border-bottom:1px solid var(--row);width:100%;text-align:left;cursor:pointer;min-height:56px}
+.rowbtn:last-child{border-bottom:0}
+.line{display:flex;align-items:center;gap:12px}
+.dn{width:56px;font-family:var(--display);font-weight:700;font-size:26px}
+.rn{margin-left:auto;text-align:right}
+.rn .big{font-size:26px}
+.rn small{font-size:14px;color:var(--muted)}
+.pill{font-size:12px;font-weight:600;letter-spacing:.03em;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.p-active{background:var(--blue);color:var(--on-blue)}
+.p-paused{background:var(--o-bg);color:var(--o-ink);border:1.5px solid var(--orange);padding:3px 9px}
+.p-not{border:1.5px solid var(--ink);padding:3px 9px}
+.p-done{background:var(--soft);color:var(--muted)}
+.p-unk{border:1.5px dashed var(--muted);color:var(--muted);padding:3px 9px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.bchip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px}
+.st-ok{display:inline-flex;align-items:center;gap:6px;background:var(--g-bg);color:var(--g-ink);border:1.5px solid var(--green);border-radius:999px;padding:4px 10px 4px 6px;font-size:12px;font-weight:600}
+.st-bad{display:inline-flex;align-items:center;gap:6px;background:var(--r-bg);color:var(--r-ink);border:1.5px solid var(--red);border-radius:999px;padding:4px 10px 4px 6px;font-size:12px;font-weight:600}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--head);display:flex;justify-content:center;padding:0 8px calc(8px + env(safe-area-inset-bottom,0px));z-index:5}
+nav.tabs .in{max-width:560px;width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+nav.tabs button{background:none;border:0;border-top:3px solid transparent;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--head-muted);font-size:12px;font-weight:600;cursor:pointer}
+nav.tabs button[aria-current="page"]{color:var(--accent);border-top-color:var(--accent)}
+.fab{position:fixed;right:max(16px,calc(50% - 264px));bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--blue);color:var(--on-blue);border:0;border-radius:999px;min-height:56px;padding:0 22px;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;cursor:pointer;z-index:6;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 20px calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.sh-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.x{background:var(--soft);border:0;border-radius:999px;min-width:44px;min-height:44px;cursor:pointer;font-size:18px}
+.seg{display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(0,1fr))}
+.seg button{min-height:48px;border:1.5px solid var(--line);background:var(--card);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
+label.f input,label.f select{min-height:52px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);padding:0 14px;font-size:20px;font-weight:500}
+.fr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.go{min-height:56px;border:0;border-radius:12px;background:var(--blue);color:var(--on-blue);font-size:17px;font-weight:600;cursor:pointer}
+.go:disabled{opacity:.5;cursor:default}
+.ghost{min-height:48px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font-size:15px;font-weight:600;cursor:pointer}
+.trk{align-self:flex-start;margin-top:8px;min-height:40px;padding:0 12px;border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.pos{color:var(--red);font-weight:600}
+.err{background:var(--r-bg);color:var(--r-ink);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500}
+.ok{background:var(--g-bg);color:var(--g-ink);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500}
+table.t{width:100%;border-collapse:collapse;font-size:15px}
+table.t th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.06em;padding:6px 0}
+table.t td{padding:8px 0;border-top:1px solid var(--row)}
+.num{text-align:right}
+.red-h{color:var(--red);font-weight:600}
+.scroll{overflow-x:auto}
+.empty{padding:28px 20px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div id="view"></div>
+</div>
+<nav class="tabs" aria-label="Sections"><div class="in" id="tabs"></div></nav>
+<div id="fab"></div>
+<div id="sheet"></div>
+<script>
+(function(){
+'use strict';
+/* ---------- state ---------- */
+var S={db:null,user:null,canWrite:null,readOnly:false,connected:false,loaded:{},
+  baseline:null,plan:{},decks:{},hourly:{},ops:{},clerk:{entries:[]},issues:{items:[]},rechk:{},demo:false,real:null,hview:'list',tab:'snap',sheet:null,err:null};
+
+/* ---------- helpers ---------- */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fmt(n){return n==null||isNaN(n)?'—':Number(n).toLocaleString('en-US');}
+function toMin(hm){if(!hm)return null;var p=String(hm).split(':');return (+p[0])*60+(+p[1]||0);}
+function toHM(m){if(m==null)return '—';var d=Math.floor(m/1440);m=((m%1440)+1440)%1440;var h=Math.floor(m/60),mm=Math.round(m%60);if(mm===60){h+=1;mm=0;}var s=(h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;return d>0?s+' +'+d+'d':s;}
+function nowMin(){var d=new Date();return d.getHours()*60+d.getMinutes();}
+function nowHM(){return toHM(nowMin());}
+function iso(){return new Date().toISOString();}
+function pct(a,b){return b?(a/b*100):null;}
+function ico(name,col){var P={
+ snap:'<path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4-5"/>',
+ decks:'<path d="M12 4l8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4"/><path d="M4 16l8 4 8-4"/>',
+ hourly:'<path d="M5 20V12"/><path d="M10 20V6"/><path d="M15 20V10"/><path d="M20 20V4"/>',
+ plan:'<path d="M12 21s-6-5.5-6-10a6 6 0 0 1 12 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+ chev:'<path d="M9 5l7 7-7 7"/>'};
+ return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+(col||'currentColor')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+P[name]+'</svg>';}
+var OK_DOT='<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="currentColor"/><path d="M5 9.5l2.6 2.5L13 6.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var BAD_DOT='<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="9" fill="currentColor"/><path d="M9 4.5v5.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="13" r="1.2" fill="#fff"/></svg>';
+
+/* ---------- calculations (protocol v1.1 / instructions v2.1) ---------- */
+function deckCalc(d,st){
+  st=st||{};var status=st.status||'notStarted';
+  var hatches=d.hatches.map(function(h){
+    var qty=h.items.reduce(function(s,i){return s+i.qty;},0),rem;
+    if(status==='complete')rem=0;else if(status==='notStarted')rem=qty;
+    else{var v=st.hatchRemaining?st.hatchRemaining[h.h]:undefined;rem=(typeof v==='number')?v:null;}
+    return {h:h.h,items:h.items,qty:qty,rem:rem};});
+  var start=hatches.reduce(function(s,h){return s+h.qty;},0),rem;
+  if(status==='complete')rem=0;else if(status==='notStarted')rem=start;
+  else if(status==='unknown')rem=null;
+  else if(hatches.every(function(h){return h.rem!=null;}))rem=hatches.reduce(function(s,h){return s+h.rem;},0);
+  else if(typeof st.deckRemaining==='number')rem=st.deckRemaining;
+  else rem=null;
+  var bs={},br={};
+  hatches.forEach(function(h){h.items.forEach(function(i){bs[i.brand]=(bs[i.brand]||0)+i.qty;});});
+  var brands=Object.keys(bs);
+  if(rem===0)brands.forEach(function(b){br[b]=0;});
+  else if(rem===start)brands.forEach(function(b){br[b]=bs[b];});
+  else if(rem==null)brands.forEach(function(b){br[b]=null;});
+  else if(brands.length===1)br[brands[0]]=rem;
+  else{var ok=true;brands.forEach(function(b){br[b]=0;});
+    hatches.forEach(function(h){
+      if(h.rem==null){ok=false;return;}
+      if(h.items.length===1)br[h.items[0].brand]+=h.rem;
+      else if(h.rem===0){}
+      else if(h.rem===h.qty)h.items.forEach(function(i){br[i.brand]+=i.qty;});
+      else ok=false;});
+    if(!ok)brands.forEach(function(b){br[b]=null;});}
+  return {id:d.id,label:d.label,heights:d.heights||[],status:status,hatches:hatches,start:start,rem:rem,brandRem:br,brandStart:bs,st:st};
+}
+var BRK=60,VAN_MIN=1.85;
+function heightInfo(d){
+  var hs=(d.heights||[]).slice(),st=(S.decks&&S.decks[d.id])||{},conf=st.heightConfirmed||null;
+  var stow=hs.filter(function(x){return x.current;})[0]||null;
+  var cur=conf?conf.m:(stow?stow.m:null);
+  var canLower=hs.some(function(x){return x.m<VAN_MIN;});
+  var level=cur==null?'unknown':cur<VAN_MIN?'hard':(!conf&&canLower)?'soft':'ok';
+  return {cur:cur,conf:conf,stow:stow,heights:hs,canLower:canLower,level:level,
+    lowest:hs.reduce(function(m,x){return m==null||x.m<m?x.m:m;},null)};}
+function hid(day,hm){return (day>1?'d'+day:'')+'p'+hm.replace(':','');}
+function curDay(){return (S.ops&&S.ops.day)||1;}
+function dayStartMin(day){var B=S.baseline||{};return day>1?toMin((S.plan&&S.plan.nextStart)||B.start||'08:00'):toMin(B.start||'08:00');}
+function dayHM(abs){var d=Math.floor(abs/1440);return (d>0?'Day '+(d+1)+' · ':'')+toHM(abs-d*1440);}
+function isShort(startHM,breaks){var s=toMin(startHM);return breaks.some(function(b){return b===s+60;});}
+function compute(){
+  var B=S.baseline;if(!B||!B.decks)return null;
+  var breaks=(B.breaks||[]).map(toMin).sort(function(a,b){return a-b;});
+  var dests=B.destinations||[];
+  var cb=dests.reduce(function(m,d){return Math.max(m,d.clearBy||0);},0);
+  var decks=B.decks.map(function(d){var c=deckCalc(d,S.decks[d.id]);c.hi=heightInfo(d);return c;});
+  var start=decks.reduce(function(s,d){return s+d.start;},0);
+  var known=decks.every(function(d){return d.rem!=null;});
+  var vRem=known?decks.reduce(function(s,d){return s+d.rem;},0):null;
+  var progress=vRem==null?null:start-vRem;
+  var missing=decks.filter(function(d){return d.rem==null;}).map(function(d){return d.label;});
+  var periods=Object.keys(S.hourly).map(function(k){var h=S.hourly[k];if(h)h.day=h.day||1;return h;}).filter(function(h){return h&&typeof h.count==='number';})
+    .sort(function(a,b){return (a.day-b.day)||(toMin(a.start)-toMin(b.start));});
+  var prevP=null,prevS=false,prevD=1;periods.forEach(function(p){if(p.day!==prevD){prevP=null;prevS=false;prevD=p.day;}p.short=isShort(p.start,breaks);
+    p.min=p.short?(typeof p.stopMin==='number'?p.stopMin:null):60;
+    p.pace=p.min?p.count/(p.min/60):null;
+    p.delta=(prevP==null||p.pace==null)?null:p.pace-prevP;p.deltaPct=(prevP&&p.pace!=null)?((p.pace-prevP)/prevP*100):null;
+    p.deltaPaced=p.short||prevS;prevP=p.pace;prevS=p.short;});
+  var kp=periods.filter(function(p){return p.min!=null;});
+  var prodMin=kp.reduce(function(t,p){return t+p.min;},0),prodCount=kp.reduce(function(t,p){return t+p.count;},0);
+  var pace=prodMin?prodCount/(prodMin/60):null;
+  var unsetShort=periods.filter(function(p){return p.short&&p.min==null;}).map(function(p){return p.start;});
+  var field=periods.reduce(function(s,p){return s+p.count;},0);
+  var transit=progress==null?null:progress-field;
+  var ha=periods.length?field/periods.length:null;
+  // brands
+  var bStart={},bRem={},order=[];
+  decks.forEach(function(d){Object.keys(d.brandStart).forEach(function(b){
+    if(!(b in bStart)){bStart[b]=0;bRem[b]=0;order.push(b);}
+    bStart[b]+=d.brandStart[b];
+    if(bRem[b]!=null)bRem[b]=d.brandRem[b]==null?null:bRem[b]+d.brandRem[b];});});
+  var brands=order.map(function(b){return {name:b,start:bStart[b],rem:bRem[b]};});
+  var bField={},unsplit=0;
+  periods.forEach(function(p){if(p.brands&&typeof p.brands==='object'){Object.keys(p.brands).forEach(function(b){bField[b]=(bField[b]||0)+p.brands[b];});}else unsplit+=p.count;});
+  brands.forEach(function(b){b.field=bField[b.name]||0;b.fieldExact=unsplit===0;b.cleared=b.rem==null?null:b.start-b.rem;b.diff=(b.fieldExact&&b.cleared!=null)?b.field-b.cleared:null;});
+  var brandsLeft=brands.filter(function(b){return b.rem==null||b.rem>0;}).length;
+  // ETA (forecast)
+  var basisRem=vRem!=null?vRem:(start-field);
+  var eta=etaCalc(basisRem,periods,breaks,cb);
+  eta.basisKind=vRem!=null?'vessel':'field';
+  var ops=S.ops||{};
+  return {B:B,breaks:breaks,cb:cb,decks:decks,start:start,vRem:vRem,progress:progress,missing:missing,
+    periods:periods,field:field,transit:transit,ha:ha,brands:brands,brandsLeft:brandsLeft,eta:eta,
+    fieldBal:start-field,onBreak:!!ops.onBreak,shiftEnded:!!ops.shiftEnded,recon:!!(ops.onBreak||ops.shiftEnded),day:ops.day||1,ops:ops,unsplit:unsplit,pace:pace,prodMin:prodMin,unsetShort:unsetShort,
+    drivers:(function(){for(var i=periods.length-1;i>=0;i--){if(typeof periods[i].drivers==='number'&&periods[i].drivers>0)return {n:periods[i].drivers,src:'logged '+periods[i].start};}
+      var L=B.labor||{};return typeof L.autoDrivers==='number'?{n:L.autoDrivers,src:'labor order'}:null;})(),
+    issues:(S.issues.items||[]).filter(function(i){return i.status==='open';})};
+}
+function etaCalc(rem,periods,breaks,cb){
+  var out={eta:null,rate:null,k:0,from:null,reason:null};
+  if(rem===0){out.reason='done';return out;}
+  if(!periods.length){out.reason='Needs production data';return out;}
+  var use=periods.filter(function(p){return p.pace!=null;}).slice(-2);
+  if(!use.length){out.reason='Set the stoppage time on the short hour';return out;}
+  var rate=use.reduce(function(s,p){return s+p.pace;},0)/use.length;
+  out.rate=rate;out.k=use.length;
+  if(!(rate>0)){out.reason='Recent rate is zero';return out;}
+  var plan=S.plan||{},endD1=plan.shiftEnd?toMin(plan.shiftEnd):null;
+  var last=periods[periods.length-1],t=((last.day||1)-1)*1440+toMin(last.start)+60,cd=curDay();
+  if(S.ops&&S.ops.shiftEnded)t=Math.max(t,cd*1440+dayStartMin(cd+1));
+  else if(S.ops&&S.ops.onBreak)t=Math.max(t,(cd-1)*1440+toMin(S.ops.breakStart)+BRK);
+  out.from=t;var need=rem/rate*60;
+  var d0=Math.floor(t/1440);
+  for(var d=d0;d<d0+4;d++){
+    var base=d*1440,ds=base+dayStartMin(d+1),de=(d===0&&endD1!=null)?base+endD1-cb:Infinity;
+    if(t<ds)t=ds;
+    var segs=[],cur=ds;breaks.forEach(function(b){segs.push([cur,base+b-cb]);cur=base+b+BRK;});segs.push([cur,Infinity]);
+    for(var i=0;i<segs.length;i++){var a1=Math.max(segs[i][0],t),z=Math.min(segs[i][1],de);if(z<=a1)continue;
+      var avail=z-a1;if(need<=avail){out.eta=a1+need;return out;}need-=avail;t=z;}
+    t=base+1440;}
+  out.reason='Beyond two days at this pace';return out;
+}
+window.__VSA_TEST__={deckCalc:deckCalc,etaCalc:etaCalc,isShort:isShort,S:S,compute:compute};
+
+/* ---------- rendering ---------- */
+function header(M,sub){
+  var B=M?M.B:null;
+  return '<header class="top"><div class="top-row"><span class="chip '+(S.demo?'live':S.connected?'live':'off')+'">'+(S.demo?'Demo':S.connected?'Live':'Connecting')+'</span>'+
+    '<span class="sub">'+(B?esc(B.port+' discharge · Berth '+B.berth):'')+'</span>'+
+    (B?'<button data-act="demo" style="margin-left:auto;min-height:36px;padding:0 12px;border-radius:999px;border:1.5px solid var(--head-muted);background:'+(S.demo?'var(--accent)':'transparent')+';color:'+(S.demo?'#15171A':'var(--head-ink)')+';font-size:12px;font-weight:600;cursor:pointer" aria-pressed="'+S.demo+'">'+(S.demo?'Exit demo':'Demo data')+'</button>':'')+'</div>'+
+    '<h1>'+(B?esc(B.vessel):'VSA Live')+'</h1><div class="sub">'+sub+'</div></header>'+
+    (S.demo?'<div class="alert o" style="border-bottom-width:3px"><b>Demo data · nothing is saved</b><span>Sample 14:00 mid-shift on this vessel’s real baseline. Tap Exit demo to return to live data.</span></div>':'');}
+function clearStrip(M){
+  if(M.recon)return '';
+  var n=nowMin(),b=M.breaks.filter(function(x){return x>n;})[0];
+  if(b==null)return '<div class="strip">'+ico('clock')+'<strong>No more scheduled breaks today</strong></div>';
+  var sides={};(M.B.destinations||[]).forEach(function(d){sides[d.side]=d.clearBy;});
+  var parts=[];if(sides.S!=null)parts.push('South <strong>'+toHM(b-sides.S)+'</strong>');if(sides.N!=null)parts.push('North <strong>'+toHM(b-sides.N)+'</strong>');
+  return '<div class="strip">'+ico('clock')+'<strong>Break '+toHM(b)+'</strong><span class="r">Clear-by '+parts.join(' · ')+'</span></div>';}
+function pill(s,sk){if(s==='notStarted'&&sk)return '<span class="pill p-paused">Skipped</span>';return {active:'<span class="pill p-active">Active</span>',paused:'<span class="pill p-paused">Paused</span>',
+  notStarted:'<span class="pill p-not">Not started</span>',complete:'<span class="pill p-done">'+ico('check')+'Complete</span>',
+  unknown:'<span class="pill p-unk">Unknown</span>'}[s]||'';}
+var SORT={active:0,paused:1,unknown:2,skipped:2.5,notStarted:3,complete:4};
+function sortKey(d){return d.status==='notStarted'&&d.st&&d.st.skipped?SORT.skipped:SORT[d.status];}
+function lastEntry(M){if(!M.periods.length)return null;var l=M.periods[M.periods.length-1];return (l.day>1?'Day '+l.day+' ':'')+toHM(toMin(l.start)+60);}
+
+function alertBox(cls,title,sub,M){
+  var key=title,tracked=M.issues.some(function(i){return i.key===key;});
+  return '<div class="alert '+cls+'"><b>'+esc(title)+'</b><span>'+esc(sub)+'</span>'+
+    (cls==='r'&&canEdit()?(tracked?'<span style="font-size:13px;font-weight:600;margin-top:6px">On the open discrepancy list</span>':'<button class="trk" data-act="track" data-key="'+esc(key)+'" data-text="'+esc(title+'. '+sub)+'">Track as open discrepancy</button>'):'')+'</div>';}
+function viewSnap(M){
+  var le=lastEntry(M);
+  var h=header(M,esc(M.B.date)+(le?' · Field counts through '+le:' · No counts yet'));
+  // alerts (only when triggered)
+  if(M.shiftEnded)h+='<div class="alert brk"><b>SHIFT ENDED</b><span>At '+esc(M.ops.shiftEnd)+' · Day '+(M.day+1)+' starts '+toHM(dayStartMin(M.day+1))+'</span></div>';
+  else if(M.onBreak)h+='<div class="alert brk"><b>ON BREAK</b><span>From '+esc(M.ops.breakStart)+'</span></div>';
+  if(M.field>M.start)h+=alertBox('r','Field count exceeds starting cargo by '+fmt(M.field-M.start),'Field '+fmt(M.field)+' · Starting '+fmt(M.start)+' · Check hourly entries',M);
+  if(M.recon){
+    if(M.transit==null)h+='<div class="alert o"><b>'+(M.shiftEnded?'End-of-shift':'Break')+' reconciliation waiting on deck counts</b><span>Add a remaining count for '+esc(M.missing.join(', '))+' to compare ship and field.</span></div>';
+    else if(M.transit<0)h+=alertBox('r',(M.shiftEnded?'End-of-shift reconciliation':'Break reconciliation')+': field exceeds ship by '+fmt(-M.transit),'Ship progress '+fmt(M.progress)+' · Field '+fmt(M.field)+' · These should match '+(M.shiftEnded?'at end of shift':'at break'),M);
+    else if(M.transit>0)h+=alertBox('r',(M.shiftEnded?'End-of-shift reconciliation':'Break reconciliation')+': ship is '+fmt(M.transit)+' ahead of field','Ship progress '+fmt(M.progress)+' · Field '+fmt(M.field)+' · No cars should be in transit '+(M.shiftEnded?'at end of shift':'at break'),M).replace('class="alert r"','class="alert o"');
+    else h+='<div class="alert" style="background:var(--g-bg);border-color:var(--green);color:var(--g-ink)"><b>'+(M.shiftEnded?'End-of-shift':'Break')+' reconciliation: ship and field match</b><span>Both at '+fmt(M.field)+'</span></div>';
+    M.brands.forEach(function(b){if(b.diff!=null&&b.diff!==0)h+=alertBox('r',(M.shiftEnded?'End-of-shift reconciliation':'Break reconciliation')+': '+b.name+' field '+(b.diff>0?'exceeds':'is short of')+' cleared by '+fmt(Math.abs(b.diff)),'Field '+fmt(b.field)+' · Cleared from ship '+fmt(b.cleared),M);});
+  }
+  var passed=M.eta.eta!=null&&M.vRem!==0&&!M.recon&&((M.day-1)*1440+nowMin())>M.eta.eta;
+  if(passed)h+='<div class="alert o"><b>Forecast passed · completion not reported</b><span>Log a count or update decks to refresh.</span></div>';
+  h+=clearStrip(M);
+  if(M.issues.length)h+='<button class="strip" data-tab="plan" style="width:100%;border:0;border-bottom:1px solid var(--line);cursor:pointer;text-align:left;color:var(--o-ink);background:var(--o-bg)"><span style="color:var(--orange);display:inline-flex">'+BAD_DOT+'</span><strong style="color:var(--o-ink)">'+M.issues.length+' open discrepanc'+(M.issues.length===1?'y':'ies')+'</strong><span class="r" style="color:var(--o-ink)">View ›</span></button>';
+  h+='<main>';
+  // hero
+  var known=M.vRem!=null,n=known?M.vRem:M.fieldBal,p=known?pct(M.progress,M.start):pct(M.field,M.start);
+  var clerk='';
+  if(M.recon){
+    var ce=(S.clerk.entries||[]).filter(function(e){return M.ops.startedAt&&e.loggedAt>=M.ops.startedAt;}).slice(-1)[0];
+    if(ce&&known){var d=ce.remaining-M.vRem;
+      clerk=d===0?'<span class="st-ok" style="color:var(--g-ink)"><span style="color:var(--green);display:inline-flex">'+OK_DOT+'</span>Matches clerk</span>'
+        :'<span class="st-bad"><span style="color:var(--red);display:inline-flex">'+BAD_DOT+'</span>Off by '+fmt(Math.abs(d))+'</span>';}
+  }
+  var heroColor='';
+  if(clerk){heroColor=clerk.indexOf('st-ok')>0?'color:var(--green)':'color:var(--red)';}
+  h+='<section class="card pad" style="display:flex;flex-direction:column;gap:10px">'+
+    '<div class="sec-h"><div class="lbl">'+(known?'VESSEL REMAINING':'FIELD BALANCE')+'</div>'+clerk+'</div>'+
+    '<div class="big hero-n" style="'+heroColor+'">'+fmt(n)+'</div>'+
+    '<div style="font-size:17px;font-weight:500">of '+fmt(M.start)+' autos · '+(p==null?'—':p.toFixed(1))+'% '+(known?'complete':'field-counted')+'</div>'+
+    '<div class="bar"><i style="width:'+(p||0)+'%"></i></div>';
+  if(M.recon){var ce2=(S.clerk.entries||[]).filter(function(e){return M.ops.startedAt&&e.loggedAt>=M.ops.startedAt;}).slice(-1)[0];
+    if(ce2&&known&&ce2.remaining!==M.vRem)h+='<div class="err">Discrepancy: '+fmt(Math.abs(ce2.remaining-M.vRem))+' autos · Chief clerk '+esc(ce2.time)+': '+fmt(ce2.remaining)+' · Yours: '+fmt(M.vRem)+'</div>';
+    else if(ce2&&known)h+='<div class="note" style="color:var(--g-ink)">Chief clerk at '+esc(ce2.time)+': '+fmt(ce2.remaining)+'</div>';
+    else if(ce2&&!known)h+='<div class="note">Chief clerk at '+esc(ce2.time)+': '+fmt(ce2.remaining)+' · can’t compare until every active deck has a remaining count</div>';
+    else h+='<div class="note">Chief clerk count not logged for this break.</div>';}
+  h+='<div class="hr">'+(known?'<div class="kv"><span class="k">Ship progress</span><strong>'+fmt(M.progress)+'</strong></div>':'')+
+    '<div class="kv"><span class="k">Field record</span><strong>'+fmt(M.field)+'</strong></div>';
+  if(M.transit!=null&&!M.recon){var dv=M.drivers;
+    if(M.transit<0)h+='<div class="note" style="color:var(--o-ink);font-weight:600">Field is '+fmt(-M.transit)+' ahead of ship progress · recheck deck counts; reconciles at break</div>';
+    else if(dv&&M.transit>dv.n)h+='<div class="note" style="color:var(--o-ink);font-weight:600">Gap '+fmt(M.transit)+' is more than '+dv.n+' drivers ('+esc(dv.src)+') · recheck counts</div>';
+    else h+='<div class="kv"><span class="k">Gap (in transit)</span><span><strong>'+fmt(M.transit)+'</strong>'+(dv?' <span class="note">of '+dv.n+' drivers</span>':'')+'</span></div>';}
+  if(!known)h+='<div class="note">Vessel remaining unknown · needs a remaining count on '+esc(M.missing.join(', '))+'</div>';
+  h+='</div></section>';
+  // tiles
+  var e=M.eta,etaTxt,etaNote,etaCls='tile card fc'+(e.eta==null?' dash':'');
+  if(M.vRem===0){etaTxt='0';etaNote='Nothing remaining on vessel';}
+  else if(e.eta!=null){etaTxt=(Math.floor(e.eta/1440)>0?'<span style="font-size:22px;display:block">Day '+(Math.floor(e.eta/1440)+1)+'</span>':'')+toHM(e.eta%1440);etaNote=fmt(M.eta.basisKind==='vessel'?M.vRem:M.fieldBal)+' ÷ '+Math.round(e.rate)+'/hr pace (last '+e.k+' hr)'+(M.eta.basisKind==='field'?'<br>Based on field balance':'');}
+  else{etaTxt='—';etaNote=esc(e.reason||'');}
+  h+='<div class="grid2"><section class="'+etaCls+'"><span class="tag fc">FORECAST</span><div class="lbl">EST. COMPLETION</div><div class="big v">'+etaTxt+'</div><div class="note">'+etaNote+'</div></section>'+
+    '<button class="tile card" data-tab="hourly" style="border:1px solid var(--line)"><span class="tag calc">CALCULATED</span><div class="lbl">AVG HOURLY (H.A.)</div>'+
+    '<div style="display:flex;align-items:baseline;gap:4px"><span class="big v">'+(M.ha==null?'—':Math.round(M.ha))+'</span>'+(M.ha==null?'':'<span style="font-size:16px;font-weight:500">/hr</span>')+'</div>'+
+    '<div class="note">'+(M.ha==null?'No counted hours yet':fmt(M.field)+' ÷ '+M.periods.length+' counted hr'+(M.pace!=null?'<br>Pace '+Math.round(M.pace)+'/hr over '+(M.prodMin/60).toFixed(2)+' productive hr':''))+'</div><span class="link">Hourly breakdown ›</span></button></div>';
+  // brands
+  h+='<section class="sec"><div class="sec-h"><h2>Remaining by brand</h2><span>'+fmt(known?M.vRem:null)+' autos</span></div>'+
+    '<div class="banner"><span class="big">'+M.brandsLeft+'</span><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">brands remaining</span><span style="font-size:13px;color:var(--head-muted)">of '+M.brands.length+' on this vessel · '+(M.brands.length-M.brandsLeft)+' finished</span></span></div>'+
+    '<div class="card rows">';
+  M.brands.forEach(function(b){var pp=b.rem==null?0:pct(b.rem,b.start);
+    h+='<div class="row"><div class="sec-h"><span style="font-size:16px;font-weight:600;color:var(--ink)">'+esc(b.name)+'</span><span><span class="big" style="font-size:28px;color:var(--ink)">'+fmt(b.rem)+'</span> of '+fmt(b.start)+'</span></div><div class="bar sm"><i style="width:'+pp+'%"></i></div></div>';});
+  h+='</div></section>';
+  // side split (starting from destinations; remaining when each brand goes to one side)
+  var sd={N:0,S:0},bSide={};
+  (M.B.destinations||[]).forEach(function(d){sd[d.side]=(sd[d.side]||0)+d.autos;(d.brands||[]).forEach(function(b){bSide[b]=bSide[b]&&bSide[b]!==d.side?'mixed':d.side;});});
+  function sideRem(side){var r=0;for(var i=0;i<M.brands.length;i++){var b=M.brands[i],x=bSide[b.name];if(x==='mixed')return null;if(x===side){if(b.rem==null)return null;r+=b.rem;}}return r;}
+  var tot=sd.N+sd.S,pn=tot?sd.N/tot*100:0;
+  function sideCol(label,side,pc,col){var st=sd[side],r=st?sideRem(side):0;
+    return '<div style="display:flex;flex-direction:column;gap:2px"><span class="lbl" style="color:'+col+'">'+label+'</span><span class="big" style="font-size:40px">'+pc.toFixed(1)+'%</span>'+
+      '<span class="note">'+(st?fmt(st)+' autos · '+(r==null?'remaining unknown':fmt(r)+' left'):'None to this side')+'</span></div>';}
+  h+='<section class="sec"><div class="sec-h"><h2>Side split</h2><span>'+(M.cb?'Clear-by −'+(sd.S?'30 S / ':'')+(sd.N?'15 N':''):'')+'</span></div>'+
+    '<div class="card pad" style="display:flex;flex-direction:column;gap:12px">'+
+    '<div style="display:flex;height:16px;border-radius:8px;overflow:hidden;gap:3px">'+(pn>0?'<div style="width:'+pn+'%;background:var(--blue)"></div>':'')+(pn<100?'<div style="width:'+(100-pn)+'%;background:var(--ink)"></div>':'')+'</div>'+
+    '<div class="grid2">'+sideCol('NORTHSIDE','N',pn,'var(--blue)')+sideCol('SOUTHSIDE','S',100-pn,'var(--ink)')+'</div></div></section></main>';
+  return h;}
+function deckRow(d,extra){
+  if(d.status==='complete')extra='<div class="note" style="padding-left:68px">Cleared '+Object.keys(d.brandStart).map(function(b){return fmt(d.brandStart[b])+' '+esc(b);}).join(' + ')+' · '+(d.st&&d.st.time?'at '+esc(d.st.time):'time not provided')+'</div>'+(extra||'');
+  return '<button class="rowbtn row" data-deck="'+esc(d.id)+'"><div class="line"><span class="dn">'+esc(d.label)+'</span>'+pill(d.status,d.st&&d.st.skipped)+
+   '<span class="rn"><span class="big" style="color:'+(d.status==='complete'?'var(--done)':'var(--ink)')+'">'+fmt(d.rem)+'</span><small> of '+fmt(d.start)+'</small></span>'+ico('chev','var(--muted)')+'</div>'+(extra||'')+'</button>';}
+
+function hchip(hi){
+  if(hi.cur==null)return '<span class="bchip">Height unknown</span>';
+  var m=hi.cur.toFixed(2)+' m';
+  if(hi.level==='hard')return '<span class="bchip" style="border-color:var(--red);background:var(--r-bg);color:var(--r-ink)"><strong>'+m+'</strong> · low deck, no vans</span>';
+  if(hi.level==='soft')return '<span class="bchip" style="border-color:var(--orange);background:var(--o-bg);color:var(--o-ink)"><strong>'+m+'</strong> · unconfirmed</span>';
+  return '<span class="bchip">Height <strong>'+m+'</strong>'+(hi.conf?' · confirmed':'')+'</span>';}
+function heightButtons(d){return '<span class="seg" style="width:100%;grid-template-columns:repeat('+Math.min(d.hi.heights.length,3)+',minmax(0,1fr))">'+
+  d.hi.heights.slice().sort(function(a,b){return b.m-a.m;}).map(function(x){return '<button data-act="confheight" data-id="'+esc(d.id)+'" data-m="'+x.m+'" aria-pressed="'+(d.hi.conf&&d.hi.conf.m===x.m)+'">Set at '+x.m.toFixed(2)+' m</button>';}).join('')+'</span>';}
+function viewDecks(M){
+  var h=header(M,'Working view · what’s left aboard, H4 → H1')+'<main>';
+  var hard=M.decks.filter(function(d){return d.hi.level==='hard'&&d.status!=='complete';}),pend=M.decks.filter(function(d){return d.hi.level==='soft'&&d.status!=='complete';});
+  h+='<section class="sec"><div class="sec-h"><h2>Deck insights</h2><span>Vans need '+VAN_MIN.toFixed(2)+' m or more</span></div>';
+  if(!hard.length)h+='<div class="card pad note">No low decks with cargo remaining.</div>';
+  hard.forEach(function(d){h+='<div class="alert r" style="border-radius:12px"><b>'+esc(d.label)+' is a low deck: '+d.hi.cur.toFixed(2)+' m · shuttle vans can’t drive on</b><span>'+(d.hi.conf?'Confirmed '+esc(d.hi.conf.hm||''):'Per stow plan')+' · '+(d.rem==null?'remaining count needed':fmt(d.rem)+' autos remaining')+'</span></div>';});
+  if(pend.length)h+='<button class="strip" data-tab="plan" style="width:100%;border:1px solid var(--line);border-radius:12px;cursor:pointer;text-align:left"><strong>'+pend.length+' deck height'+(pend.length===1?'':'s')+' unconfirmed</strong><span class="r">Confirm on Plan ›</span></button>';
+  h+='</section>';
+  h+='<section class="card rows">';
+  M.decks.forEach(function(d){
+    var ex='<div class="chips" style="padding-left:68px">'+hchip(d.hi)+
+      d.hatches.map(function(x){return '<span class="bchip"><strong>'+esc(x.h)+'</strong> '+x.items.map(function(i){return esc(i.brand)+' '+i.qty;}).join(' + ')+'</span>';}).join('')+'</div>';
+    var r=deckRow(d,ex);if(d.hi.level==='hard')r=r.replace('class="rowbtn row"','class="rowbtn row" style="background:var(--r-bg)"');h+=r;});
+  h+='</section><div class="note">Heights come from the stow plan (red = current setting) until confirmed on the Plan tab. Red rows are low decks.</div></main>';
+  return h;}
+
+function viewHourly(M){
+  var h=header(M,'Official field record · autos per hour')+'<main>';
+  h+='<section class="card pad" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">'+
+    stat('H.A.',M.ha==null?'—':Math.round(M.ha),fmt(M.field)+' ÷ '+M.periods.length+' hr')+stat('Pace',M.pace==null?'—':Math.round(M.pace),M.pace==null?'no productive time':'per productive hr')+stat('Total',fmt(M.field),'field count')+'</section>'+
+  (M.pace!=null?'<div class="note">Pace = '+fmt(M.prodMin?M.periods.filter(function(p){return p.min!=null;}).reduce(function(t,p){return t+p.count;},0):0)+' ÷ '+(M.prodMin/60).toFixed(2)+' productive hr. Pre-break hours count only the minutes worked before stoppage.</div>':'')+
+  (M.unsetShort.length?'<div class="alert o" style="border-radius:12px;border-bottom-width:3px"><b>Stoppage time not set for '+M.unsetShort.map(function(x){return toHM(toMin(x))+'–'+toHM(toMin(x)+60);}).join(', ')+'</b><span>That hour is left out of pace and ETA until you pick when production stopped.</span></div>':'');
+  h+='<section class="card pad sec"><h2>Field vs cleared by brand</h2><div class="scroll"><table class="t"><thead><tr><th>Brand</th><th class="num">Field</th><th class="num">Cleared</th><th class="num">Difference</th></tr></thead><tbody>'+
+    M.brands.map(function(b){var d=b.diff;return '<tr><td><strong>'+esc(b.name)+'</strong></td><td class="num">'+(b.fieldExact?'':'≥ ')+fmt(b.field)+'</td><td class="num">'+fmt(b.cleared)+'</td><td class="num">'+(d==null?'—':d>0?'<span class="pos">+'+fmt(d)+' field over</span>':d<0?fmt(-d)+' in transit':'0')+'</td></tr>';}).join('')+
+    '</tbody></table></div>'+(M.unsplit?'<div class="note">'+fmt(M.unsplit)+' autos were logged without a brand split, so brand field totals are minimums.</div>':'')+
+    '<div class="note">Cleared = starting minus remaining on vessel for that brand. Unknown until every deck holding that brand has a count.</div></section>';
+  if(!M.periods.length)h+='<div class="card empty">No hourly counts yet. Use <strong>Log</strong> to add the first hour.</div>';
+  else h+='<div class="seg" role="group" aria-label="Hourly view" style="grid-template-columns:repeat(2,minmax(0,1fr))"><button data-act="hview" data-v="list" aria-pressed="'+(S.hview==='list')+'">List</button><button data-act="hview" data-v="graph" aria-pressed="'+(S.hview==='graph')+'">Graph</button></div>';
+  if(M.periods.length&&S.hview==='graph')h+=hourGraph(M);
+  else if(M.periods.length){var max=Math.max.apply(null,M.periods.map(function(p){return p.count;}))||1;
+    h+='<section class="card rows">';
+    var multi=M.periods.some(function(p){return p.day>1;}),shownDay=0;
+    M.periods.forEach(function(p){var s=toMin(p.start);
+      if(multi&&p.day!==shownDay){shownDay=p.day;h+='<div style="padding:8px 16px;background:var(--soft);font-size:13px;font-weight:600">Day '+p.day+'</div>';}
+      h+='<div class="row"><div class="sec-h"><span style="font-size:15px;font-weight:600;color:var(--ink)">'+toHM(s)+'–'+toHM(s+60)+'</span><span class="big" style="font-size:28px;color:var(--ink)">'+fmt(p.count)+'</span></div>'+
+        '<div class="bar sm"><i style="width:'+(p.count/max*100)+'%"></i></div>';
+      var tags=[];
+      if(p.short){
+        var st=p.min!=null?'Stopped '+toHM(s+p.min)+' · '+p.min+' min worked · pace '+Math.round(p.pace)+'/hr':'Stoppage time not set';
+        tags.push('<span class="tag" style="border:1.5px solid var(--orange);color:var(--o-ink)">SHORT HOUR</span> <span class="note"'+(p.min==null?' style="color:var(--o-ink);font-weight:600"':'')+'>'+st+'</span>');
+        if(canEdit())tags.push('<span class="seg" style="width:100%;grid-template-columns:repeat(2,minmax(0,1fr))">'+[30,45].map(function(m){return '<button data-act="setstop" data-id="'+esc(hid(p.day,p.start))+'" data-min="'+m+'" aria-pressed="'+(p.min===m)+'">Stopped '+toHM(s+m)+'</button>';}).join('')+'</span>');}
+      if(p.history&&p.history.length)tags.push('<span class="tag" style="border:1.5px solid var(--blue);color:var(--blue)">CORRECTED</span> <span class="note">Was '+p.history.map(function(x){return fmt(x.count);}).join(' → ')+' · original kept</span>');
+      if(p.delta!=null)tags.push('<span class="note">'+(p.delta>=0?'+':'−')+fmt(Math.round(Math.abs(p.delta)))+(p.deltaPaced?'/hr pace':'')+' ('+(p.deltaPct>=0?'+':'−')+Math.abs(p.deltaPct).toFixed(1)+'%) vs prior hour</span>');
+      if(p.brands)tags.push('<span class="chips">'+Object.keys(p.brands).map(function(b){return '<span class="bchip"><strong>'+esc(b)+'</strong> '+fmt(p.brands[b])+'</span>';}).join('')+'</span>');
+      if(typeof p.drivers==='number'&&p.drivers>0)tags.push('<span class="note">'+p.drivers+' drivers · '+(p.count/p.drivers).toFixed(2)+' per driver</span>');
+      tags.forEach(function(t){h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+t+'</div>';});
+      h+='</div>';});
+    h+='</section>';}
+  h+='</main>';return h;}
+function hourGraph(M){
+  var P=M.periods,multi=P.some(function(p){return p.day>1;});
+  var vals=P.map(function(p){return p.pace!=null?p.pace:p.count;}),avg=M.pace;
+  var lo=Math.min.apply(null,vals.concat(avg!=null?[avg]:[])),hi=Math.max.apply(null,vals.concat(avg!=null?[avg]:[]));
+  var span=Math.max(hi-lo,20),raw=span*1.5/4,steps=[5,10,20,25,50,100],step=steps.filter(function(x){return x>=raw;})[0]||100;
+  lo=Math.max(0,Math.floor((lo-span*0.2)/step)*step);hi=Math.ceil((hi+span*0.25)/step)*step;var nT=Math.round((hi-lo)/step);
+  var W=340,H=220,L=36,R=26,T=16,Bm=40,iw=W-L-R,ih=H-T-Bm;
+  var pad=18;function x(i){return L+pad+(P.length===1?(iw-2*pad)/2:i*(iw-2*pad)/(P.length-1));}
+  function y(v){return T+ih-(v-lo)/(hi-lo)*ih;}
+  var g='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Hourly pace line graph" style="display:block;font-family:var(--body)">';
+  for(var k=0;k<=nT;k++){var v=lo+step*k,yy=y(v);g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'" stroke="var(--row)" stroke-width="1"/><text x="'+(L-6)+'" y="'+(yy+4)+'" text-anchor="end" font-size="11" fill="var(--muted)">'+Math.round(v)+'</text>';}
+  if(avg!=null)g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(avg)+'" y2="'+y(avg)+'" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>';
+  g+='<polyline fill="none" stroke="var(--blue)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" points="'+P.map(function(p,i){return x(i)+','+y(vals[i]);}).join(' ')+'"/>';
+  P.forEach(function(p,i){var cx=x(i),cy=y(vals[i]),sh=p.short;
+    g+='<circle cx="'+cx+'" cy="'+cy+'" r="5" fill="'+(sh?'var(--orange)':'var(--blue)')+'" stroke="var(--card)" stroke-width="2"/>'+
+      '<text x="'+cx+'" y="'+(cy-10)+'" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">'+p.count+'</text>'+
+      '<text x="'+cx+'" y="'+(H-Bm+16)+'" text-anchor="middle" font-size="11" fill="var(--muted)">'+(multi&&p.day>1?'D'+p.day+' ':'')+p.start.slice(0,2)+'</text>';});
+  g+='</svg>';
+  var hasShort=P.some(function(p){return p.short;});
+  return '<section class="card pad sec"><div class="sec-h"><h2>Hourly pace</h2><span>autos per hour</span></div>'+g+
+    '<div class="note">Numbers are each hour’s count; the line is its pace per full hour. Dashed line = average pace'+(avg!=null?' ('+Math.round(avg)+'/hr)':'')+'.'+(hasShort?' <span style="color:var(--o-ink);font-weight:600">Orange</span> = pre-break hour, pace adjusted for the stoppage.':'')+'</div></section>';}
+function stat(l,v,n){return '<div style="display:flex;flex-direction:column;gap:2px"><span class="lbl">'+l+'</span><span class="big" style="font-size:40px">'+v+'</span><span class="note">'+n+'</span></div>';}
+
+function viewPlan(M){
+  var B=M.B,h=header(M,esc(B.date)+' · Start '+esc(B.start))+'<main>';
+  var pend=M.decks.filter(function(d){return d.status!=='complete'&&(d.hi.level==='soft'||S.rechk[d.id]);}),
+    done=M.decks.filter(function(d){return d.hi.conf&&!S.rechk[d.id];});
+  if(pend.length||done.length){
+    h+='<section class="card pad sec"'+(pend.length?' style="border:2px solid var(--red)"':'')+'><div class="sec-h"><h2>Confirm deck heights</h2><span>'+(pend.length?pend.length+' to confirm':'All confirmed')+'</span></div>';
+    if(pend.length)h+='<div class="note">These decks can be set below '+VAN_MIN.toFixed(2)+' m, where shuttle vans can’t drive on. Pick each deck’s actual setting.</div>';
+    pend.forEach(function(d){h+='<div style="display:flex;flex-direction:column;gap:8px;padding:10px 0;border-top:1px solid var(--row)"><div class="sec-h"><strong style="font-size:17px">'+esc(d.label)+'</strong><span>Stow plan: '+(d.hi.stow?d.hi.stow.m.toFixed(2)+' m':'—')+'</span></div>'+(canEdit()?heightButtons(d):'<div class="note">Needs someone with edit access.</div>')+'</div>';});
+    if(done.length)h+='<div class="chips">'+done.map(function(d){return '<button class="bchip" style="cursor:pointer;'+(d.hi.level==='hard'?'border-color:var(--red);color:var(--r-ink);background:var(--r-bg)':'')+'" data-act="rechk" data-id="'+esc(d.id)+'">'+esc(d.label)+' '+d.hi.cur.toFixed(2)+' m ✓ · change</button>';}).join('')+'</div>';
+    h+='</section>';}
+  var all=(S.issues.items||[]),res=all.filter(function(i){return i.status==='resolved';}).slice(-5);
+  h+='<section class="card pad sec"><div class="sec-h"><h2>Open discrepancies</h2><span>'+M.issues.length+' open</span></div>'+
+    (M.issues.length?M.issues.map(function(i){return '<div class="row" style="padding:10px 0;border-bottom:1px solid var(--row)"><div style="font-size:15px;font-weight:600">'+esc(i.text)+'</div><div class="sec-h"><span class="note">Opened '+esc(i.openedHM||'')+'</span>'+(canEdit()?'<button class="ghost" style="min-height:44px;padding:0 14px" data-act="resolve" data-id="'+esc(i.id)+'">Mark resolved</button>':'')+'</div></div>';}).join(''):'<div class="note">Nothing open.</div>')+
+    (res.length?'<div class="note">Recently resolved: '+res.map(function(i){return esc(i.text)+' ('+esc(i.resolvedHM||'')+')';}).join(' · ')+'</div>':'')+'</section>';
+  var v=B.verification||{};
+  h+='<section class="card pad sec"><h2>Baseline &amp; data status</h2>'+
+    '<div class="kv"><span class="k">Starting autos</span><span><strong>'+fmt(M.start)+'</strong> · '+M.brands.map(function(b){return fmt(b.start)+' '+esc(b.name);}).join(' + ')+'</span></div>'+
+    '<div class="kv"><span class="k">High &amp; Heavy</span><span><strong>'+((B.hh||[]).length?fmt(B.hh.reduce(function(s,x){return s+x.qty;},0)):'0')+'</strong> · separate ledger</span></div>'+
+    '<div class="chips">'+(v.status==='verified'?'<span class="pill p-active" style="background:var(--ink);color:var(--bg)">'+ico('check')+'Totals verified</span>':'<span class="pill p-paused">Not verified</span>')+
+    '<span class="pill p-done">'+((v.discrepancies||[]).length)+' discrepancies</span>'+
+    ((v.missing||[]).length?'<span class="pill p-paused">Missing: '+esc(v.missing.join(', '))+'</span>':'<span class="pill p-done">Nothing missing</span>')+'</div>'+
+    ((v.checks||[]).length?'<ul style="margin:0;padding-left:18px;font-size:14px;color:var(--muted);line-height:1.45">'+v.checks.map(function(c){return '<li>'+esc(c)+'</li>';}).join('')+'</ul>':'')+
+    '<div class="note">Sources: '+esc((B.sources||[]).join('; '))+'</div></section>';
+  var L=B.labor||{};
+  h+='<section class="card pad sec"><h2>Labor</h2><div class="kv"><span class="k">Start</span><strong>'+esc(B.start)+'</strong></div>'+
+    '<div class="kv"><span class="k">Auto drivers (ordered)</span><strong>'+fmt(L.autoDrivers)+(L.gangs?' · '+L.gangs.join(' + '):'')+'</strong></div>'+
+    '<div class="kv"><span class="k">Van drivers</span><strong>'+fmt(L.vanDrivers)+'</strong></div><div class="kv"><span class="k">Heavy gang</span><strong>'+fmt(L.heavyGang)+'</strong></div>'+
+    '<div class="note">Labor order figures are ordered, not a confirmed shape-up.</div></section>';
+  var pl=S.plan||{};
+  h+='<section class="card pad sec"><h2>Forecast settings</h2>'+
+    '<div class="kv"><span class="k">Breaks</span><strong>'+M.breaks.map(toHM).join(' and ')+' · 1 hour each</strong></div>'+
+    '<div class="kv"><span class="k">Day 1 shift ends</span><strong>'+(pl.shiftEnd?esc(pl.shiftEnd):'Works until finished')+'</strong></div>'+
+    '<div class="kv"><span class="k">Next day starts</span><strong>'+toHM(dayStartMin(2))+'</strong></div>'+
+    '<div class="note">Set a shift end when the ship carries over to a second day. The ETA then resumes the next morning.</div>'+
+    (canEdit()?'<button class="ghost" data-act="shiftset">Change shift settings</button>':'')+'</section>';
+  var tot=0,n=0;(B.destinations||[]).forEach(function(d){tot+=d.autos;if(d.side==='N')n+=d.autos;});
+  var pn=pct(n,tot)||0;
+  h+='<section class="card pad sec"><div class="sec-h"><h2>Side split</h2><span>Calculated from destinations</span></div>'+
+    '<div style="display:flex;height:16px;border-radius:8px;overflow:hidden;gap:3px">'+(pn>0?'<div style="width:'+pn+'%;background:var(--blue)"></div>':'')+(pn<100?'<div style="width:'+(100-pn)+'%;background:var(--ink)"></div>':'')+'</div>'+
+    '<div class="grid2"><div>'+stat('Northside',pn.toFixed(1)+'%',fmt(n)+' autos')+'</div><div>'+stat('Southside',(100-pn).toFixed(1)+'%',fmt(tot-n)+' autos')+'</div></div></section>';
+  h+='<section class="sec"><h2>Destinations from Berth '+esc(B.berth)+'</h2><div class="card rows">';
+  (B.destinations||[]).forEach(function(d){
+    h+='<div class="row"><div class="sec-h"><span style="font-size:16px;font-weight:600;color:var(--ink)">'+esc(d.name)+' · '+(d.side==='N'?'Northside':'Southside')+'</span><span class="big" style="font-size:26px;color:var(--ink)">'+fmt(d.autos)+'</span></div>'+
+      '<div class="note">'+esc((d.brands||[]).join(' + '))+' · <strong style="color:var(--ink)">'+Number(d.mi).toFixed(2)+' mi</strong> · '+esc(d.ref||'no reference time')+' · clear-by −'+d.clearBy+' min</div></div>';});
+  h+='</div><div class="note">Miles: measured route distances (Protocol App. D). Reference times: cycle scope (one-way vs round trip) unspecified.</div></section>';
+  var log=(S.ops.log||[]);
+  h+='<section class="card pad sec"><h2>Break log</h2>'+(log.length?log.map(function(b){return '<div class="kv"><span class="k">Break</span><strong>'+esc(b.start)+'–'+esc(b.end)+'</strong></div>';}).join(''):'<div class="note">No breaks logged yet.</div>')+'</section>';
+  h+='</main>';return h;}
+
+function render(){
+  var M=null;try{M=compute();}catch(e){console.error(e);}
+  var v=document.getElementById('view');
+  if(!S.db){v.innerHTML=header(null,'')+'<main><div class="card empty">'+(S.err||'Connecting to live vessel data…')+'</div></main>';}
+  else if(!M){v.innerHTML=header(null,'')+'<main><div class="card empty">'+(S.loaded.baseline?'No vessel is loaded yet. Ask Claude to load the game plan.':'Loading vessel…')+'</div></main>';}
+  else v.innerHTML=S.tab==='decks'?viewDecks(M):S.tab==='hourly'?viewHourly(M):S.tab==='plan'?viewPlan(M):viewSnap(M);
+  var T=[['snap','Snapshot'],['decks','Decks'],['hourly','Hourly'],['plan','Plan']];
+  var act=M?M.decks.filter(function(d){return d.status!=='complete';}):[];
+  var cnt={decks:act.filter(function(d){return d.hi.level==='hard';}).length,plan:act.filter(function(d){return d.hi.level==='soft';}).length};
+  document.getElementById('tabs').innerHTML=T.map(function(t){var n=cnt[t[0]];var badge=n?' <span style="background:var(--red);color:#fff;border-radius:999px;padding:0 6px;font-size:11px">'+n+'</span>':'';
+    return '<button data-tab="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'>'+ico(t[0])+'<span>'+t[1]+badge+'</span></button>';}).join('');
+  document.getElementById('fab').innerHTML=(M&&canEdit())?'<button class="fab" data-act="log">'+ico('plus')+'Log</button>':'';
+}
+function canEdit(){return S.db&&!S.readOnly&&S.canWrite!==false&&!S.demo;}
+var DEMO_KEYS=['hourly','decks','ops','clerk','issues','plan'];
+function demoData(){return {
+  plan:{nextStart:'08:00',shiftEnd:null},
+  ops:{day:1,onBreak:false,log:[{start:'12:00',end:'13:00'}]},
+  clerk:{entries:[{remaining:1039,time:'12:05',loggedAt:'demo'}]},
+  issues:{items:[{id:'d1',text:'Field Hyundai +8 vs Hyundai cleared at lunch reconciliation',openedHM:'12:10',status:'open'},
+    {id:'d2',text:'Deck 12 H2 count disagreed with checker',openedHM:'10:20',status:'resolved',resolvedHM:'10:45'}]},
+  hourly:{
+    p0800:{start:'08:00',day:1,count:253,brands:{Hyundai:200,Kia:53},drivers:70},
+    p0900:{start:'09:00',day:1,count:266,brands:{Hyundai:216,Kia:50},drivers:70},
+    p1000:{start:'10:00',day:1,count:225,brands:{Hyundai:171,Kia:54},drivers:68},
+    p1100:{start:'11:00',day:1,count:186,brands:{Hyundai:120,Kia:66},drivers:68,stopMin:45},
+    p1300:{start:'13:00',day:1,count:248,drivers:68},
+    p1400:{start:'14:00',day:1,count:241,drivers:70,history:[{count:235}]}},
+  decks:{
+    UPP:{status:'complete',time:'13:40'},D12:{status:'complete',time:'10:40'},D8:{status:'complete',time:'09:15'},
+    D6:{status:'complete',time:'08:30'},D5:{status:'complete',time:'09:50'},D4:{status:'complete',time:'14:20'},
+    D2:{status:'complete',time:''},
+    D1:{status:'active',hatchRemaining:{H3:0,H2:30},time:'14:55'},
+    D9:{status:'active',hatchRemaining:{H4:24,H3:123,H2:103,H1:69},time:'14:50'},
+    D7:{status:'notStarted',skipped:true,heightConfirmed:{m:1.7,hm:'08:05'}}}};}
+function setDemo(on){
+  if(on===S.demo)return;
+  if(on){S.real={};DEMO_KEYS.forEach(function(k){S.real[k]=S[k];});var d=demoData();DEMO_KEYS.forEach(function(k){S[k]=d[k];});S.demo=true;}
+  else{DEMO_KEYS.forEach(function(k){S[k]=S.real[k];});S.real=null;S.demo=false;}
+  closeSheet();render();}
+
+/* ---------- sheets ---------- */
+function openSheet(kind,arg){S.sheet={kind:kind,arg:arg,sub:arg&&arg.sub||'hour'};renderSheet();}
+function closeSheet(){S.sheet=null;document.getElementById('sheet').innerHTML='';}
+function renderSheet(msg){
+  var el=document.getElementById('sheet');if(!S.sheet){el.innerHTML='';return;}
+  var M=compute();if(!M){closeSheet();return;}
+  var k=S.sheet.kind,h='';
+  if(k==='deck'){var d=M.decks.filter(function(x){return x.id===S.sheet.arg.id;})[0];h=deckSheet(d);}
+  else if(k==='log')h=logSheet(M);
+  else if(k==='shift'){var pl=S.plan||{};h='<div class="sh-h"><h2>Shift settings</h2><button class="x" data-act="close" aria-label="Close">✕</button></div>'+
+    '<div class="seg" id="f-mode" style="grid-template-columns:repeat(2,minmax(0,1fr))"><button data-mode="one" aria-pressed="'+(!pl.shiftEnd)+'">Finish today</button><button data-mode="two" aria-pressed="'+(!!pl.shiftEnd)+'">Carries to Day 2</button></div>'+
+    '<div class="fr"><label class="f">Day 1 shift ends<input id="f-se" type="time" value="'+esc(pl.shiftEnd||'18:00')+'"></label><label class="f">Next day starts<input id="f-ns" type="time" value="'+esc(pl.nextStart||'08:00')+'"></label></div>'+
+    '<button class="go" data-act="save-shift">Save shift settings</button>';}
+  el.innerHTML='<div class="sheet-bg" data-act="bg"><div class="sheet" role="dialog" aria-modal="true">'+h+(msg?msg:'')+'</div></div>';
+  var f=el.querySelector('input,select');if(f&&k!=='log')f.focus();
+  var per=document.getElementById('f-per');if(per){per.addEventListener('change',stopUI);stopUI();}
+}
+function stopUI(){
+  var M=compute(),per=document.getElementById('f-per'),w=document.getElementById('f-stopwrap'),g=document.getElementById('f-stop');if(!per||!w)return;
+  var s=toMin(per.value),sh=M.breaks.indexOf(s+60)>=0;w.style.display=sh?'flex':'none';if(!sh){g.innerHTML='';return;}
+  var ex=S.hourly[hid(curDay(),per.value)],sides={};(M.B.destinations||[]).forEach(function(d){sides[d.side]=1;});
+  var def=ex&&typeof ex.stopMin==='number'?ex.stopMin:(sides.N&&!sides.S?45:(sides.S&&!sides.N?30:null));
+  g.innerHTML=[30,45].map(function(m){return '<button data-stop="'+m+'" aria-pressed="'+(def===m)+'">Stopped '+toHM(s+m)+'</button>';}).join('');}
+function logSheet(M){
+  var sub=S.sheet.sub,h='<div class="sh-h"><h2>Log</h2><button class="x" data-act="close" aria-label="Close">✕</button></div>';
+  var subs=[['hour','Hourly count'],['deck','Deck'],['break',M.onBreak?'End break':M.shiftEnded?'Next day':'Break / shift'],['clerk','Clerk count'],['issue','Discrepancy']];
+  h+='<div class="seg" role="group" aria-label="Log type" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+subs.map(function(s){return '<button data-sub="'+s[0]+'" aria-pressed="'+(sub===s[0])+'">'+s[1]+'</button>';}).join('')+'</div>';
+  if(sub==='hour'){
+    var cd=curDay(),dp=M.periods.filter(function(p){return p.day===cd;});
+    var last=dp.length?toMin(dp[dp.length-1].start)+60:dayStartMin(cd);
+    if(M.breaks.indexOf(last)>=0)last=last+BRK;
+    var opts='';for(var m=dayStartMin(cd);m<=23*60;m+=60){opts+='<option value="'+toHM(m)+'"'+(m===last?' selected':'')+'>'+toHM(m)+'–'+toHM(m+60)+(S.hourly[hid(cd,toHM(m))]?' (correct)':'')+'</option>';}
+    h+='<label class="f">Hour'+(cd>1?' · Day '+cd:'')+'<select id="f-per">'+opts+'</select></label>'+
+      '<div class="fr"><label class="f">Autos counted this hour<input id="f-cnt" type="number" inputmode="numeric" min="0"></label><label class="f">Drivers (optional)<input id="f-drv" type="number" inputmode="numeric" min="0"></label></div>'+
+      '<div class="lbl">SPLIT BY BRAND (OPTIONAL)</div><div class="fr">'+M.brands.map(function(b){return '<label class="f">'+esc(b.name)+'<input data-bf="'+esc(b.name)+'" type="number" inputmode="numeric" min="0"></label>';}).join('')+'</div>'+
+      '<div id="f-stopwrap" style="display:none;flex-direction:column;gap:8px"><div class="lbl">PRE-BREAK HOUR · WHEN DID PRODUCTION STOP?</div><div class="seg" id="f-stop" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div></div>'+
+      '<div class="note">Enter the count for that hour only, not the running total. Re-entering an hour replaces it and keeps the old value.</div><button class="go" data-act="save-hour">Save hourly count</button>';}
+  else if(sub==='deck'){
+    h+='<div class="card rows">'+M.decks.map(function(d){return deckRow(d);}).join('')+'</div>';}
+  else if(sub==='break'){
+    if(M.shiftEnded)h+='<div class="note">Shift ended at '+esc(M.ops.shiftEnd)+'. Reconcile first, then start the next day.</div><label class="f">Day '+(M.day+1)+' starts at<input id="f-bt" type="time" value="'+toHM(dayStartMin(M.day+1))+'"></label><button class="go" data-act="next-day">Start Day '+(M.day+1)+'</button>';
+    else if(M.onBreak)h+='<div class="note">On break since '+esc(M.ops.breakStart)+'.</div><label class="f">Back to work at<input id="f-bt" type="time" value="'+nowHM()+'"></label><button class="go" data-act="end-break">Log break end</button>';
+    else{var n=nowMin(),nb=M.breaks.filter(function(x){return x>=n-60;})[0];
+      h+='<label class="f">Break started at<input id="f-bt" type="time" value="'+(nb!=null?toHM(nb):nowHM())+'"></label><button class="go" data-act="start-break">Log break start</button>'+
+        '<div class="hr"><label class="f">Shift ended at<input id="f-se2" type="time" value="'+esc((S.plan&&S.plan.shiftEnd)||'18:00')+'"></label><button class="ghost" data-act="end-shift">Log end of shift</button><div class="note">Starts end-of-shift reconciliation. No cars should be in transit.</div></div>';}}
+  else if(sub==='issue'){
+    h+='<label class="f">What doesn’t match<input id="f-it" type="text" maxlength="200" style="font-size:17px"></label><div class="note">Stays on the open list, visible to everyone, until someone marks it resolved.</div><button class="go" data-act="save-issue">Add to open discrepancies</button>';}
+  else if(sub==='clerk'){
+    h+='<div class="fr"><label class="f">Clerk’s vessel remaining<input id="f-cr" type="number" inputmode="numeric" min="0"></label><label class="f">Time<input id="f-ct" type="time" value="'+nowHM()+'"></label></div>'+
+      '<div class="note">'+(M.recon?'Shows as match or discrepancy on the snapshot during this reconciliation.':'Tip: log this during a break so it shows on the snapshot.')+'</div><button class="go" data-act="save-clerk">Save clerk count</button>';}
+  return h;}
+function deckSheet(d){
+  var st=d.st||{},hr=st.hatchRemaining||{};
+  var h='<div class="sh-h"><h2>'+esc(d.label)+' · '+fmt(d.start)+' autos</h2><button class="x" data-act="close" aria-label="Close">✕</button></div>'+
+    '<div class="line">'+pill(d.status,st.skipped)+'<span class="rn"><span class="big" style="font-size:30px">'+fmt(d.rem)+'</span><small> remaining</small></span></div>'+
+    '<div class="chips">'+hchip(d.hi)+'<span class="note">Possible: '+d.hi.heights.map(function(x){return x.m.toFixed(2);}).join(' / ')+' m</span></div>'+
+    '<div class="note">Deck heights are confirmed on the Plan tab.</div>';
+  if(canEdit()){
+    var S5=[['notStarted','Not started'],['active','Active'],['paused','Paused'],['complete','Complete'],['unknown','Unknown']];
+    h+='<div class="seg" role="group" aria-label="Deck status" id="f-st" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+S5.map(function(s){return '<button data-st="'+s[0]+'" aria-pressed="'+(d.status===s[0])+'">'+s[1]+'</button>';}).join('')+'</div>'+
+      '<label style="display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;font-weight:600"><input id="f-sk" type="checkbox" style="width:24px;height:24px"'+(st.skipped?' checked':'')+'>Skipped: passed over, still aboard (Not started only)</label>';
+    h+='<div class="lbl">REMAINING BY HATCH (H4 → H1) · leave blank if unknown</div><div class="fr">'+
+      d.hatches.map(function(x){var v=d.status==='active'||d.status==='paused'?(typeof hr[x.h]==='number'?hr[x.h]:''):'';
+        return '<label class="f">'+esc(x.h)+' · of '+x.qty+' <span class="note" style="font-weight:400">'+x.items.map(function(i){return esc(i.brand)+' '+i.qty;}).join(' + ')+'</span><input data-hatch="'+esc(x.h)+'" data-max="'+x.qty+'" type="number" inputmode="numeric" min="0" max="'+x.qty+'" value="'+v+'"></label>';}).join('')+'</div>'+
+      '<label class="f">Or deck total remaining<input id="f-dr" type="number" inputmode="numeric" min="0" max="'+d.start+'" value="'+(typeof st.deckRemaining==='number'&&(d.status==='active'||d.status==='paused')?st.deckRemaining:'')+'"></label>'+
+      '<label class="f">Time of this update (clear it if unknown)<input id="f-dt" type="time" value="'+nowHM()+'"></label>'+
+      '<div class="note">Complete sets remaining to 0 and records the cleared brands. Not started keeps the full count.</div><button class="go" data-act="save-deck" data-id="'+esc(d.id)+'">Save deck update</button>';
+  }else{
+    h+='<div class="card rows">'+d.hatches.map(function(x){return '<div class="row"><div class="sec-h"><strong>'+esc(x.h)+'</strong><span>'+fmt(x.rem)+' of '+x.qty+'</span></div><div class="note">'+x.items.map(function(i){return esc(i.brand)+' '+i.qty;}).join(' + ')+'</div></div>';}).join('')+'</div>';}
+  if(st.history&&st.history.length)h+='<div class="note">Previous: '+st.history.slice(-3).map(function(x){return esc(x.time||'')+' '+esc(x.status)+(typeof x.rem==='number'?' ('+x.rem+')':'');}).join(' · ')+'</div>';
+  return h;}
+
+/* ---------- writes ---------- */
+function intVal(id){var el=document.getElementById(id);if(!el||el.value==='')return null;var n=Number(el.value);return Number.isInteger(n)?n:NaN;}
+function fail(t){renderSheet('<div class="err">'+esc(t)+'</div>');}
+function writeErr(e){if(e&&e.code==='invalid_argument'){S.readOnly=true;render();fail('You have view-only access to this vessel.');}
+  else if(e&&e.code==='quota_exceeded')fail('Storage is full for this page. Tell the page owner.');
+  else fail('Not saved: '+((e&&e.message)||'connection problem')+'. Try again.');}
+function saveHour(){
+  var M=compute(),per=document.getElementById('f-per').value,c=intVal('f-cnt'),dr=intVal('f-drv');
+  if(c!=null&&(isNaN(c)||c<0))return fail('Enter the whole-number count for this hour.');
+  if(dr!=null&&(isNaN(dr)||dr<0))return fail('Drivers must be a whole number.');
+  var bf={},filled=0,bad=null;
+  document.querySelectorAll('[data-bf]').forEach(function(inp){if(inp.value==='')return;var n=Number(inp.value);
+    if(!Number.isInteger(n)||n<0)bad=inp.getAttribute('data-bf')+' must be a whole number.';else{bf[inp.getAttribute('data-bf')]=n;filled++;}});
+  if(bad)return fail(bad);
+  if(filled&&filled<M.brands.length)return fail('Fill every brand, or leave the split blank.');
+  var sum=filled?Object.keys(bf).reduce(function(t,k){return t+bf[k];},0):null;
+  if(c==null&&sum!=null)c=sum;
+  if(c==null)return fail('Enter the count for this hour.');
+  if(sum!=null&&sum!==c)return fail('Brand split adds to '+sum+' but the hour total is '+c+'. Fix one.');
+  var stopMin=null;if(M.breaks.indexOf(toMin(per)+60)>=0){var sb=document.querySelector('#f-stop button[aria-pressed="true"]');if(!sb)return fail('Pick when production stopped before the '+toHM(toMin(per)+60)+' break.');stopMin=+sb.getAttribute('data-stop');}
+  var cd=curDay(),id=hid(cd,per),prev=S.hourly[id];
+  var nf=M.field-(prev?prev.count:0)+c;
+  if(nf>M.start)return fail('This makes the field total '+fmt(nf)+', which exceeds starting cargo ('+fmt(M.start)+') by '+fmt(nf-M.start)+'. Check the count.');
+  var body={start:per,day:cd,count:c,drivers:dr,brands:filled?bf:null,stopMin:stopMin,loggedAt:iso(),
+    history:prev?(prev.history||[]).concat([{count:prev.count,brands:prev.brands||null,drivers:prev.drivers==null?null:prev.drivers,loggedAt:prev.loggedAt}]).slice(-10):[]};
+  S.db.doc('hourly/'+id).set(body).then(function(){closeSheet();},writeErr);}
+function setStop(id,m){S.db.doc('hourly/'+id).update({stopMin:m}).catch(function(e){if(e&&e.code==='invalid_argument'){S.readOnly=true;render();}});}
+function confHeight(id,m){var prev=S.decks[id]?JSON.parse(JSON.stringify(S.decks[id])):{status:'notStarted'};
+  prev.heightConfirmed={m:m,hm:nowHM(),loggedAt:iso()};delete S.rechk[id];
+  S.db.doc('decks/'+id).set(prev).then(function(){if(S.sheet&&S.sheet.kind==='deck')renderSheet();},function(e){if(e&&e.code==='invalid_argument'){S.readOnly=true;render();}});}
+function addIssue(text,key){
+  var items=(S.issues.items||[]).concat([{id:'i'+Date.now().toString(36),key:key||null,text:text,openedAt:iso(),openedHM:nowHM(),status:'open'}]).slice(-60);
+  return S.db.doc('ops/issues').set({items:items});}
+function saveIssue(){var t=(document.getElementById('f-it')||{}).value||'';t=t.trim();if(!t)return fail('Describe what doesn’t match.');
+  addIssue(t).then(function(){closeSheet();},writeErr);}
+function resolveIssue(id){var items=(S.issues.items||[]).map(function(i){return i.id===id?Object.assign({},i,{status:'resolved',resolvedAt:iso(),resolvedHM:nowHM()}):i;});
+  S.db.doc('ops/issues').set({items:items}).catch(function(e){openSheet('log',{sub:'issue'});writeErr(e);});}
+function saveDeck(id){
+  var M=compute(),d=M.decks.filter(function(x){return x.id===id;})[0];
+  var stBtn=document.querySelector('#f-st button[aria-pressed="true"]'),status=stBtn?stBtn.getAttribute('data-st'):d.status;
+  var hr={},bad=null;
+  document.querySelectorAll('[data-hatch]').forEach(function(inp){if(inp.value==='')return;var n=Number(inp.value),mx=+inp.getAttribute('data-max');
+    if(!Number.isInteger(n)||n<0)bad=inp.getAttribute('data-hatch')+' must be a whole number.';
+    else if(n>mx)bad=inp.getAttribute('data-hatch')+' exceeds its '+mx+' autos by '+(n-mx)+'. Check the count.';
+    else hr[inp.getAttribute('data-hatch')]=n;});
+  if(bad)return fail(bad);
+  var dr=intVal('f-dr');if(dr!=null&&(isNaN(dr)||dr<0))return fail('Deck total must be a whole number.');
+  if(dr!=null&&dr>d.start)return fail('Deck total exceeds '+d.label+'’s '+d.start+' autos by '+(dr-d.start)+'. Check the count.');
+  var hk=Object.keys(hr);
+  if(dr!=null&&hk.length===d.hatches.length){var sm=hk.reduce(function(s,k){return s+hr[k];},0);if(sm!==dr)return fail('Hatch counts add to '+sm+' but deck total says '+dr+'. Fix one.');}
+  if(status==='complete'||status==='notStarted'||status==='unknown'){hr={};dr=null;}
+  var t=(document.getElementById('f-dt')||{}).value||'';
+  var prev=S.decks[id];var hist=prev?(prev.history||[]).concat([{status:prev.status,rem:d.rem,time:prev.time||'',loggedAt:prev.loggedAt}]).slice(-10):[];
+  var sk=status==='notStarted'&&!!(document.getElementById('f-sk')||{}).checked;
+  S.db.doc('decks/'+id).set({heightConfirmed:(prev&&prev.heightConfirmed)||null,status:status,skipped:sk,hatchRemaining:hr,deckRemaining:dr,time:t,loggedAt:iso(),history:hist}).then(function(){closeSheet();},writeErr);}
+function startBreak(){var t=document.getElementById('f-bt').value;if(!t)return fail('Enter the break start time.');
+  var o=Object.assign({},S.ops);o.onBreak=true;o.breakStart=t;o.startedAt=iso();o.log=o.log||[];
+  S.db.doc('ops/state').set(o).then(function(){closeSheet();},writeErr);}
+function endBreak(){var t=document.getElementById('f-bt').value;if(!t)return fail('Enter the time work resumed.');
+  var o=Object.assign({},S.ops);o.log=(o.log||[]).concat([{start:o.breakStart,end:t}]).slice(-20);o.onBreak=false;o.lastEnd=t;
+  S.db.doc('ops/state').set(o).then(function(){closeSheet();},writeErr);}
+function saveClerk(){var r=intVal('f-cr'),t=document.getElementById('f-ct').value;
+  if(r==null||isNaN(r)||r<0)return fail('Enter the clerk’s remaining count as a whole number.');
+  if(!t)return fail('Enter the time the clerk gave the count.');
+  var e=(S.clerk.entries||[]).concat([{remaining:r,time:t,loggedAt:iso()}]).slice(-50);
+  S.db.doc('ops/clerk').set({entries:e}).then(function(){closeSheet();},writeErr);}
+function endShift(){var t=document.getElementById('f-se2').value;if(!t)return fail('Enter the time the shift ended.');
+  var o=Object.assign({},S.ops);o.shiftEnded=true;o.shiftEnd=t;o.onBreak=false;o.startedAt=iso();o.day=o.day||1;
+  S.db.doc('ops/state').set(o).then(function(){closeSheet();},writeErr);}
+function nextDay(){var t=document.getElementById('f-bt').value;if(!t)return fail('Enter the start time.');
+  var o=Object.assign({},S.ops);o.log=(o.log||[]).concat([{start:'Shift end '+o.shiftEnd,end:'Day '+((o.day||1)+1)+' '+t}]).slice(-20);o.shiftEnded=false;o.day=(o.day||1)+1;
+  var p=Object.assign({},S.plan);p.nextStart=t;
+  S.db.doc('ops/plan').set(p).then(function(){return S.db.doc('ops/state').set(o);}).then(function(){closeSheet();},writeErr);}
+function saveShift(){var m=document.querySelector('#f-mode button[aria-pressed="true"]'),two=m&&m.getAttribute('data-mode')==='two';
+  var se=document.getElementById('f-se').value,ns=document.getElementById('f-ns').value;
+  if(two&&!se)return fail('Enter when Day 1 ends.');if(!ns)return fail('Enter when the next day starts.');
+  var p=Object.assign({},S.plan);p.shiftEnd=two?se:null;p.nextStart=ns;delete p.breakLenMin;
+  S.db.doc('ops/plan').set(p).then(function(){closeSheet();},writeErr);}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(ev){
+  var t=ev.target.closest('[data-tab],[data-deck],[data-act],[data-sub],[data-st],[data-stop],[data-mode]');if(!t)return;
+  if(t.hasAttribute('data-tab')){S.tab=t.getAttribute('data-tab');closeSheet();render();window.scrollTo(0,0);return;}
+  if(t.hasAttribute('data-deck')){openSheet('deck',{id:t.getAttribute('data-deck')});return;}
+  if(t.hasAttribute('data-sub')){S.sheet.sub=t.getAttribute('data-sub');renderSheet();return;}
+  if(t.hasAttribute('data-mode')){t.parentNode.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed','false');});t.setAttribute('aria-pressed','true');return;}
+  if(t.hasAttribute('data-stop')){t.parentNode.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed','false');});t.setAttribute('aria-pressed','true');return;}
+  if(t.hasAttribute('data-st')){t.parentNode.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed','false');});t.setAttribute('aria-pressed','true');return;}
+  var a=t.getAttribute('data-act');
+  if(a==='bg'&&ev.target===t)return closeSheet();
+  if(a==='close')return closeSheet();
+  if(a==='log')return openSheet('log',{sub:'hour'});
+  if(a==='shiftset')return openSheet('shift');
+  if(a==='save-hour')return saveHour();
+  if(a==='save-deck')return saveDeck(t.getAttribute('data-id'));
+  if(a==='start-break')return startBreak();
+  if(a==='end-break')return endBreak();
+  if(a==='save-clerk')return saveClerk();
+  if(a==='save-shift')return saveShift();
+  if(a==='end-shift')return endShift();
+  if(a==='next-day')return nextDay();
+  if(a==='save-issue')return saveIssue();
+  if(a==='demo')return setDemo(!S.demo);
+  if(a==='hview'){S.hview=t.getAttribute('data-v');return render();}
+  if(a==='rechk'){S.rechk[t.getAttribute('data-id')]=1;return render();}
+  if(a==='confheight')return confHeight(t.getAttribute('data-id'),+t.getAttribute('data-m'));
+  if(a==='setstop')return setStop(t.getAttribute('data-id'),+t.getAttribute('data-min'));
+  if(a==='resolve')return resolveIssue(t.getAttribute('data-id'));
+  if(a==='track'){t.disabled=true;return addIssue(t.getAttribute('data-text'),t.getAttribute('data-key')).catch(function(e){openSheet('log',{sub:'issue'});writeErr(e);});}
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&S.sheet)closeSheet();});
+setInterval(function(){if(!S.sheet)render();},60000);
+
+/* ---------- data ---------- */
+function sub(ref,key,isCol){
+  ref.onSnapshot(function(snap){
+    S.connected=true;S.loaded[key]=true;
+    var tgt=(S.demo&&DEMO_KEYS.indexOf(key)>=0)?S.real:S;
+    if(isCol){var o={};snap.docs.forEach(function(d){if(d.exists)o[d.id]=d.data();});tgt[key]=o;}
+    else tgt[key]=snap.exists?snap.data():(key==='baseline'?null:(key==='clerk'?{entries:[]}:(key==='issues'?{items:[]}:{})));
+    render();
+  },function(e){S.connected=false;S.err='Live data stopped ('+(e&&e.code||'error')+'). Reload the page.';render();});}
+render();
+(async function(){
+  try{if(!window.claude||!window.claude.use){S.err='Open this page in Claude to see live vessel data.';render();return;}
+    var db=await window.claude.use('db');
+    if(!db){S.err='Live data isn’t available in this view. Open the page from its Claude link while signed in.';render();return;}
+    S.db=db;render();
+    var user=await window.claude.use('user');S.user=user;
+    if(user){try{S.canWrite=await user.can('data.write');}catch(e){S.canWrite=null;}}
+    sub(db.doc('vessel/baseline'),'baseline');sub(db.doc('ops/plan'),'plan');sub(db.doc('ops/state'),'ops');sub(db.doc('ops/clerk'),'clerk');sub(db.doc('ops/issues'),'issues');
+    sub(db.collection('decks'),'decks',true);sub(db.collection('hourly'),'hourly',true);
+    render();
+  }catch(e){S.err='Could not connect to live data. Reload the page.';render();}
+})();
+})();
+</script>
+</body>
+</html>
