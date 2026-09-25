@@ -10,7 +10,7 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
   - Files: `package.json`, `tsconfig.json`, `tests/tracker.ts`, `tests/tracker.test.ts`, `tests/fixtures/events.jsonl`
   - Depends on: none
 
-- [ ] **T2: `time`** (S)
+- [x] **T2: `time`** (S)
   - Acceptance: HH:MM ↔ minutes, `{day, hm}` ↔ absolute minutes, ISO-with-offset → operation time; clear-by for any break time by side (Northside 15, Southside 30; Southside = Zone 1, MBZ, Zone T, Zone V); a user-given stop time is not cut again; missing time → "time not provided".
   - Verify: tests for B18, B22 (break 15:20, Gate 1/Gate 2), noon cutoffs 11:45/11:30.
   - Files: `src/engine/time.ts`, `tests/time.test.ts`
