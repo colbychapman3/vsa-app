@@ -16,7 +16,7 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
   - Files: `src/engine/time.ts`, `tests/time.test.ts`
   - Depends on: T1
 
-- [ ] **T3: `baseline` and `decks`** (M)
+- [x] **T3: `baseline` and `decks`** (M)
   - Acceptance: baseline validation (hatch/deck/brand totals, duplicate ids, load list vs game plan kept as a discrepancy, load list controls); deck status rules including Skipped; hatch/deck/brand remaining; unknown when Active/Paused with no count; rejections for hatch above quantity, deck total above start, hatch sum ≠ deck total; heights: hard below 1.85 m, soft when lowerable and unconfirmed.
   - Verify: T3 kit test; Glovis baseline totals 1,969 (829 Kia, 1,140 Hyundai); parity with tracker `deckCalc`/`heightInfo` on every Glovis deck across all statuses.
   - Files: `src/engine/baseline.ts`, `src/engine/decks.ts`, `tests/baseline.test.ts`, `tests/decks.test.ts`
