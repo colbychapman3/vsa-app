@@ -22,15 +22,15 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
   - Files: `src/engine/baseline.ts`, `src/engine/decks.ts`, `tests/baseline.test.ts`, `tests/decks.test.ts`
   - Depends on: T1
 
-- [ ] **T4: `fit`** (S)
+- [x] **T4: `fit`** (S)
   - Acceptance: SOP p.28 passenger-car clearance with citation in the result; missing Stow H, deck height or rule → `not_verified` naming the missing field; never uses width; partial manifest verifies inspected units only; not applicable to H&H.
   - Verify: T2, B16 (220/212, 221/212, 210/203), B17 (415 of 535 inspected).
   - Files: `src/engine/fit.ts`, `tests/fit.test.ts`
   - Depends on: T1
 
 ### Checkpoint A
-- [ ] `npm test` and `npm run typecheck` pass
-- [ ] Tracker harness works (or fallback fixtures agreed with Colby)
+- [x] `npm test` and `npm run typecheck` pass
+- [x] Tracker harness works (or fallback fixtures agreed with Colby)
 
 ## Core
 
