@@ -7,8 +7,8 @@ The working prototype is the **VSA Live tracker** (Claude artifact). Treat its b
 
 ## Source of truth (read before building anything)
 
-In `docs/` (copy these in from the VSA Migration Kit v1.0):
-- `Virtual_Stevedore_Assistant_Operating_Protocol_v1.1.pdf`: operating protocol
+In `docs/` (from the VSA Migration Kit v1.0):
+- `Virtual_Stevedore_Assistant_Operating_Protocol_v1.1.pdf`: operating protocol; `14_Operating_Protocol_v1.1_TEXT.md` is its searchable text copy (the PDF wins if they differ)
 - `VSA_Project_Instructions_v2.1.md`: controlling rules (ranks above the protocol)
 - `05` state schema, `06` event schema, `07` calculation guide, `15` integration/replay
 - `11_validation_tests.json` and `12` acceptance test: turn these into automated tests
