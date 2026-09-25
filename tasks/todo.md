@@ -4,7 +4,7 @@ Commands: `npm test`, `npm run typecheck`. Every task ends with both passing and
 
 ## Foundation
 
-- [ ] **T1: Project setup and tracker harness** (S)
+- [x] **T1: Project setup and tracker harness** (S)
   - Acceptance: `package.json` (scripts, dev deps `typescript`, `@types/node`), strict `tsconfig.json`; `tests/tracker.ts` loads the tracker's `deckCalc`/`etaCalc`/`compute` from `vsa-live.html` in a `vm` sandbox; kit `examples/events.jsonl` copied to `tests/fixtures/`.
   - Verify: a smoke test runs tracker `deckCalc` on the Glovis D12 deck and gets start = 457. If the sandbox can't load the script, stop and report before T2 (fallback per spec).
   - Files: `package.json`, `tsconfig.json`, `tests/tracker.ts`, `tests/tracker.test.ts`, `tests/fixtures/events.jsonl`
