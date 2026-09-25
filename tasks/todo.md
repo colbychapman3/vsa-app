@@ -23,7 +23,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
 ### Checkpoint A
 - [x] `npm test`, `npm run typecheck`, `npx expo export --platform ios` pass
 
-- [ ] **T4: Check screen** (S)
+- [x] **T4: Check screen** (S)
   - Acceptance: `App.tsx` opens the store on the phone. Buttons: create TEST Glovis vessel; log the next test hour (fixed TEST counts); show field, vessel remaining, event count, last error; **Replay check** reloads the stored log, compares with the in-memory state and shows PASS/FAIL. Large tap targets; labeled TEST.
   - Verify: `npx expo export --platform ios`; then Colby's iPhone check below.
   - Files: `App.tsx`
