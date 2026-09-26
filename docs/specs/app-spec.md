@@ -1,6 +1,6 @@
 # Spec: VSA app (whole app)
 
-Status: **DRAFT — awaiting Colby's review.** Phase 3 is specified in detail here; later phases get their own specs.
+Status: **APPROVED by Colby 2026-09-26** with the open-question defaults (Now button for times, quick-pick correction reasons, TEST vessel only until Phase 5) and the listed dependencies. Phase 3 plan: `tasks/plan.md`. Later phases get their own specs.
 
 ## Objective
 

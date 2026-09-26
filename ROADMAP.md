@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 2 complete (2026-09-26, verified on Colby's iPhone). Whole-app spec drafted (`docs/specs/app-spec.md`, includes Phase 3 screens), awaiting Colby's review.
+**Current status:** Phase 2 complete (2026-09-26, verified on Colby's iPhone). Whole-app spec approved 2026-09-26 (`docs/specs/app-spec.md`). Phase 3 plan written (`tasks/plan.md`), awaiting approval.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
