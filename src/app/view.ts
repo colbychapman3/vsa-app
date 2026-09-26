@@ -208,7 +208,7 @@ export function decksView(s: State) {
     start: fmt(d.start),
     low: d.height.level === 'hard',
     cleared: d.status === 'complete'
-      ? `Cleared ${Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + ')} · ${d.time && d.time !== 'time not provided' ? `at ${d.time}` : 'time not provided'}`
+      ? `Cleared ${Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + ')} · ${d.time == null ? 'time not provided' : /^(Logged|time not)/.test(d.time) ? d.time : `at ${d.time}`}`
       : null,
     height: heightChip(d),
     hatches: d.hatches.map((h) => ({ h: h.h, text: h.items.map((i) => `${i.brand} ${i.qty}`).join(' + ') })),

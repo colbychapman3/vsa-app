@@ -38,8 +38,14 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   if ('error' in log) return log;
 
   const at = (iso: string | null): OpTime | null | Reject => (iso == null ? null : fromIso(iso, opDate));
+  // CLAUDE.md timestamps: the exact time when given; otherwise the phone's processing
+  // time, clearly labeled as such (never as the event time); otherwise "time not provided".
+  const when = (occurred: OpTime | null, recordedAt: string) => {
+    const m = /T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.exec(recordedAt);
+    return eventTimeLabel(occurred, m ? { hm: m[1], tz: m[2] === 'Z' ? 'UTC' : `UTC${m[2]}` } : null);
+  };
   const deckById = new Map(baseline.decks.map((d) => [d.id, d]));
-  const decks: Record<string, DeckState & { time?: OpTime | null; heightConfirmed?: { m: number; time: string } | null; history?: { status: DeckStatus; time: string }[] }> = {};
+  const decks: Record<string, DeckState & { time?: string | null; heightConfirmed?: { m: number; time: string } | null; history?: { status: DeckStatus; time: string }[] }> = {};
   const hours = new Map<string, HourEntry & { key: string; was?: number[] }>();
   const hourValue = new Map<string, string>(); // hour|metric|brand → the one active event holding it
   const ops: Ops & { shiftEnd?: string | null } = { day: 1 };
@@ -106,13 +112,13 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         if (p.metric === 'deck_status') {
           if (!STATUSES.includes(p.value as DeckStatus)) return fail(`Event ${id}: deck status "${p.value}" is not allowed.`, id);
           next = { ...cur, status: p.value as DeckStatus, skipped: p.value === 'notStarted' ? cur.skipped : false,
-            history: [...(cur.history ?? []), { status: p.value as DeckStatus, time: eventTimeLabel(occurred) }] };
+            history: [...(cur.history ?? []), { status: p.value as DeckStatus, time: when(occurred, e.recorded_at) }] };
         } else if (p.metric === 'deck_skipped') {
           if (typeof p.value !== 'boolean') return fail(`Event ${id}: deck_skipped must be true or false.`, id);
           next = { ...cur, skipped: p.value === true };
         } else if (p.metric === 'deck_height_m') {
           if (typeof p.value !== 'number' || !(p.value > 0)) return fail(`Event ${id}: deck height must be a positive number of metres.`, id);
-          decks[d.id] = { ...cur, heightConfirmed: { m: p.value, time: eventTimeLabel(occurred) } };
+          decks[d.id] = { ...cur, heightConfirmed: { m: p.value, time: when(occurred, e.recorded_at) } };
           continue;
         } else {
           // Only a remaining count: then the envelope has checked it is a whole number or unknown.
@@ -126,7 +132,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         const u = deckUpdate(d, next, false);
         if ('error' in u) return fail(u.error, id);
         // The deck's time is the latest save's time; a save with no time is "time not provided", never an earlier time.
-        decks[d.id] = { ...cur, ...u, time: occurred, history: next.history };
+        decks[d.id] = { ...cur, ...u, time: when(occurred, e.recorded_at), history: next.history };
         lastDeckEvent[d.id] = id;
         continue;
       }
@@ -135,19 +141,19 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           return fail(`Event ${id}: clerk_remaining must be a remaining count (a whole number of 0 or more).`, id);
         }
         if ((p.value as number) > base.start) return fail(`Chief clerk remaining (${p.value}) exceeds starting cargo (${base.start}) by ${(p.value as number) - base.start}. Check the count.`, id);
-        clerks.push({ remaining: p.value as number, time: occurred ? eventTimeLabel(occurred) : 'time not provided', seq: e.sequence });
+        clerks.push({ remaining: p.value as number, time: when(occurred, e.recorded_at), seq: e.sequence });
         continue;
       case 'break':
         if (e.event_type !== 'pause' && e.event_type !== 'resume') return fail(`Event ${id}: break must be a pause or resume.`, id);
         if (e.event_type === 'pause') {
           if (!occurred) return fail(`Event ${id}: enter the break start time.`, id);
           Object.assign(ops, { onBreak: true, breakStart: occurred.hm, day: occurred.day }); recStart = e.sequence;
-          breakLog.push({ start: eventTimeLabel(occurred), end: null });
+          breakLog.push({ start: when(occurred, e.recorded_at), end: null });
         } else if (e.event_type === 'resume') {
           if (!occurred) return fail(`Event ${id}: enter the time work resumed.`, id);
           ops.onBreak = false;
           const open = breakLog.at(-1);
-          if (open && open.end == null) open.end = eventTimeLabel(occurred);
+          if (open && open.end == null) open.end = when(occurred, e.recorded_at);
         }
         continue;
       case 'shift':
@@ -155,11 +161,11 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         if (!occurred) return fail(`Event ${id}: shift changes need a time.`, id);
         if (p.value === 'ended') {
           Object.assign(ops, { shiftEnded: true, onBreak: false, day: occurred.day, shiftEnd: occurred.hm }); recStart = e.sequence;
-          breakLog.push({ start: `Shift end ${eventTimeLabel(occurred)}`, end: null });
+          breakLog.push({ start: `Shift end ${when(occurred, e.recorded_at)}`, end: null });
         } else if (p.value === 'started') {
           Object.assign(ops, { shiftEnded: false, day: occurred.day }); if (occurred.day > 1) plan.nextStart = occurred.hm;
           const open = breakLog.at(-1);
-          if (open && open.end == null) open.end = eventTimeLabel(occurred);
+          if (open && open.end == null) open.end = when(occurred, e.recorded_at);
         }
         else return fail(`Event ${id}: shift value must be "ended" or "started".`, id);
         continue;
@@ -173,13 +179,13 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       case 'discrepancy':
         if (e.event_type !== 'discrepancy_opened' && e.event_type !== 'discrepancy_resolved') return fail(`Event ${id}: discrepancy must be opened or resolved.`, id);
         if (e.event_type === 'discrepancy_opened' && !(p.reason ?? (typeof p.value === 'string' ? p.value : '')).trim()) return fail(`Event ${id}: a discrepancy needs a description.`, id);
-        if (e.event_type === 'discrepancy_opened') issues.set(id, { id, key: p.reason && typeof p.value === 'string' ? p.value : null, text: p.reason ?? String(p.value ?? ''), openedAt: eventTimeLabel(occurred), status: 'open', resolvedAt: null });
+        if (e.event_type === 'discrepancy_opened') issues.set(id, { id, key: p.reason && typeof p.value === 'string' ? p.value : null, text: p.reason ?? String(p.value ?? ''), openedAt: when(occurred, e.recorded_at), status: 'open', resolvedAt: null });
         else if (e.event_type === 'discrepancy_resolved') {
           const target = p.input_event_ids[0];
           const issue = target ? issues.get(target) : undefined;
           if (!issue || issue.status !== 'open') return fail(`Event ${id}: discrepancy ${target} is not open.`, id);
           issue.status = 'resolved';
-          issue.resolvedAt = eventTimeLabel(occurred);
+          issue.resolvedAt = when(occurred, e.recorded_at);
         }
         continue;
       default:
@@ -211,7 +217,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
 
   const deckResults = baseline.decks.map((d) => {
     const st = decks[d.id];
-    return { ...deckCalc(d, st), height: heightInfo(d, st?.heightConfirmed ?? null), time: st?.time ? eventTimeLabel(st.time) : null, history: st?.history ?? [],
+    return { ...deckCalc(d, st), height: heightInfo(d, st?.heightConfirmed ?? null), time: st?.time ?? null, history: st?.history ?? [],
       entered: { hatches: { ...st?.hatchRemaining }, deck: st?.deckRemaining ?? null } }; // what Colby last entered (sheet pre-fill)
   });
   const phase: Phase = ops.shiftEnded ? 'shift_end' : ops.onBreak ? 'break' : 'working';

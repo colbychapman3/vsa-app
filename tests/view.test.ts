@@ -164,7 +164,7 @@ test('screen 04–05: Decks and deck sheet (tracker demo)', () => {
   const row = (id: string) => v.rows.find((r) => r.id === id)!;
   assert.deepEqual([row('UPP').pill, row('UPP').remaining, row('UPP').start, row('UPP').cleared], ['Complete', '0', '199', 'Cleared 199 Kia · at 13:40']);
   assert.equal(row('D12').cleared, 'Cleared 307 Hyundai + 150 Kia · at 10:40');
-  assert.equal(row('D2').cleared, 'Cleared 126 Kia · time not provided');
+  assert.equal(row('D2').cleared, 'Cleared 126 Kia · Logged at 20:00 UTC-04:00 (processing time, not event time)');
   assert.deepEqual([row('D9').pill, row('D9').remaining, row('D9').height], ['Active', '319', { tone: 'orange', text: '2.00 m · unconfirmed' }]);
   assert.deepEqual([row('D7').pill, row('D7').low, row('D7').height], ['Skipped', true, { tone: 'red', text: '1.70 m · low deck, no vans' }]);
   assert.deepEqual(row('UPP').height, { tone: 'plain', text: 'Height 1.85 m' });

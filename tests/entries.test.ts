@@ -79,7 +79,7 @@ test('deck update: status, hatches, time; over-quantity refused; Now vs no time'
   const d = decksView(s.state);
   const row = (id: string) => d.rows.find((r) => r.id === id)!;
   assert.deepEqual([row('D9').pill, row('D9').remaining], ['Active', '319']);
-  assert.equal(row('UPP').cleared, 'Cleared 199 Kia · time not provided');
+  assert.equal(row('UPP').cleared, 'Cleared 199 Kia · Logged at 20:00 UTC-04:00 (processing time, not event time)'); // no time entered: labeled save time
   assert.equal(row('D7').pill, 'Skipped');
   assert.deepEqual(s.state.decks.find((x) => x.id === 'D9')!.history, [{ status: 'active', time: '14:50' }]);
 
@@ -143,7 +143,7 @@ test('discrepancy: open, track a banner, resolve; empty text refused', async (tc
   assert.equal(p.issues.resolved, 'Recently resolved: D12 H2 count disagreed with checker (10:45)');
 });
 
-test('empty time is saved as "time not provided", never the phone clock', async (tc) => {
+test('empty time: occurred_at stays null; the phone clock is only the labeled processing time', async (tc) => {
   const s = await setup(tc);
   const evs = E.deckEvents(s.ctx(), { deck: 'UPP', status: 'complete', skipped: false, hatchRemaining: {}, deckRemaining: null, time: null }) as VsaEvent[];
   assert.ok(evs.every((e) => e.occurred_at === null && e.recorded_at === '2026-09-21T20:00:00-04:00'));
@@ -157,7 +157,7 @@ test('review 1: a deck cleared with no time never borrows an earlier update’s 
   const s = await setup(tc);
   await s.ok(E.deckEvents(s.ctx(), { deck: 'D9', status: 'active', skipped: false, hatchRemaining: { H4: 24, H3: null, H2: null, H1: null }, deckRemaining: null, time: t('14:50') }));
   await s.ok(E.deckEvents(s.ctx(), { deck: 'D9', status: 'complete', skipped: false, hatchRemaining: {}, deckRemaining: null, time: null }));
-  assert.equal(decksView(s.state).rows.find((r) => r.id === 'D9')!.cleared, 'Cleared 398 Hyundai · time not provided');
+  assert.equal(decksView(s.state).rows.find((r) => r.id === 'D9')!.cleared, 'Cleared 398 Hyundai · Logged at 20:00 UTC-04:00 (processing time, not event time)'); // its own save time, labeled — never 14:50
 });
 
 test('review 2: a discrepancy can only be resolved once', async (tc) => {
