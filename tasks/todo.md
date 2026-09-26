@@ -48,7 +48,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Files: `src/app/screens/Hourly.tsx`
   - Depends on: T2
 
-- [ ] **T8: Plan and shift settings** (M)
+- [x] **T8: Plan and shift settings** (M)
   - Acceptance: matches screen 08: confirm deck heights (Set at … buttons, confirmed chips with change), open discrepancies with Mark resolved and recently resolved, baseline and data status, labor, forecast settings with **Change shift settings** sheet, side split, destinations with the reference-time note, break log.
   - Verify: on the phone, confirm heights (the Decks badge updates), resolve a discrepancy, set a Day 1 shift end (ETA moves to Day 2).
   - Files: `src/app/screens/Plan.tsx`, `src/app/screens/ShiftSheet.tsx`
