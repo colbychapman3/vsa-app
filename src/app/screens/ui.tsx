@@ -1,7 +1,7 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
 import { color, TAP, useType } from '../theme.ts';
 
@@ -114,4 +114,78 @@ export const u = StyleSheet.create({
   track: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, paddingHorizontal: 12, borderWidth: 1.5, borderRadius: 8, justifyContent: 'center' },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
   tap: { minHeight: TAP },
+  input: { minHeight: 52, borderWidth: 1.5, borderColor: color.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
+  segBtn: { minHeight: 48, flexGrow: 1, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  segOn: { backgroundColor: color.ink, borderColor: color.ink },
+  goBtn: { minHeight: TAP, borderRadius: 12, backgroundColor: color.blue, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  ghostBtn: { minHeight: 48, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 12, fontSize: 14, overflow: 'hidden' },
 });
+
+// ---------- Form parts (tracker .seg, label.f, .go, .ghost, .err) ----------
+
+export function Field({ label, value, onChange, placeholder, keyboard = 'number-pad', note, maxLength }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string;
+  keyboard?: 'number-pad' | 'default' | 'numbers-and-punctuation'; note?: string; maxLength?: number;
+}) {
+  const f = useType();
+  return (
+    <View style={{ gap: 6, flex: 1 }}>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
+      <TextInput value={value} onChangeText={onChange} placeholder={placeholder} keyboardType={keyboard} maxLength={maxLength}
+        style={[u.input, { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
+    </View>
+  );
+}
+
+// A time box that starts empty. "Now" fills the phone's time; Colby can still edit it.
+export function TimeField({ label, value, onChange, onNow }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void }) {
+  const f = useType();
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>{label}</Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TextInput value={value} onChangeText={onChange} placeholder="HH:MM" keyboardType="numbers-and-punctuation" maxLength={5}
+          style={[u.input, { flex: 1, fontFamily: f.bodyMedium, fontSize: 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
+        <Pressable onPress={onNow} style={[u.ghostBtn, { paddingHorizontal: 20 }]} accessibilityRole="button" accessibilityLabel={`${label}: now`}>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>Now</Text>
+        </Pressable>
+      </View>
+      <Text style={{ fontFamily: f.body, fontSize: 12, color: color.muted }}>Leave empty if unknown: the save time is shown, labeled as processing time.</Text>
+    </View>
+  );
+}
+
+export function Seg<T extends string | number>({ options, value, onChange, columns = 3 }: {
+  options: { value: T; label: string }[]; value: T | null; onChange: (v: T) => void; columns?: number;
+}) {
+  const f = useType();
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }} accessibilityRole="radiogroup">
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable key={String(o.value)} onPress={() => onChange(o.value)} accessibilityRole="radio" accessibilityState={{ selected: on }}
+            style={[u.segBtn, { flexBasis: `${100 / columns - 2}%` }, on && u.segOn]}>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: on ? color.bg : color.ink, textAlign: 'center' }}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function Go({ label, onPress, ghost, disabled }: { label: string; onPress: () => void; ghost?: boolean; disabled?: boolean }) {
+  const f = useType();
+  return (
+    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button"
+      style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, (pressed || disabled) && { opacity: 0.6 }]}>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: ghost ? 15 : 17, color: ghost ? color.ink : color.onBlue }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function ErrorBox({ text }: { text: string }) {
+  const f = useType();
+  return <Text style={[u.errBox, { fontFamily: f.bodyMedium }]} accessibilityRole="alert">{text}</Text>;
+}

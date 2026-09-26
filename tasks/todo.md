@@ -30,7 +30,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Files: `src/app/screens/Snapshot.tsx`
   - Depends on: T2
 
-- [ ] **T5: Log sheet** (M)
+- [x] **T5: Log sheet** (M)
   - Acceptance: matches screen 09. Modes: Hourly count (hour picker with "(correct)", brand split, pre-break stop buttons with side default, correction reason picker), Break / shift (start, end, end of shift, next day), Clerk count, Discrepancy; the Deck mode lists decks (opening the deck sheet from T6). Time fields empty with a **Now** button. Engine rejections are shown in red and nothing is saved.
   - Verify: on the phone, log hours including the 11:00 short hour, a correction, a break with a clerk count; the Snapshot updates.
   - Files: `src/app/screens/LogSheet.tsx`

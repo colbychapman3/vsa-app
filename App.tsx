@@ -14,6 +14,7 @@ import { badges, subtitles, type Banner } from './src/app/view.ts';
 import { color, fontFiles, fonts, FontContext } from './src/app/theme.ts';
 import { Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
+import { LogSheet } from './src/app/screens/LogSheet.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
 
 const OP = 'TEST-GLOVIS-101';
@@ -40,6 +41,8 @@ export default function App() {
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [tab, setTab] = useState<Tab>('snap');
   const [nowMin, setNowMin] = useState(minutesNow);
+  const [logOpen, setLogOpen] = useState(false);
+  const [deckOpen, setDeckOpen] = useState<string | null>(null); // deck sheet (task 6)
 
   // The break strip and "forecast passed" follow the clock; refresh every minute.
   useEffect(() => {
@@ -117,7 +120,13 @@ export default function App() {
                   ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={setTab} onTrack={track} />
                   : <Text style={[s.note, s.pad]}>{tab} screen: built in Phase 3 tasks 6–8.</Text>}
               </ScrollView>
-              <LogButton onPress={() => {}} />
+              <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />
+              {logOpen && (
+                <LogSheet state={vessel.state} baseline={vessel.baseline} save={save}
+                  onClose={(done) => { setLogOpen(false); if (done) setNotice({ ok: true, text: done }); }}
+                  onOpenDeck={(id) => { setLogOpen(false); setDeckOpen(id); }} />
+              )}
+              {deckOpen && <Text style={[s.notice, s.ok]} onPress={() => setDeckOpen(null)}>Deck sheet for {deckOpen}: built in task 6.</Text>}
               <TabBar tab={tab} onTab={setTab} badges={badges(vessel.state)} />
             </>
           ) : (
