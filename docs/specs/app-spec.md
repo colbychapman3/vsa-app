@@ -115,6 +115,7 @@ These follow the Phase 1 rulings, which the tracker has since mostly adopted:
 5. **No demo mode, no cloud status, no view-only mode** (see "Not copied" above).
 6. **Times are never auto-filled as event times. Needs Colby's OK (open question 1).** The tracker pre-fills the deck-update, break and clerk time fields with the phone's clock. The app leaves those fields empty with a one-tap **Now** button, so a time is only recorded when Colby enters or confirms it. An empty time is saved as "time not provided".
 7. **Corrections need a reason. Needs Colby's OK (open question 2).** Re-entering an hour creates a correction; the engine requires a reason. The sheet shows quick reasons (Recount · Typo · Checker update · Other…) and saves nothing until one is picked.
+8. **Deck sheet is a full snapshot; an unchanged re-save records nothing.** Decided by Colby 2026-09-26. The sheet opens with the current counts, and clearing a box saves that hatch as unknown (same as the tracker). Saving the same values again, only to confirm them at a new time, records nothing and says "Nothing to save" (the tracker would write it and update the deck time).
 
 ## Tech
 
