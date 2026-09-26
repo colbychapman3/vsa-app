@@ -7,7 +7,7 @@ import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
 import { buildPeriods, summarize, checkHour, hourDriverRate, type HourEntry } from './production.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
 import { eta, vesselClearBy, type Ops } from './eta.ts';
-import { fromIso, toAbs, eventTimeLabel, parseHM, type OpTime, type Reject } from './time.ts';
+import { fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
 
 export * from './time.ts';
 export * from './baseline.ts';
@@ -62,7 +62,13 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       if ('error' in s) return fail(s.error, id);
       if ('error' in z) return fail(z.error, id);
       if (toAbs(z)! - toAbs(s)! !== 60) return fail(`Event ${id}: field counts are hourly; ${p.period_start}–${p.period_end} is not one hour.`, id);
-      if (!s.hm.endsWith(':00')) return fail(`Event ${id}: field counts are hourly, on the hour (got ${s.hm}).`, id);
+      // Hours follow the day's start time (Colby chose A): 07:30 starts give 07:30–08:30 hours.
+      // An hour may not run through a break start; that time needs its own pre-break hour.
+      const sMin = parseHM(s.hm)!;
+      const crossed = baseline.breaks.map((b) => parseHM(b)!).find((b) => sMin < b && b < sMin + 60);
+      if (crossed != null) return fail(`Event ${id}: Hour ${s.hm}–${formatHM(sMin + 60)} runs through the ${formatHM(crossed)} break.`, id);
+      if (![p.period_start, p.period_end].every((x) => /T\d{2}:\d{2}(:00(\.0+)?)?(Z|[+-])/.test(x!))) return fail(`Event ${id}: hour periods must be whole minutes.`, id);
+      if (p.metric !== 'field_units' && sc.commodity) return fail(`Event ${id}: only a field count can name a brand.`, id);
       if (p.metric !== 'field_units' && p.count_kind !== 'not_applicable') return fail(`Event ${id}: ${p.metric} must not be a count kind (count_kind not_applicable).`, id);
       const key = `${s.day}|${s.hm}`;
       // One value per hour and field. A new value must correct the old one (keeps history), never replace it.
@@ -144,6 +150,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         }
         continue;
       case 'shift':
+        if (e.event_type !== 'status_change') return fail(`Event ${id}: shift must be a status change.`, id);
         if (!occurred) return fail(`Event ${id}: shift changes need a time.`, id);
         if (p.value === 'ended') {
           Object.assign(ops, { shiftEnded: true, onBreak: false, day: occurred.day, shiftEnd: occurred.hm }); recStart = e.sequence;
@@ -163,6 +170,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         plan[p.metric === 'plan_shift_end' ? 'shiftEnd' : 'nextStart'] = p.value;
         continue;
       case 'discrepancy':
+        if (e.event_type !== 'discrepancy_opened' && e.event_type !== 'discrepancy_resolved') return fail(`Event ${id}: discrepancy must be opened or resolved.`, id);
         if (e.event_type === 'discrepancy_opened' && !(p.reason ?? (typeof p.value === 'string' ? p.value : '')).trim()) return fail(`Event ${id}: a discrepancy needs a description.`, id);
         if (e.event_type === 'discrepancy_opened') issues.set(id, { id, key: p.reason && typeof p.value === 'string' ? p.value : null, text: p.reason ?? String(p.value ?? ''), openedAt: eventTimeLabel(occurred), status: 'open', resolvedAt: null });
         else if (e.event_type === 'discrepancy_resolved') {

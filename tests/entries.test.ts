@@ -285,12 +285,12 @@ test('round 4 R1: a second value for the same hour is refused — correct the fi
   assert.deepEqual([s.state.field, s.state.periods[0].drivers], [100, 70]); // nothing replaced
 });
 
-test('round 4 R2: field counts are on the hour; 11:30–12:30 across a break is refused', async (tc) => {
+test('round 4 R2 (rule revised in round 5, Colby chose A): 11:30–12:30 across the noon break is refused', async (tc) => {
   const s = await setup(tc);
   const evs = E.hourEvents(s.ctx(), { day: 1, start: '11:00', count: 100, stopMin: 45 }) as VsaEvent[];
   for (const e of evs) { e.payload.period_start = '2026-09-21T11:30:00-04:00'; e.payload.period_end = '2026-09-21T12:30:00-04:00'; }
   const r = await s.save(evs);
-  assert.ok(!r.ok && /field counts are hourly, on the hour/.test(r.error), JSON.stringify(r));
+  assert.ok(!r.ok && /Hour 11:30–12:30 runs through the 12:00 break/.test(r.error), JSON.stringify(r));
 });
 
 test('round 4 R3 and strict types: skipped must be true/false; empty discrepancy and odd break events refused', async (tc) => {
@@ -314,4 +314,55 @@ test('round 4 R3 and strict types: skipped must be true/false; empty discrepancy
   h[1].payload.count_kind = 'remaining';
   const r4 = await s.save(h);
   assert.ok(!r4.ok && /drivers must not be a count kind/.test(r4.error), JSON.stringify(r4));
+});
+
+// ---- Review round 5 (2026-09-26): Colby chose A — hours follow the day's start time ----
+
+test('round 5 R1: a 07:30 start logs 07:30–08:30 hours; an hour across a break start is refused', async (tc) => {
+  const dir = mkdtempSync(join(tmpdir(), 'vsa-entries-'));
+  const store = await openStore(openNodeDb(join(dir, 'vsa.db')));
+  tc.after(async () => { await store.close(); rmSync(dir, { recursive: true, force: true }); });
+  const b = { ...glovis, start: '07:30' };
+  assert.ok((await store.createVessel({ operationId: OP, baseline: b, isTest: true })).ok);
+  let state = (await store.load(OP) as { state: State }).state;
+  const ctx = (): E.Ctx => ({ operationId: OP, opDate: '2026-09-21', offset: '-04:00', recordedAt: '2026-09-21T20:00:00-04:00', state });
+  const save = async (evs: VsaEvent[] | Reject) => { const r = await store.append(OP, evs as VsaEvent[]); if (r.ok) state = r.state; return r; };
+  assert.ok((await save(E.hourEvents(ctx(), { day: 1, start: '07:30', count: 100 }))).ok);
+  assert.ok((await save(E.hourEvents(ctx(), { day: 1, start: '10:30', count: 120 }))).ok);
+  const r = await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60 }));
+  assert.ok(!r.ok && /Hour 11:30–12:30 runs through the 12:00 break/.test(r.error), JSON.stringify(r));
+  assert.deepEqual(state.periods.map((p) => p.start), ['07:30', '10:30']);
+  // Day 2 starting 07:30 after end of shift.
+  assert.ok((await save(E.endShiftEvents(ctx(), t('17:00')))).ok);
+  assert.ok((await save(E.nextDayEvents(ctx(), t('07:30', 2)))).ok);
+  assert.ok((await save(E.hourEvents(ctx(), { day: 2, start: '07:30', count: 50 }))).ok);
+  assert.equal(state.periods.at(-1)!.day, 2);
+});
+
+test('round 5 (import-only): brand only on counts; reasons must be text; strict event types; whole-minute periods', async (tc) => {
+  const s = await setup(tc);
+  const h = E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 100, drivers: 70 }) as VsaEvent[];
+  h[1].scope.commodity = 'Kia';
+  let r = await s.save(h);
+  assert.ok(!r.ok && /only a field count can name a brand/.test(r.error), JSON.stringify(r));
+
+  const d = E.openDiscrepancyEvents(s.ctx(), 'x', null) as VsaEvent[];
+  (d[0].payload as { reason: unknown }).reason = 5;
+  r = await s.save(d);
+  assert.ok(!r.ok && /reason must be text/.test(r.error), JSON.stringify(r));
+
+  const sh = E.endShiftEvents(s.ctx(), t('17:00')) as VsaEvent[];
+  sh[0].event_type = 'observation';
+  r = await s.save(sh);
+  assert.ok(!r.ok && /shift must be a status change/.test(r.error), JSON.stringify(r));
+
+  const dx = E.openDiscrepancyEvents(s.ctx(), 'x', null) as VsaEvent[];
+  dx[0].event_type = 'observation';
+  r = await s.save(dx);
+  assert.ok(!r.ok && /discrepancy must be opened or resolved/.test(r.error), JSON.stringify(r));
+
+  const sec = E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 100 }) as VsaEvent[];
+  sec[0].payload.period_start = '2026-09-21T08:00:30-04:00'; sec[0].payload.period_end = '2026-09-21T09:00:30-04:00';
+  r = await s.save(sec);
+  assert.ok(!r.ok && /whole minutes/.test(r.error), JSON.stringify(r));
 });
