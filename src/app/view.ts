@@ -82,12 +82,14 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   let clerkBadge: { ok: boolean; text: string } | null = null;
   let clerkLine: { tone: 'red' | 'green' | 'muted'; text: string } | null = null;
   if (recon) {
-    const c = s.clerk;
-    if (c && known) {
-      const d = c.remaining - s.vesselRemaining!;
-      clerkBadge = d === 0 ? { ok: true, text: 'Matches clerk' } : { ok: false, text: `Off by ${fmt(Math.abs(d))}` };
-      clerkLine = d === 0 ? { tone: 'green', text: `Chief clerk at ${c.time}: ${fmt(c.remaining)}` }
-        : { tone: 'red', text: `Discrepancy: ${fmt(Math.abs(d))} autos · Chief clerk ${c.time}: ${fmt(c.remaining)} · Yours: ${fmt(s.vesselRemaining)}` };
+    const c = s.clerk; // the engine's clerk check: match / mismatch / unknown
+    const off = c && s.vesselRemaining != null ? Math.abs(c.remaining - s.vesselRemaining) : null; // size of the gap, for wording only
+    if (c?.status === 'match') {
+      clerkBadge = { ok: true, text: 'Matches clerk' };
+      clerkLine = { tone: 'green', text: `Chief clerk at ${c.time}: ${fmt(c.remaining)}` };
+    } else if (c?.status === 'mismatch') {
+      clerkBadge = { ok: false, text: `Off by ${fmt(off)}` };
+      clerkLine = { tone: 'red', text: `Discrepancy: ${fmt(off)} autos · Chief clerk ${c.time}: ${fmt(c.remaining)} · Yours: ${fmt(s.vesselRemaining)}` };
     } else if (c) clerkLine = { tone: 'muted', text: `Chief clerk at ${c.time}: ${fmt(c.remaining)} · can’t compare until every active deck has a remaining count` };
     else clerkLine = { tone: 'muted', text: 'Chief clerk count not logged for this break.' };
   }
@@ -143,6 +145,12 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
 
 // Side split from destinations; autos left per side only when each brand goes to one side.
 export function sideSplit(s: State, b: Baseline) {
+  const cb = b.destinations.reduce((m, d) => Math.max(m, d.clearBy || 0), 0);
+  const missing = b.destinations.filter((d) => typeof d.autos !== 'number').map((d) => d.name);
+  if (missing.length) {
+    const unknown = { pct: '—', autos: null, note: 'unknown' };
+    return { unknown: `Auto counts missing for ${missing.join(', ')}; side split unknown.`, northPct: null, clearByNote: '', north: unknown, south: unknown };
+  }
   const autos = { N: 0, S: 0 }, bSide: Record<string, 'N' | 'S' | 'mixed'> = {};
   for (const d of b.destinations) {
     autos[d.side] += d.autos ?? 0;
@@ -160,11 +168,11 @@ export function sideSplit(s: State, b: Baseline) {
   const tot = autos.N + autos.S, pn = tot ? (autos.N / tot) * 100 : 0;
   const col = (side: 'N' | 'S', pc: number) => {
     const r = autos[side] ? remaining(side) : 0;
-    return { pct: `${pc.toFixed(1)}%`, autos: autos[side], note: autos[side] ? `${fmt(autos[side])} autos · ${r == null ? 'remaining unknown' : `${fmt(r)} left`}` : 'None to this side' };
+    return { pct: `${pc.toFixed(1)}%`, autos: autos[side] as number | null, note: autos[side] ? `${fmt(autos[side])} autos · ${r == null ? 'remaining unknown' : `${fmt(r)} left`}` : 'None to this side' };
   };
-  const cb = b.destinations.reduce((m, d) => Math.max(m, d.clearBy || 0), 0);
   return {
-    northPct: pn,
+    unknown: null,
+    northPct: pn as number | null,
     clearByNote: cb ? `Clear-by −${autos.S ? '30 S / ' : ''}${autos.N ? '15 N' : ''}` : '',
     north: col('N', pn),
     south: col('S', 100 - pn),
@@ -218,6 +226,8 @@ export function deckSheet(d: Deck, b: Baseline) {
     possible: heights.length ? `Possible: ${heights.map((h) => h.m.toFixed(2)).join(' / ')} m` : 'Possible heights not on the stow plan',
     hatches: d.hatches.map((h) => ({ h: h.h, qty: h.qty, rem: h.rem, brands: h.items.map((i) => `${i.brand} ${i.qty}`).join(' + ') })),
     history: d.history.slice(-3).map((x) => `${x.time} ${STATUS_PILL[x.status]}`),
+    // The sheet opens with what was last entered (Active/Paused only); clearing a box saves "unknown".
+    prefill: d.status === 'active' || d.status === 'paused' ? d.entered : { hatches: {}, deck: null },
   };
 }
 
@@ -250,7 +260,7 @@ export function hourlyView(s: State) {
         : `${x.delta >= 0 ? '+' : '−'}${fmt(Math.round(Math.abs(x.delta)))}${x.deltaPaced ? '/hr pace' : ''} (${x.deltaPct! >= 0 ? '+' : '−'}${Math.abs(x.deltaPct!).toFixed(1)}%) vs prior hour`,
       brands: x.brands ? Object.entries(x.brands).map(([b, v]) => ({ b, v: fmt(v) })) : [],
       drivers: typeof x.drivers === 'number' && x.drivers > 0
-        ? `${x.drivers} drivers · ${x.pace != null ? `${(x.pace / x.drivers).toFixed(2)} per driver per productive hr` : 'per-driver rate needs the stoppage time'}`
+        ? `${x.drivers} drivers · ${x.driverRate.rate != null ? `${x.driverRate.rate.toFixed(2)} per driver per productive hr` : 'per-driver rate needs the stoppage time'}`
         : null,
     };
   });
@@ -307,11 +317,9 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
   const open = s.issues.filter((i) => i.status === 'open');
   const resolved = s.issues.filter((i) => i.status === 'resolved').slice(-5);
   const v = (b.verification ?? {}) as { status?: string; discrepancies?: string[]; missing?: string[]; checks?: string[] };
-  const hh = (b.hh as { qty: number }[] | undefined) ?? [];
+  const hh = b.hh as { qty: number }[] | undefined; // undefined = not on the baseline = unknown
   const labor = (b.labor ?? {}) as { autoDrivers?: number; gangs?: number[]; vanDrivers?: number; heavyGang?: number };
-  const tot = b.destinations.reduce((t, d) => t + (d.autos ?? 0), 0);
-  const north = b.destinations.filter((d) => d.side === 'N').reduce((t, d) => t + (d.autos ?? 0), 0);
-  const pn = tot ? (north / tot) * 100 : 0;
+  const sides = sideSplit(s, b);
   return {
     heights,
     issues: {
@@ -321,7 +329,7 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
     baseline: {
       start: fmt(s.start),
       brands: s.brands.map((x) => `${fmt(x.start)} ${x.name}`).join(' + '),
-      hh: hh.length ? fmt(hh.reduce((t, x) => t + x.qty, 0)) : '0',
+      hh: hh ? fmt(hh.reduce((t, x) => t + x.qty, 0)) : '—',
       verified: v.status === 'verified',
       discrepancies: `${(v.discrepancies ?? []).length} discrepancies`,
       missing: (v.missing ?? []).length ? `Missing: ${v.missing!.join(', ')}` : 'Nothing missing',
@@ -339,17 +347,20 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
       dayEnd: s.plan.shiftEnd ?? 'Works until finished',
       nextStart: s.plan.nextStart ?? b.start,
     },
-    side: { northPct: pn, north: `${pn.toFixed(1)}%`, northAutos: `${fmt(north)} autos`, south: `${(100 - pn).toFixed(1)}%`, southAutos: `${fmt(tot - north)} autos` },
+    side: {
+      unknown: sides.unknown, northPct: sides.northPct,
+      north: sides.north.pct, northAutos: `${fmt(sides.north.autos)} autos`, south: sides.south.pct, southAutos: `${fmt(sides.south.autos)} autos`,
+    },
     destinations: {
       title: `Destinations from Berth ${String(b.berth)}`,
       rows: b.destinations.map((d) => ({
         name: `${d.name} · ${d.side === 'N' ? 'Northside' : 'Southside'}`,
         autos: fmt(d.autos),
-        note: `${(d.brands ?? []).join(' + ')} · ${Number(d.mi).toFixed(2)} mi · ${d.ref || 'no reference time'} · clear-by −${d.clearBy} min`,
+        note: `${(d.brands ?? []).join(' + ')} · ${d.mi == null ? '—' : d.mi.toFixed(2)} mi · ${d.ref || 'no reference time'} · clear-by −${d.clearBy} min`,
       })),
       footnote: 'Miles: measured route distances (Protocol App. D). Reference times: cycle scope (one-way vs round trip) unspecified.',
     },
-    breakLog: s.breakLog.map((x) => ({ label: 'Break', value: `${x.start}–${x.end ?? 'now'}` })),
+    breakLog: s.breakLog.map((x) => ({ label: 'Break', value: x.end ? `${x.start}–${x.end}` : `${x.start} · in progress` })),
   };
 }
 

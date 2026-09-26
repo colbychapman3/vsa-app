@@ -99,13 +99,15 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           continue;
         } else {
           if (cur.status !== 'active' && cur.status !== 'paused') return fail(`Event ${id}: ${d.label} is ${STATUS_LABEL[cur.status]}; set it Active or Paused before logging a count.`, id);
-          next = sc.hatch
-            ? { ...cur, hatchRemaining: { ...cur.hatchRemaining, [sc.hatch]: p.value as number } }
-            : { ...cur, deckRemaining: p.value as number };
+          // null (provenance unknown) takes a count back to unknown.
+          const hatches = { ...cur.hatchRemaining };
+          if (sc.hatch) { if (p.value === null) delete hatches[sc.hatch]; else hatches[sc.hatch] = p.value as number; }
+          next = sc.hatch ? { ...cur, hatchRemaining: hatches } : { ...cur, deckRemaining: p.value as number | null };
         }
         const u = deckUpdate(d, next);
         if ('error' in u) return fail(u.error, id);
-        decks[d.id] = { ...cur, ...u, time: occurred ?? cur.time ?? null, history: next.history };
+        // The deck's time is the latest save's time; a save with no time is "time not provided", never an earlier time.
+        decks[d.id] = { ...cur, ...u, time: occurred, history: next.history };
         continue;
       }
       case 'clerk_remaining':
@@ -148,7 +150,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         else if (e.event_type === 'discrepancy_resolved') {
           const target = p.input_event_ids[0];
           const issue = target ? issues.get(target) : undefined;
-          if (!issue) return fail(`Event ${id}: discrepancy ${target} is not open.`, id);
+          if (!issue || issue.status !== 'open') return fail(`Event ${id}: discrepancy ${target} is not open.`, id);
           issue.status = 'resolved';
           issue.resolvedAt = eventTimeLabel(occurred);
         }
@@ -176,7 +178,8 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
 
   const deckResults = baseline.decks.map((d) => {
     const st = decks[d.id];
-    return { ...deckCalc(d, st), height: heightInfo(d, st?.heightConfirmed ?? null), time: st?.time ? eventTimeLabel(st.time) : null, history: st?.history ?? [] };
+    return { ...deckCalc(d, st), height: heightInfo(d, st?.heightConfirmed ?? null), time: st?.time ? eventTimeLabel(st.time) : null, history: st?.history ?? [],
+      entered: { hatches: { ...st?.hatchRemaining }, deck: st?.deckRemaining ?? null } }; // what Colby last entered (sheet pre-fill)
   });
   const phase: Phase = ops.shiftEnded ? 'shift_end' : ops.onBreak ? 'break' : 'working';
   const clerk = phase === 'working' ? null : clerks.filter((c) => c.seq > recStart).at(-1) ?? null;

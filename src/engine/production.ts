@@ -115,7 +115,10 @@ export function checkHour(h: HourEntry, brands: string[], breaks: string[]): Rej
   if (!Number.isInteger(h.count) || h.count < 0) return fail('Enter the whole-number count for this hour.');
   if (h.drivers != null && (!Number.isInteger(h.drivers) || h.drivers < 0)) return fail('Drivers must be a whole number.');
   if (h.brands) {
-    for (const [b, v] of Object.entries(h.brands)) if (!Number.isInteger(v) || v < 0) return fail(`${b} must be a whole number.`);
+    for (const [b, v] of Object.entries(h.brands)) {
+      if (!brands.includes(b)) return fail(`${b} is not on this vessel.`);
+      if (!Number.isInteger(v) || v < 0) return fail(`${b} must be a whole number.`);
+    }
     const filled = Object.keys(h.brands).length;
     if (filled && filled < brands.length) return fail('Fill every brand, or leave the split blank.');
     const sum = Object.values(h.brands).reduce((t, v) => t + v, 0);

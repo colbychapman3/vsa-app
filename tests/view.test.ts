@@ -222,3 +222,54 @@ test('screen 08: Plan (tracker demo)', () => {
   // "change" on a confirmed deck puts it back in the pending list.
   assert.deepEqual(planView(demo(), glovis, new Set(['D7'])).heights.confirmed, []);
 });
+
+// ---- Checkpoint A review findings (2026-09-26) ----
+
+test('review 6: missing destination autos or miles show as unknown, never 0 or NaN', () => {
+  const b = { ...glovis, hh: undefined, destinations: [glovis.destinations[0], { name: 'MBZ', side: 'S', clearBy: 30, brands: ['Kia'] }] };
+  const s = state([]);
+  const side = snapshot(s, b, 7 * 60).side;
+  assert.equal(side.unknown, 'Auto counts missing for MBZ; side split unknown.');
+  assert.deepEqual([side.north.pct, side.south.pct], ['—', '—']);
+  const p = planView(s, b);
+  assert.equal(p.side.north, '—');
+  assert.equal(p.destinations.rows[1].autos, '—');
+  assert.equal(p.destinations.rows[1].note, 'Kia · — mi · no reference time · clear-by −30 min');
+  assert.equal(p.baseline.hh, '—'); // no H&H on the baseline = unknown, not 0
+});
+
+test('review (optional): an open break shows "in progress", never an invented end', () => {
+  const s = state(extend(toEvents({ name: 'x', hourly: MORNING.slice(0, 1) }, OP), [['pause', 'break', null, { at: '12:00' }]]));
+  assert.deepEqual(planView(s, glovis).breakLog, [{ label: 'Break', value: '12:00 · in progress' }]);
+});
+
+test('review 5: clerk check and per-driver rate come from the engine', () => {
+  const s = demo();
+  const p = s.periods[0];
+  assert.ok(p.driverRate.rate != null);
+  assert.equal(hourlyView(s).rows[0].drivers, `70 drivers · ${p.driverRate.rate!.toFixed(2)} per driver per productive hr`);
+  // Unknown driver rate (short hour without stop can't be saved, so use no drivers): no drivers line.
+  const s2 = state(toEvents({ name: 'x', hourly: [{ day: 1, start: '08:00', count: 200 }] }, OP));
+  assert.equal(hourlyView(s2).rows[0].drivers, null);
+});
+
+test('review (optional): Day 2 shows on the ETA tile and the graph', () => {
+  const evs = extend(toEvents({ name: 'x', hourly: [...MORNING, { day: 1, start: '13:00', count: 240, drivers: 68 }], plan: { shiftEnd: '15:00', nextStart: '07:00' } }, OP), [
+    ['status_change', 'shift', 'ended', { at: '15:00' }],
+    ['status_change', 'shift', 'started', { at: '07:00' }],
+  ]);
+  evs.at(-1)!.occurred_at = '2026-09-22T07:00:00-04:00';
+  const s = state(extend(evs, [['observation', 'field_units', 230, { period: ['2026-09-22T07:00:00-04:00', '2026-09-22T08:00:00-04:00'] }]]));
+  const v = snapshot(s, glovis, 8 * 60);
+  assert.equal(v.eta.day, 'Day 2');
+  assert.equal(hourlyView(s).graph!.points.at(-1)!.xLabel, 'D2 07');
+  assert.equal(hourlyView(s).rows.at(-1)!.dayHeader, 'Day 2');
+});
+
+test('deck sheet opens pre-filled with the current counts (Colby chose A)', () => {
+  const s = demo();
+  const sh = deckSheet(s.decks.find((d) => d.id === 'D9')!, glovis);
+  assert.deepEqual(sh.prefill, { hatches: { H4: 24, H3: 123, H2: 103, H1: 69 }, deck: null });
+  const done = deckSheet(s.decks.find((d) => d.id === 'UPP')!, glovis);
+  assert.deepEqual(done.prefill, { hatches: {}, deck: null }); // not Active/Paused: boxes start blank
+});

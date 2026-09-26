@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, formatHM, parseHM, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -29,6 +29,15 @@ export function offsetFor(date: Date): string {
   return `${m < 0 ? '-' : '+'}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
 }
 
+// The "Now" button: the phone's local time on the operation's own day count.
+// Before Day 1 there is no operation day, so nothing is filled in.
+export function nowOpTime(opDate: string, now: Date): OpTime | null {
+  const [y, m, d] = opDate.split('-').map(Number);
+  const day = Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(y, m - 1, d)) / 86_400_000) + 1;
+  if (day < 1) return null;
+  return { day, hm: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}` };
+}
+
 // Builds events with sequence numbers after the stored log.
 function builder(ctx: Ctx) {
   let seq = (ctx.state.log.events.at(-1)?.sequence ?? 0) + 1;
@@ -37,12 +46,13 @@ function builder(ctx: Ctx) {
     type: VsaEvent['event_type']; metric: string; value: VsaEvent['payload']['value']; kind?: VsaEvent['payload']['count_kind'];
     workstream?: 'auto_discharge' | 'operation'; deck?: string | null; hatch?: string | null; commodity?: string | null;
     at?: OpTime | null; period?: [string, string] | null; reason?: string | null; supersedes?: string | null; inputs?: string[];
+    provenance?: VsaEvent['provenance'];
   }) => {
     const id = `${ctx.operationId}-${seq}`;
     out.push({
       schema_version: '1.0', event_id: id, operation_id: ctx.operationId, sequence: seq++, idempotency_key: id, event_type: e.type,
       scope: { workstream: e.workstream ?? 'auto_discharge', deck: e.deck ?? null, hatch: e.hatch ?? null, commodity: e.commodity ?? null, destination: null },
-      occurred_at: e.at ? iso(ctx, e.at) : null, recorded_at: ctx.recordedAt, actor: 'colby', source_ids: ['vsa-app'], provenance: 'user_report',
+      occurred_at: e.at ? iso(ctx, e.at) : null, recorded_at: ctx.recordedAt, actor: 'colby', source_ids: ['vsa-app'], provenance: e.provenance ?? 'user_report',
       supersedes_event_id: e.supersedes ?? null,
       payload: { metric: e.metric, value: e.value, unit: null, count_kind: e.kind ?? 'not_applicable',
         period_start: e.period?.[0] ?? null, period_end: e.period?.[1] ?? null, reason: e.reason ?? null, input_event_ids: e.inputs ?? [] },
@@ -66,8 +76,8 @@ export type HourForm = {
 // A new hour is observations. Re-entering an hour corrects only the values that
 // changed (total, each brand, drivers, stop time), each keeping its history.
 export function hourEvents(ctx: Ctx, f: HourForm): VsaEvent[] | Reject {
-  const endHour = String(Number(f.start.slice(0, 2)) + 1).padStart(2, '0');
-  const period: [string, string] = [iso(ctx, { day: f.day, hm: f.start }), iso(ctx, { day: f.day, hm: `${endHour}:${f.start.slice(3)}` })];
+  const endMin = parseHM(f.start)! + 60; // the 23:00 hour ends at 00:00 the next day
+  const period: [string, string] = [iso(ctx, { day: f.day, hm: f.start }), iso(ctx, endMin >= 1440 ? { day: f.day + 1, hm: formatHM(endMin) } : { day: f.day, hm: formatHM(endMin) })];
   const existing = activeEvents(ctx.state.log).filter((e) => e.payload.period_start === period[0]);
   const find = (metric: string, commodity: string | null) => existing.find((e) => e.payload.metric === metric && e.scope.commodity === commodity);
 
@@ -97,21 +107,34 @@ export type DeckForm = {
   deck: string;
   status: DeckStatus;
   skipped: boolean;
-  hatchRemaining: Record<string, number>; // only hatches Colby filled in
+  // The whole sheet, as the tracker saves it: every hatch's box, null = blank = unknown.
+  // The sheet opens pre-filled with the current counts (view.deckSheet().prefill).
+  hatchRemaining: Record<string, number | null>;
   deckRemaining: number | null;
   time: OpTime | null;
 };
 
-export function deckEvents(ctx: Ctx, f: DeckForm): VsaEvent[] {
+// A deck save is a full snapshot (Colby chose tracker behavior, 2026-09-26): only
+// what differs from the current deck is written; a cleared box records "unknown".
+export function deckEvents(ctx: Ctx, f: DeckForm): VsaEvent[] | Reject {
   const { add, out } = builder(ctx);
   const cur = ctx.state.decks.find((d) => d.id === f.deck);
-  add({ type: 'status_change', metric: 'deck_status', value: f.status, deck: f.deck, at: f.time });
-  if (f.status === 'notStarted' && f.skipped !== !!cur?.skipped) add({ type: 'status_change', metric: 'deck_skipped', value: f.skipped, deck: f.deck, at: f.time });
+  if (!cur) return reject(`Deck ${f.deck} is not on this vessel.`);
+  const statusChanged = f.status !== cur.status;
+  if (statusChanged) add({ type: 'status_change', metric: 'deck_status', value: f.status, deck: f.deck, at: f.time });
+  if (f.status === 'notStarted' && f.skipped !== cur.skipped) add({ type: 'status_change', metric: 'deck_skipped', value: f.skipped, deck: f.deck, at: f.time });
   if (f.status === 'active' || f.status === 'paused') {
-    for (const [h, v] of Object.entries(f.hatchRemaining)) add({ type: 'observation', metric: 'vessel_remaining', value: v, kind: 'remaining', deck: f.deck, hatch: h, at: f.time });
-    if (f.deckRemaining != null) add({ type: 'observation', metric: 'vessel_remaining', value: f.deckRemaining, kind: 'remaining', deck: f.deck, at: f.time });
+    // Counts exist only on an Active/Paused deck (they carry over between the two); otherwise start blank.
+    const have = cur.status === 'active' || cur.status === 'paused' ? cur.entered : { hatches: {} as Record<string, number>, deck: null };
+    const put = (hatch: string | null, want: number | null, had: number | null) => {
+      if (want === had) return;
+      add({ type: 'observation', metric: 'vessel_remaining', value: want, kind: 'remaining', deck: f.deck, hatch, at: f.time,
+        provenance: want === null ? 'unknown' : 'user_report' });
+    };
+    for (const h of cur.hatches) put(h.h, f.hatchRemaining[h.h] ?? null, have.hatches[h.h] ?? null);
+    put(null, f.deckRemaining, have.deck);
   }
-  return out;
+  return out.length ? out : reject(`Nothing to save: ${cur.label} already shows these values.`);
 }
 
 export function heightEvents(ctx: Ctx, deck: string, m: number, time: OpTime | null): VsaEvent[] {

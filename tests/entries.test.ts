@@ -145,8 +145,63 @@ test('discrepancy: open, track a banner, resolve; empty text refused', async (tc
 
 test('empty time is saved as "time not provided", never the phone clock', async (tc) => {
   const s = await setup(tc);
-  const evs = E.deckEvents(s.ctx(), { deck: 'UPP', status: 'complete', skipped: false, hatchRemaining: {}, deckRemaining: null, time: null });
+  const evs = E.deckEvents(s.ctx(), { deck: 'UPP', status: 'complete', skipped: false, hatchRemaining: {}, deckRemaining: null, time: null }) as VsaEvent[];
   assert.ok(evs.every((e) => e.occurred_at === null && e.recorded_at === '2026-09-21T20:00:00-04:00'));
   assert.match(E.offsetFor(new Date()), /^[+-]\d{2}:\d{2}$/);
   assert.equal(E.iso({ ...s.ctx() }, t('07:30', 2)), '2026-09-22T07:30:00-04:00');
+});
+
+// ---- Checkpoint A review findings (2026-09-26). Each reproduces the bug first. ----
+
+test('review 1: a deck cleared with no time never borrows an earlier update’s time', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.deckEvents(s.ctx(), { deck: 'D9', status: 'active', skipped: false, hatchRemaining: { H4: 24, H3: null, H2: null, H1: null }, deckRemaining: null, time: t('14:50') }));
+  await s.ok(E.deckEvents(s.ctx(), { deck: 'D9', status: 'complete', skipped: false, hatchRemaining: {}, deckRemaining: null, time: null }));
+  assert.equal(decksView(s.state).rows.find((r) => r.id === 'D9')!.cleared, 'Cleared 398 Hyundai · time not provided');
+});
+
+test('review 2: a discrepancy can only be resolved once', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.openDiscrepancyEvents(s.ctx(), 'x', t('10:00')));
+  const id = s.state.issues[0].id;
+  await s.ok(E.resolveDiscrepancyEvents(s.ctx(), id, t('10:10')));
+  const r = await s.save(E.resolveDiscrepancyEvents(s.ctx(), id, t('11:30')));
+  assert.ok(!r.ok && /is not open/.test(r.error));
+  assert.equal(planView(s.state, glovis).issues.resolved, 'Recently resolved: x (10:10)');
+});
+
+test('review 3: a brand that is not on the vessel is refused in an hourly split', async (tc) => {
+  const s = await setup(tc);
+  const r = await s.save(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 100, brands: { Hyundai: 60, Kia: 30, Honda: 10 } }));
+  assert.deepEqual(r, { ok: false, error: 'Hour 08:00: Honda is not on this vessel.' });
+});
+
+test('review 4 (Colby chose A): the deck sheet is a full snapshot — clearing a hatch makes it unknown again', async (tc) => {
+  const s = await setup(tc);
+  const d1 = (h3: number | null, h2: number | null, total: number | null = null) =>
+    E.deckEvents(s.ctx(), { deck: 'D1', status: 'active', skipped: false, hatchRemaining: { H3: h3, H2: h2 }, deckRemaining: total, time: t('09:00') });
+  await s.ok(d1(5, 67));
+  assert.equal(s.state.decks.find((d) => d.id === 'D1')!.rem, 72);
+  await s.ok(d1(null, 67));                 // H3 cleared → unknown → deck remaining unknown
+  const d = s.state.decks.find((x) => x.id === 'D1')!;
+  assert.deepEqual([d.hatches[0].rem, d.rem], [null, null]);
+  assert.equal(s.state.vesselRemaining, null);
+  await s.ok(d1(null, null, 60));           // all hatches blank, deck total only: accepted (no trap)
+  assert.equal(s.state.decks.find((x) => x.id === 'D1')!.rem, 60);
+  // History keeps the earlier counts; nothing was overwritten.
+  assert.ok(s.state.log.events.some((e) => e.scope.deck === 'D1' && e.scope.hatch === 'H3' && e.payload.value === 5));
+  // Saving the same snapshot again changes nothing and says so.
+  assert.deepEqual(d1(null, null, 60), { ok: false, error: 'Nothing to save: D1 already shows these values.' });
+});
+
+test('review 7: Now gives the phone time on the right operation day', () => {
+  assert.deepEqual(E.nowOpTime('2026-09-21', new Date(2026, 8, 21, 14, 7)), { day: 1, hm: '14:07' });
+  assert.deepEqual(E.nowOpTime('2026-09-21', new Date(2026, 8, 22, 7, 30)), { day: 2, hm: '07:30' });
+  assert.equal(E.nowOpTime('2026-09-21', new Date(2026, 8, 20, 23, 0)), null); // before the operation: no guess
+});
+
+test('review (optional): the 23:00 hour ends at 00:00 the next day', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '23:00', count: 50 }));
+  assert.equal(s.state.periods.at(-1)!.start, '23:00');
 });

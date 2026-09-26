@@ -74,7 +74,9 @@ function checkEnvelope(e: VsaEvent): string | null {
   const p = e.payload;
   if (!p || typeof p.metric !== 'string' || !p.metric) return `Event ${e.event_id}: payload metric is required.`;
   if (!COUNT_KINDS.includes(p.count_kind)) return `Event ${e.event_id}: count_kind "${p.count_kind}" is not allowed.`;
-  if (p.count_kind !== 'not_applicable' && !(Number.isInteger(p.value) && (p.value as number) >= 0)) {
+  // A count is a whole number, or null with provenance 'unknown' (kit file 15: unknown = null, class unknown).
+  const unknownCount = p.value === null && e.provenance === 'unknown';
+  if (p.count_kind !== 'not_applicable' && !unknownCount && !(Number.isInteger(p.value) && (p.value as number) >= 0)) {
     return `Event ${e.event_id}: ${p.metric} must be a whole number of 0 or more (got ${p.value}).`;
   }
   for (const k of ['period_start', 'period_end'] as const) if (p[k] !== null && !ISO.test(p[k]!)) return `Event ${e.event_id}: ${k} must be null or a date-time with UTC offset.`;
