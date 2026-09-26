@@ -41,6 +41,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const deckById = new Map(baseline.decks.map((d) => [d.id, d]));
   const decks: Record<string, DeckState & { time?: OpTime | null; heightConfirmed?: { m: number; time: string } | null; history?: { status: DeckStatus; time: string }[] }> = {};
   const hours = new Map<string, HourEntry & { key: string; was?: number[] }>();
+  const hourValue = new Map<string, string>(); // hour|metric|brand → the one active event holding it
   const ops: Ops & { shiftEnd?: string | null } = { day: 1 };
   const breakLog: { start: string; end: string | null }[] = [];
   const plan: { shiftEnd: string | null; nextStart: string | null } = { shiftEnd: null, nextStart: null };
@@ -61,7 +62,14 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       if ('error' in s) return fail(s.error, id);
       if ('error' in z) return fail(z.error, id);
       if (toAbs(z)! - toAbs(s)! !== 60) return fail(`Event ${id}: field counts are hourly; ${p.period_start}–${p.period_end} is not one hour.`, id);
+      if (!s.hm.endsWith(':00')) return fail(`Event ${id}: field counts are hourly, on the hour (got ${s.hm}).`, id);
+      if (p.metric !== 'field_units' && p.count_kind !== 'not_applicable') return fail(`Event ${id}: ${p.metric} must not be a count kind (count_kind not_applicable).`, id);
       const key = `${s.day}|${s.hm}`;
+      // One value per hour and field. A new value must correct the old one (keeps history), never replace it.
+      const slot = `${key}|${p.metric}|${sc.commodity ?? ''}`;
+      const held = hourValue.get(slot);
+      if (held) return fail(`Event ${id}: Hour ${eventTimeLabel(s)} already has ${p.metric}${sc.commodity ? ` for ${sc.commodity}` : ''} (event ${held}); correct that event instead.`, id);
+      hourValue.set(slot, id);
       const h = hours.get(key) ?? { key, day: s.day, start: s.hm, count: NaN };
       if (p.metric === 'field_units') {
         if (p.count_kind !== 'interval') return fail(`Event ${id}: field_units must be an hourly interval count.`, id);
@@ -93,6 +101,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           next = { ...cur, status: p.value as DeckStatus, skipped: p.value === 'notStarted' ? cur.skipped : false,
             history: [...(cur.history ?? []), { status: p.value as DeckStatus, time: eventTimeLabel(occurred) }] };
         } else if (p.metric === 'deck_skipped') {
+          if (typeof p.value !== 'boolean') return fail(`Event ${id}: deck_skipped must be true or false.`, id);
           next = { ...cur, skipped: p.value === true };
         } else if (p.metric === 'deck_height_m') {
           if (typeof p.value !== 'number' || !(p.value > 0)) return fail(`Event ${id}: deck height must be a positive number of metres.`, id);
@@ -122,6 +131,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         clerks.push({ remaining: p.value as number, time: occurred ? eventTimeLabel(occurred) : 'time not provided', seq: e.sequence });
         continue;
       case 'break':
+        if (e.event_type !== 'pause' && e.event_type !== 'resume') return fail(`Event ${id}: break must be a pause or resume.`, id);
         if (e.event_type === 'pause') {
           if (!occurred) return fail(`Event ${id}: enter the break start time.`, id);
           Object.assign(ops, { onBreak: true, breakStart: occurred.hm, day: occurred.day }); recStart = e.sequence;
@@ -153,6 +163,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         plan[p.metric === 'plan_shift_end' ? 'shiftEnd' : 'nextStart'] = p.value;
         continue;
       case 'discrepancy':
+        if (e.event_type === 'discrepancy_opened' && !(p.reason ?? (typeof p.value === 'string' ? p.value : '')).trim()) return fail(`Event ${id}: a discrepancy needs a description.`, id);
         if (e.event_type === 'discrepancy_opened') issues.set(id, { id, key: p.reason && typeof p.value === 'string' ? p.value : null, text: p.reason ?? String(p.value ?? ''), openedAt: eventTimeLabel(occurred), status: 'open', resolvedAt: null });
         else if (e.event_type === 'discrepancy_resolved') {
           const target = p.input_event_ids[0];

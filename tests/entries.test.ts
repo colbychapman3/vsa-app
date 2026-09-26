@@ -264,3 +264,54 @@ test('round 3 (optional): a stop time on a full hour is refused; the whole-sheet
   const r2 = await s.save(bad);
   assert.deepEqual(r2, { ok: false, error: 'Hatch counts add to 72 but deck total says 70. Fix one.', event_id: bad.at(-1)!.event_id });
 });
+
+// ---- Review round 4 (2026-09-26): one value per hour and field; strict types from any source ----
+
+test('round 4 R1: a second value for the same hour is refused — correct the first instead', async (tc) => {
+  const s = await setup(tc);
+  const base = E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 100, drivers: 70 }) as VsaEvent[];
+  await s.ok(base);
+  const dup = (metric: string, value: number, periodStart = base[0].payload.period_start!, periodEnd = base[0].payload.period_end!) => {
+    const evs = E.clerkEvents(s.ctx(), 0, null) as VsaEvent[]; // borrow a well-formed envelope, then reshape
+    const e = evs[0];
+    e.payload = { ...e.payload, metric, value, count_kind: metric === 'field_units' ? 'interval' : 'not_applicable', period_start: periodStart, period_end: periodEnd };
+    return evs;
+  };
+  const r1 = await s.save(dup('drivers', 40));
+  assert.ok(!r1.ok && /Hour 08:00 already has drivers \(event TEST-ENTRIES-\d+\); correct that event instead\./.test(r1.error), JSON.stringify(r1));
+  // Same wall-clock hour sent with another UTC offset (DST change, import): still the same hour.
+  const r2 = await s.save(dup('field_units', 5, '2026-09-21T08:00:00-05:00', '2026-09-21T09:00:00-05:00'));
+  assert.ok(!r2.ok && /Hour 08:00 already has field_units/.test(r2.error), JSON.stringify(r2));
+  assert.deepEqual([s.state.field, s.state.periods[0].drivers], [100, 70]); // nothing replaced
+});
+
+test('round 4 R2: field counts are on the hour; 11:30–12:30 across a break is refused', async (tc) => {
+  const s = await setup(tc);
+  const evs = E.hourEvents(s.ctx(), { day: 1, start: '11:00', count: 100, stopMin: 45 }) as VsaEvent[];
+  for (const e of evs) { e.payload.period_start = '2026-09-21T11:30:00-04:00'; e.payload.period_end = '2026-09-21T12:30:00-04:00'; }
+  const r = await s.save(evs);
+  assert.ok(!r.ok && /field counts are hourly, on the hour/.test(r.error), JSON.stringify(r));
+});
+
+test('round 4 R3 and strict types: skipped must be true/false; empty discrepancy and odd break events refused', async (tc) => {
+  const s = await setup(tc);
+  const skip = E.deckEvents(s.ctx(), { deck: 'D7', status: 'notStarted', skipped: true, hatchRemaining: {}, deckRemaining: null, time: null }) as VsaEvent[];
+  skip[0].payload.value = 'true';
+  const r1 = await s.save(skip);
+  assert.ok(!r1.ok && /deck_skipped must be true or false/.test(r1.error), JSON.stringify(r1));
+
+  const d = E.openDiscrepancyEvents(s.ctx(), 'x', null) as VsaEvent[];
+  d[0].payload.reason = '  '; d[0].payload.value = null;
+  const r2 = await s.save(d);
+  assert.ok(!r2.ok && /discrepancy needs a description/.test(r2.error), JSON.stringify(r2));
+
+  const b = E.breakStartEvents(s.ctx(), t('12:00')) as VsaEvent[];
+  b[0].event_type = 'observation';
+  const r3 = await s.save(b);
+  assert.ok(!r3.ok && /break must be a pause or resume/.test(r3.error), JSON.stringify(r3));
+
+  const h = E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 100, drivers: 7 }) as VsaEvent[];
+  h[1].payload.count_kind = 'remaining';
+  const r4 = await s.save(h);
+  assert.ok(!r4.ok && /drivers must not be a count kind/.test(r4.error), JSON.stringify(r4));
+});
