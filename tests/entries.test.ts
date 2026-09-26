@@ -186,7 +186,7 @@ test('review 4 (Colby chose A): the deck sheet is a full snapshot — clearing a
   const d = s.state.decks.find((x) => x.id === 'D1')!;
   assert.deepEqual([d.hatches[0].rem, d.rem], [null, null]);
   assert.equal(s.state.vesselRemaining, null);
-  await s.ok(d1(null, null, 60));           // all hatches blank, deck total only: accepted (no trap)
+  await s.ok(d1(null, null, 60));           // all hatches blank, deck total only: accepted (other direction: round 2 R1 test)
   assert.equal(s.state.decks.find((x) => x.id === 'D1')!.rem, 60);
   // History keeps the earlier counts; nothing was overwritten.
   assert.ok(s.state.log.events.some((e) => e.scope.deck === 'D1' && e.scope.hatch === 'H3' && e.payload.value === 5));
@@ -204,4 +204,31 @@ test('review (optional): the 23:00 hour ends at 00:00 the next day', async (tc) 
   const s = await setup(tc);
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '23:00', count: 50 }));
   assert.equal(s.state.periods.at(-1)!.start, '23:00');
+  assert.equal(s.state.log.events.at(-1)!.payload.period_end, '2026-09-22T00:00:00-04:00'); // ends Day 2 00:00
+});
+
+// ---- Review round 2 (2026-09-26) ----
+
+test('round 2 R1: a consistent deck sheet is accepted when hatches and total change together', async (tc) => {
+  const s = await setup(tc);
+  const d1 = (h3: number | null, h2: number | null, total: number | null) =>
+    E.deckEvents(s.ctx(), { deck: 'D1', status: 'active', skipped: false, hatchRemaining: { H3: h3, H2: h2 }, deckRemaining: total, time: t('09:00') });
+  await s.ok(d1(5, 67, 72));
+  await s.ok(d1(10, 67, 77));             // both change; the final sheet agrees
+  assert.equal(s.state.decks.find((d) => d.id === 'D1')!.rem, 77);
+  await s.ok(d1(null, null, 60));         // total only
+  await s.ok(d1(10, 55, null));           // back to hatches, total cleared
+  assert.equal(s.state.decks.find((d) => d.id === 'D1')!.rem, 65);
+  // The whole-sheet check still refuses a sheet that disagrees with itself.
+  const r = await s.save(d1(10, 55, 70));
+  assert.ok(!r.ok && r.error === 'Hatch counts add to 65 but deck total says 70. Fix one.', JSON.stringify(r));
+});
+
+test('round 2 R2: "unknown" (null) is only valid for a vessel remaining count', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.breakStartEvents(s.ctx(), t('12:00')));
+  const evs = E.clerkEvents(s.ctx(), 100, t('12:05')) as VsaEvent[];
+  evs[0].payload.value = null; evs[0].provenance = 'unknown';
+  const r = await s.save(evs);
+  assert.ok(!r.ok && /clerk_remaining must be a whole number of 0 or more/.test(r.error), JSON.stringify(r));
 });

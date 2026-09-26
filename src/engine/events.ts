@@ -75,7 +75,8 @@ function checkEnvelope(e: VsaEvent): string | null {
   if (!p || typeof p.metric !== 'string' || !p.metric) return `Event ${e.event_id}: payload metric is required.`;
   if (!COUNT_KINDS.includes(p.count_kind)) return `Event ${e.event_id}: count_kind "${p.count_kind}" is not allowed.`;
   // A count is a whole number, or null with provenance 'unknown' (kit file 15: unknown = null, class unknown).
-  const unknownCount = p.value === null && e.provenance === 'unknown';
+  // Only a vessel remaining count can go back to unknown (the deck sheet's cleared box).
+  const unknownCount = p.metric === 'vessel_remaining' && p.value === null && e.provenance === 'unknown';
   if (p.count_kind !== 'not_applicable' && !unknownCount && !(Number.isInteger(p.value) && (p.value as number) >= 0)) {
     return `Event ${e.event_id}: ${p.metric} must be a whole number of 0 or more (got ${p.value}).`;
   }

@@ -64,7 +64,9 @@ export function deckCalc(d: Deck, st: DeckState = { status: 'notStarted' }): Dec
 }
 
 // Validate a deck update. Rejects with the exact overage; never clamps.
-export function deckUpdate(d: Deck, input: DeckState): DeckState | Reject {
+// checkTotal: compare hatch sum with deck total. The engine runs that once per deck on
+// the final state (the tracker checks the whole sheet), not after every single entry.
+export function deckUpdate(d: Deck, input: DeckState, checkTotal = true): DeckState | Reject {
   const qty = new Map(d.hatches.map((h) => [h.h, h.items.reduce((s, i) => s + i.qty, 0)]));
   const start = [...qty.values()].reduce((s, x) => s + x, 0);
   if (input.skipped && input.status !== 'notStarted') return { ok: false, error: 'Only a Not started deck can be marked Skipped.' };
@@ -79,7 +81,7 @@ export function deckUpdate(d: Deck, input: DeckState): DeckState | Reject {
   if (dr != null) {
     if (!Number.isInteger(dr) || dr < 0) return { ok: false, error: 'Deck total must be a whole number.' };
     if (dr > start) return { ok: false, error: `Deck total exceeds ${d.label}’s ${start} autos by ${dr - start}. Check the count.` };
-    if (Object.keys(hr).length === qty.size) {
+    if (checkTotal && Object.keys(hr).length === qty.size) {
       const sum = Object.values(hr).reduce((s, x) => s + x, 0);
       if (sum !== dr) return { ok: false, error: `Hatch counts add to ${sum} but deck total says ${dr}. Fix one.` };
     }

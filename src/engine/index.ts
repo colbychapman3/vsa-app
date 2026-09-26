@@ -104,7 +104,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           if (sc.hatch) { if (p.value === null) delete hatches[sc.hatch]; else hatches[sc.hatch] = p.value as number; }
           next = sc.hatch ? { ...cur, hatchRemaining: hatches } : { ...cur, deckRemaining: p.value as number | null };
         }
-        const u = deckUpdate(d, next);
+        const u = deckUpdate(d, next, false);
         if ('error' in u) return fail(u.error, id);
         // The deck's time is the latest save's time; a save with no time is "time not provided", never an earlier time.
         decks[d.id] = { ...cur, ...u, time: occurred, history: next.history };
@@ -158,6 +158,12 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       default:
         return fail(`Event ${id}: metric "${p.metric}" is not tracked by this engine.`, id);
     }
+  }
+
+  // Whole-sheet check per deck: hatch counts must agree with a deck total when both are complete.
+  for (const [id, st] of Object.entries(decks)) {
+    const u = deckUpdate(deckById.get(id)!, st);
+    if ('error' in u) return fail(u.error);
   }
 
   // Hourly entries: validate, then check the field total against starting cargo.
