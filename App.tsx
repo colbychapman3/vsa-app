@@ -148,8 +148,9 @@ const s = StyleSheet.create({
   title: { fontSize: 30, fontWeight: '800', color: '#000' },
   card: { borderWidth: 2, borderColor: '#000', borderRadius: 12, padding: 16, gap: 10 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  k: { fontSize: 18, color: '#222' },
-  v: { fontSize: 20, fontWeight: '700', color: '#000', flexShrink: 1, textAlign: 'right' },
+  // Label wraps, number never does (large iOS text sizes split "1,969" otherwise).
+  k: { fontSize: 18, color: '#222', flexShrink: 1 },
+  v: { fontSize: 20, fontWeight: '700', color: '#000', flexShrink: 0, textAlign: 'right' },
   msg: { fontSize: 17, padding: 12, borderRadius: 10, borderWidth: 2 },
   good: { borderColor: '#0A7A2F', color: '#064D1D', backgroundColor: '#E6F6EA' },
   bad: { borderColor: '#C00', color: '#700', backgroundColor: '#FDECEC' },
