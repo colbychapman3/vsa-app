@@ -67,18 +67,18 @@ export const MORNING: HourEntry[] = [
   { day: 1, start: '10:00', count: 225, brands: { Hyundai: 130, Kia: 95 }, drivers: 68 },
   { day: 1, start: '11:00', count: 186, brands: { Hyundai: 99, Kia: 87 }, drivers: 68, stopMin: 45 },
 ];
-const LUNCH_DECKS: Record<string, DeckState> = {
+export const LUNCH_DECKS: Record<string, DeckState> = {
   UPP: { status: 'complete' }, D12: { status: 'complete' }, D8: { status: 'complete' }, D6: { status: 'complete' }, D5: { status: 'complete' },
   D4: { status: 'paused', hatchRemaining: { H3: 116, H2: 105, H1: 7 } },
 };
-const DEMO_DECKS: Record<string, DeckState> = {
+export const DEMO_DECKS: Record<string, DeckState> = {
   UPP: { status: 'complete' }, D12: { status: 'complete' }, D8: { status: 'complete' }, D6: { status: 'complete' },
   D5: { status: 'complete' }, D4: { status: 'complete' }, D2: { status: 'complete' },
   D1: { status: 'active', hatchRemaining: { H3: 0, H2: 30 } },
   D9: { status: 'active', hatchRemaining: { H4: 24, H3: 123, H2: 103, H1: 69 } },
   D7: { status: 'notStarted', skipped: true },
 };
-const AFTERNOON: HourEntry[] = [
+export const AFTERNOON: HourEntry[] = [
   { day: 1, start: '13:00', count: 248, drivers: 68 },
   { day: 1, start: '14:00', count: 241, drivers: 70 },
 ];

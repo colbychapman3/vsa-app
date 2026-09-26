@@ -8,7 +8,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Files: `App.tsx`, `src/app/theme.ts`, `src/app/screens/Chrome.tsx`, `package.json`
   - Depends on: none
 
-- [ ] **T2: View model** (M)
+- [x] **T2: View model** (M)
   - Acceptance: `view.ts` derives, from `project()` state plus the current time, everything the tracker computes while drawing: hero (vessel remaining or field balance), banners, break strip and clear-by per side, "forecast passed", tiles, brands remaining/finished, side split, tab badges, deck sort and insights, hourly rows (change labels, per-driver rate), graph points and scale, field vs cleared table, Plan sections.
   - Verify: `tests/view.test.ts` reproduces screen 01 (512, 74.0%, 1,457 / 1,419 / gap 38 of 70, ETA 17:06 at 245/hr over the last 2 hours, H.A. 237 = 1,419 ÷ 6, pace 247 over 5.75 h, Kia 30 / Hyundai 482, Northside 100.0%, badges Decks 1 · Plan 1), screen 02 (no counts: 1,969, "Needs production data", Plan 5), and screen 03 (1,039, 47.2%, match at 930, "Matches clerk", ETA 17:24, H.A. 233, pace 248).
   - Files: `src/app/view.ts`, `tests/view.test.ts`

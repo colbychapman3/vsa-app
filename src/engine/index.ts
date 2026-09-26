@@ -39,12 +39,13 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
 
   const at = (iso: string | null): OpTime | null | Reject => (iso == null ? null : fromIso(iso, opDate));
   const deckById = new Map(baseline.decks.map((d) => [d.id, d]));
-  const decks: Record<string, DeckState & { time?: OpTime | null; heightConfirmed?: { m: number } | null }> = {};
-  const hours = new Map<string, HourEntry & { key: string }>();
-  const ops: Ops = { day: 1 };
+  const decks: Record<string, DeckState & { time?: OpTime | null; heightConfirmed?: { m: number; time: string } | null; history?: { status: DeckStatus; time: string }[] }> = {};
+  const hours = new Map<string, HourEntry & { key: string; was?: number[] }>();
+  const ops: Ops & { shiftEnd?: string | null } = { day: 1 };
+  const breakLog: { start: string; end: string | null }[] = [];
   const plan: { shiftEnd: string | null; nextStart: string | null } = { shiftEnd: null, nextStart: null };
   const clerks: { remaining: number; time: string; seq: number }[] = [];
-  const issues = new Map<string, { id: string; text: string; openedAt: string; status: 'open' | 'resolved' }>();
+  const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
   let recStart = 0; // sequence of the latest break/shift-end start
 
   for (const e of activeEvents(log)) {
@@ -63,7 +64,10 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       const h = hours.get(key) ?? { key, day: s.day, start: s.hm, count: NaN };
       if (p.metric === 'field_units') {
         if (p.count_kind !== 'interval') return fail(`Event ${id}: field_units must be an hourly interval count.`, id);
-        if (sc.commodity == null) h.count = p.value as number;
+        if (sc.commodity == null) {
+          h.count = p.value as number;
+          h.was = historyOf(log, id).slice(0, -1).map((x) => x.payload.value as number); // earlier values, kept
+        }
         else h.brands = { ...h.brands, [sc.commodity]: p.value as number };
       } else if (p.metric === 'drivers') {
         h.drivers = p.value as number;
@@ -82,15 +86,16 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         const d = sc.deck ? deckById.get(sc.deck) : undefined;
         if (!d) return fail(`Event ${id}: deck ${sc.deck} is not in the baseline.`, id);
         const cur = decks[d.id] ?? { status: 'notStarted' as DeckStatus };
-        let next: DeckState = { ...cur };
+        let next: typeof cur = { ...cur };
         if (p.metric === 'deck_status') {
           if (!STATUSES.includes(p.value as DeckStatus)) return fail(`Event ${id}: deck status "${p.value}" is not allowed.`, id);
-          next = { ...cur, status: p.value as DeckStatus, skipped: p.value === 'notStarted' ? cur.skipped : false };
+          next = { ...cur, status: p.value as DeckStatus, skipped: p.value === 'notStarted' ? cur.skipped : false,
+            history: [...(cur.history ?? []), { status: p.value as DeckStatus, time: eventTimeLabel(occurred) }] };
         } else if (p.metric === 'deck_skipped') {
           next = { ...cur, skipped: p.value === true };
         } else if (p.metric === 'deck_height_m') {
           if (typeof p.value !== 'number' || !(p.value > 0)) return fail(`Event ${id}: deck height must be a positive number of metres.`, id);
-          decks[d.id] = { ...cur, heightConfirmed: { m: p.value } };
+          decks[d.id] = { ...cur, heightConfirmed: { m: p.value, time: eventTimeLabel(occurred) } };
           continue;
         } else {
           if (cur.status !== 'active' && cur.status !== 'paused') return fail(`Event ${id}: ${d.label} is ${STATUS_LABEL[cur.status]}; set it Active or Paused before logging a count.`, id);
@@ -100,7 +105,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         }
         const u = deckUpdate(d, next);
         if ('error' in u) return fail(u.error, id);
-        decks[d.id] = { ...cur, ...u, time: occurred ?? cur.time ?? null };
+        decks[d.id] = { ...cur, ...u, time: occurred ?? cur.time ?? null, history: next.history };
         continue;
       }
       case 'clerk_remaining':
@@ -111,15 +116,24 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         if (e.event_type === 'pause') {
           if (!occurred) return fail(`Event ${id}: enter the break start time.`, id);
           Object.assign(ops, { onBreak: true, breakStart: occurred.hm, day: occurred.day }); recStart = e.sequence;
+          breakLog.push({ start: eventTimeLabel(occurred), end: null });
         } else if (e.event_type === 'resume') {
           if (!occurred) return fail(`Event ${id}: enter the time work resumed.`, id);
           ops.onBreak = false;
+          const open = breakLog.at(-1);
+          if (open && open.end == null) open.end = eventTimeLabel(occurred);
         }
         continue;
       case 'shift':
         if (!occurred) return fail(`Event ${id}: shift changes need a time.`, id);
-        if (p.value === 'ended') { Object.assign(ops, { shiftEnded: true, onBreak: false, day: occurred.day }); recStart = e.sequence; }
-        else if (p.value === 'started') { Object.assign(ops, { shiftEnded: false, day: occurred.day }); if (occurred.day > 1) plan.nextStart = occurred.hm; }
+        if (p.value === 'ended') {
+          Object.assign(ops, { shiftEnded: true, onBreak: false, day: occurred.day, shiftEnd: occurred.hm }); recStart = e.sequence;
+          breakLog.push({ start: `Shift end ${eventTimeLabel(occurred)}`, end: null });
+        } else if (p.value === 'started') {
+          Object.assign(ops, { shiftEnded: false, day: occurred.day }); if (occurred.day > 1) plan.nextStart = occurred.hm;
+          const open = breakLog.at(-1);
+          if (open && open.end == null) open.end = eventTimeLabel(occurred);
+        }
         else return fail(`Event ${id}: shift value must be "ended" or "started".`, id);
         continue;
       case 'plan_shift_end':
@@ -128,12 +142,13 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         plan[p.metric === 'plan_shift_end' ? 'shiftEnd' : 'nextStart'] = p.value;
         continue;
       case 'discrepancy':
-        if (e.event_type === 'discrepancy_opened') issues.set(id, { id, text: p.reason ?? String(p.value ?? ''), openedAt: eventTimeLabel(occurred), status: 'open' });
+        if (e.event_type === 'discrepancy_opened') issues.set(id, { id, key: p.reason && typeof p.value === 'string' ? p.value : null, text: p.reason ?? String(p.value ?? ''), openedAt: eventTimeLabel(occurred), status: 'open', resolvedAt: null });
         else if (e.event_type === 'discrepancy_resolved') {
           const target = p.input_event_ids[0];
           const issue = target ? issues.get(target) : undefined;
           if (!issue) return fail(`Event ${id}: discrepancy ${target} is not open.`, id);
           issue.status = 'resolved';
+          issue.resolvedAt = eventTimeLabel(occurred);
         }
         continue;
       default:
@@ -159,7 +174,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
 
   const deckResults = baseline.decks.map((d) => {
     const st = decks[d.id];
-    return { ...deckCalc(d, st), height: heightInfo(d, st?.heightConfirmed ?? null), time: st?.time ? eventTimeLabel(st.time) : null };
+    return { ...deckCalc(d, st), height: heightInfo(d, st?.heightConfirmed ?? null), time: st?.time ? eventTimeLabel(st.time) : null, history: st?.history ?? [] };
   });
   const phase: Phase = ops.shiftEnded ? 'shift_end' : ops.onBreak ? 'break' : 'working';
   const clerk = phase === 'working' ? null : clerks.filter((c) => c.seq > recStart).at(-1) ?? null;
@@ -189,6 +204,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     ops: { ...ops, phase },
     plan,
     issues: [...issues.values()],
+    breakLog,
     corrections,
     log,
   };

@@ -10,6 +10,7 @@ export type HourEntry = {
   drivers?: number | null;
   brands?: Record<string, number> | null;
   stopMin?: number | null;             // productive minutes in a short pre-break hour (30 or 45)
+  was?: number[];                      // earlier values of this hour's total, oldest first (corrections)
 };
 
 export type Period = HourEntry & {

@@ -97,7 +97,7 @@ export const VAN_MIN_M = 1.85; // shuttle vans need 1.85 m or more
 
 // hard: below 1.85 m. soft: at/above 1.85 m but the deck can be lowered below it
 // and the height isn't confirmed. unknown: no height on record.
-export function heightInfo(d: Deck, confirmed: { m: number } | null = null) {
+export function heightInfo<C extends { m: number }>(d: Deck, confirmed: C | null = null) {
   const hs = d.heights ?? [];
   const stow = hs.find((x) => x.current) ?? null;
   const current = confirmed ? confirmed.m : stow ? stow.m : null;
