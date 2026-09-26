@@ -138,6 +138,8 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         continue;
       case 'plan_shift_end':
       case 'plan_next_start':
+        // A null Day 1 shift end means "works until finished".
+        if (p.metric === 'plan_shift_end' && p.value === null) { plan.shiftEnd = null; continue; }
         if (typeof p.value !== 'string' || parseHM(p.value) == null) return fail(`Event ${id}: ${p.metric} must be an HH:MM time.`, id);
         plan[p.metric === 'plan_shift_end' ? 'shiftEnd' : 'nextStart'] = p.value;
         continue;

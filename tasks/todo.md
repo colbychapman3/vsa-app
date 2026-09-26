@@ -14,7 +14,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Files: `src/app/view.ts`, `tests/view.test.ts`
   - Depends on: T1
 
-- [ ] **T3: Entries** (M)
+- [x] **T3: Entries** (M)
   - Acceptance: `entries.ts` turns each form into events: hourly count (total, brand split, drivers, stop time), correction on re-entry with a required reason, deck update (status, skipped, hatch or deck remaining, time), height confirmation, break start/end, end of shift, next-day start, shift settings, clerk count, discrepancy open/resolve. Empty time → `occurred_at: null`; the tapped **Now** fills the phone's time.
   - Verify: `tests/entries.test.ts`: every form saved through `store.append` on node:sqlite, then `project()` shows it; re-entering an hour supersedes only the changed values and keeps history; corrections without a reason are refused.
   - Files: `src/app/entries.ts`, `tests/entries.test.ts`
