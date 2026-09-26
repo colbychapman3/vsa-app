@@ -22,6 +22,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
 
 ### Checkpoint A
 - [ ] `npm test`, `npm run typecheck`, `npm run check:ios` pass; screen 01–03 numbers reproduced
+- [ ] Independent review (agent-skills:code-reviewer) of T1–T3: no math outside engine/view, unknown never shown as 0, tests really prove the screen numbers; findings fixed or reported to Colby
 
 - [ ] **T4: Snapshot** (M)
   - Acceptance: matches screens 01–03: banners, track-as-discrepancy, break strip, open discrepancies strip, hero with clerk check, FORECAST and CALCULATED tiles, remaining by brand, side split.
@@ -54,6 +55,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Depends on: T2, T3
 
 ### Checkpoint B — Phase 3 done (Colby's iPhone, airplane mode)
+- [ ] Independent review (agent-skills:code-reviewer) of T4–T8 before the phone check; findings fixed or reported to Colby
 - [ ] A full TEST shift: hours with the short pre-break hour, deck updates, lunch with a clerk count and reconciliation, a corrected hour, a discrepancy tracked and resolved, heights confirmed, end of shift
 - [ ] Each tab matches its reference screen in layout and numbers
 - [ ] Readable in sun with gloves (Colby's judgment)
