@@ -215,17 +215,19 @@ export function Pill({ text }: { text: string }) {
 export function Chip({ text, tone = 'plain', tall }: { text: string; tone?: 'plain' | 'red' | 'orange'; tall?: boolean }) {
   const f = useType();
   const c = tone === 'red' ? { bg: color.rBg, ink: color.rInk, b: color.red } : tone === 'orange' ? { bg: color.oBg, ink: color.oInk, b: color.orange } : { bg: color.card, ink: color.ink, b: color.line };
-  return <Text style={{ fontFamily: f.body, fontSize: 13, color: c.ink, backgroundColor: c.bg, borderColor: c.b, borderWidth: 1, borderRadius: 999, paddingHorizontal: tall ? 16 : 10, paddingVertical: tall ? 16 : 3, minHeight: tall ? TAP : undefined, overflow: 'hidden' }}>{text}</Text>;
+  const label = <Text style={{ fontFamily: f.body, fontSize: 13, color: c.ink }}>{text}</Text>;
+  const box = { backgroundColor: c.bg, borderColor: c.b, borderWidth: 1, borderRadius: 999, paddingHorizontal: tall ? 16 : 10, paddingVertical: tall ? 0 : 3 };
+  return tall ? <View style={[box, { minHeight: TAP, justifyContent: 'center' }]}>{label}</View> : <Text style={[box, { fontFamily: f.body, fontSize: 13, color: c.ink, overflow: 'hidden' }]}>{text}</Text>;
 }
 
 // One sheet frame for every form: title, TEST chip (sheets cover the header), close.
 // Only one Modal is ever open: the deck sheet opens inside the Log sheet, not on top of it.
-export function Sheet({ title, isTest, onClose, children }: { title: string; isTest: boolean; onClose: () => void; children: ReactNode }) {
+export function Sheet({ title, isTest, onClose, children, scrollKey }: { title: string; isTest: boolean; onClose: () => void; children: ReactNode; scrollKey?: string }) {
   const f = useType();
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }} keyboardShouldPersistTaps="handled">
+        <ScrollView key={scrollKey} contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }} keyboardShouldPersistTaps="handled">
           <View style={u.secH}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
               {isTest && <Text style={{ fontFamily: f.bodySemi, fontSize: 12, backgroundColor: color.accent, color: color.ink, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' }}>TEST</Text>}

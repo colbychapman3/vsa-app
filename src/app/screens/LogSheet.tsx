@@ -52,7 +52,7 @@ export function LogSheet({ state, baseline, save, onClose, initial = 'hour' }: P
   const isTest = state.operationId.startsWith('TEST-');
   if (deck) {
     return (
-      <Sheet title="Log · Deck" isTest={isTest} onClose={() => onClose()}>
+      <Sheet title="Log · Deck" isTest={isTest} onClose={() => onClose()} scrollKey={deck}>
         <Pressable onPress={() => setDeck(null)} style={s.back} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>‹ All decks</Text></Pressable>
         <DeckForm state={state} baseline={baseline} deckId={deck} save={save} onClose={(done) => (done ? onClose(done) : setDeck(null))} />
       </Sheet>
@@ -256,7 +256,7 @@ function IssueForm({ run, now, timeOf, setError }: { run: Run; now: () => string
 }
 
 const s = StyleSheet.create({
-  back: { minHeight: 48, justifyContent: 'center' },
+  back: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 24 },
   row2: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   deckRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   hr: { borderTopWidth: 1, borderTopColor: color.soft, paddingTop: 14, gap: 14 },

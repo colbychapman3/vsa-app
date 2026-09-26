@@ -4,7 +4,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useFonts as loadFonts } from 'expo-font';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/engine/index.ts';
 import { openExpoDb } from './src/storage/db.ts';
@@ -127,8 +127,16 @@ export default function App() {
             <>
               <Header isTest={vessel.isTest} place={`${String(vessel.baseline.port)} discharge · Berth ${String(vessel.baseline.berth)}`}
                 vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} />
+              {notice && (
+                // Fixed under the header so a save message is never scrolled out of view.
+                <View style={[s.notice, notice.ok ? s.ok : s.err]} accessibilityRole="alert">
+                  <Text style={[s.noticeText, { color: notice.ok ? color.gInk : color.rInk }]}>{notice.text}</Text>
+                  <Pressable onPress={() => setNotice(null)} style={s.dismiss} accessibilityRole="button" accessibilityLabel="Dismiss message">
+                    <Text style={{ fontSize: 18, color: color.ink }}>✕</Text>
+                  </Pressable>
+                </View>
+              )}
               <ScrollView key={tab} contentContainerStyle={s.scroll}>{/* new tab starts at the top */}
-                {notice && <Text style={[s.notice, notice.ok ? s.ok : s.err]} onPress={() => setNotice(null)}>{notice.text}</Text>}
                 {tab === 'snap'
                   ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} />
                   : tab === 'decks'
@@ -165,7 +173,9 @@ const s = StyleSheet.create({
   scroll: { paddingBottom: 180 },
   pad: { padding: 20 },
   note: { fontSize: 15, color: color.muted },
-  notice: { margin: 20, marginBottom: 0, padding: 12, borderRadius: 10, fontSize: 15 },
-  ok: { color: color.gInk, backgroundColor: color.gBg },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, borderBottomWidth: 1, borderBottomColor: color.line },
+  noticeText: { flex: 1, fontSize: 15, paddingVertical: 10 },
+  dismiss: { minWidth: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
+  ok: { backgroundColor: color.gBg },
   err: { color: color.rInk, backgroundColor: color.rBg, padding: 12, borderRadius: 10 },
 });

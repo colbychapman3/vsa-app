@@ -150,7 +150,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack }: Props)
 }
 
 const s = StyleSheet.create({
-  strip: { backgroundColor: color.card, borderBottomWidth: 1, borderBottomColor: color.line, paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
+  strip: { backgroundColor: color.card, borderBottomWidth: 1, borderBottomColor: color.line, paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   stripRight: { marginLeft: 'auto', fontSize: 14, color: color.muted, flexShrink: 1, textAlign: 'right' },
   issues: { backgroundColor: color.oBg },
   issueDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.orange, color: '#fff', textAlign: 'center', fontSize: 12, lineHeight: 18, overflow: 'hidden' },
