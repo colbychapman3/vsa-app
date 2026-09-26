@@ -124,6 +124,7 @@ export function checkHour(h: HourEntry, brands: string[], breaks: string[]): Rej
     const sum = Object.values(h.brands).reduce((t, v) => t + v, 0);
     if (filled && sum !== h.count) return fail(`Brand split adds to ${sum} but the hour total is ${h.count}. Fix one.`);
   }
+  if (!isShort(h.start, breaks) && h.stopMin != null) return fail('A stop time only applies to the hour before a break.');
   if (isShort(h.start, breaks)) {
     if (h.stopMin == null) return fail(`Pick when production stopped before the ${formatHM(s + 60)} break.`);
     if (!STOP_CHOICES.includes(h.stopMin)) return fail('Stop time must be :30 or :45 (30 or 45 minutes worked).');

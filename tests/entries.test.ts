@@ -232,3 +232,35 @@ test('round 2 R2: "unknown" (null) is only valid for a vessel remaining count', 
   const r = await s.save(evs);
   assert.ok(!r.ok && /clerk_remaining must be a whole number of 0 or more/.test(r.error), JSON.stringify(r));
 });
+
+// ---- Review round 3 (2026-09-26): the engine guards every source, not just the app's forms ----
+
+test('round 3: clerk and deck counts must be remaining counts with whole numbers, from any source', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.breakStartEvents(s.ctx(), t('12:00')));
+  const clerk = (value: VsaEvent['payload']['value'], kind: VsaEvent['payload']['count_kind']) => {
+    const evs = E.clerkEvents(s.ctx(), 100, t('12:05')) as VsaEvent[];
+    evs[0].payload.value = value; evs[0].payload.count_kind = kind;
+    return evs;
+  };
+  for (const [value, kind] of [[null, 'not_applicable'], [-5, 'not_applicable'], ['abc', 'not_applicable']] as const) {
+    const r = await s.save(clerk(value, kind));
+    assert.ok(!r.ok && /clerk_remaining must be a remaining count/.test(r.error), `${value}: ${JSON.stringify(r)}`);
+  }
+  await s.ok(E.deckEvents(s.ctx(), { deck: 'UPP', status: 'active', skipped: false, hatchRemaining: { H4: 50, H3: null, H2: null }, deckRemaining: null, time: t('12:10') }));
+  const evs = E.deckEvents(s.ctx(), { deck: 'UPP', status: 'active', skipped: false, hatchRemaining: { H4: null, H3: null, H2: null }, deckRemaining: null, time: t('12:11') }) as VsaEvent[];
+  evs[0].payload.count_kind = 'not_applicable'; evs[0].provenance = 'user_report';
+  const r = await s.save(evs);
+  assert.ok(!r.ok && /vessel_remaining must be a remaining count/.test(r.error), JSON.stringify(r));
+  assert.equal(s.state.decks.find((d) => d.id === 'UPP')!.hatches[0].rem, 50); // unchanged
+});
+
+test('round 3 (optional): a stop time on a full hour is refused; the whole-sheet deck error names its event', async (tc) => {
+  const s = await setup(tc);
+  const r = await s.save(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 200, stopMin: 45 }));
+  assert.deepEqual(r, { ok: false, error: 'Hour 08:00: A stop time only applies to the hour before a break.' });
+  await s.ok(E.deckEvents(s.ctx(), { deck: 'D1', status: 'active', skipped: false, hatchRemaining: { H3: 5, H2: 67 }, deckRemaining: 72, time: t('09:00') }));
+  const bad = E.deckEvents(s.ctx(), { deck: 'D1', status: 'active', skipped: false, hatchRemaining: { H3: 5, H2: 67 }, deckRemaining: 70, time: t('09:05') }) as VsaEvent[];
+  const r2 = await s.save(bad);
+  assert.deepEqual(r2, { ok: false, error: 'Hatch counts add to 72 but deck total says 70. Fix one.', event_id: bad.at(-1)!.event_id });
+});

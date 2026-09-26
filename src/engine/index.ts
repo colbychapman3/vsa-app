@@ -47,6 +47,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const clerks: { remaining: number; time: string; seq: number }[] = [];
   const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
   let recStart = 0; // sequence of the latest break/shift-end start
+  const lastDeckEvent: Record<string, string> = {}; // for naming the event in whole-sheet errors
 
   for (const e of activeEvents(log)) {
     const p = e.payload, id = e.event_id, sc = e.scope;
@@ -98,6 +99,8 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           decks[d.id] = { ...cur, heightConfirmed: { m: p.value, time: eventTimeLabel(occurred) } };
           continue;
         } else {
+          // Only a remaining count: then the envelope has checked it is a whole number or unknown.
+          if (p.count_kind !== 'remaining') return fail(`Event ${id}: vessel_remaining must be a remaining count (a whole number, or unknown).`, id);
           if (cur.status !== 'active' && cur.status !== 'paused') return fail(`Event ${id}: ${d.label} is ${STATUS_LABEL[cur.status]}; set it Active or Paused before logging a count.`, id);
           // null (provenance unknown) takes a count back to unknown.
           const hatches = { ...cur.hatchRemaining };
@@ -108,9 +111,13 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         if ('error' in u) return fail(u.error, id);
         // The deck's time is the latest save's time; a save with no time is "time not provided", never an earlier time.
         decks[d.id] = { ...cur, ...u, time: occurred, history: next.history };
+        lastDeckEvent[d.id] = id;
         continue;
       }
       case 'clerk_remaining':
+        if (p.count_kind !== 'remaining' || !Number.isInteger(p.value) || (p.value as number) < 0) {
+          return fail(`Event ${id}: clerk_remaining must be a remaining count (a whole number of 0 or more).`, id);
+        }
         if ((p.value as number) > base.start) return fail(`Chief clerk remaining (${p.value}) exceeds starting cargo (${base.start}) by ${(p.value as number) - base.start}. Check the count.`, id);
         clerks.push({ remaining: p.value as number, time: occurred ? eventTimeLabel(occurred) : 'time not provided', seq: e.sequence });
         continue;
@@ -163,7 +170,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   // Whole-sheet check per deck: hatch counts must agree with a deck total when both are complete.
   for (const [id, st] of Object.entries(decks)) {
     const u = deckUpdate(deckById.get(id)!, st);
-    if ('error' in u) return fail(u.error);
+    if ('error' in u) return fail(u.error, lastDeckEvent[id]);
   }
 
   // Hourly entries: validate, then check the field total against starting cargo.
