@@ -67,6 +67,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       const sMin = parseHM(s.hm)!;
       const crossed = baseline.breaks.map((b) => parseHM(b)!).find((b) => sMin < b && b < sMin + 60);
       if (crossed != null) return fail(`Event ${id}: Hour ${s.hm}–${formatHM(sMin + 60)} runs through the ${formatHM(crossed)} break.`, id);
+      // Unanchored is fine: fromIso above already enforced the full ISO format.
       if (![p.period_start, p.period_end].every((x) => /T\d{2}:\d{2}(:00(\.0+)?)?(Z|[+-])/.test(x!))) return fail(`Event ${id}: hour periods must be whole minutes.`, id);
       if (p.metric !== 'field_units' && sc.commodity) return fail(`Event ${id}: only a field count can name a brand.`, id);
       if (p.metric !== 'field_units' && p.count_kind !== 'not_applicable') return fail(`Event ${id}: ${p.metric} must not be a count kind (count_kind not_applicable).`, id);

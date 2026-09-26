@@ -21,8 +21,8 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Depends on: T1
 
 ### Checkpoint A
-- [ ] `npm test`, `npm run typecheck`, `npm run check:ios` pass; screen 01–03 numbers reproduced
-- [ ] Independent review (agent-skills:code-reviewer) of T1–T3: no math outside engine/view, unknown never shown as 0, tests really prove the screen numbers; findings fixed or reported to Colby
+- [x] `npm test`, `npm run typecheck`, `npm run check:ios` pass; screen 01–03 numbers reproduced
+- [x] Independent review (agent-skills:code-reviewer) of T1–T3: no math outside engine/view, unknown never shown as 0, tests really prove the screen numbers; findings fixed or reported to Colby (6 review rounds 2026-09-26: 7, 2, 1, 3, 1 required → all fixed; round 6 clean)
 
 - [ ] **T4: Snapshot** (M)
   - Acceptance: matches screens 01–03: banners, track-as-discrepancy, break strip, open discrepancies strip, hero with clerk check, FORECAST and CALCULATED tiles, remaining by brand, side split.

@@ -65,7 +65,7 @@ function builder(ctx: Ctx) {
 
 export type HourForm = {
   day: number;
-  start: string;                       // "HH:00"
+  start: string;                       // "HH:MM"; hours follow the day's start time
   count: number;
   drivers?: number | null;             // blank keeps whatever is logged
   brands?: Record<string, number> | null;
