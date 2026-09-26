@@ -42,7 +42,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Files: `src/app/screens/Decks.tsx`, `src/app/screens/DeckSheet.tsx`
   - Depends on: T2, T3
 
-- [ ] **T7: Hourly** (M)
+- [x] **T7: Hourly** (M)
   - Acceptance: matches screens 06–07: stats, pace formula, field vs cleared by brand, list (short hour, corrected, change vs prior, brands, drivers) and graph (pace line, counts, average dashed, orange short hours, Day 2 labels).
   - Verify: on the phone, compare with screens 06–07 after logging hours.
   - Files: `src/app/screens/Hourly.tsx`

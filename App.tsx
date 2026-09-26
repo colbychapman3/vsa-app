@@ -17,6 +17,7 @@ import { Snapshot } from './src/app/screens/Snapshot.tsx';
 import { LogSheet } from './src/app/screens/LogSheet.tsx';
 import { Decks } from './src/app/screens/Decks.tsx';
 import { DeckSheet } from './src/app/screens/DeckSheet.tsx';
+import { Hourly } from './src/app/screens/Hourly.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
 
 const OP = 'TEST-GLOVIS-101';
@@ -122,7 +123,9 @@ export default function App() {
                   ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={setTab} onTrack={track} />
                   : tab === 'decks'
                     ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => setTab('plan')} />
-                    : <Text style={[s.note, s.pad]}>{tab} screen: built in Phase 3 tasks 7–8.</Text>}
+                    : tab === 'hourly'
+                      ? <Hourly state={vessel.state} />
+                      : <Text style={[s.note, s.pad]}>{tab} screen: built in Phase 3 task 8.</Text>}
               </ScrollView>
               <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />
               {logOpen && (
