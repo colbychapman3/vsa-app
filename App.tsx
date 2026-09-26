@@ -15,6 +15,8 @@ import { color, fontFiles, fonts, FontContext } from './src/app/theme.ts';
 import { Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
 import { LogSheet } from './src/app/screens/LogSheet.tsx';
+import { Decks } from './src/app/screens/Decks.tsx';
+import { DeckSheet } from './src/app/screens/DeckSheet.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
 
 const OP = 'TEST-GLOVIS-101';
@@ -42,7 +44,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('snap');
   const [nowMin, setNowMin] = useState(minutesNow);
   const [logOpen, setLogOpen] = useState(false);
-  const [deckOpen, setDeckOpen] = useState<string | null>(null); // deck sheet (task 6)
+  const [deckOpen, setDeckOpen] = useState<string | null>(null);
 
   // The break strip and "forecast passed" follow the clock; refresh every minute.
   useEffect(() => {
@@ -118,7 +120,9 @@ export default function App() {
                 {notice && <Text style={[s.notice, notice.ok ? s.ok : s.err]} onPress={() => setNotice(null)}>{notice.text}</Text>}
                 {tab === 'snap'
                   ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={setTab} onTrack={track} />
-                  : <Text style={[s.note, s.pad]}>{tab} screen: built in Phase 3 tasks 6–8.</Text>}
+                  : tab === 'decks'
+                    ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => setTab('plan')} />
+                    : <Text style={[s.note, s.pad]}>{tab} screen: built in Phase 3 tasks 7–8.</Text>}
               </ScrollView>
               <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />
               {logOpen && (
@@ -126,7 +130,10 @@ export default function App() {
                   onClose={(done) => { setLogOpen(false); if (done) setNotice({ ok: true, text: done }); }}
                   onOpenDeck={(id) => { setLogOpen(false); setDeckOpen(id); }} />
               )}
-              {deckOpen && <Text style={[s.notice, s.ok]} onPress={() => setDeckOpen(null)}>Deck sheet for {deckOpen}: built in task 6.</Text>}
+              {deckOpen && (
+                <DeckSheet state={vessel.state} baseline={vessel.baseline} deckId={deckOpen} save={save}
+                  onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
+              )}
               <TabBar tab={tab} onTab={setTab} badges={badges(vessel.state)} />
             </>
           ) : (

@@ -36,7 +36,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Files: `src/app/screens/LogSheet.tsx`
   - Depends on: T3, T4
 
-- [ ] **T6: Decks and deck sheet** (M)
+- [x] **T6: Decks and deck sheet** (M)
   - Acceptance: matches screens 04–05: deck insights (low decks, unconfirmed count), deck list with pills, heights, hatch chips, cleared line and red low-deck rows; the deck sheet with status, skipped, hatch or deck remaining, time with Now, save, last three changes.
   - Verify: on the phone, mark decks Active/Complete, enter hatch counts, try an over-quantity hatch (refused).
   - Files: `src/app/screens/Decks.tsx`, `src/app/screens/DeckSheet.tsx`

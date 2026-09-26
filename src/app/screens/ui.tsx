@@ -189,3 +189,30 @@ export function ErrorBox({ text }: { text: string }) {
   const f = useType();
   return <Text style={[u.errBox, { fontFamily: f.bodyMedium }]} accessibilityRole="alert">{text}</Text>;
 }
+
+// Deck status pill (tracker .pill p-active / p-paused / p-not / p-done / p-unk).
+const PILL: Record<string, { bg: string; ink: string; border: string; dashed?: boolean }> = {
+  Active: { bg: color.blue, ink: color.onBlue, border: color.blue },
+  Paused: { bg: color.oBg, ink: color.oInk, border: color.orange },
+  Skipped: { bg: color.oBg, ink: color.oInk, border: color.orange },
+  'Not started': { bg: 'transparent', ink: color.ink, border: color.ink },
+  Complete: { bg: color.soft, ink: color.muted, border: color.soft },
+  Unknown: { bg: 'transparent', ink: color.muted, border: color.muted, dashed: true },
+};
+export function Pill({ text }: { text: string }) {
+  const f = useType();
+  const p = PILL[text] ?? PILL.Unknown;
+  return (
+    <Text style={{ fontFamily: f.bodySemi, fontSize: 12, letterSpacing: 0.4, color: p.ink, backgroundColor: p.bg, borderColor: p.border, borderWidth: 1.5,
+      borderStyle: p.dashed ? 'dashed' : 'solid', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' }}>
+      {text === 'Complete' ? '✓ ' : ''}{text}
+    </Text>
+  );
+}
+
+// Small rounded chip (tracker .bchip); tone colors a height warning.
+export function Chip({ text, tone = 'plain' }: { text: string; tone?: 'plain' | 'red' | 'orange' }) {
+  const f = useType();
+  const c = tone === 'red' ? { bg: color.rBg, ink: color.rInk, b: color.red } : tone === 'orange' ? { bg: color.oBg, ink: color.oInk, b: color.orange } : { bg: color.card, ink: color.ink, b: color.line };
+  return <Text style={{ fontFamily: f.body, fontSize: 13, color: c.ink, backgroundColor: c.bg, borderColor: c.b, borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' }}>{text}</Text>;
+}
