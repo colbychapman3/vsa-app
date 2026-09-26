@@ -35,7 +35,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
             <View style={s.line}>
               <Text style={[s.dn, { fontFamily: f.display }]} numberOfLines={1} adjustsFontSizeToFit>{r.label}</Text>
               <Pill text={r.pill} />
-              <Text style={s.rn} numberOfLines={1}>
+              <Text style={s.rn} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                 <Text style={{ fontFamily: f.display, fontSize: 26, color: r.status === 'complete' ? color.done : color.ink }}>{r.remaining}</Text>
                 <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}> of {r.start}</Text>
               </Text>
@@ -57,12 +57,12 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
   lowAlert: { backgroundColor: color.rBg, borderBottomWidth: 3, borderBottomColor: color.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
-  strip: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingHorizontal: 16 },
+  strip: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 16 },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8, minHeight: 56 },
   rowLine: { borderTopWidth: 1, borderTopColor: color.row },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dn: { width: 56, fontSize: 26, color: color.ink },
-  rn: { marginLeft: 'auto', textAlign: 'right' },
+  rn: { marginLeft: 'auto', textAlign: 'right', flexShrink: 1 },
   indent: { paddingLeft: 68 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

@@ -1,13 +1,13 @@
 // Plan tab (reference: docs/reference/screens/08). Layout only; values from view.planView().
 // Actions (confirm height, resolve discrepancy, shift settings) save through App.save().
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseHM, type Baseline, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { planView } from '../view.ts';
 import { color, useType } from '../theme.ts';
-import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, u } from './ui.tsx';
+import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
 
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
@@ -45,7 +45,7 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
             <View style={s.chips}>
               {v.heights.confirmed.map((d) => (
                 <Pressable key={d.id} onPress={() => setRecheck((x) => new Set(x).add(d.id))} accessibilityRole="button" accessibilityLabel={`Change ${d.text}`}>
-                  <Chip text={d.text} tone={d.low ? 'red' : 'plain'} />
+                  <Chip text={d.text} tone={d.low ? 'red' : 'plain'} tall />
                 </Pressable>
               ))}
             </View>
@@ -139,7 +139,6 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
 
 // Shift settings sheet: "Finish today" or "Carries to Day 2" with Day 1 end and next start.
 function ShiftSheet({ state, baseline, save, onClose }: { state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void }) {
-  const f = useType();
   const [mode, setMode] = useState<'one' | 'two'>(state.plan.shiftEnd ? 'two' : 'one');
   const [end, setEnd] = useState(state.plan.shiftEnd ?? '');
   const [next, setNext] = useState(state.plan.nextStart ?? baseline.start);
@@ -151,23 +150,15 @@ function ShiftSheet({ state, baseline, save, onClose }: { state: State; baseline
     if (r.ok) onClose('Shift settings saved.'); else setError(r.error);
   };
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={() => onClose()}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.sheet} keyboardShouldPersistTaps="handled">
-          <View style={u.secH}>
-            <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }}>Shift settings</Text>
-            <Pressable onPress={() => onClose()} style={s.x} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
-          </View>
-          <Seg columns={2} value={mode} onChange={setMode} options={[{ value: 'one', label: 'Finish today' }, { value: 'two', label: 'Carries to Day 2' }]} />
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            {mode === 'two' && <Field label="Day 1 shift ends" value={end} onChange={setEnd} keyboard="numbers-and-punctuation" maxLength={5} />}
-            <Field label="Next day starts" value={next} onChange={setNext} keyboard="numbers-and-punctuation" maxLength={5} />
-          </View>
-          {error && <ErrorBox text={error} />}
-          <Go label="Save shift settings" onPress={submit} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+    <Sheet title="Shift settings" isTest={state.operationId.startsWith('TEST-')} onClose={() => onClose()}>
+      <Seg columns={2} value={mode} onChange={setMode} options={[{ value: 'one', label: 'Finish today' }, { value: 'two', label: 'Carries to Day 2' }]} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {mode === 'two' && <Field label="Day 1 shift ends" value={end} onChange={setEnd} keyboard="numbers-and-punctuation" maxLength={5} />}
+        <Field label="Next day starts" value={next} onChange={setNext} keyboard="numbers-and-punctuation" maxLength={5} />
+      </View>
+      {error && <ErrorBox text={error} />}
+      <Go label="Save shift settings" onPress={submit} />
+    </Sheet>
   );
 }
 
@@ -179,6 +170,4 @@ const s = StyleSheet.create({
   split: { flexDirection: 'row', height: 16, borderRadius: 8, overflow: 'hidden', gap: 3 },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 6 },
   rowLine: { borderTopWidth: 1, borderTopColor: color.row },
-  sheet: { padding: 20, paddingBottom: 48, gap: 14 },
-  x: { minWidth: 48, minHeight: 48, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
 });

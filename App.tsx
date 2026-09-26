@@ -4,7 +4,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useFonts as loadFonts } from 'expo-font';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/engine/index.ts';
 import { openExpoDb } from './src/storage/db.ts';
@@ -48,11 +48,17 @@ export default function App() {
   const [logOpen, setLogOpen] = useState(false);
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
 
-  // The break strip and "forecast passed" follow the clock; refresh every minute.
+  // The break strip and "forecast passed" follow the clock: refresh every minute and
+  // whenever the app comes back to the foreground.
   useEffect(() => {
     const t = setInterval(() => setNowMin(minutesNow()), 60_000);
-    return () => clearInterval(t);
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') setNowMin(minutesNow()); });
+    return () => { clearInterval(t); sub.remove(); };
   }, []);
+
+  // Latest state for building events, so two quick taps never build from a stale state.
+  const latest = useRef<State | null>(null);
+  useEffect(() => { latest.current = vessel?.state ?? null; }, [vessel]);
 
   const reload = useCallback(async () => {
     const r = await store.current!.load(OP);
@@ -81,7 +87,7 @@ export default function App() {
   const ctx = useCallback((): Ctx | null => {
     if (!vessel) return null;
     const opDate = operationDate(vessel.baseline)!;
-    return { operationId: OP, opDate, offset: offsetFor(new Date(`${opDate}T12:00:00`)), recordedAt: recordedNow(), state: vessel.state };
+    return { operationId: OP, opDate, offset: offsetFor(new Date(`${opDate}T12:00:00`)), recordedAt: recordedNow(), state: latest.current ?? vessel.state };
   }, [vessel]);
 
   // One save at a time; nothing is written unless the engine accepts the whole batch.
@@ -95,12 +101,15 @@ export default function App() {
     try {
       const r = await store.current.append(OP, evs);
       if (!r.ok) return r;
+      latest.current = r.state;
       setVessel((v) => (v ? { ...v, state: r.state } : v));
       return { ok: true };
     } finally {
       saving.current = false;
     }
   }, [ctx]);
+
+  const openTab = useCallback((t: Tab) => { setNotice(null); setTab(t); }, []);
 
   const track = useCallback(async (b: Banner) => {
     const r = await save((c) => openDiscrepancyEvents(c, `${b.title}. ${b.sub}`, null, b.title));
@@ -118,12 +127,12 @@ export default function App() {
             <>
               <Header isTest={vessel.isTest} place={`${String(vessel.baseline.port)} discharge · Berth ${String(vessel.baseline.berth)}`}
                 vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} />
-              <ScrollView contentContainerStyle={s.scroll}>
+              <ScrollView key={tab} contentContainerStyle={s.scroll}>{/* new tab starts at the top */}
                 {notice && <Text style={[s.notice, notice.ok ? s.ok : s.err]} onPress={() => setNotice(null)}>{notice.text}</Text>}
                 {tab === 'snap'
-                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={setTab} onTrack={track} />
+                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} />
                   : tab === 'decks'
-                    ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => setTab('plan')} />
+                    ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} />
                       : <Plan state={vessel.state} baseline={vessel.baseline} save={save} onNotice={setNotice} />}
@@ -131,14 +140,13 @@ export default function App() {
               <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />
               {logOpen && (
                 <LogSheet state={vessel.state} baseline={vessel.baseline} save={save}
-                  onClose={(done) => { setLogOpen(false); if (done) setNotice({ ok: true, text: done }); }}
-                  onOpenDeck={(id) => { setLogOpen(false); setDeckOpen(id); }} />
+                  onClose={(done) => { setLogOpen(false); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {deckOpen && (
                 <DeckSheet state={vessel.state} baseline={vessel.baseline} deckId={deckOpen} save={save}
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
-              <TabBar tab={tab} onTab={setTab} badges={badges(vessel.state)} />
+              <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
             </>
           ) : (
             <View style={s.pad}>

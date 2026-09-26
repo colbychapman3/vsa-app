@@ -1,7 +1,7 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
 import { color, TAP, useType } from '../theme.ts';
 
@@ -111,14 +111,15 @@ export const u = StyleSheet.create({
   alert: { paddingVertical: 12, paddingHorizontal: 20, gap: 2, borderBottomWidth: 3 },
   alertBreak: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   breakTitle: { fontSize: 22, letterSpacing: 0.9 },
-  track: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, paddingHorizontal: 12, borderWidth: 1.5, borderRadius: 8, justifyContent: 'center' },
+  track: { alignSelf: 'flex-start', marginTop: 8, minHeight: TAP, paddingHorizontal: 12, borderWidth: 1.5, borderRadius: 8, justifyContent: 'center' },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
   tap: { minHeight: TAP },
   input: { minHeight: 52, borderWidth: 1.5, borderColor: color.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
-  segBtn: { minHeight: 48, flexGrow: 1, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   segOn: { backgroundColor: color.ink, borderColor: color.ink },
   goBtn: { minHeight: TAP, borderRadius: 12, backgroundColor: color.blue, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  ghostBtn: { minHeight: 48, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  ghostBtn: { minHeight: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
   errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 12, fontSize: 14, overflow: 'hidden' },
 });
 
@@ -211,8 +212,30 @@ export function Pill({ text }: { text: string }) {
 }
 
 // Small rounded chip (tracker .bchip); tone colors a height warning.
-export function Chip({ text, tone = 'plain' }: { text: string; tone?: 'plain' | 'red' | 'orange' }) {
+export function Chip({ text, tone = 'plain', tall }: { text: string; tone?: 'plain' | 'red' | 'orange'; tall?: boolean }) {
   const f = useType();
   const c = tone === 'red' ? { bg: color.rBg, ink: color.rInk, b: color.red } : tone === 'orange' ? { bg: color.oBg, ink: color.oInk, b: color.orange } : { bg: color.card, ink: color.ink, b: color.line };
-  return <Text style={{ fontFamily: f.body, fontSize: 13, color: c.ink, backgroundColor: c.bg, borderColor: c.b, borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' }}>{text}</Text>;
+  return <Text style={{ fontFamily: f.body, fontSize: 13, color: c.ink, backgroundColor: c.bg, borderColor: c.b, borderWidth: 1, borderRadius: 999, paddingHorizontal: tall ? 16 : 10, paddingVertical: tall ? 16 : 3, minHeight: tall ? TAP : undefined, overflow: 'hidden' }}>{text}</Text>;
+}
+
+// One sheet frame for every form: title, TEST chip (sheets cover the header), close.
+// Only one Modal is ever open: the deck sheet opens inside the Log sheet, not on top of it.
+export function Sheet({ title, isTest, onClose, children }: { title: string; isTest: boolean; onClose: () => void; children: ReactNode }) {
+  const f = useType();
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }} keyboardShouldPersistTaps="handled">
+          <View style={u.secH}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
+              {isTest && <Text style={{ fontFamily: f.bodySemi, fontSize: 12, backgroundColor: color.accent, color: color.ink, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' }}>TEST</Text>}
+              <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }}>{title}</Text>
+            </View>
+            <Pressable onPress={onClose} style={u.x} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
+          </View>
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
 }

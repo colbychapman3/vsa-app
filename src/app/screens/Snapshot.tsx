@@ -117,7 +117,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack }: Props)
                     <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}> of {r.start}</Text>
                   </Text>
                 </View>
-                <Bar small pct={r.pct} />
+                {r.pct != null ? <Bar small pct={r.pct} /> : <Note>Remaining unknown</Note>}
               </View>
             ))}
           </Card>

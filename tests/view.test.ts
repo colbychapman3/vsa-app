@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { project, type VsaEvent, type HourEntry } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
-import { badges, subtitles, snapshot, decksView, deckSheet, hourlyView, planView } from '../src/app/view.ts';
+import { badges, subtitles, snapshot, decksView, deckSheet, hourlyView, planView, hourOptions } from '../src/app/view.ts';
 import { glovis, toEvents, DEMO_DECKS, LUNCH_DECKS, MORNING } from './scenarios.ts';
 
 const OP = 'TEST-VIEW';
@@ -272,4 +272,21 @@ test('deck sheet opens pre-filled with the current counts (Colby chose A)', () =
   assert.deepEqual(sh.prefill, { hatches: { H4: 24, H3: 123, H2: 103, H1: 69 }, deck: null });
   const done = deckSheet(s.decks.find((d) => d.id === 'UPP')!, glovis);
   assert.deepEqual(done.prefill, { hatches: {}, deck: null }); // not Active/Paused: boxes start blank
+});
+
+test('hour picker: follows the day start, skips break-crossing hours, defaults after the last logged hour', () => {
+  const s = demo(); // hours logged 08:00–11:00 and 13:00–14:00 on Day 1
+  const h = hourOptions(s, glovis);
+  assert.equal(h.hours[0].start, '08:00');
+  assert.deepEqual(h.hours.find((x) => x.start === '11:00'), { start: '11:00', end: '12:00', short: true, logged: true });
+  assert.equal(h.defaultStart, '15:00');
+  const empty = hourOptions(state([]), glovis);
+  assert.equal(empty.defaultStart, '08:00');
+  // 07:30 start: 11:30–12:30 would cross noon, so it isn't offered; the default never lands on a logged hour.
+  const half = hourOptions(state([]), { ...glovis, start: '07:30' });
+  assert.ok(!half.hours.some((x) => x.start === '11:30'));
+  assert.equal(half.hours[0].start, '07:30');
+  // After 11:00 is logged, the default skips the 12:00 break hour.
+  const morning = state(toEvents({ name: 'x', hourly: MORNING }, OP));
+  assert.equal(hourOptions(morning, glovis).defaultStart, '13:00');
 });

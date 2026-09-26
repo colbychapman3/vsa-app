@@ -2,20 +2,31 @@
 // A full snapshot (Colby chose A): boxes open with the current counts; clearing a box
 // saves that hatch as unknown. entries.deckEvents writes only what changed.
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { operationDate, parseHM, type Baseline, type DeckStatus, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { deckSheet, STATUS_PILL } from '../view.ts';
 import { color, useType } from '../theme.ts';
-import { Body, Chip, ErrorBox, Field, Go, Label, Note, Pill, Seg, TimeField, u } from './ui.tsx';
+import { Body, Chip, ErrorBox, Field, Go, Label, Note, Pill, Seg, Sheet, TimeField } from './ui.tsx';
 
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
 const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN);
 const STATUSES = Object.keys(STATUS_PILL) as DeckStatus[];
 
-export function DeckSheet({ state, baseline, deckId, save, onClose }: { state: State; baseline: Baseline; deckId: string; save: Save; onClose: (done?: string) => void }) {
+// Standalone (from the Decks tab).
+export function DeckSheet(p: { state: State; baseline: Baseline; deckId: string; save: Save; onClose: (done?: string) => void }) {
+  const d = p.state.decks.find((x) => x.id === p.deckId)!;
+  return (
+    <Sheet title={deckSheet(d, p.baseline).title} isTest={p.state.operationId.startsWith('TEST-')} onClose={() => p.onClose()}>
+      <DeckForm {...p} />
+    </Sheet>
+  );
+}
+
+// The form itself; the Log sheet shows it inside its own sheet (never two sheets at once).
+export function DeckForm({ state, baseline, deckId, save, onClose }: { state: State; baseline: Baseline; deckId: string; save: Save; onClose: (done?: string) => void }) {
   const f = useType();
   const d = state.decks.find((x) => x.id === deckId)!;
   const v = deckSheet(d, baseline);
@@ -48,13 +59,7 @@ export function DeckSheet({ state, baseline, deckId, save, onClose }: { state: S
   };
 
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={() => onClose()}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.sheet} keyboardShouldPersistTaps="handled">
-          <View style={u.secH}>
-            <Text style={[s.h, { fontFamily: f.display }]}>{v.title}</Text>
-            <Pressable onPress={() => onClose()} style={s.x} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
-          </View>
+        <View style={{ gap: 14 }}>
           <View style={s.line}>
             <Pill text={v.pill} />
             <Text style={{ marginLeft: 'auto' }} numberOfLines={1}>
@@ -95,19 +100,14 @@ export function DeckSheet({ state, baseline, deckId, save, onClose }: { state: S
           {error && <ErrorBox text={error} />}
           <Go label="Save deck update" onPress={submit} />
           {v.history.length > 0 && <Note>Previous: {v.history.join(' · ')}</Note>}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+        </View>
   );
 }
 
 const s = StyleSheet.create({
-  sheet: { padding: 20, paddingBottom: 48, gap: 14 },
-  h: { fontSize: 28, color: color.ink, flexShrink: 1 },
-  x: { minWidth: 48, minHeight: 48, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  check: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
+  check: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
   box: { width: 28, height: 28, borderRadius: 6, borderWidth: 2, borderColor: color.ink, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: color.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

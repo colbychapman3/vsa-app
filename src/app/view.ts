@@ -137,7 +137,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   const brands = {
     total: fmt(known ? s.vesselRemaining : null),
     left, count: s.brands.length, finished: s.brands.length - left,
-    rows: s.brands.map((x) => ({ name: x.name, remaining: fmt(x.remaining), start: fmt(x.start), pct: x.remaining == null ? 0 : (x.remaining / x.start) * 100 })),
+    rows: s.brands.map((x) => ({ name: x.name, remaining: fmt(x.remaining), start: fmt(x.start), pct: x.remaining == null ? null : (x.remaining / x.start) * 100 })), // null: no bar (unknown ≠ finished)
   };
 
   return { banners, strip, openIssues: openIssues.length, hero, eta, ha, brands, side: sideSplit(s, b) };
@@ -323,7 +323,7 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
   return {
     heights,
     issues: {
-      open: open.map((i) => ({ id: i.id, text: i.text, opened: `Opened ${i.openedAt}` })),
+      open: open.map((i) => ({ id: i.id, text: i.text, opened: i.openedAt.startsWith('Logged') ? i.openedAt : `Opened ${i.openedAt}` })),
       resolved: resolved.length ? `Recently resolved: ${resolved.map((i) => `${i.text} (${i.resolvedAt})`).join(' · ')}` : null,
     },
     baseline: {
@@ -364,3 +364,26 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
   };
 }
 
+
+// ---------- Log sheet: hour picker (tracker logSheet) ----------
+
+// Hours for the current day follow the day's start time. Hours that would run through a
+// break start are left out (the engine refuses them). Default: the hour after the last
+// one logged today, skipping the break hour; otherwise the first open hour.
+export function hourOptions(s: State, b: Baseline) {
+  const day = s.ops.day;
+  const breaks = b.breaks.map((x) => parseHM(x)!);
+  const dayStart = parseHM(day > 1 ? s.plan.nextStart ?? b.start : b.start)!;
+  const logged = new Set(s.periods.filter((p) => p.day === day).map((p) => p.start));
+  const hours: { start: string; end: string; short: boolean; logged: boolean }[] = [];
+  for (let m = dayStart; m <= 23 * 60; m += 60) {
+    if (breaks.some((x) => m < x && x < m + 60)) continue;
+    const start = formatHM(m);
+    hours.push({ start, end: formatHM(m + 60), short: breaks.includes(m + 60), logged: logged.has(start) });
+  }
+  const last = s.periods.filter((p) => p.day === day).at(-1);
+  let next = last ? parseHM(last.start)! + 60 : dayStart;
+  if (breaks.includes(next)) next += 60;
+  const open = hours.find((h) => h.start === formatHM(next)) ?? hours.find((h) => !h.logged) ?? hours[0];
+  return { day, hours, defaultStart: open?.start ?? null };
+}

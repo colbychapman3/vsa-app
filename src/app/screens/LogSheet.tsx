@@ -1,24 +1,26 @@
 // Log sheet (reference: docs/reference/screens/09 and the tracker's logSheet()).
 // Forms only: entries.ts builds the events and App.save() stores them; the engine's
 // exact message is shown if anything is refused, and nothing is saved.
-import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatHM, operationDate, parseHM, suggestedStop, type Baseline, type OpTime, type Reject, type Side, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
-import { decksView } from '../view.ts';
+import { decksView, hourOptions } from '../view.ts';
+import { DeckForm } from './DeckSheet.tsx';
 import { color, useType } from '../theme.ts';
-import { Body, ErrorBox, Field, Go, Label, Note, Seg, TimeField, u } from './ui.tsx';
+import { Body, ErrorBox, Field, Go, Label, Note, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Mode = 'hour' | 'deck' | 'break' | 'clerk' | 'issue';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
-type Props = { state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void; onOpenDeck: (id: string) => void; initial?: Mode };
+type Props = { state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void; initial?: Mode };
 
 // '' → null (blank); digits → number; anything else → NaN (refused with a message).
 const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN);
 
-export function LogSheet({ state, baseline, save, onClose, onOpenDeck, initial = 'hour' }: Props) {
+export function LogSheet({ state, baseline, save, onClose, initial = 'hour' }: Props) {
   const f = useType();
+  const [deck, setDeck] = useState<string | null>(null); // a deck opened from Deck mode, shown in this same sheet
   const [mode, setMode] = useState<Mode>(initial);
   const [error, setError] = useState<string | null>(null);
   const opDate = operationDate(baseline)!;
@@ -47,24 +49,25 @@ export function LogSheet({ state, baseline, save, onClose, onOpenDeck, initial =
     { value: 'issue', label: 'Discrepancy' },
   ];
 
+  const isTest = state.operationId.startsWith('TEST-');
+  if (deck) {
+    return (
+      <Sheet title="Log · Deck" isTest={isTest} onClose={() => onClose()}>
+        <Pressable onPress={() => setDeck(null)} style={s.back} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>‹ All decks</Text></Pressable>
+        <DeckForm state={state} baseline={baseline} deckId={deck} save={save} onClose={(done) => (done ? onClose(done) : setDeck(null))} />
+      </Sheet>
+    );
+  }
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={() => onClose()}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.sheet} keyboardShouldPersistTaps="handled">
-          <View style={u.secH}>
-            <Text style={[s.h, { fontFamily: f.display }]}>Log</Text>
-            <Pressable onPress={() => onClose()} style={s.x} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
-          </View>
+    <Sheet title="Log" isTest={isTest} onClose={() => onClose()}>
           <Seg options={modes} value={mode} onChange={(m) => { setMode(m); setError(null); }} />
-          {mode === 'hour' && <HourForm state={state} baseline={baseline} day={day} run={run} setError={setError} />}
-          {mode === 'deck' && <DeckList state={state} onOpenDeck={onOpenDeck} />}
-          {mode === 'break' && <BreakForm state={state} baseline={baseline} run={run} now={now} timeOf={timeOf} setError={setError} />}
+          {mode === 'hour' && <HourForm state={state} baseline={baseline} run={run} setError={setError} />}
+          {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
+          {mode === 'break' && <BreakForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'clerk' && <ClerkForm phase={phase} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setError} />}
           {error && <ErrorBox text={error} />}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+    </Sheet>
   );
 }
 
@@ -73,29 +76,17 @@ type TimeOf = (v: string, d?: number) => OpTime | null | 'bad';
 
 // ---------- Hourly count ----------
 
-function HourForm({ state, baseline, day, run, setError }: { state: State; baseline: Baseline; day: number; run: Run; setError: (e: string | null) => void }) {
-  const breaks = baseline.breaks.map((b) => parseHM(b)!);
-  const dayStart = parseHM(day > 1 ? state.plan.nextStart ?? baseline.start : baseline.start)!;
+function HourForm({ state, baseline, run, setError }: { state: State; baseline: Baseline; run: Run; setError: (e: string | null) => void }) {
+  const opts = hourOptions(state, baseline);
+  const day = opts.day;
   const logged = new Map(state.periods.filter((p) => p.day === day).map((p) => [p.start, p]));
-  // Hours follow the day's start; an hour that would run through a break start is left out.
-  const hours = useMemo(() => {
-    const out: string[] = [];
-    for (let m = dayStart; m <= 23 * 60; m += 60) if (!breaks.some((b) => m < b && b < m + 60)) out.push(formatHM(m));
-    return out;
-  }, [dayStart, baseline.breaks.join()]);
-  const firstOpen = (() => {
-    const last = [...logged.keys()].at(-1);
-    let m = last ? parseHM(last)! + 60 : dayStart;
-    if (breaks.includes(m)) m += 60; // skip the break hour, like the tracker
-    return hours.includes(formatHM(m)) ? formatHM(m) : hours[0];
-  })();
-
+  const firstOpen = opts.defaultStart ?? opts.hours[0]?.start ?? baseline.start;
   const [hour, setHour] = useState(firstOpen);
   const existing = logged.get(hour);
   const [count, setCount] = useState(existing ? String(existing.count) : '');
   const [drivers, setDrivers] = useState(existing?.drivers != null ? String(existing.drivers) : '');
   const [brands, setBrands] = useState<Record<string, string>>(Object.fromEntries(state.brands.map((b) => [b.name, existing?.brands?.[b.name] != null ? String(existing.brands[b.name]) : ''])));
-  const short = breaks.includes(parseHM(hour)! + 60);
+  const short = opts.hours.find((h) => h.start === hour)?.short ?? false;
   const sides = [...new Set(baseline.destinations.map((d) => (d.side === 'N' ? 'Northside' : 'Southside')))] as Side[];
   const [stop, setStop] = useState<number | null>(existing?.stopMin ?? suggestedStop(sides));
   const [reason, setReason] = useState<string | null>(null);
@@ -122,6 +113,9 @@ function HourForm({ state, baseline, day, run, setError }: { state: State; basel
       split[b] = n;
     }
     if (short && stop == null) return setError(`Pick when production stopped before the ${formatHM(parseHM(hour)! + 60)} break.`);
+    if (existing && ((existing.drivers != null && dr == null) || state.brands.some((b) => existing.brands?.[b.name] != null && num(brands[b.name] ?? '') == null))) {
+      return setError('Clearing a logged value isn’t supported yet. Enter the corrected number instead.');
+    }
     const why = reason === 'Other' ? other.trim() : reason;
     run((ctx) => E.hourEvents(ctx, { day, start: hour, count: c, drivers: dr, brands: Object.keys(split).length ? split : null, stopMin: short ? stop : null, reason: why }),
       `Saved ${hour}–${formatHM(parseHM(hour)! + 60)}: ${c.toLocaleString('en-US')} autos.`);
@@ -131,8 +125,8 @@ function HourForm({ state, baseline, day, run, setError }: { state: State; basel
     <View style={{ gap: 14 }}>
       <Label>HOUR{day > 1 ? ` · DAY ${day}` : ''}</Label>
       <Seg columns={4} value={hour} onChange={pick}
-        options={hours.map((h) => ({ value: h, label: `${h.slice(0, 2)}${h.slice(2) === ':00' ? '' : h.slice(2)}–${formatHM(parseHM(h)! + 60).slice(0, 2)}${logged.has(h) ? ' ✓' : ''}` }))} />
-      <Note>{`${hour}–${formatHM(parseHM(hour)! + 60)}`}{existing ? ' · already logged: changing it keeps the old value' : ''}</Note>
+        options={opts.hours.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' (correct)' : ''}` }))} />
+      <Note>{`${hour}–${formatHM(parseHM(hour)! + 60)}`}{existing ? ' · already logged: saving a change keeps the old value' : ''}</Note>
       <View style={s.row2}>
         <Field label="Autos counted this hour" value={count} onChange={setCount} />
         <Field label="Drivers" note="(optional)" value={drivers} onChange={setDrivers} />
@@ -180,7 +174,7 @@ function DeckList({ state, onOpenDeck }: { state: State; onOpenDeck: (id: string
 
 // ---------- Break / shift ----------
 
-function BreakForm({ state, baseline, run, now, timeOf, setError }: { state: State; baseline: Baseline; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
+function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
   const [t, setT] = useState('');
   const [end, setEnd] = useState('');
   const phase = state.ops.phase, day = state.ops.day;
@@ -212,9 +206,6 @@ function BreakForm({ state, baseline, run, now, timeOf, setError }: { state: Sta
   return (
     <View style={{ gap: 14 }}>
       <TimeField label="Break started at" value={t} onChange={setT} onNow={fill(setT)} />
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {baseline.breaks.map((b) => <Go key={b} ghost label={`Scheduled ${b}`} onPress={() => setT(b)} />)}
-      </View>
       <Go label="Log break start" onPress={() => go(t, day, E.breakStartEvents, (at) => `Break started${at ? ` at ${at.hm}` : ''}.`)} />
       <View style={s.hr}>
         <TimeField label="Shift ended at" value={end} onChange={setEnd} onNow={fill(setEnd)} />
@@ -265,9 +256,7 @@ function IssueForm({ run, now, timeOf, setError }: { run: Run; now: () => string
 }
 
 const s = StyleSheet.create({
-  sheet: { padding: 20, paddingBottom: 48, gap: 14 },
-  h: { fontSize: 30, color: color.ink },
-  x: { minWidth: 48, minHeight: 48, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
+  back: { minHeight: 48, justifyContent: 'center' },
   row2: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   deckRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   hr: { borderTopWidth: 1, borderTopColor: color.soft, paddingTop: 14, gap: 14 },
