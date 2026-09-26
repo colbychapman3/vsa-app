@@ -313,7 +313,7 @@ function viewSnap(M){
     else if(M.transit<0)h+=alertBox('r',(M.shiftEnded?'End-of-shift reconciliation':'Break reconciliation')+': field exceeds ship by '+fmt(-M.transit),'Ship progress '+fmt(M.progress)+' · Field '+fmt(M.field)+' · These should match '+(M.shiftEnded?'at end of shift':'at break'),M);
     else if(M.transit>0)h+=alertBox('r',(M.shiftEnded?'End-of-shift reconciliation':'Break reconciliation')+': ship is '+fmt(M.transit)+' ahead of field','Ship progress '+fmt(M.progress)+' · Field '+fmt(M.field)+' · No cars should be in transit '+(M.shiftEnded?'at end of shift':'at break'),M).replace('class="alert r"','class="alert o"');
     else h+='<div class="alert" style="background:var(--g-bg);border-color:var(--green);color:var(--g-ink)"><b>'+(M.shiftEnded?'End-of-shift':'Break')+' reconciliation: ship and field match</b><span>Both at '+fmt(M.field)+'</span></div>';
-    M.brands.forEach(function(b){if(b.diff!=null&&b.diff!==0)h+=alertBox('r',(M.shiftEnded?'End-of-shift reconciliation':'Break reconciliation')+': '+b.name+' field '+(b.diff>0?'exceeds':'is short of')+' cleared by '+fmt(Math.abs(b.diff)),'Field '+fmt(b.field)+' · Cleared from ship '+fmt(b.cleared),M);});
+    M.brands.forEach(function(b){if(b.diff!=null&&b.diff!==0){var ab=alertBox('r',(M.shiftEnded?'End-of-shift reconciliation':'Break reconciliation')+': '+b.name+' field '+(b.diff>0?'exceeds':'is short of')+' cleared by '+fmt(Math.abs(b.diff)),'Field '+fmt(b.field)+' · Cleared from ship '+fmt(b.cleared),M);h+=b.diff>0?ab:ab.replace('class="alert r"','class="alert o"');}});
   }
   var passed=M.eta.eta!=null&&M.vRem!==0&&!M.recon&&((M.day-1)*1440+nowMin())>M.eta.eta;
   if(passed)h+='<div class="alert o"><b>Forecast passed · completion not reported</b><span>Log a count or update decks to refresh.</span></div>';
@@ -435,7 +435,7 @@ function viewHourly(M){
       if(p.history&&p.history.length)tags.push('<span class="tag" style="border:1.5px solid var(--blue);color:var(--blue)">CORRECTED</span> <span class="note">Was '+p.history.map(function(x){return fmt(x.count);}).join(' → ')+' · original kept</span>');
       if(p.delta!=null)tags.push('<span class="note">'+(p.delta>=0?'+':'−')+fmt(Math.round(Math.abs(p.delta)))+(p.deltaPaced?'/hr pace':'')+' ('+(p.deltaPct>=0?'+':'−')+Math.abs(p.deltaPct).toFixed(1)+'%) vs prior hour</span>');
       if(p.brands)tags.push('<span class="chips">'+Object.keys(p.brands).map(function(b){return '<span class="bchip"><strong>'+esc(b)+'</strong> '+fmt(p.brands[b])+'</span>';}).join('')+'</span>');
-      if(typeof p.drivers==='number'&&p.drivers>0)tags.push('<span class="note">'+p.drivers+' drivers · '+(p.count/p.drivers).toFixed(2)+' per driver</span>');
+      if(typeof p.drivers==='number'&&p.drivers>0)tags.push('<span class="note">'+p.drivers+' drivers · '+(p.pace!=null?(p.pace/p.drivers).toFixed(2)+' per driver per productive hr':'per-driver rate needs the stoppage time')+'</span>');
       tags.forEach(function(t){h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+t+'</div>';});
       h+='</div>';});
     h+='</section>';}
