@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 2 complete (2026-09-26: storage verified on Colby's iPhone in Expo Go: restart, airplane mode, refused impossible count, replay PASS). Next: Phase 3. Phase 0 leftover: the whole-app spec (`docs/specs/app-spec.md`) is still to write; do it before Phase 3 screens.
+**Current status:** Phase 2 complete (2026-09-26, verified on Colby's iPhone). Whole-app spec drafted (`docs/specs/app-spec.md`, includes Phase 3 screens), awaiting Colby's review.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
@@ -21,7 +21,7 @@ Update the status line when a phase changes.
 **Done when:** data survives app restarts and airplane mode, and the replay test passes from the stored log.
 
 ## Phase 3: Screens
-- Snapshot, Decks, Hourly (list + graph), Plan & routes, Log sheet, matching the tracker and the design canvas.
+- Snapshot, Decks, Hourly (list + graph), Plan & routes, Log sheet, matching the VSA Live tracker: behavior from `docs/reference/vsa-live.html`, layout from `docs/reference/screens/`.
 **Done when:** a full demo shift can be logged on the phone with no signal.
 
 ## Phase 4: Real device build
