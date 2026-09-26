@@ -2,7 +2,7 @@
 
 Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends with them passing and a commit. Screen tasks also get a quick look on the phone in Expo Go.
 
-- [ ] **T1: App shell** (M)
+- [x] **T1: App shell** (M)
   - Acceptance: dependencies installed with `npx expo install` (`react-native-svg`, `expo-font`, `@expo-google-fonts/barlow-condensed`, `@expo-google-fonts/ibm-plex-sans`, `react-native-safe-area-context`); `theme.ts` with the tracker's colors, fonts and sizes; header (TEST chip, port/berth, vessel, subtitle); bottom tab bar with badges; floating **Log** button; `App.tsx` opens the store, creates or loads the TEST Glovis vessel, and holds state. The check screen is removed.
   - Verify: `npm run check:ios`; on the phone the four tabs switch and the header matches screen 02.
   - Files: `App.tsx`, `src/app/theme.ts`, `src/app/screens/Chrome.tsx`, `package.json`
