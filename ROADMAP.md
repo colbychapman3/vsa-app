@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 1 complete (approved 2026-09-25). Phase 2 in spec. Phase 0 leftovers: the Expo app is created in Phase 2 (needed for expo-sqlite); the whole-app spec is still deferred.
+**Current status:** Phase 2 complete (2026-09-26: storage verified on Colby's iPhone in Expo Go: restart, airplane mode, refused impossible count, replay PASS). Next: Phase 3. Phase 0 leftover: the whole-app spec (`docs/specs/app-spec.md`) is still to write; do it before Phase 3 screens.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.

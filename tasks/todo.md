@@ -30,7 +30,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Depends on: T3
 
 ### Checkpoint B — Phase 2 done (on Colby's iPhone, Expo Go)
-- [ ] Create TEST vessel, log hours, force-quit, reopen → counts still there
-- [ ] Airplane mode on with the app open → new entries save and show
-- [ ] Replay check shows PASS
-- [ ] Colby approves; ROADMAP updated
+- [x] Create TEST vessel, log hours, force-quit, reopen → counts still there
+- [x] Airplane mode on with the app open → new entries save and show
+- [x] Replay check shows PASS
+- [x] Colby approves; ROADMAP updated (2026-09-26: all phone checks passed)
