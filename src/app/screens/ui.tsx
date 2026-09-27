@@ -1,7 +1,7 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
-import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { useEffect, type ReactNode } from 'react';
+import { AccessibilityInfo, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
 import { color, TAP, useType } from '../theme.ts';
 
@@ -140,7 +140,7 @@ export function Field({ label, value, onChange, placeholder, keyboard = 'number-
 }
 
 // A time box that starts empty. "Now" fills the phone's time; Colby can still edit it.
-export function TimeField({ label, value, onChange, onNow }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void }) {
+export function TimeField({ label, value, onChange, onNow, required, hint }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void; required?: boolean; hint?: string }) {
   const f = useType();
   return (
     <View style={{ gap: 6 }}>
@@ -152,7 +152,9 @@ export function TimeField({ label, value, onChange, onNow }: { label: string; va
           <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>Now</Text>
         </Pressable>
       </View>
-      <Text style={{ fontFamily: f.body, fontSize: 12, color: color.muted }}>Leave empty if unknown: the save time is shown, labeled as processing time.</Text>
+      <Text style={{ fontFamily: f.body, fontSize: 12, color: required ? color.ink : color.muted }}>
+        {required ? 'Required: type the time or tap Now.' : 'Leave empty if unknown: the save time is shown, labeled as processing time.'}{hint ? ` ${hint}` : ''}
+      </Text>
     </View>
   );
 }
@@ -188,6 +190,7 @@ export function Go({ label, onPress, ghost, disabled }: { label: string; onPress
 
 export function ErrorBox({ text }: { text: string }) {
   const f = useType();
+  useEffect(() => { AccessibilityInfo.announceForAccessibility(text); }, [text]); // a role alone doesn't announce on iOS
   return <Text style={[u.errBox, { fontFamily: f.bodyMedium }]} accessibilityRole="alert">{text}</Text>;
 }
 

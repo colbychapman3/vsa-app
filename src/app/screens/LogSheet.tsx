@@ -183,6 +183,7 @@ function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: R
   const go = (value: string, d: number, build: (c: E.Ctx, at: OpTime | null) => VsaEvent[] | Reject, done: (at: OpTime | null) => string) => {
     const at = timeOf(value, d);
     if (at === 'bad') return setError('Enter the time as HH:MM.');
+    if (at === null) return setError('Enter the time, or tap Now.'); // breaks and shift changes always need their time
     run((c) => build(c, at), done(at));
   };
 
@@ -190,7 +191,8 @@ function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: R
     return (
       <View style={{ gap: 14 }}>
         <Note>Shift ended at {state.ops.shiftEnd}. Reconcile first, then start the next day.</Note>
-        <TimeField label={`Day ${day + 1} starts at`} value={t} onChange={setT} onNow={fill(setT)} />
+        <TimeField required label={`Day ${day + 1} starts at`} value={t} onChange={setT} onNow={fill(setT)}
+          hint={parseHM(t.trim()) != null ? `Day ${day + 1} hours will run from ${t.trim().padStart(5, '0')}.` : undefined} />
         <Go label={`Start Day ${day + 1}`} onPress={() => go(t, day + 1, E.nextDayEvents, () => `Day ${day + 1} started.`)} />
       </View>
     );
@@ -199,17 +201,17 @@ function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: R
     return (
       <View style={{ gap: 14 }}>
         <Note>On break since {state.ops.breakStart}.</Note>
-        <TimeField label="Back to work at" value={t} onChange={setT} onNow={fill(setT)} />
+        <TimeField required label="Back to work at" value={t} onChange={setT} onNow={fill(setT)} />
         <Go label="Log break end" onPress={() => go(t, day, E.breakEndEvents, (at) => `Break ended${at ? ` at ${at.hm}` : ''}.`)} />
       </View>
     );
   }
   return (
     <View style={{ gap: 14 }}>
-      <TimeField label="Break started at" value={t} onChange={setT} onNow={fill(setT)} />
+      <TimeField required label="Break started at" value={t} onChange={setT} onNow={fill(setT)} />
       <Go label="Log break start" onPress={() => go(t, day, E.breakStartEvents, (at) => `Break started${at ? ` at ${at.hm}` : ''}.`)} />
       <View style={s.hr}>
-        <TimeField label="Shift ended at" value={end} onChange={setEnd} onNow={fill(setEnd)} />
+        <TimeField required label="Shift ended at" value={end} onChange={setEnd} onNow={fill(setEnd)} />
         <Go ghost label="Log end of shift" onPress={() => go(end, day, E.endShiftEvents, () => 'End of shift logged. Reconcile ship and field.')} />
         <Note>Starts end-of-shift reconciliation. No cars should be in transit.</Note>
       </View>
