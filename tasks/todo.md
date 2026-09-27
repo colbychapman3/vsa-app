@@ -55,7 +55,7 @@ Commands: `npm test`, `npm run typecheck`, `npm run check:ios`. Every task ends 
   - Depends on: T2, T3
 
 ### Checkpoint B — Phase 3 done (Colby's iPhone, airplane mode)
-- [ ] Independent review (agent-skills:code-reviewer) of T4–T8 before the phone check; findings fixed or reported to Colby
+- [x] Independent review (agent-skills:code-reviewer) of T4–T8 before the phone check; findings fixed or reported to Colby (5 rounds 2026-09-26: 5, 1, 1, 1 required → all fixed; round 5 clean)
 - [ ] A full TEST shift: hours with the short pre-break hour, deck updates, lunch with a clerk count and reconciliation, a corrected hour, a discrepancy tracked and resolved, heights confirmed, end of shift
 - [ ] Each tab matches its reference screen in layout and numbers
 - [ ] Readable in sun with gloves (Colby's judgment)

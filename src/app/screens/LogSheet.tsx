@@ -103,6 +103,7 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
   };
 
   const submit = () => {
+    setError(null); // so a repeated identical error is announced again
     const c = num(count), dr = num(drivers);
     if (c == null || Number.isNaN(c)) return setError('Enter the whole-number count for this hour.');
     if (dr != null && Number.isNaN(dr)) return setError('Drivers must be a whole number.');
@@ -181,6 +182,7 @@ function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: R
   const phase = state.ops.phase, day = state.ops.day;
   const fill = (set: (v: string) => void) => () => { const n = now(); if (n) set(n); };
   const go = (value: string, d: number, build: (c: E.Ctx, at: OpTime | null) => VsaEvent[] | Reject, done: (at: OpTime | null) => string) => {
+    setError(null); // so a repeated identical error is announced again
     const at = timeOf(value, d);
     if (at === 'bad') return setError('Enter the time as HH:MM.');
     if (at === null) return setError('Enter the time, or tap Now.'); // breaks and shift changes always need their time
