@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 3 in progress (plan approved 2026-09-26). Phases 1–2 complete; whole-app spec approved (`docs/specs/app-spec.md`).
+**Current status:** Phase 4 in progress (started 2026-09-27). Phases 1–3 complete (129 tests passing); whole-app spec approved (`docs/specs/app-spec.md`).
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
@@ -26,10 +26,16 @@ Update the status line when a phase changes.
 
 ## Phase 4: Real device build
 - Apple Developer account active; EAS development build installed on the iPhone.
+- Field feedback from Colby's airplane-mode test (2026-09-27), fix and verify on the dev build:
+  - Some text wraps its last letter onto the next line (screens TBD, screenshots requested).
+  - Drivers are set once per workday (Day 1 = 70, Day 2 = 50), not asked every hour.
+  - Break log: edit start/end times, add a missed break, remove a wrong/duplicate one (corrections keep history).
 **Done when:** the app runs from its own icon, outside Expo Go.
 
 ## Phase 5: New-vessel setup and sync
 - Load a new vessel's baseline (entered or imported). Optional sync/sharing when online.
+  - Setup screen asks the VSA's startup questions (protocol §11.1); later, fill it from a photo of the labor order / game plan, read on-device, every value confirmed before saving.
+  - Downloadable PDF report (via the share sheet) at any time: break/shift-end (protocol §11.2) and vessel completion (§9.3). Interim reports are time-stamped and labeled; unknowns stay unknown.
 **Done when:** a second vessel can be started without developer help.
 
 ## Phase 6: On-device AI (optional)

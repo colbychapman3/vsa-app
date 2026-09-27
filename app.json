@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
+      "bundleIdentifier": "com.vsaops.vsa",
       "supportsTablet": true
     },
     "android": {
@@ -24,6 +25,12 @@
     "plugins": [
       "expo-sqlite",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fc3ad76c-a4ce-4a81-81be-f3c84dd7e880"
+      }
+    },
+    "owner": "colbychapman3"
   }
 }
