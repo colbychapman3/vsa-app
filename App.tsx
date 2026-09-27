@@ -4,7 +4,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useFonts as loadFonts } from 'expo-font';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/engine/index.ts';
 import { openExpoDb } from './src/storage/db.ts';
@@ -111,6 +111,9 @@ export default function App() {
 
   const openTab = useCallback((t: Tab) => { setNotice(null); setTab(t); }, []);
 
+  // Read save/error messages aloud for VoiceOver (a role alone doesn't announce on iOS).
+  useEffect(() => { if (notice) AccessibilityInfo.announceForAccessibility(notice.text); }, [notice]);
+
   const track = useCallback(async (b: Banner) => {
     const r = await save((c) => openDiscrepancyEvents(c, `${b.title}. ${b.sub}`, null, b.title));
     setNotice(r.ok ? { ok: true, text: 'Added to open discrepancies.' } : { ok: false, text: `Not saved: ${r.error}` });
@@ -129,7 +132,7 @@ export default function App() {
                 vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} />
               {notice && (
                 // Fixed under the header so a save message is never scrolled out of view.
-                <View style={[s.notice, notice.ok ? s.ok : s.err]} accessibilityRole="alert">
+                <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>
                   <Text style={[s.noticeText, { color: notice.ok ? color.gInk : color.rInk }]}>{notice.text}</Text>
                   <Pressable onPress={() => setNotice(null)} style={s.dismiss} accessibilityRole="button" accessibilityLabel="Dismiss message">
                     <Text style={{ fontSize: 18, color: color.ink }}>✕</Text>
@@ -177,5 +180,6 @@ const s = StyleSheet.create({
   noticeText: { flex: 1, fontSize: 15, paddingVertical: 10 },
   dismiss: { minWidth: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   ok: { backgroundColor: color.gBg },
+  errBar: { backgroundColor: color.rBg },
   err: { color: color.rInk, backgroundColor: color.rBg, padding: 12, borderRadius: 10 },
 });

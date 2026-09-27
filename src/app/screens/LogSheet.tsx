@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatHM, operationDate, parseHM, suggestedStop, type Baseline, type OpTime, type Reject, type Side, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
-import { decksView, hourOptions } from '../view.ts';
+import { deckSheet, decksView, hourOptions } from '../view.ts';
 import { DeckForm } from './DeckSheet.tsx';
 import { color, useType } from '../theme.ts';
 import { Body, ErrorBox, Field, Go, Label, Note, Seg, Sheet, TimeField, u } from './ui.tsx';
@@ -52,7 +52,8 @@ export function LogSheet({ state, baseline, save, onClose, initial = 'hour' }: P
   const isTest = state.operationId.startsWith('TEST-');
   if (deck) {
     return (
-      <Sheet title="Log · Deck" isTest={isTest} onClose={() => onClose()} scrollKey={deck}>
+      // The deck's own name is the title (like the tracker), so a mis-tap can't go unnoticed.
+      <Sheet title={deckSheet(state.decks.find((x) => x.id === deck)!, baseline).title} isTest={isTest} onClose={() => onClose()} scrollKey={deck}>
         <Pressable onPress={() => setDeck(null)} style={s.back} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>‹ All decks</Text></Pressable>
         <DeckForm state={state} baseline={baseline} deckId={deck} save={save} onClose={(done) => (done ? onClose(done) : setDeck(null))} />
       </Sheet>
