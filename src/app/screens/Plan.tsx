@@ -23,7 +23,7 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
     return r.ok;
   };
   const kv = (k: string, val: string) => (
-    <View key={k} style={u.kv}><Body style={{ color: color.muted, flexShrink: 1 }}>{k}</Body><Body semi style={{ textAlign: 'right', flexShrink: 1 }}>{val}</Body></View>
+    <View key={k} style={u.kv}><Body style={{ color: color.muted, maxWidth: '45%' }}>{k}</Body><Body semi style={{ textAlign: 'right', flex: 1 }}>{val}</Body></View>
   );
 
   return (
