@@ -318,7 +318,7 @@ test('round 4 R3 and strict types: skipped must be true/false; empty discrepancy
 
 // ---- Review round 5 (2026-09-26): Colby chose A — hours follow the day's start time ----
 
-test('round 5 R1: a 07:30 start logs 07:30–08:30 hours; an hour across a break start is cut at the break', async (tc) => {
+test('round 5 R1: a 07:30 start logs 07:30–08:30 hours; an hour across a break start is refused', async (tc) => {
   const dir = mkdtempSync(join(tmpdir(), 'vsa-entries-'));
   const store = await openStore(openNodeDb(join(dir, 'vsa.db')));
   tc.after(async () => { await store.close(); rmSync(dir, { recursive: true, force: true }); });
@@ -329,22 +329,9 @@ test('round 5 R1: a 07:30 start logs 07:30–08:30 hours; an hour across a break
   const save = async (evs: VsaEvent[] | Reject) => { const r = await store.append(OP, evs as VsaEvent[]); if (r.ok) state = r.state; return r; };
   assert.ok((await save(E.hourEvents(ctx(), { day: 1, start: '07:30', count: 100 }))).ok);
   assert.ok((await save(E.hourEvents(ctx(), { day: 1, start: '10:30', count: 120 }))).ok);
-  // Owner decision: the 11:30–12:00 pre-break half hour is always loggable, as the short hour.
-  const noStop = await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60 }));
-  assert.ok(!noStop.ok && /Pick when production stopped before the 12:00 break/.test(noStop.error), JSON.stringify(noStop));
-  const badStop = await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60, stopMin: 30 }));
-  assert.ok(!badStop.ok && /Stop time must be 11:30 or 11:45/.test(badStop.error), JSON.stringify(badStop));
-  assert.ok(!(await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60, stopMin: 0 }))).ok); // stopped at 11:30: nothing to count
-  assert.ok((await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 40, stopMin: 15 }))).ok); // stopped 11:45
-  const half = state.periods.find((p) => p.start === '11:30')!;
-  assert.deepEqual([half.short, half.min, half.pace], [true, 15, 160]); // 40 autos in 15 productive minutes
-  assert.deepEqual(state.periods.map((p) => p.start), ['07:30', '10:30', '11:30']);
-  // A wrong-length period through a break is still refused by the engine.
-  const long = E.hourEvents(ctx(), { day: 2, start: '11:30', count: 5, stopMin: 15 }) as VsaEvent[];
-  assert.ok(Array.isArray(long));
-  const bad = structuredClone(long).map((e) => ({ ...e, event_id: e.event_id + 'x', idempotency_key: e.idempotency_key + 'x', payload: { ...e.payload, period_end: '2026-09-22T12:30:00-04:00' } }));
-  const refused = await store.append(OP, bad);
-  assert.ok(!refused.ok && /runs through the 12:00 break/.test(refused.error), JSON.stringify(refused));
+  const r = await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60 }));
+  assert.ok(!r.ok && /Hour 11:30–12:30 runs through the 12:00 break/.test(r.error), JSON.stringify(r));
+  assert.deepEqual(state.periods.map((p) => p.start), ['07:30', '10:30']);
   // Day 2 starting 07:30 after end of shift.
   assert.ok((await save(E.endShiftEvents(ctx(), t('17:00')))).ok);
   assert.ok((await save(E.nextDayEvents(ctx(), t('07:30', 2)))).ok);
