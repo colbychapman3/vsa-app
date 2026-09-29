@@ -228,6 +228,11 @@ test('review R2: editing a break into another break is refused', async (tc) => {
   await s.ok(E.breakEndEvents(s.ctx(), t('19:00')));
   assert.deepEqual(E.editBreakEvents(s.ctx(), s.state.breakLog[1], t('11:00'), t('19:00'), 'Wrong time'),
     { ok: false, error: '11:00–19:00 overlaps the break 12:00–13:00. Change the times, or fix that break first.' });
+  // Round 2: an empty end box keeps the saved end (checked with it), never "runs forever".
+  await s.ok(E.editBreakEvents(s.ctx(), s.state.breakLog[0], t('12:05'), null, 'Wrong time'));
+  assert.deepEqual([s.state.breakLog[0].start, s.state.breakLog[0].end], ['12:05', '13:00']);
+  assert.deepEqual(E.editBreakEvents(s.ctx(), s.state.breakLog[1], t('12:30'), null, 'Wrong time'),
+    { ok: false, error: '12:30–19:00 overlaps the break 12:05–13:00. Change the times, or fix that break first.' });
 });
 
 test('review R3: the Hourly list says when drivers come from the day setting', async (tc) => {

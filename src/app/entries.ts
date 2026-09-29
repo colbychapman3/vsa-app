@@ -257,11 +257,12 @@ export function isCurrentBreak(s: State, b: BreakEntry): boolean {
 // replay, so an earlier entry can never block logging the break that's happening now.
 function overlap(s: State, startAbs: number, endAbs: number, self: BreakEntry | null): Reject | null {
   const hm = (a: number) => (a >= 1440 ? `Day ${Math.floor(a / 1440) + 1} ${formatHM(a)}` : formatHM(a));
+  const span = endAbs === Infinity ? `${hm(startAbs)} (in progress)` : `${hm(startAbs)}–${hm(endAbs)}`;
   for (const b of s.breakLog) {
     if (b === self || b.kind === 'shift') continue;
     const bEnd = b.endAbs ?? (isCurrentBreak(s, b) ? Infinity : null);
     if (bEnd == null) continue; // an old start that never got an end: remove it (see the break sheet)
-    if (startAbs < bEnd && b.startAbs < endAbs) return reject(`${hm(startAbs)}–${hm(endAbs)} overlaps the break ${b.start}${b.end ? `–${b.end}` : ' (in progress)'}. Change the times, or fix that break first.`);
+    if (startAbs < bEnd && b.startAbs < endAbs) return reject(`${span} overlaps the break ${b.start}${b.end ? `–${b.end}` : ' (in progress)'}. Change the times, or fix that break first.`);
   }
   return null;
 }
@@ -299,7 +300,7 @@ export function editBreakEvents(ctx: Ctx, b: BreakEntry, start: OpTime | null, e
   if (!startChanged && !endChanged) return reject('Nothing to save: the break already has these times.');
   if (!why) return reject('Pick a reason for changing this break. The old times are kept.');
   if (toAbs(end ?? start)! <= toAbs(start)! && end) return reject('The break end must be after its start.');
-  const o = overlap(ctx.state, toAbs(start)!, end ? toAbs(end)! : Infinity, b);
+  const o = overlap(ctx.state, toAbs(start)!, end ? toAbs(end)! : b.endAbs ?? Infinity, b); // an empty end box keeps the saved end
   if (o) return o;
   const { add, out } = builder(ctx);
   if (startChanged) correctionOf(add, eventById(ctx, b.startId)!, null, start, why);
