@@ -68,7 +68,9 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
 
   // Each event is applied at its original's place in the log, so a corrected break time
   // takes effect where the break happened, not where the correction was saved.
-  const ordered = activeEvents(log).map((e) => ({ e, root: historyOf(log, e.event_id)[0] })).sort((a, b) => a.root.sequence - b.root.sequence);
+  const byId = new Map(log.events.map((x) => [x.event_id, x]));
+  const rootOf = (x: VsaEvent): VsaEvent => { while (x.supersedes_event_id) x = byId.get(x.supersedes_event_id)!; return x; };
+  const ordered = activeEvents(log).map((e) => ({ e, root: rootOf(e) })).sort((a, b) => a.root.sequence - b.root.sequence);
   for (const { e, root } of ordered) {
     const p = e.payload, id = e.event_id, sc = e.scope;
     if (sc.workstream !== 'auto_discharge' && sc.workstream !== 'operation') return fail(`Event ${id}: ${sc.workstream} is not tracked by this engine (autos only).`, id);
@@ -154,7 +156,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           return fail(`Event ${id}: clerk_remaining must be a remaining count (a whole number of 0 or more).`, id);
         }
         if ((p.value as number) > base.start) return fail(`Chief clerk remaining (${p.value}) exceeds starting cargo (${base.start}) by ${(p.value as number) - base.start}. Check the count.`, id);
-        clerks.push({ remaining: p.value as number, time: when(occurred, e.recorded_at), seq: e.sequence });
+        clerks.push({ remaining: p.value as number, time: when(occurred, e.recorded_at), seq: root.sequence });
         continue;
       case 'break': {
         // A correction keeps its original's type (pause, resume, or a missed break added later).
@@ -188,6 +190,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         if ('error' in s) return fail(s.error, id);
         if ('error' in z) return fail(z.error, id);
         if (s.hm !== '00:00' || z.hm !== '00:00' || z.day !== s.day + 1) return fail(`Event ${id}: workday drivers cover one whole operation day.`, id);
+        if (e.event_type === 'correction' && p.value === 'void') continue; // cleared back to unknown; the log keeps it
         if (!Number.isInteger(p.value) || (p.value as number) < 1) return fail(`Event ${id}: the day's drivers must be a whole number of 1 or more. Leave it unset if unknown.`, id);
         const held = dayDrivers.get(s.day);
         if (held) return fail(`Event ${id}: Day ${s.day} already has a driver count (event ${held.id}); correct that event instead.`, id);
@@ -231,14 +234,10 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     }
   }
 
-  // Break log: an edited break must still end after it starts; a missed break added later
-  // must not overlap another break (remove or correct that one instead).
+  // Break log: an edited break must still end after it starts. Overlaps are checked when a
+  // break is added or edited (entries.ts), so they can never block logging a live break.
   for (const b of breakLog) {
     if ((b.edited || b.kind === 'missed') && b.endAbs != null && b.endAbs <= b.startAbs) return fail(`Break ${b.start}–${b.end}: the end must be after the start.`, b.endId ?? b.startId ?? undefined);
-  }
-  for (const m of breakLog.filter((x) => x.kind === 'missed')) {
-    const other = breakLog.find((b) => b !== m && b.kind !== 'shift' && m.startAbs < (b.endAbs ?? Infinity) && b.startAbs < m.endAbs!);
-    if (other) return fail(`Missed break ${m.start}–${m.end} overlaps the break ${other.start}${other.end ? `–${other.end}` : ' (in progress)'}. Correct or remove that one instead.`, m.startId ?? undefined);
   }
   breakLog.sort((a, b) => a.startAbs - b.startAbs);
 

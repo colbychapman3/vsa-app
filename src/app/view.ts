@@ -260,7 +260,7 @@ export function hourlyView(s: State) {
         : `${x.delta >= 0 ? '+' : '−'}${fmt(Math.round(Math.abs(x.delta)))}${x.deltaPaced ? '/hr pace' : ''} (${x.deltaPct! >= 0 ? '+' : '−'}${Math.abs(x.deltaPct!).toFixed(1)}%) vs prior hour`,
       brands: x.brands ? Object.entries(x.brands).map(([b, v]) => ({ b, v: fmt(v) })) : [],
       drivers: typeof x.drivers === 'number' && x.drivers > 0
-        ? `${x.drivers} drivers · ${x.driverRate.rate != null ? `${x.driverRate.rate.toFixed(2)} per driver per productive hr` : 'per-driver rate needs the stoppage time'}`
+        ? `${x.drivers} drivers${x.driversFrom === 'day' ? ` (Day ${x.day} setting)` : ''} · ${x.driverRate.rate != null ? `${x.driverRate.rate.toFixed(2)} per driver per productive hr` : 'per-driver rate needs the stoppage time'}`
         : null,
     };
   });

@@ -219,6 +219,11 @@ function DriversSheet({ state, baseline, save, onClose }: { state: State; baseli
       <Note>Used for every hour of that day. If the gang changes during the day, enter the drivers on that hour in the Log sheet instead.</Note>
       {error && <ErrorBox text={error} />}
       <Go label="Save drivers" onPress={submit} />
+      {cur != null && <Go ghost label={`Clear Day ${day} (back to not set)`} onPress={async () => {
+        setError(null);
+        const r = await save((c) => E.clearWorkdayDriversEvents(c, day, reason === 'Other' ? other.trim() : reason));
+        if (r.ok) onClose(`Day ${day} drivers cleared. The old value is kept in the log.`); else setError(r.error);
+      }} />}
     </Sheet>
   );
 }
@@ -234,6 +239,7 @@ function BreakSheet({ state, baseline, entry, save, onClose }: { state: State; b
   const [other, setOther] = useState('');
   const [error, setError] = useState<string | null>(null);
   const inProgress = !!entry && entry.endAbs == null;
+  const stranded = inProgress && !E.isCurrentBreak(state, entry!); // an old start that never got an end
   const now = (set: (v: string) => void) => () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) set(t.hm); };
   const time = (v: string) => (v.trim() === '' ? null : parseHM(v.trim()) == null ? 'bad' as const : { day, hm: v.trim().padStart(5, '0') });
   const why = () => (reason === 'Other' ? other.trim() : reason);
@@ -253,13 +259,14 @@ function BreakSheet({ state, baseline, entry, save, onClose }: { state: State; b
   return (
     <Sheet title={entry ? 'Edit break' : 'Add a missed break'} isTest={state.operationId.startsWith('TEST-')} onClose={() => onClose()}>
       {!entry && days.length > 1 && <Seg columns={days.length} value={day} onChange={setDay} options={days.map((d) => ({ value: d, label: `Day ${d}` }))} />}
-      <TimeField required label="Break started at" value={start} onChange={setStart} onNow={now(setStart)} />
-      {inProgress
+      {stranded && <Note style={{ color: color.oInk }}>{E.STRANDED}</Note>}
+      {!stranded && <TimeField required label="Break started at" value={start} onChange={setStart} onNow={now(setStart)} />}
+      {stranded ? null : inProgress
         ? <Note>This break is still in progress. End it from the Log sheet.</Note>
         : <TimeField required label="Work resumed at" value={end} onChange={setEnd} onNow={now(setEnd)} />}
       {entry && <Reasons options={E.BREAK_REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />}
       {error && <ErrorBox text={error} />}
-      <Go label={entry ? 'Save changes' : 'Add break'} onPress={submit} />
+      {!stranded && <Go label={entry ? 'Save changes' : 'Add break'} onPress={submit} />}
       {entry && <Go ghost label="Remove this break" onPress={() => run((c) => E.removeBreakEvents(c, entry, why()), 'Break removed. It stays in the log, marked removed.')} />}
       <Note>Nothing is overwritten: the original times stay in the log.</Note>
     </Sheet>

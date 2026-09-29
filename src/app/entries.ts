@@ -212,17 +212,32 @@ export function workdayDriversEvents(ctx: Ctx, day: number, n: number, reason?: 
   if (!Number.isInteger(day) || day < 1) return reject('Pick the operation day.');
   if (!Number.isInteger(n) || n < 1) return reject('Enter the day’s drivers as a whole number (1 or more).');
   const period: [string, string] = [iso(ctx, { day, hm: '00:00' }), iso(ctx, { day: day + 1, hm: '00:00' })];
-  const old = activeEvents(ctx.state.log).find((e) => e.payload.metric === 'workday_drivers' && e.payload.period_start === period[0]);
+  const head = activeEvents(ctx.state.log).find((e) => e.payload.metric === 'workday_drivers' && e.payload.period_start === period[0]);
+  const old = head?.payload.value === 'void' ? null : head; // a cleared day is set again by correcting the clear
   if (old?.payload.value === n) return reject(`Nothing to save: Day ${day} is already set to ${n} drivers.`);
   if (old && !reason?.trim()) return reject(`Pick a reason for changing Day ${day}’s drivers. The old value is kept.`);
   const { add, out } = builder(ctx);
-  add({ type: old ? 'correction' : 'observation', metric: 'workday_drivers', value: n, workstream: 'operation', period,
-    supersedes: old?.event_id ?? null, reason: old ? reason!.trim() : null });
+  add({ type: head ? 'correction' : 'observation', metric: 'workday_drivers', value: n, workstream: 'operation', period,
+    supersedes: head?.event_id ?? null, reason: old ? reason!.trim() : head ? 'Set again after clearing' : null });
+  return out;
+}
+
+// Back to unknown (e.g. a figure entered for the wrong day). Needs a reason; the log keeps it.
+export function clearWorkdayDriversEvents(ctx: Ctx, day: number, reason: string | null): VsaEvent[] | Reject {
+  const old = activeEvents(ctx.state.log).find((e) => e.payload.metric === 'workday_drivers' && e.payload.period_start === iso(ctx, { day, hm: '00:00' }) && e.payload.value !== 'void');
+  if (!old) return reject(`Day ${day}’s drivers aren’t set.`);
+  if (!reason?.trim()) return reject(`Pick a reason for clearing Day ${day}’s drivers. The old value is kept.`);
+  const { add, out } = builder(ctx);
+  add({ type: 'correction', metric: 'workday_drivers', value: 'void', workstream: 'operation', period: [old.payload.period_start!, old.payload.period_end!],
+    supersedes: old.event_id, reason: reason.trim() });
   return out;
 }
 
 // ---------- Break log edits ----------
 // Corrections keep the old times in the log. Removing a break supersedes it with "void".
+
+// An old break start that never got an end (e.g. Break start tapped twice).
+export const STRANDED = 'This break never got an end time. If it’s a duplicate, remove it. Otherwise remove it and add it again as a missed break with both times.';
 
 const eventById = (ctx: Ctx, id: string) => ctx.state.log.events.find((e) => e.event_id === id);
 
@@ -233,9 +248,29 @@ function correctionOf(add: ReturnType<typeof builder>['add'], target: VsaEvent, 
     period: p.period_start && p.period_end ? [p.period_start, p.period_end] : null, supersedes: target.event_id, reason });
 }
 
+// The break that's on now: the latest open break while the shift is on break.
+export function isCurrentBreak(s: State, b: BreakEntry): boolean {
+  return s.ops.phase === 'break' && b.kind === 'break' && b.endAbs == null && s.breakLog.filter((x) => x.kind === 'break' && x.endAbs == null).at(-1) === b;
+}
+
+// A break being added or changed must not overlap another break. Checked here, not on
+// replay, so an earlier entry can never block logging the break that's happening now.
+function overlap(s: State, startAbs: number, endAbs: number, self: BreakEntry | null): Reject | null {
+  const hm = (a: number) => (a >= 1440 ? `Day ${Math.floor(a / 1440) + 1} ${formatHM(a)}` : formatHM(a));
+  for (const b of s.breakLog) {
+    if (b === self || b.kind === 'shift') continue;
+    const bEnd = b.endAbs ?? (isCurrentBreak(s, b) ? Infinity : null);
+    if (bEnd == null) continue; // an old start that never got an end: remove it (see the break sheet)
+    if (startAbs < bEnd && b.startAbs < endAbs) return reject(`${hm(startAbs)}–${hm(endAbs)} overlaps the break ${b.start}${b.end ? `–${b.end}` : ' (in progress)'}. Change the times, or fix that break first.`);
+  }
+  return null;
+}
+
 export function missedBreakEvents(ctx: Ctx, start: OpTime | null, end: OpTime | null): VsaEvent[] | Reject {
   if (!start || !end) return reject('Enter when the break started and ended.');
   if (toAbs(end)! <= toAbs(start)!) return reject('The break end must be after its start.');
+  const o = overlap(ctx.state, toAbs(start)!, toAbs(end)!, null);
+  if (o) return o;
   const { add, out } = builder(ctx);
   add({ type: 'observation', metric: 'break', value: null, workstream: 'operation', period: [iso(ctx, start), iso(ctx, end)] });
   return out;
@@ -250,16 +285,22 @@ export function editBreakEvents(ctx: Ctx, b: BreakEntry, start: OpTime | null, e
     if (toAbs(start) === b.startAbs && toAbs(end) === b.endAbs) return reject('Nothing to save: the break already has these times.');
     if (!why) return reject('Pick a reason for changing this break. The old times are kept.');
     if (toAbs(end)! <= toAbs(start)!) return reject('The break end must be after its start.');
+    const o = overlap(ctx.state, toAbs(start)!, toAbs(end)!, b);
+    if (o) return o;
     // A missed break's times are its period, which a correction can't change: remove it and add it again.
     const { add, out } = builder(ctx);
     correctionOf(add, eventById(ctx, b.startId)!, 'void', null, why);
     add({ type: 'observation', metric: 'break', value: null, workstream: 'operation', period: [iso(ctx, start), iso(ctx, end)] });
     return out;
   }
+  if (!b.endId && !isCurrentBreak(ctx.state, b)) return reject(STRANDED);
   if (end && !b.endId) return reject('This break is still in progress. End it from the Log sheet first.');
   const startChanged = toAbs(start) !== b.startAbs, endChanged = !!end && toAbs(end) !== b.endAbs;
   if (!startChanged && !endChanged) return reject('Nothing to save: the break already has these times.');
   if (!why) return reject('Pick a reason for changing this break. The old times are kept.');
+  if (toAbs(end ?? start)! <= toAbs(start)! && end) return reject('The break end must be after its start.');
+  const o = overlap(ctx.state, toAbs(start)!, end ? toAbs(end)! : Infinity, b);
+  if (o) return o;
   const { add, out } = builder(ctx);
   if (startChanged) correctionOf(add, eventById(ctx, b.startId)!, null, start, why);
   if (endChanged) correctionOf(add, eventById(ctx, b.endId!)!, null, end, why);

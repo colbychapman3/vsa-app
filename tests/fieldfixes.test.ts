@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import type { VsaEvent, Reject } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
-import { planView } from '../src/app/view.ts';
+import { hourlyView, planView } from '../src/app/view.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
 
@@ -109,7 +109,11 @@ test('break log: fix a break’s start and end; reason required; old times kept'
 
   assert.deepEqual(E.editBreakEvents(s.ctx(), b, t('12:00'), t('13:00'), null), { ok: false, error: 'Pick a reason for changing this break. The old times are kept.' });
   assert.deepEqual(E.editBreakEvents(s.ctx(), b, t('12:02'), t('13:05'), 'Wrong time'), { ok: false, error: 'Nothing to save: the break already has these times.' });
-  await s.refused(E.editBreakEvents(s.ctx(), b, t('13:10'), t('13:05'), 'Wrong time'), /Break 13:10–13:05: the end must be after the start/);
+  assert.deepEqual(E.editBreakEvents(s.ctx(), b, t('13:10'), t('13:05'), 'Wrong time'), { ok: false, error: 'The break end must be after its start.' });
+  // The engine refuses it too, if an event gets past the form.
+  const bad = E.editBreakEvents(s.ctx(), b, t('12:00'), t('13:05'), 'Wrong time') as VsaEvent[];
+  bad[0].occurred_at = '2026-09-21T13:10:00-04:00';
+  await s.refused(bad, /Break 13:10–13:05: the end must be after the start/);
 
   await s.ok(E.editBreakEvents(s.ctx(), b, t('12:00'), t('13:00'), 'Wrong time'));
   assert.deepEqual(s.state.breakLog.map((x) => [x.start, x.end, x.edited]), [['12:00', '13:00', true]]);
@@ -160,7 +164,7 @@ test('break log: add a missed break later; overlap refused; it can be fixed or r
 
   assert.deepEqual(E.missedBreakEvents(s.ctx(), t('18:00'), null), { ok: false, error: 'Enter when the break started and ended.' });
   assert.deepEqual(E.missedBreakEvents(s.ctx(), t('19:00'), t('18:00')), { ok: false, error: 'The break end must be after its start.' });
-  await s.refused(E.missedBreakEvents(s.ctx(), t('12:30'), t('13:30')), /Missed break 12:30–13:30 overlaps the break 12:00–13:00/);
+  assert.deepEqual(E.missedBreakEvents(s.ctx(), t('12:30'), t('13:30')), { ok: false, error: '12:30–13:30 overlaps the break 12:00–13:00. Change the times, or fix that break first.' });
 
   await s.ok(E.missedBreakEvents(s.ctx(), t('18:00'), t('19:00')));
   assert.equal(s.state.ops.phase, 'working'); // a break added afterwards doesn't put the shift on break
@@ -186,4 +190,92 @@ test('break log: shift changes are shown but not editable here; a break with a v
   const odd = E.breakStartEvents(s.ctx(), t('18:00')) as VsaEvent[];
   odd[0].payload.value = 'void'; // only a correction can remove a break
   await s.refused(odd, /a break has no value/);
+});
+
+// ---------- Review round 1 (independent reviewer, 2026-09-28) ----------
+
+test('review R1: a missed break never blocks logging the live break', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.missedBreakEvents(s.ctx(), t('12:00'), t('13:00')));
+  await s.ok(E.breakStartEvents(s.ctx(), t('12:30'))); // contradicts the missed one, but live logging must work
+  await s.ok(E.breakEndEvents(s.ctx(), t('13:30')));
+  assert.equal(s.state.ops.phase, 'working');
+  // Adding a missed break over the break that's on now is refused at the form.
+  await s.ok(E.breakStartEvents(s.ctx(), t('18:00')));
+  assert.deepEqual(E.missedBreakEvents(s.ctx(), t('18:10'), t('18:20')), { ok: false, error: '18:10–18:20 overlaps the break 18:00 (in progress). Change the times, or fix that break first.' });
+});
+
+test('review R1: a double-tapped start leaves a stranded entry that never blocks later breaks and can be removed', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.breakStartEvents(s.ctx(), t('12:00')));
+  await s.ok(E.breakStartEvents(s.ctx(), t('12:02')));
+  await s.ok(E.breakEndEvents(s.ctx(), t('13:00')));
+  const stranded = s.state.breakLog[0];
+  assert.deepEqual([stranded.start, stranded.end, s.state.ops.phase], ['12:00', null, 'working']);
+  assert.equal(E.isCurrentBreak(s.state, stranded), false);
+  assert.deepEqual(E.editBreakEvents(s.ctx(), stranded, t('12:00'), null, 'Wrong time'), { ok: false, error: E.STRANDED });
+  await s.ok(E.missedBreakEvents(s.ctx(), t('18:00'), t('19:00'), )); // not blocked by the stranded 12:00
+  await s.ok(E.missedBreakEvents(s.ctx(), t('12:00', 2), t('13:00', 2))); // nor on Day 2
+  await s.ok(E.removeBreakEvents(s.ctx(), stranded, 'Duplicate'));
+  assert.deepEqual(s.state.breakLog.map((x) => [x.start, x.end]), [['12:02', '13:00'], ['18:00', '19:00'], ['Day 2 12:00', 'Day 2 13:00']]);
+});
+
+test('review R2: editing a break into another break is refused', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.breakStartEvents(s.ctx(), t('12:00')));
+  await s.ok(E.breakEndEvents(s.ctx(), t('13:00')));
+  await s.ok(E.breakStartEvents(s.ctx(), t('18:00')));
+  await s.ok(E.breakEndEvents(s.ctx(), t('19:00')));
+  assert.deepEqual(E.editBreakEvents(s.ctx(), s.state.breakLog[1], t('11:00'), t('19:00'), 'Wrong time'),
+    { ok: false, error: '11:00–19:00 overlaps the break 12:00–13:00. Change the times, or fix that break first.' });
+});
+
+test('review R3: the Hourly list says when drivers come from the day setting', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.workdayDriversEvents(s.ctx(), 1, 70));
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 245 }));
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '09:00', count: 230, drivers: 66 }));
+  const rows = hourlyView(s.state).rows;
+  assert.match(rows[0].drivers!, /^70 drivers \(Day 1 setting\) · 3\.50 per driver/);
+  assert.match(rows[1].drivers!, /^66 drivers · /);
+});
+
+test('review R4: a day’s drivers can be cleared back to unknown, and set again; history kept', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.workdayDriversEvents(s.ctx(), 2, 70)); // meant for Day 1
+  assert.deepEqual(E.clearWorkdayDriversEvents(s.ctx(), 2, null), { ok: false, error: 'Pick a reason for clearing Day 2’s drivers. The old value is kept.' });
+  await s.ok(E.clearWorkdayDriversEvents(s.ctx(), 2, 'Typo'));
+  assert.deepEqual(s.state.workdayDrivers, {});
+  assert.deepEqual(E.clearWorkdayDriversEvents(s.ctx(), 2, 'Typo'), { ok: false, error: 'Day 2’s drivers aren’t set.' });
+  await s.ok(E.workdayDriversEvents(s.ctx(), 2, 50)); // no reason needed: nothing is set
+  assert.deepEqual(s.state.workdayDrivers, { 2: 50 });
+  assert.deepEqual(s.state.corrections.find((c) => c.metric === 'workday_drivers')!.history, [70, 'void', 50]);
+});
+
+test('review R5/R6: a clerk count stays with its break after an hour correction; 2,000 corrections add little on top of replay', async (tc) => {
+  const s = await setup(tc);
+  for (let i = 0; i < 9; i++) await s.ok(E.hourEvents(s.ctx(), { day: 1, start: `${String(8 + i).padStart(2, '0')}:00`, count: 100 + i, stopMin: i === 3 ? 45 : null }));
+  await s.ok(E.breakStartEvents(s.ctx(), t('12:00')));
+  await s.ok(E.clerkEvents(s.ctx(), 1500, t('12:10')));
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 111, reason: 'Recount' }));
+  assert.equal(s.state.clerk?.remaining, 1500);
+  assert.deepEqual(s.state.periods[0].was, [100]);
+  // Timing guard: 2,000 corrections of one hour (a long chain) still project well under a second.
+  const { project, replay } = await import('../src/engine/index.ts');
+  const evs = [...s.state.log.events];
+  let head = evs.find((e) => e.payload.metric === 'field_units' && !s.state.log.supersededBy[e.event_id] && e.payload.period_start?.includes('T09:00'))!;
+  let seq = evs.at(-1)!.sequence;
+  for (let i = 0; i < 2000; i++) {
+    seq++;
+    const c: VsaEvent = { ...head, event_id: `${OP}-${seq}`, idempotency_key: `${OP}-${seq}`, sequence: seq, event_type: 'correction', supersedes_event_id: head.event_id,
+      payload: { ...head.payload, value: 100 + (i % 7), reason: 'Recount' } };
+    evs.push(c); head = c;
+  }
+  // Replay (the log integrity check) dominates; ordering corrections by their original adds little on top.
+  const time = (fn: () => unknown) => { const t0 = performance.now(); fn(); return performance.now() - t0; };
+  const r = time(() => replay(evs, OP));
+  let p: ReturnType<typeof project> | null = null;
+  const q = time(() => { p = project(glovis, evs, OP); });
+  assert.ok(p!.ok, JSON.stringify(p));
+  assert.ok(q < r * 1.5 + 50, `project ${Math.round(q)} ms vs replay ${Math.round(r)} ms`);
 });
