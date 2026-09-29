@@ -4,7 +4,7 @@
 import { validateBaseline, type Baseline } from './baseline.ts';
 import { deckCalc, deckUpdate, heightInfo, type DeckState, type DeckStatus } from './decks.ts';
 import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
-import { buildPeriods, summarize, checkHour, hourDriverRate, type HourEntry } from './production.ts';
+import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, type HourEntry } from './production.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
 import { eta, vesselClearBy, type Ops } from './eta.ts';
 import { fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
@@ -30,6 +30,17 @@ export type BreakEntry = {
 const STATUS_LABEL: Record<DeckStatus, string> = { notStarted: 'Not started', active: 'Active', paused: 'Paused', complete: 'Complete', unknown: 'Unknown' };
 const STATUSES = Object.keys(STATUS_LABEL) as DeckStatus[];
 const fail = (error: string, event_id?: string): Reject & { event_id?: string } => ({ ok: false, error, ...(event_id ? { event_id } : {}) });
+
+// A day's actual start is a later start than planned, before the first break. Shared by the
+// engine and the entry form so both refuse with the same words.
+export function dayStartProblem(day: number, hm: string, planned: string, firstBreak: string | null): string | null {
+  const m = parseHM(hm), pl = parseHM(planned);
+  if (m == null) return 'Enter the actual start as HH:MM, for example 08:40.';
+  if (pl != null && m < pl) return `Day ${day} start ${formatHM(m)} is earlier than the planned ${formatHM(pl)}. Operations start on the hour; only a later start can be recorded.`;
+  const fb = firstBreak ? parseHM(firstBreak) : null;
+  if (fb != null && m >= fb) return `Day ${day} start ${formatHM(m)} must be before the ${formatHM(fb)} break.`;
+  return null;
+}
 
 // Baseline dates are "M/D/YYYY" (tracker) or "YYYY-MM-DD".
 export function operationDate(b: Baseline): string | null {
@@ -60,6 +71,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const ops: Ops & { shiftEnd?: string | null } = { day: 1 };
   const breakLog: BreakEntry[] = [];
   const dayDrivers = new Map<number, { n: number; id: string }>(); // workday driver setting per operation day
+  const dayActual = new Map<number, { hm: string; id: string; cause: string | null }>(); // actual (late) start per operation day
   const plan: { shiftEnd: string | null; nextStart: string | null } = { shiftEnd: null, nextStart: null };
   const clerks: { remaining: number; time: string; seq: number }[] = [];
   const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
@@ -197,6 +209,23 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         dayDrivers.set(s.day, { n: p.value as number, id });
         continue;
       }
+      case 'day_start': {
+        if (e.event_type !== 'observation' && e.event_type !== 'correction') return fail(`Event ${id}: a day's start time must be an observation.`, id);
+        if (p.count_kind !== 'not_applicable') return fail(`Event ${id}: day_start must not be a count kind (count_kind not_applicable).`, id);
+        if (!p.period_start || !p.period_end) return fail(`Event ${id}: a day's start time needs the day it covers.`, id);
+        const s = fromIso(p.period_start, opDate), z = fromIso(p.period_end, opDate);
+        if ('error' in s) return fail(s.error, id);
+        if ('error' in z) return fail(z.error, id);
+        if (s.hm !== '00:00' || z.hm !== '00:00' || z.day !== s.day + 1) return fail(`Event ${id}: a day's start time covers one whole operation day.`, id);
+        if (e.event_type === 'correction' && p.value === 'void') continue; // back to the planned start; the log keeps it
+        if (typeof p.value !== 'string' || parseHM(p.value) == null) return fail(`Event ${id}: day_start must be an HH:MM time.`, id);
+        if (p.cause != null && typeof p.cause !== 'string') return fail(`Event ${id}: the cause must be text.`, id);
+        if (occurred && (occurred.day !== s.day || occurred.hm !== formatHM(parseHM(p.value)!))) return fail(`Event ${id}: the start time ${p.value} doesn't match the event time ${eventTimeLabel(occurred)}.`, id);
+        const held = dayActual.get(s.day);
+        if (held) return fail(`Event ${id}: Day ${s.day} already has an actual start (event ${held.id}); correct that event instead.`, id);
+        dayActual.set(s.day, { hm: formatHM(parseHM(p.value)!), id, cause: p.cause?.trim() || null });
+        continue;
+      }
       case 'shift':
         if (e.event_type !== 'status_change') return fail(`Event ${id}: shift must be a status change.`, id);
         if (!occurred) return fail(`Event ${id}: shift changes need a time.`, id);
@@ -247,6 +276,14 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     if ('error' in u) return fail(u.error, lastDeckEvent[id]);
   }
 
+  // Planned start: baseline start on Day 1, the next-day start after that (as the hour picker uses).
+  const plannedStart = (day: number) => (day > 1 ? plan.nextStart ?? baseline.start : baseline.start);
+  const firstBreak = [...baseline.breaks].sort((a, b) => parseHM(a)! - parseHM(b)!)[0] ?? null;
+  for (const [day, a] of dayActual) {
+    const bad = dayStartProblem(day, a.hm, plannedStart(day), firstBreak);
+    if (bad) return fail(`Event ${a.id}: ${bad}`, a.id);
+  }
+
   // Hourly entries: validate, then check the field total against starting cargo.
   const brandNames = Object.keys(base.brandStart);
   const entries: HourEntry[] = [];
@@ -257,6 +294,14 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     Object.assign(h, { hourDrivers: own, drivers: own ?? day, driversFrom: own != null ? 'hour' : day != null ? 'day' : null });
     const bad = checkHour(h, brandNames, baseline.breaks);
     if (bad) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: ${bad.error}`);
+    // A late start: only the minutes from the actual start count. An hour with no such minutes can't hold a count.
+    const actual = dayActual.get(h.day);
+    const late = actual ? Math.min(60, Math.max(0, parseHM(actual.hm)! - parseHM(h.start)!)) : 0;
+    if (late > 0) {
+      const worked = isShort(h.start, baseline.breaks) ? h.stopMin ?? 60 : 60;
+      if (worked - late <= 0 && h.count > 0) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: Day ${h.day} work started at ${actual!.hm}, so this hour has no productive time and can't have a count above 0. Log the count in the hour work actually started, or correct the day's start time.`);
+      h.lateMin = late;
+    }
     const { key: _key, ...entry } = h;
     entries.push(entry);
   }
@@ -280,7 +325,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     remaining: L.vesselRemaining ?? L.fieldBalance,
     basis: L.vesselRemaining != null ? 'vessel' : 'field',
     periods,
-    schedule: { dayStart: baseline.start, nextStart: plan.nextStart, shiftEnd: plan.shiftEnd, breaks: baseline.breaks, clearByMin: vesselClearBy(baseline.destinations) },
+    schedule: { dayStart: baseline.start, nextStart: plan.nextStart, shiftEnd: plan.shiftEnd, breaks: baseline.breaks, clearByMin: vesselClearBy(baseline.destinations), ...(dayActual.size ? { actualStarts: Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm])) } : {}) },
     ops,
   });
 
@@ -301,6 +346,11 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     plan,
     issues: [...issues.values()],
     breakLog,
+    // Per operation day: planned start and the actual start if one was recorded (null = the planned start applies).
+    dayStarts: Object.fromEntries(Array.from({ length: Math.max(2, ops.day, ...dayActual.keys()) }, (_, i) => {
+      const day = i + 1, a = dayActual.get(day), planned = plannedStart(day);
+      return [day, { planned, firstBreak, actual: a?.hm ?? null, lateMin: a ? parseHM(a.hm)! - parseHM(planned)! : 0, cause: a?.cause ?? null, id: a?.id ?? null }];
+    })) as Record<number, { planned: string; firstBreak: string | null; actual: string | null; lateMin: number; cause: string | null; id: string | null }>,
     workdayDrivers: Object.fromEntries([...dayDrivers].map(([d, v]) => [d, v.n])) as Record<number, number>,
     corrections,
     log,

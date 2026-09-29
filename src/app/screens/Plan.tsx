@@ -16,6 +16,7 @@ export function Plan({ state, baseline, isTest, save, onNotice }: { state: State
   const [recheck, setRecheck] = useState<Set<string>>(new Set());
   const [shiftOpen, setShiftOpen] = useState(false);
   const [driversOpen, setDriversOpen] = useState(false);
+  const [startOpen, setStartOpen] = useState<number | null>(null); // operation day whose start time is being set
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
@@ -101,6 +102,18 @@ export function Plan({ state, baseline, isTest, save, onNotice }: { state: State
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
+        <SectionHead title="Day’s start time" />
+        {v.dayStarts.map((d) => (
+          <Pressable key={d.day} onPress={() => setStartOpen(d.day)} style={({ pressed }) => [s.logRow, pressed && { opacity: 0.6 }]}
+            accessibilityRole="button" accessibilityLabel={`${d.label}: ${d.value}. Change`}>
+            {kv(d.label, d.value)}
+            <Text style={[s.edit, { fontFamily: f.bodySemi }]}>{d.actual ? 'Change ›' : 'Started late? ›'}</Text>
+          </Pressable>
+        ))}
+        <Note>Operations start on the hour. If something delays the start, enter when work actually started. Hours before it count only the minutes worked.</Note>
+      </Card>
+
+      <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Forecast settings" />
         {kv('Breaks', v.forecast.breaks)}
         {kv('Day 1 shift ends', v.forecast.dayEnd)}
@@ -153,6 +166,7 @@ export function Plan({ state, baseline, isTest, save, onNotice }: { state: State
         <Note>Changes keep the old times in the log.</Note>
       </Card>
 
+      {startOpen != null && <StartSheet isTest={isTest} state={state} baseline={baseline} day={startOpen} save={save} onClose={(done) => { setStartOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {driversOpen && <DriversSheet isTest={isTest} state={state} baseline={baseline} save={save} onClose={(done) => { setDriversOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
       {breakOpen && <BreakSheet isTest={isTest} state={state} baseline={baseline} entry={breakOpen.entry} save={save} onClose={(done) => { setBreakOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {shiftOpen && <ShiftSheet isTest={isTest} state={state} baseline={baseline} save={save} onClose={(done) => { setShiftOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
@@ -230,6 +244,52 @@ function DriversSheet({ state, baseline, isTest, save, onClose }: { isTest: bool
         const r = await save((c) => E.clearWorkdayDriversEvents(c, day, reason === 'Other' ? other.trim() : reason));
         if (r.ok) onClose(`Day ${day} drivers cleared. The old value is kept in the log.`); else setError(r.error);
       }} />}
+    </Sheet>
+  );
+}
+
+// Day's actual start: only when something delayed it. Empty = not provided; the planned start applies.
+function StartSheet({ state, baseline, isTest, day: first, save, onClose }: { isTest: boolean; state: State; baseline: Baseline; day: number; save: Save; onClose: (done?: string) => void }) {
+  const days = planView(state, baseline).dayStarts;
+  const [day, setDay] = useState(first);
+  const row = (d: number) => days.find((x) => x.day === d)!;
+  const listed = (c: string | null) => (c == null ? null : (E.START_CAUSES as readonly string[]).includes(c) ? c : 'Other');
+  const [time, setTime] = useState(row(first).actual ?? '');
+  const [cause, setCause] = useState<string | null>(listed(row(first).cause));
+  const [causeOther, setCauseOther] = useState(listed(row(first).cause) === 'Other' ? row(first).cause ?? '' : '');
+  const [reason, setReason] = useState<string | null>(null);
+  const [other, setOther] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const cur = row(day);
+  const pick = (d: number) => { const r = row(d); setDay(d); setTime(r.actual ?? ''); setCause(listed(r.cause)); setCauseOther(listed(r.cause) === 'Other' ? r.cause ?? '' : ''); setReason(null); setError(null); };
+  const now = () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) setTime(t.hm); else setError('The phone’s date is before this operation’s Day 1.'); };
+  const why = () => (reason === 'Other' ? other.trim() : reason);
+  const submit = async () => {
+    setError(null);
+    if (parseHM(time.trim()) == null) return setError('Enter the actual start as HH:MM, for example 08:40.');
+    const c = cause === 'Other' ? causeOther.trim() : cause;
+    const r = await save((ctx) => E.dayStartEvents(ctx, day, time, c, why()));
+    if (r.ok) onClose(`Day ${day} start recorded at ${time.trim().padStart(5, '0')}.`); else setError(r.error);
+  };
+  return (
+    <Sheet title="Day’s start time" isTest={isTest} onClose={() => onClose()}>
+      {days.length > 1 && <Seg columns={days.length} value={day} onChange={pick} options={days.map((d) => ({ value: d.day, label: `Day ${d.day}` }))} />}
+      <Note>Planned start: {cur.planned}. Only a later start can be recorded.</Note>
+      <TimeField required label={`Day ${day} work actually started at`} value={time} onChange={setTime} onNow={now} />
+      <View style={{ gap: 8 }}>
+        <Label>CAUSE (OPTIONAL)</Label>
+        <Seg columns={2} value={cause} onChange={setCause} options={[...E.START_CAUSES, 'Other'].map((r) => ({ value: r as string, label: r === 'Other' ? 'Other…' : r }))} />
+        {cause === 'Other' && <Field label="Cause" value={causeOther} onChange={setCauseOther} keyboard="default" maxLength={120} />}
+      </View>
+      {cur.actual != null && <Reasons options={E.REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />}
+      {error && <ErrorBox text={error} />}
+      <Go label="Save start time" onPress={submit} />
+      {cur.actual != null && <Go ghost label={`Clear Day ${day} (back to planned ${cur.planned})`} onPress={async () => {
+        setError(null);
+        const r = await save((ctx) => E.clearDayStartEvents(ctx, day, why()));
+        if (r.ok) onClose(`Day ${day} start cleared. The old time is kept in the log.`); else setError(r.error);
+      }} />}
+      <Note>Nothing is overwritten: the old start stays in the log.</Note>
     </Sheet>
   );
 }

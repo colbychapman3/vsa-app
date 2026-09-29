@@ -367,6 +367,11 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
       const day = i + 1, n = s.workdayDrivers[day];
       return { day, label: `Day ${day} drivers`, value: n != null ? `${fmt(n)} drivers` : `Not set${labor.autoDrivers != null ? ` (labor order ${fmt(labor.autoDrivers)})` : ''}`, n: n ?? null };
     }),
+    // Operations start on the hour unless delayed; an actual start is shown only when one was recorded.
+    dayStarts: Object.entries(s.dayStarts).map(([k, d]) => ({
+      day: Number(k), label: `Day ${k} start`, planned: d.planned, actual: d.actual, cause: d.cause,
+      value: d.actual == null ? `Planned ${d.planned}` : `Started ${d.actual}${d.lateMin > 0 ? ` (late ${d.lateMin} min)` : ''}`,
+    })),
     breakLog: s.breakLog.map((x) => ({
       label: x.kind === 'shift' ? 'Shift' : x.kind === 'missed' ? 'Break · added later' : x.edited ? 'Break · edited' : 'Break',
       value: x.end ? `${x.start}–${x.end}` : `${x.start} · in progress`,

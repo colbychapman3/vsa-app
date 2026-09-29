@@ -31,6 +31,7 @@ export type VsaEvent = {
     period_end: string | null;
     reason: string | null;
     input_event_ids: string[];
+    cause?: string | null;      // day_start only: why it started late (Late vessel, Ramp problem, ...); optional, for the record
   };
 };
 

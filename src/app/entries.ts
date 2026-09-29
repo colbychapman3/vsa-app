@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, formatHM, parseHM, toAbs, type BreakEntry, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, dayStartProblem, formatHM, parseHM, toAbs, type BreakEntry, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -14,6 +14,7 @@ export type Ctx = {
 };
 
 export const REASONS = ['Recount', 'Typo', 'Checker update'] as const;
+export const START_CAUSES = ['Late vessel', 'Ramp problem', 'Accident'] as const; // plus "Other…" (free text)
 export const BREAK_REASONS = ['Wrong time', 'Duplicate', 'Logged by mistake'] as const;
 
 const reject = (error: string): Reject => ({ ok: false, error });
@@ -51,7 +52,7 @@ function builder(ctx: Ctx) {
     type: VsaEvent['event_type']; metric: string; value: VsaEvent['payload']['value']; kind?: VsaEvent['payload']['count_kind'];
     workstream?: 'auto_discharge' | 'operation'; deck?: string | null; hatch?: string | null; commodity?: string | null;
     at?: OpTime | null; period?: [string, string] | null; reason?: string | null; supersedes?: string | null; inputs?: string[];
-    provenance?: VsaEvent['provenance'];
+    provenance?: VsaEvent['provenance']; cause?: string | null;
   }) => {
     const id = `${ctx.operationId}-${seq}`;
     out.push({
@@ -60,7 +61,7 @@ function builder(ctx: Ctx) {
       occurred_at: e.at ? iso(ctx, e.at) : null, recorded_at: ctx.recordedAt, actor: 'colby', source_ids: ['vsa-app'], provenance: e.provenance ?? 'user_report',
       supersedes_event_id: e.supersedes ?? null,
       payload: { metric: e.metric, value: e.value, unit: null, count_kind: e.kind ?? 'not_applicable',
-        period_start: e.period?.[0] ?? null, period_end: e.period?.[1] ?? null, reason: e.reason ?? null, input_event_ids: e.inputs ?? [] },
+        period_start: e.period?.[0] ?? null, period_end: e.period?.[1] ?? null, reason: e.reason ?? null, input_event_ids: e.inputs ?? [], ...(e.cause ? { cause: e.cause } : {}) },
     });
   };
   return { add, out };
@@ -255,6 +256,42 @@ export function clearWorkdayDriversEvents(ctx: Ctx, day: number, reason: string 
   if (!reason?.trim()) return reject(`Pick a reason for clearing Day ${day}’s drivers. The old value is kept.`);
   const { add, out } = builder(ctx);
   add({ type: 'correction', metric: 'workday_drivers', value: 'void', workstream: 'operation', period: [old.payload.period_start!, old.payload.period_end!],
+    supersedes: old.event_id, reason: reason.trim() });
+  return out;
+}
+
+// ---------- Day's actual start ----------
+
+// Operations start at the planned time unless something delays them. Only a later, exact start
+// is recorded (occurred_at = that time); no event = the planned start applies. Changing it is a
+// correction with a reason; clearing supersedes it with "void". The cause is optional, for the record.
+export function dayStartEvents(ctx: Ctx, day: number, hm: string, cause?: string | null, reason?: string | null): VsaEvent[] | Reject {
+  if (!Number.isInteger(day) || day < 1) return reject('Pick the operation day.');
+  const st = ctx.state.dayStarts;
+  const row = st[day] ?? st[day > 1 ? 2 : 1];
+  const time = hm.trim().padStart(5, '0');
+  const bad = dayStartProblem(day, time, row.planned, row.firstBreak);
+  if (bad) return reject(bad);
+  const period: [string, string] = [iso(ctx, { day, hm: '00:00' }), iso(ctx, { day: day + 1, hm: '00:00' })];
+  const head = activeEvents(ctx.state.log).find((e) => e.payload.metric === 'day_start' && e.payload.period_start === period[0]);
+  const old = head?.payload.value === 'void' ? null : head; // a cleared day is set again by correcting the clear
+  const why = cause?.trim() || null;
+  if (old && old.payload.value === formatHM(parseHM(time)!) && (old.payload.cause ?? null) === why) return reject(`Nothing to save: Day ${day} already shows this start (${time}).`);
+  if (old && !reason?.trim()) return reject(`Pick a reason for changing Day ${day}’s start time. The old time is kept.`);
+  const { add, out } = builder(ctx);
+  add({ type: head ? 'correction' : 'observation', metric: 'day_start', value: formatHM(parseHM(time)!), workstream: 'operation', period, at: { day, hm: time },
+    supersedes: head?.event_id ?? null, reason: old ? reason!.trim() : head ? 'Set again after clearing' : null, cause: why });
+  return out;
+}
+
+// Back to the planned start. Needs a reason; the log keeps the old time.
+export function clearDayStartEvents(ctx: Ctx, day: number, reason: string | null): VsaEvent[] | Reject {
+  if (!Number.isInteger(day) || day < 1) return reject('Pick the operation day.');
+  const old = activeEvents(ctx.state.log).find((e) => e.payload.metric === 'day_start' && e.payload.period_start === iso(ctx, { day, hm: '00:00' }) && e.payload.value !== 'void');
+  if (!old) return reject(`Day ${day} has no actual start recorded; the planned start applies.`);
+  if (!reason?.trim()) return reject(`Pick a reason for clearing Day ${day}’s start time. The old time is kept.`);
+  const { add, out } = builder(ctx);
+  add({ type: 'correction', metric: 'day_start', value: 'void', workstream: 'operation', period: [old.payload.period_start!, old.payload.period_end!],
     supersedes: old.event_id, reason: reason.trim() });
   return out;
 }

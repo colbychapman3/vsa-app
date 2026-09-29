@@ -14,6 +14,7 @@ export type Schedule = {
   shiftEnd?: string | null;      // Day 1 shift end, if set
   breaks: string[];
   clearByMin: number;            // applied once before each break and shift end
+  actualStarts?: Record<number, string>; // day → actual (late) start; replaces that day's planned start
 };
 export type Ops = { day: number; onBreak?: boolean; breakStart?: string | null; shiftEnded?: boolean };
 
@@ -22,7 +23,7 @@ export function vesselClearBy(destinations: Pick<Destination, 'clearBy'>[]): num
 }
 
 // Minutes after midnight when a given day (1-based) starts.
-const dayStartMin = (s: Schedule, day: number) => parseHM(day > 1 ? s.nextStart || s.dayStart || '08:00' : s.dayStart || '08:00')!;
+const dayStartMin = (s: Schedule, day: number) => parseHM(s.actualStarts?.[day] ?? (day > 1 ? s.nextStart || s.dayStart || '08:00' : s.dayStart || '08:00'))!;
 
 // Working windows for one day (0-based index d), in absolute minutes.
 function windows(s: Schedule, d: number): [number, number][] {

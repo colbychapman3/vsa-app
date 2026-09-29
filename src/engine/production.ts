@@ -12,6 +12,7 @@ export type HourEntry = {
   driversFrom?: 'hour' | 'day' | null;
   brands?: Record<string, number> | null;
   stopMin?: number | null;             // productive minutes in a short pre-break hour (30 or 45)
+  lateMin?: number;                    // minutes of this hour before the day's actual (late) start; absent = 0
   was?: number[];                      // earlier values of this hour's total, oldest first (corrections)
 };
 
@@ -37,7 +38,8 @@ export function buildPeriods(entries: HourEntry[], breaks: string[]): Period[] {
   return sorted.map((h) => {
     if (h.day !== prevD) { prevP = null; prevS = false; prevD = h.day; }
     const short = isShort(h.start, breaks);
-    const min = short ? (typeof h.stopMin === 'number' ? h.stopMin : null) : 60;
+    const worked = short ? (typeof h.stopMin === 'number' ? h.stopMin : null) : 60;
+    const min = worked == null ? null : Math.max(0, worked - (h.lateMin ?? 0)); // only minutes from the actual start count
     const pace = min ? h.count / (min / 60) : null;
     const delta = prevP == null || pace == null ? null : pace - prevP;
     const deltaPct = prevP && pace != null ? ((pace - prevP) / prevP) * 100 : null;
