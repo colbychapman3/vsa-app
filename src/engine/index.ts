@@ -94,12 +94,14 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       const s = fromIso(p.period_start, opDate), z = fromIso(p.period_end, opDate);
       if ('error' in s) return fail(s.error, id);
       if ('error' in z) return fail(z.error, id);
-      if (toAbs(z)! - toAbs(s)! !== 60) return fail(`Event ${id}: field counts are hourly; ${p.period_start}–${p.period_end} is not one hour.`, id);
       // Hours follow the day's start time (Colby chose A): 07:30 starts give 07:30–08:30 hours.
-      // An hour may not run through a break start; that time needs its own pre-break hour.
-      const sMin = parseHM(s.hm)!;
+      // An hour may not run through a break start: the last hour before a break is short and
+      // ends at the break (owner decision: a 07:30 day logs 11:30–12:00).
+      const sMin = parseHM(s.hm)!, len = toAbs(z)! - toAbs(s)!;
       const crossed = baseline.breaks.map((b) => parseHM(b)!).find((b) => sMin < b && b < sMin + 60);
-      if (crossed != null) return fail(`Event ${id}: Hour ${s.hm}–${formatHM(sMin + 60)} runs through the ${formatHM(crossed)} break.`, id);
+      if (crossed != null) {
+        if (len !== crossed - sMin) return fail(`Event ${id}: Hour ${s.hm}–${formatHM(sMin + 60)} runs through the ${formatHM(crossed)} break. The hour before a break ends at ${formatHM(crossed)}.`, id);
+      } else if (len !== 60) return fail(`Event ${id}: field counts are hourly; ${p.period_start}–${p.period_end} is not one hour.`, id);
       // Unanchored is fine: fromIso above already enforced the full ISO format.
       if (![p.period_start, p.period_end].every((x) => /T\d{2}:\d{2}(:00(\.0+)?)?(Z|[+-])/.test(x!))) return fail(`Event ${id}: hour periods must be whole minutes.`, id);
       if (p.metric !== 'field_units' && sc.commodity) return fail(`Event ${id}: only a field count can name a brand.`, id);
@@ -340,6 +342,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     decks: deckResults,
     periods: periods.map((p) => ({ ...p, driverRate: hourDriverRate(p) })),
     production: summary,
+    breaks: baseline.breaks,
     ...L,
     eta: forecast,
     ops: { ...ops, phase },

@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, formatHM, parseHM, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, formatHM, parseHM, preBreak, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -21,7 +21,7 @@ export function badges(s: State) {
 
 export function subtitles(s: State, b: Baseline) {
   const last = s.periods.at(-1);
-  const through = last ? `${last.day > 1 ? `Day ${last.day} ` : ''}${formatHM(parseHM(last.start)! + 60)}` : null;
+  const through = last ? `${last.day > 1 ? `Day ${last.day} ` : ''}${formatHM(preBreak(last.start, s.breaks) ?? parseHM(last.start)! + 60)}` : null;
   return {
     snap: `${b.date} · ${through ? `Field counts through ${through}` : 'No counts yet'}`,
     decks: 'Working view · what’s left aboard, H4 → H1',
@@ -252,7 +252,7 @@ export function hourlyView(s: State) {
     const start = parseHM(x.start)!;
     return {
       dayHeader: multi && (i === 0 || s.periods[i - 1].day !== x.day) ? `Day ${x.day}` : null,
-      range: `${x.start}–${formatHM(start + 60)}`,
+      range: `${x.start}–${formatHM(preBreak(x.start, s.breaks) ?? start + 60)}`,
       count: fmt(x.count),
       barPct: (x.count / max) * 100,
       short: x.short ? (x.min != null ? `Stopped ${formatHM(start + x.min)} · ${x.min} min worked · pace ${Math.round(x.pace!)}/hr` : 'Stoppage time not set') : null,
@@ -269,7 +269,7 @@ export function hourlyView(s: State) {
   return {
     stats: { ha: p.ha == null ? '—' : String(Math.round(p.ha)), haNote: `${fmt(s.field)} ÷ ${p.countedHours} hr`, pace: p.pace == null ? '—' : String(Math.round(p.pace)), paceNote: p.pace == null ? 'no productive time' : 'per productive hr', total: fmt(s.field) },
     paceLine: p.pace != null ? `Pace = ${fmt(p.prodCount)} ÷ ${(p.prodMin / 60).toFixed(2)} productive hr. Pre-break hours count only the minutes worked before stoppage.` : null,
-    unsetShort: p.unsetShort.length ? `Stoppage time not set for ${p.unsetShort.map((x) => `${x}–${formatHM(parseHM(x)! + 60)}`).join(', ')}` : null,
+    unsetShort: p.unsetShort.length ? `Stoppage time not set for ${p.unsetShort.map((x) => `${x}–${formatHM(preBreak(x, s.breaks) ?? parseHM(x)! + 60)}`).join(', ')}` : null,
     brandTable,
     unsplitNote: s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,
     rows,
@@ -392,12 +392,13 @@ export function hourOptions(s: State, b: Baseline) {
   const logged = new Set(s.periods.filter((p) => p.day === day).map((p) => p.start));
   const hours: { start: string; end: string; short: boolean; logged: boolean }[] = [];
   for (let m = dayStart; m <= 23 * 60; m += 60) {
-    if (breaks.some((x) => m < x && x < m + 60)) continue;
     const start = formatHM(m);
-    hours.push({ start, end: formatHM(m + 60), short: breaks.includes(m + 60), logged: logged.has(start) });
+    const cut = breaks.find((x) => m < x && x < m + 60); // a break inside the hour: it runs to the break and is the short hour
+    hours.push({ start, end: formatHM(cut ?? m + 60), short: cut != null || breaks.includes(m + 60), logged: logged.has(start) });
+    if (cut != null) m = cut; // resume after the break hour
   }
   const last = s.periods.filter((p) => p.day === day).at(-1);
-  let next = last ? parseHM(last.start)! + 60 : dayStart;
+  let next = last ? (preBreak(last.start, b.breaks) ?? parseHM(last.start)! + 60) : dayStart;
   if (breaks.includes(next)) next += 60;
   const open = hours.find((h) => h.start === formatHM(next)) ?? hours.find((h) => !h.logged) ?? hours[0];
   return { day, hours, defaultStart: open?.start ?? null };

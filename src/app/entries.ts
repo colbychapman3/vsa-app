@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, dayStartProblem, formatHM, parseHM, toAbs, type BreakEntry, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -84,7 +84,8 @@ export type HourForm = {
 export function hourEvents(ctx: Ctx, f: HourForm): VsaEvent[] | Reject {
   const bt = badTimes({ day: f.day, hm: f.start });
   if (bt) return bt;
-  const endMin = parseHM(f.start)! + 60; // the 23:00 hour ends at 00:00 the next day
+  // The 23:00 hour ends at 00:00 the next day; the hour before a break ends at the break (07:30 day: 11:30–12:00).
+  const endMin = preBreak(f.start, ctx.state.breaks) ?? parseHM(f.start)! + 60;
   const period: [string, string] = [iso(ctx, { day: f.day, hm: f.start }), iso(ctx, endMin >= 1440 ? { day: f.day + 1, hm: formatHM(endMin) } : { day: f.day, hm: formatHM(endMin) })];
   const existing = activeEvents(ctx.state.log).filter((e) => e.payload.period_start === period[0]);
   const find = (metric: string, commodity: string | null) => existing.find((e) => e.payload.metric === metric && e.scope.commodity === commodity);

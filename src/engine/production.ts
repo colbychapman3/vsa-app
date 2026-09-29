@@ -27,9 +27,16 @@ export type Period = HourEntry & {
 
 const STOP_CHOICES = [30, 45];
 
-export function isShort(start: string, breaks: string[]): boolean {
+// The break (minutes) that ends this hour, or null. A break at start+60 is the usual case; a break
+// inside the hour (a 07:30 day gives 11:30) cuts the hour short: it runs [start, break).
+export function preBreak(start: string, breaks: string[]): number | null {
   const s = parseHM(start);
-  return s != null && breaks.some((b) => parseHM(b) === s + 60);
+  if (s == null) return null;
+  return breaks.map((b) => parseHM(b)).find((b): b is number => b != null && s < b && b <= s + 60) ?? null;
+}
+
+export function isShort(start: string, breaks: string[]): boolean {
+  return preBreak(start, breaks) != null;
 }
 
 export function buildPeriods(entries: HourEntry[], breaks: string[]): Period[] {
@@ -128,10 +135,15 @@ export function checkHour(h: HourEntry, brands: string[], breaks: string[]): Rej
     const sum = Object.values(h.brands).reduce((t, v) => t + v, 0);
     if (filled && sum !== h.count) return fail(`Brand split adds to ${sum} but the hour total is ${h.count}. Fix one.`);
   }
-  if (!isShort(h.start, breaks) && h.stopMin != null) return fail('A stop time only applies to the hour before a break.');
-  if (isShort(h.start, breaks)) {
-    if (h.stopMin == null) return fail(`Pick when production stopped before the ${formatHM(s + 60)} break.`);
-    if (!STOP_CHOICES.includes(h.stopMin)) return fail('Stop time must be :30 or :45 (30 or 45 minutes worked).');
+  const b = preBreak(h.start, breaks);
+  if (b == null && h.stopMin != null) return fail('A stop time only applies to the hour before a break.');
+  if (b != null) {
+    if (h.stopMin == null) return fail(`Pick when production stopped before the ${formatHM(b)} break.`);
+    // Production stops :30 or :45 (30 or 15 minutes before the break); minutes worked run from the hour's start.
+    const worked = STOP_CHOICES.map((m) => b - 60 + m - s).filter((m) => m >= 0);
+    if (!worked.length) return fail(`No stop time is possible for the hour starting ${h.start}; it is too close to the ${formatHM(b)} break. Check the hour start.`);
+    if (!worked.includes(h.stopMin)) return fail(b === s + 60 ? 'Stop time must be :30 or :45 (30 or 45 minutes worked).' : `Stop time must be ${formatHM(b - 30)} or ${formatHM(b - 15)} (${worked.join(' or ')} minutes worked from ${h.start}).`);
+    if (h.stopMin === 0 && h.count > 0) return fail(`Production stopped at ${h.start}, so no autos can be counted in this hour.`);
   }
   return null;
 }
