@@ -1,7 +1,7 @@
 // Plan tab (reference: docs/reference/screens/08). Layout only; values from view.planView().
 // Actions (confirm height, resolve discrepancy, shift settings) save through App.save().
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
@@ -9,14 +9,20 @@ import { planView } from '../view.ts';
 import { color, useType } from '../theme.ts';
 import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
+export type Backup = {
+  lastAt: string | null; unsaved: number;
+  onExport: () => Promise<void>;
+  onImport: (text: string) => Promise<{ ok: true; text: string } | Reject>;
+};
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
-export function Plan({ state, baseline, isTest, save, onNotice }: { state: State; baseline: Baseline; isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void }) {
+export function Plan({ state, baseline, isTest, save, backup, onNotice }: { state: State; baseline: Baseline; isTest: boolean; save: Save; backup: Backup; onNotice: (n: { ok: boolean; text: string }) => void }) {
   const f = useType();
   const [recheck, setRecheck] = useState<Set<string>>(new Set());
   const [shiftOpen, setShiftOpen] = useState(false);
   const [driversOpen, setDriversOpen] = useState(false);
   const [startOpen, setStartOpen] = useState<number | null>(null); // operation day whose start time is being set
+  const [importOpen, setImportOpen] = useState(false);
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
@@ -166,6 +172,16 @@ export function Plan({ state, baseline, isTest, save, onNotice }: { state: State
         <Note>Changes keep the old times in the log.</Note>
       </Card>
 
+      <Card style={[u.pad, { gap: 10 }]}>
+        <SectionHead title="Backup" />
+        <Body>Last exported: {backup.lastAt ? `${backup.lastAt.replace('T', ' ').slice(0, 16)} (phone clock)` : 'never'}</Body>
+        {backup.unsaved > 0 && <Note>{backup.unsaved} {backup.unsaved === 1 ? 'entry' : 'entries'} not backed up.</Note>}
+        <Go label="Export vessel log" disabled={busy} onPress={async () => { setBusy(true); try { await backup.onExport(); } finally { setBusy(false); } }} />
+        <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />
+        <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
+      </Card>
+
+      {importOpen && <ImportSheet isTest={isTest} backup={backup} onClose={(done) => { setImportOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
       {startOpen != null && <StartSheet isTest={isTest} state={state} baseline={baseline} day={startOpen} save={save} onClose={(done) => { setStartOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {driversOpen && <DriversSheet isTest={isTest} state={state} baseline={baseline} save={save} onClose={(done) => { setDriversOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
       {breakOpen && <BreakSheet isTest={isTest} state={state} baseline={baseline} entry={breakOpen.entry} save={save} onClose={(done) => { setBreakOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
@@ -335,6 +351,30 @@ function BreakSheet({ state, baseline, isTest, entry, save, onClose }: { isTest:
       {!stranded && <Go label={entry ? 'Save changes' : 'Add break'} onPress={submit} />}
       {entry && <Go ghost label="Remove this break" onPress={() => run((c) => E.removeBreakEvents(c, entry, why()), 'Break removed. It stays in the log, marked removed.')} />}
       <Note>Nothing is overwritten: the original times stay in the log.</Note>
+    </Sheet>
+  );
+}
+
+// Import by paste: copy the exported file's text, paste it here. Nothing is written unless every check passes.
+function ImportSheet({ isTest, backup, onClose }: { isTest: boolean; backup: Backup; onClose: (done?: string) => void }) {
+  const f = useType();
+  const [text, setText] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setError(null); setBusy(true);
+    try {
+      const r = await backup.onImport(text);
+      if (r.ok) onClose(r.text); else setError(r.error);
+    } finally { setBusy(false); }
+  };
+  return (
+    <Sheet title="Import vessel log" isTest={isTest} onClose={() => onClose()}>
+      <Note>Paste the full text of an exported vessel log file.</Note>
+      <TextInput value={text} onChangeText={setText} multiline autoCorrect={false} autoCapitalize="none" accessibilityLabel="Vessel log text"
+        placeholder="Paste here" placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' }]} />
+      {error && <ErrorBox text={error} />}
+      <Go label="Import" disabled={busy || text.trim() === ''} onPress={run} />
     </Sheet>
   );
 }

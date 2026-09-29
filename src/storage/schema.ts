@@ -2,7 +2,7 @@
 // can migrate without losing data. The database itself enforces append-only.
 import type { Db } from './db.ts';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const V1 = `
 CREATE TABLE vessels (
@@ -44,6 +44,9 @@ CREATE TRIGGER vessels_no_replace BEFORE INSERT ON vessels
   BEGIN SELECT RAISE(ABORT, 'A vessel''s TEST/LIVE mark and baseline cannot be changed.'); END;
 `;
 
+// V3: small local settings (last export of each vessel's log). Not part of the official record.
+const V3 = `CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);`;
+
 // Run on every open. Each step runs once, in order: a new file gets all of them, an older file only the newer ones.
 export async function migrate(db: Db): Promise<void> {
   await db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
@@ -53,6 +56,7 @@ export async function migrate(db: Db): Promise<void> {
   await db.transaction(async (tx) => {
     if (user_version < 1) await tx.exec(V1);
     if (user_version < 2) await tx.exec(V2);
+    if (user_version < 3) await tx.exec(V3);
     await tx.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   });
 }

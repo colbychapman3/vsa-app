@@ -88,3 +88,5 @@ export async function openStore(db: Db) {
     close: () => db.close(),
   };
 }
+
+export type Store = Awaited<ReturnType<typeof openStore>>;

@@ -4,11 +4,12 @@
 import { StatusBar } from 'expo-status-bar';
 import { useFonts as loadFonts } from 'expo-font';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, AppState, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/engine/index.ts';
-import { openExpoDb } from './src/storage/db.ts';
-import { openStore, type State } from './src/storage/store.ts';
+import { openExpoDb, type Db } from './src/storage/db.ts';
+import { exportLog, importLog, markExported, backupStatus } from './src/storage/backup.ts';
+import { openStore, type State, type Store } from './src/storage/store.ts';
 import { offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, subtitles, type Banner } from './src/app/view.ts';
 import { color, fontFiles, fonts, FontContext } from './src/app/theme.ts';
@@ -18,13 +19,12 @@ import { LogSheet } from './src/app/screens/LogSheet.tsx';
 import { Decks } from './src/app/screens/Decks.tsx';
 import { DeckSheet } from './src/app/screens/DeckSheet.tsx';
 import { Hourly } from './src/app/screens/Hourly.tsx';
-import { Plan } from './src/app/screens/Plan.tsx';
+import { Plan, type Backup } from './src/app/screens/Plan.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
 
 const OP = 'TEST-GLOVIS-101';
 const glovis = glovisJson as Baseline;
 
-export type Store = Awaited<ReturnType<typeof openStore>>;
 type Loaded = { baseline: Baseline; isTest: boolean; state: State };
 export type SaveResult = { ok: true } | Reject;
 
@@ -39,6 +39,8 @@ function recordedNow(): string {
 export default function App() {
   const [fontsLoaded, fontError] = loadFonts(fontFiles);
   const store = useRef<Store | null>(null);
+  const dbRef = useRef<Db | null>(null);
+  const [bk, setBk] = useState<{ lastAt: string | null; unsaved: number }>({ lastAt: null, unsaved: 0 });
   const saving = useRef(false);
   const [vessel, setVessel] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +67,14 @@ export default function App() {
     if (!r.ok) throw new Error(r.error);
     if (!r.state.ok) throw new Error(`Stored log refused by the engine: ${r.state.error}`);
     setVessel({ baseline: r.baseline, isTest: r.vessel.isTest, state: r.state });
+    setBk(await backupStatus(dbRef.current!, OP, r.events.length));
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        store.current = await openStore(await openExpoDb());
+        dbRef.current = await openExpoDb();
+        store.current = await openStore(dbRef.current);
         if (!(await store.current.listVessels()).some((v) => v.operationId === OP)) {
           const c = await store.current.createVessel({ operationId: OP, baseline: glovis, isTest: true });
           if (!c.ok) throw new Error(c.error);
@@ -102,6 +106,7 @@ export default function App() {
       const r = await store.current.append(OP, evs);
       if (!r.ok) return r;
       latest.current = r.state;
+      setBk(await backupStatus(dbRef.current!, OP, r.state.log.events.length));
       setVessel((v) => (v ? { ...v, state: r.state } : v));
       return { ok: true };
     } catch (e) {
@@ -120,6 +125,35 @@ export default function App() {
     const r = await save((c) => openDiscrepancyEvents(c, `${b.title}. ${b.sub}`, null, b.title));
     setNotice(r.ok ? { ok: true, text: 'Added to open discrepancies.' } : { ok: false, text: `Not saved: ${r.error}` });
   }, [save]);
+
+  // Backup: the phone's log is the only official record. Export hands the JSON text to the iOS share
+  // sheet (Save to Files, Messages, Notes...). It counts as exported only if the sheet reports it was used.
+  const backup: Backup = {
+    ...bk,
+    onExport: async () => {
+      const at = recordedNow();
+      const r = await exportLog(store.current!, OP, at);
+      if (!r.ok) return setNotice({ ok: false, text: `Not exported: ${r.error}` });
+      try {
+        const res = await Share.share({ title: r.fileName, message: r.text });
+        if (res.action === Share.dismissedAction) return setNotice({ ok: true, text: 'Export cancelled. Nothing marked as backed up.' });
+      } catch (e) {
+        return setNotice({ ok: false, text: `Not exported: ${(e as Error).message}` });
+      }
+      await markExported(dbRef.current!, OP, at, r.count);
+      setBk(await backupStatus(dbRef.current!, OP, r.count));
+      setNotice({ ok: true, text: `Shared ${r.count} entries.` });
+    },
+    onImport: async (text) => {
+      const r = await importLog(store.current!, text);
+      if (!r.ok) return r;
+      await markExported(dbRef.current!, r.operationId, r.exportedAt, r.total); // those entries are in the file
+      await reload();
+      const msg = r.kind === 'current' ? `${r.operationId} is already up to date. Nothing changed.`
+        : `${r.operationId}: ${r.added} ${r.added === 1 ? 'entry' : 'entries'} added (${r.kind === 'created' ? 'new vessel' : 'existing vessel kept'}).`;
+      return { ok: true as const, text: r.operationId === OP ? msg : `${msg} This app opens ${OP} for now.` };
+    },
+  };
 
   // Fonts: wait for them, but never block the app if they fail.
   if (!fontsLoaded && !fontError) return <View style={s.page} />;
@@ -142,13 +176,14 @@ export default function App() {
                 </View>
               )}
               <ScrollView key={tab} contentContainerStyle={s.scroll}>{/* new tab starts at the top */}
+                {tab === 'snap' && bk.unsaved > 0 && <Text style={[s.note, { paddingHorizontal: 20, paddingTop: 12 }]}>{bk.unsaved} {bk.unsaved === 1 ? 'entry' : 'entries'} not backed up. Export from Plan › Backup.</Text>}
                 {tab === 'snap'
                   ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} />
                   : tab === 'decks'
                     ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} />
-                      : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} onNotice={setNotice} />}
+                      : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} onNotice={setNotice} />}
               </ScrollView>
               <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />
               {logOpen && (

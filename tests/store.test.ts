@@ -80,7 +80,7 @@ test('migrate is stepwise: a v1 phone database gets only v2 and keeps its data',
   const db = openNodeDb(tempFile(t));
   await migrate(db);
   await db.run(`INSERT INTO vessels VALUES ('TEST-1', 'Test', 1, '{}', 'x')`);
-  await db.exec('DROP TRIGGER events_no_replace; DROP TRIGGER vessels_no_replace; PRAGMA user_version = 1');
+  await db.exec('DROP TRIGGER events_no_replace; DROP TRIGGER vessels_no_replace; DROP TABLE settings; PRAGMA user_version = 1');
   await migrate(db); // re-running V1 here would throw "table vessels already exists"
   assert.equal((await db.all<{ n: number }>("SELECT count(*) n FROM sqlite_master WHERE name LIKE '%_no_replace'"))[0].n, 2);
   assert.equal((await db.all<{ user_version: number }>('PRAGMA user_version'))[0].user_version, SCHEMA_VERSION);
