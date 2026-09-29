@@ -13,12 +13,12 @@ import { Body, ErrorBox, Field, Go, Label, Note, Seg, Sheet, TimeField, u } from
 
 export type Mode = 'hour' | 'deck' | 'break' | 'clerk' | 'issue';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
-type Props = { state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void; initial?: Mode };
+type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode };
 
 // '' → null (blank); digits → number; anything else → NaN (refused with a message).
 const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN);
 
-export function LogSheet({ state, baseline, save, onClose, initial = 'hour' }: Props) {
+export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'hour' }: Props) {
   const f = useType();
   const [deck, setDeck] = useState<string | null>(null); // a deck opened from Deck mode, shown in this same sheet
   const [mode, setMode] = useState<Mode>(initial);
@@ -49,12 +49,11 @@ export function LogSheet({ state, baseline, save, onClose, initial = 'hour' }: P
     { value: 'issue', label: 'Discrepancy' },
   ];
 
-  const isTest = state.operationId.startsWith('TEST-');
   if (deck) {
     return (
       // The deck's own name is the title (like the tracker), so a mis-tap can't go unnoticed.
       <Sheet title={deckSheet(state.decks.find((x) => x.id === deck)!, baseline).title} isTest={isTest} onClose={() => onClose()} scrollKey={deck}>
-        <Pressable onPress={() => setDeck(null)} style={s.back} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>‹ All decks</Text></Pressable>
+        <Pressable onPress={() => setDeck(null)} style={({ pressed }) => [s.back, pressed && u.pressed]} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>‹ All decks</Text></Pressable>
         <DeckForm state={state} baseline={baseline} deckId={deck} save={save} onClose={(done) => (done ? onClose(done) : setDeck(null))} />
       </Sheet>
     );
@@ -89,9 +88,14 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
   const [drivers, setDrivers] = useState(existing?.hourDrivers != null ? String(existing.hourDrivers) : '');
   const dayDrivers = state.workdayDrivers[day] ?? null;
   const [brands, setBrands] = useState<Record<string, string>>(Object.fromEntries(state.brands.map((b) => [b.name, existing?.brands?.[b.name] != null ? String(existing.brands[b.name]) : ''])));
-  const short = opts.hours.find((h) => h.start === hour)?.short ?? false;
+  const cur = opts.hours.find((h) => h.start === hour);
+  const short = cur?.short ?? false;
+  const endHM = cur?.end ?? formatHM(parseHM(hour)! + 60); // the hour before a break ends at the break
+  // Stop choices are clock times :30 / :45 (30 or 15 min before the break); stored as minutes worked from the hour's start.
+  const stopChoices = (h: string) => { const b = parseHM(opts.hours.find((x) => x.start === h)?.end ?? '')!; return [30, 45].map((m) => b - 60 + m - parseHM(h)!).filter((m) => m >= 0); };
+  const suggest = (h: string) => { const m = suggestedStop(sides); const b = parseHM(opts.hours.find((x) => x.start === h)?.end ?? ''); return m == null || b == null || b - 60 + m - parseHM(h)! < 0 ? null : b - 60 + m - parseHM(h)!; };
   const sides = [...new Set(baseline.destinations.map((d) => (d.side === 'N' ? 'Northside' : 'Southside')))] as Side[];
-  const [stop, setStop] = useState<number | null>(existing?.stopMin ?? suggestedStop(sides));
+  const [stop, setStop] = useState<number | null>(existing?.stopMin ?? suggest(hour));
   const [reason, setReason] = useState<string | null>(null);
   const [other, setOther] = useState('');
 
@@ -101,7 +105,7 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
     setCount(p ? String(p.count) : '');
     setDrivers(p?.hourDrivers != null ? String(p.hourDrivers) : '');
     setBrands(Object.fromEntries(state.brands.map((b) => [b.name, p?.brands?.[b.name] != null ? String(p.brands[b.name]) : ''])));
-    setStop(p?.stopMin ?? suggestedStop(sides));
+    setStop(p?.stopMin ?? suggest(h));
   };
 
   const submit = () => {
@@ -116,13 +120,13 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
       if (Number.isNaN(n)) return setError(`${b} must be a whole number.`);
       split[b] = n;
     }
-    if (short && stop == null) return setError(`Pick when production stopped before the ${formatHM(parseHM(hour)! + 60)} break.`);
+    if (short && stop == null) return setError(`Pick when production stopped before the ${endHM} break.`);
     if (existing && ((existing.hourDrivers != null && dr == null) || state.brands.some((b) => existing.brands?.[b.name] != null && num(brands[b.name] ?? '') == null))) {
       return setError('Clearing a logged value isn’t supported yet. Enter the corrected number instead.');
     }
     const why = reason === 'Other' ? other.trim() : reason;
     run((ctx) => E.hourEvents(ctx, { day, start: hour, count: c, drivers: dr, brands: Object.keys(split).length ? split : null, stopMin: short ? stop : null, reason: why }),
-      `Saved ${hour}–${formatHM(parseHM(hour)! + 60)}: ${c.toLocaleString('en-US')} autos.`);
+      `Saved ${hour}–${endHM}: ${c.toLocaleString('en-US')} autos.`);
   };
 
   return (
@@ -130,7 +134,7 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
       <Label>HOUR{day > 1 ? ` · DAY ${day}` : ''}</Label>
       <Seg columns={4} value={hour} onChange={pick}
         options={opts.hours.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' (correct)' : ''}` }))} />
-      <Note>{`${hour}–${formatHM(parseHM(hour)! + 60)}`}{existing ? ' · already logged: saving a change keeps the old value' : ''}</Note>
+      <Note>{`${hour}–${endHM}`}{existing ? ' · already logged: saving a change keeps the old value' : ''}</Note>
       <View style={s.row2}>
         <Field label="Autos counted this hour" value={count} onChange={setCount} />
         <Field label={dayDrivers != null ? 'Drivers this hour' : 'Drivers'} note={dayDrivers != null ? `(only if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} />
@@ -144,7 +148,7 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
         <View style={{ gap: 8 }}>
           <Label wrap>PRE-BREAK HOUR · WHEN DID PRODUCTION STOP?</Label>
           <Seg columns={2} value={stop} onChange={setStop}
-            options={[30, 45].map((m) => ({ value: m, label: `Stopped ${formatHM(parseHM(hour)! + m)}` }))} />
+            options={stopChoices(hour).map((m) => ({ value: m, label: `Stopped ${formatHM(parseHM(hour)! + m)}` }))} />
         </View>
       )}
       {existing && (
@@ -167,8 +171,8 @@ function DeckList({ state, onOpenDeck }: { state: State; onOpenDeck: (id: string
   return (
     <View style={u.card}>
       {decksView(state).rows.map((r, i) => (
-        <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} style={[s.deckRow, i > 0 && { borderTopWidth: 1, borderTopColor: color.row }]} accessibilityRole="button">
-          <Text style={{ fontFamily: f.display, fontSize: 24, width: 64, color: color.ink }}>{r.label}</Text>
+        <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} style={({ pressed }) => [s.deckRow, i > 0 && { borderTopWidth: 1, borderTopColor: color.row }, pressed && u.pressed]} accessibilityRole="button">
+          <Text style={{ fontFamily: f.display, fontSize: 24, flexBasis: 64, flexShrink: 1, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text>
           <Body style={{ color: color.muted }}>{r.pill}</Body>
           <Text style={{ marginLeft: 'auto', fontFamily: f.display, fontSize: 22, color: color.ink }}>{r.remaining}<Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> of {r.start}</Text></Text>
         </Pressable>

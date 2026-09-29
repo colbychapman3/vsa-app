@@ -3,7 +3,7 @@
 // the last two hours with a known pace; skips clear-by + 1-hour breaks; Day 1 ends at
 // shift end minus clear-by; later days start at the next-day start time.
 import type { Destination } from './baseline.ts';
-import type { Period } from './production.ts';
+import { preBreak, type Period } from './production.ts';
 import { parseHM, toAbs, fromAbs, type OpTime, type Reject } from './time.ts';
 
 const DAY = 1440, BREAK_MIN = 60;
@@ -56,7 +56,7 @@ export function eta(input: { remaining: number; basis: 'vessel' | 'field'; perio
   if (!(rate > 0)) return { ...out, reason: 'Recent rate is zero' };
 
   const last = periods[periods.length - 1];
-  let t = (last.day - 1) * DAY + parseHM(last.start)! + 60;
+  let t = (last.day - 1) * DAY + (preBreak(last.start, s.breaks) ?? parseHM(last.start)! + 60); // a cut-short hour ends at its break
   if (ops.shiftEnded) t = Math.max(t, ops.day * DAY + dayStartMin(s, ops.day + 1));
   else if (ops.onBreak && ops.breakStart) t = Math.max(t, (ops.day - 1) * DAY + parseHM(ops.breakStart)! + BREAK_MIN);
   out.fromAbs = t;

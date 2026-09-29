@@ -35,14 +35,14 @@ export function Hourly({ state }: { state: State }) {
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Field vs cleared by brand" />
         <View style={s.tr}>
-          {['Brand', 'Field', 'Cleared', 'Difference'].map((h, i) => <Text key={h} style={[s.th, i > 0 && s.num, { fontFamily: f.bodySemi }]}>{h}</Text>)}
+          {['Brand', 'Field', 'Cleared', 'Difference'].map((h, i) => <Text key={h} style={[s.th, COL[i], i > 0 && s.num, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{h}</Text>)}
         </View>
         {v.brandTable.map((b) => (
           <View key={b.name} style={[s.tr, s.tdLine]}>
-            <Body semi style={s.td}>{b.name}</Body>
-            <Body style={[s.td, s.num]}>{b.field}</Body>
-            <Body style={[s.td, s.num]}>{b.cleared}</Body>
-            <Body semi={b.diff.tone === 'red'} style={[s.td, s.num, b.diff.tone === 'red' && { color: color.red }]}>{b.diff.text}</Body>
+            <Body fit semi style={[s.td, COL[0]]}>{b.name}</Body>
+            <Body fit style={[s.td, COL[1], s.num]}>{b.field}</Body>
+            <Body fit style={[s.td, COL[2], s.num]}>{b.cleared}</Body>
+            <Body fit semi={b.diff.tone === 'red'} style={[s.td, COL[3], s.num, b.diff.tone === 'red' && { color: color.red }]}>{b.diff.text}</Body>
           </View>
         ))}
         {v.unsplitNote && <Note>{v.unsplitNote}</Note>}
@@ -124,6 +124,9 @@ function SvgPoint({ x, y, count, short, xLabel, baseY }: { x: number; y: number;
     </>
   );
 }
+
+// Brand table column widths: wide first and last columns so names and "field over" text fit.
+const COL = [{ flex: 1.3 }, { flex: 1 }, { flex: 1 }, { flex: 1.8 }];
 
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },

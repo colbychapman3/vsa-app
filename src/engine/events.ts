@@ -49,6 +49,8 @@ const PROVENANCE = ['source_fact', 'user_report', 'calculated', 'forecast', 'unk
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
 const reject = (error: string): Reject => ({ ok: false, error });
+// The shape check alone lets month 13 or minute 99 through; Date.parse must also read it.
+const badTime = (t: unknown) => typeof t !== 'string' || !ISO.test(t) || Number.isNaN(Date.parse(t));
 
 export function emptyLog(operationId: string): EventLog {
   return { operationId, events: [], supersededBy: {} };
@@ -68,8 +70,8 @@ function checkEnvelope(e: VsaEvent): string | null {
   if (!EVENT_TYPES.includes(e.event_type)) return `Event ${e.event_id}: event_type "${e.event_type}" is not allowed.`;
   if (!PROVENANCE.includes(e.provenance)) return `Event ${e.event_id}: provenance "${e.provenance}" is not allowed.`;
   if (!e.scope || !WORKSTREAMS.includes(e.scope.workstream)) return `Event ${e.event_id}: scope workstream "${e.scope?.workstream}" is not allowed.`;
-  if (!ISO.test(e.recorded_at)) return `Event ${e.event_id}: recorded_at must be a date-time with UTC offset.`;
-  if (e.occurred_at !== null && !ISO.test(e.occurred_at)) return `Event ${e.event_id}: occurred_at must be null or a date-time with UTC offset.`;
+  if (badTime(e.recorded_at)) return `Event ${e.event_id}: recorded_at must be a date-time with UTC offset.`;
+  if (e.occurred_at !== null && badTime(e.occurred_at)) return `Event ${e.event_id}: occurred_at must be null or a date-time with UTC offset.`;
   if (!Array.isArray(e.source_ids)) return `Event ${e.event_id}: source_ids must be a list.`;
   const p = e.payload;
   if (!p || typeof p.metric !== 'string' || !p.metric) return `Event ${e.event_id}: payload metric is required.`;
@@ -81,7 +83,7 @@ function checkEnvelope(e: VsaEvent): string | null {
   if (p.count_kind !== 'not_applicable' && !unknownCount && !(Number.isInteger(p.value) && (p.value as number) >= 0)) {
     return `Event ${e.event_id}: ${p.metric} must be a whole number of 0 or more (got ${p.value}).`;
   }
-  for (const k of ['period_start', 'period_end'] as const) if (p[k] !== null && !ISO.test(p[k]!)) return `Event ${e.event_id}: ${k} must be null or a date-time with UTC offset.`;
+  for (const k of ['period_start', 'period_end'] as const) if (p[k] !== null && badTime(p[k])) return `Event ${e.event_id}: ${k} must be null or a date-time with UTC offset.`;
   if (p.period_start && p.period_end && Date.parse(p.period_end) <= Date.parse(p.period_start)) return `Event ${e.event_id}: period_end must be after period_start.`;
   if (e.event_type === 'correction' ? !e.supersedes_event_id : e.supersedes_event_id !== null) {
     return e.event_type === 'correction' ? `Correction ${e.event_id} must name the event it replaces.` : `Event ${e.event_id}: Only a correction can replace another event.`;

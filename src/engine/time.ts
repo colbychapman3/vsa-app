@@ -34,32 +34,34 @@ export function fromAbs(abs: number): OpTime {
 export function fromIso(iso: string, operationDate: string): OpTime | Reject {
   const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.exec(iso);
   if (!m) return { ok: false, error: `Timestamp ${iso} needs a date, time and UTC offset.` };
+  if (parseHM(m[2]) == null) return { ok: false, error: `Timestamp ${iso} has an impossible time of day.` };
   const day = Math.round((Date.parse(m[1]) - Date.parse(operationDate)) / 86_400_000) + 1;
   if (!(day >= 1)) return { ok: false, error: `Timestamp ${iso} is before the operation date ${operationDate}.` };
   return { day, hm: m[2] };
 }
 
 // Protocol v1.1 Appendix C (user-confirmed), plus the §7.1 aliases.
-const SIDES: Record<string, [string, Side]> = {};
-const add = (side: Side, names: string[]) => names.forEach((n) => (SIDES[n.toLowerCase()] = [n, side]));
+const SIDES = new Map<string, [string, Side]>();
+const add = (side: Side, names: string[]) => names.forEach((n) => SIDES.set(n.toLowerCase(), [n, side]));
 add('Northside', ['Zone 2', 'Zone 3', 'Zone 4', 'Zone 5', 'Zone 6', 'Zone 7', 'Zone 8', 'Zone 9', 'BMW Field',
   'Site 2', 'Site 3', 'Site 4', 'Yard 1', 'Yard 2', 'Yard 3', 'AVP Yard', 'Gate 1']);
 add('Southside', ['Zone 1 (MB Field)', 'MBZ (Mercedes)', 'Zone T', 'Zone V', 'Zone X', 'Zone B', 'Site 5', 'Site 6', 'Gate 2']);
-const ALIASES: Record<string, string> = {
-  'zone 1': 'zone 1 (mb field)',
-  'mb field': 'mbz (mercedes)', // "MB Field" alone means MBZ, not Zone 1
-  'mbz': 'mbz (mercedes)',
-  'mercedes': 'mbz (mercedes)',
-};
-const SIDE_WORDS: Record<string, Side> = {
-  'northside': 'Northside', 'this side': 'Northside',
-  'southside': 'Southside', 'across the street': 'Southside',
-};
+const ALIASES = new Map([
+  ['zone 1', 'zone 1 (mb field)'],
+  ['mb field', 'mbz (mercedes)'], // "MB Field" alone means MBZ, not Zone 1
+  ['mbz', 'mbz (mercedes)'],
+  ['mercedes', 'mbz (mercedes)'],
+]);
+const SIDE_WORDS = new Map<string, Side>([
+  ['northside', 'Northside'], ['this side', 'Northside'],
+  ['southside', 'Southside'], ['across the street', 'Southside'],
+]);
 
 export function destination(name: string): { name: string; side: Side } | null {
   const k = name.trim().toLowerCase().replace(/\s+/g, ' ');
-  if (SIDE_WORDS[k]) return { name: SIDE_WORDS[k], side: SIDE_WORDS[k] };
-  const hit = SIDES[ALIASES[k] ?? k];
+  const w = SIDE_WORDS.get(k);
+  if (w) return { name: w, side: w };
+  const hit = SIDES.get(ALIASES.get(k) ?? k);
   return hit ? { name: hit[0], side: hit[1] } : null;
 }
 

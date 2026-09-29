@@ -2,7 +2,7 @@
 // can migrate without losing data. The database itself enforces append-only.
 import type { Db } from './db.ts';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const V1 = `
 CREATE TABLE vessels (
@@ -32,14 +32,27 @@ CREATE TRIGGER vessels_no_delete BEFORE DELETE ON vessels
   BEGIN SELECT RAISE(ABORT, 'Vessels cannot be deleted.'); END;
 `;
 
-// Run on every open. A new file gets v1; an existing v1 file is left alone.
+// V2: INSERT OR REPLACE deletes the old row without firing the delete triggers, so it could
+// silently overwrite an event or a vessel. Refuse any insert that collides with a stored row.
+const V2 = `
+CREATE TRIGGER events_no_replace BEFORE INSERT ON events
+  WHEN EXISTS (SELECT 1 FROM events WHERE operation_id = NEW.operation_id
+    AND (sequence = NEW.sequence OR event_id = NEW.event_id OR idempotency_key = NEW.idempotency_key))
+  BEGIN SELECT RAISE(ABORT, 'Events are append-only. Corrections are new events.'); END;
+CREATE TRIGGER vessels_no_replace BEFORE INSERT ON vessels
+  WHEN EXISTS (SELECT 1 FROM vessels WHERE operation_id = NEW.operation_id)
+  BEGIN SELECT RAISE(ABORT, 'A vessel''s TEST/LIVE mark and baseline cannot be changed.'); END;
+`;
+
+// Run on every open. Each step runs once, in order: a new file gets all of them, an older file only the newer ones.
 export async function migrate(db: Db): Promise<void> {
   await db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   const [{ user_version }] = await db.all<{ user_version: number }>('PRAGMA user_version');
   if (user_version > SCHEMA_VERSION) throw new Error(`Database is schema v${user_version}, newer than this app (v${SCHEMA_VERSION}). Update the app.`);
   if (user_version === SCHEMA_VERSION) return;
   await db.transaction(async (tx) => {
-    await tx.exec(V1);
+    if (user_version < 1) await tx.exec(V1);
+    if (user_version < 2) await tx.exec(V2);
     await tx.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   });
 }

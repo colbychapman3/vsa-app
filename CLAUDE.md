@@ -35,11 +35,11 @@ Authority order: current user correction > project instructions > protocol > cur
 
 ## Working agreement
 
-1. Spec first, then plan, then **wait for Colby's approval** before writing code.
+1. Spec first, then plan. Colby approves **once per phase** (the phase plan in `ROADMAP.md`); inside an approved phase, build without asking again.
 2. Tests before or with the code. A rule in this file without a test is not done.
 3. Keep it minimal (Ponytail is installed), but never cut validation, error handling, or data integrity.
 4. On failure: state the error, the impact, and recovery options. Don't guess past it.
-5. Ask one clear question when something is ambiguous. Don't invent an answer.
+5. **Decide, don't ask.** Answer questions from this file, `docs/`, the skills, and `docs/reference/vsa-live.html`; record the decision in the commit or report. Ask Colby only when (a) the answer changes a protocol/data rule or what a number means on the terminal, (b) the docs conflict with each other or the tracker, (c) it costs money, publishes, or can't be undone. Batch questions: at most one message per phase gate, with a recommended default for each.
 
 ## Long-term memory: Colby's AI Brain (NotebookLM)
 

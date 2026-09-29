@@ -16,11 +16,11 @@ const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Nu
 const STATUSES = Object.keys(STATUS_PILL) as DeckStatus[];
 
 // Standalone (from the Decks tab).
-export function DeckSheet(p: { state: State; baseline: Baseline; deckId: string; save: Save; onClose: (done?: string) => void }) {
+export function DeckSheet(p: { state: State; baseline: Baseline; isTest: boolean; deckId: string; save: Save; onClose: (done?: string) => void }) {
   const d = p.state.decks.find((x) => x.id === p.deckId)!;
   return (
-    <Sheet title={deckSheet(d, p.baseline).title} isTest={p.state.operationId.startsWith('TEST-')} onClose={() => p.onClose()}>
-      <DeckForm {...p} />
+    <Sheet title={deckSheet(d, p.baseline).title} isTest={p.isTest} onClose={() => p.onClose()}>
+      <DeckForm state={p.state} baseline={p.baseline} deckId={p.deckId} save={p.save} onClose={p.onClose} />
     </Sheet>
   );
 }

@@ -53,11 +53,11 @@ export function TabBar({ tab, onTab, badges }: { tab: Tab; onTab: (t: Tab) => vo
       {TABS.map(([id, label]) => {
         const on = tab === id, n = badges[id] ?? 0;
         return (
-          <Pressable key={id} onPress={() => onTab(id)} style={[s.tab, on && s.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: on }}
+          <Pressable key={id} onPress={() => onTab(id)} style={({ pressed }) => [s.tab, on && s.tabOn, pressed && { opacity: 0.6 }]} accessibilityRole="tab" accessibilityState={{ selected: on }}
             accessibilityLabel={n ? `${label}, ${n} to check` : label}>
             <Icon name={id} color={on ? color.accent : color.headMuted} />
             <View style={s.tabLabelRow}>
-              <Text style={[s.tabLabel, { color: on ? color.accent : color.headMuted, fontFamily: f.bodySemi }]}>{label}</Text>
+              <Text style={[s.tabLabel, { color: on ? color.accent : color.headMuted, fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
               {n > 0 && <Text style={[s.badge, { fontFamily: f.bodySemi }]}>{n}</Text>}
             </View>
           </Pressable>
@@ -71,7 +71,7 @@ export function LogButton({ onPress }: { onPress: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   return (
-    <Pressable onPress={onPress} style={[s.fab, { bottom: insets.bottom + 84 }]} accessibilityRole="button" accessibilityLabel="Log an entry">
+    <Pressable onPress={onPress} style={({ pressed }) => [s.fab, { bottom: insets.bottom + 84 }, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Log an entry">
       <Icon name="plus" color={color.onBlue} />
       <Text style={[s.fabText, { fontFamily: f.bodySemi }]}>Log</Text>
     </Pressable>
@@ -89,9 +89,9 @@ const s = StyleSheet.create({
   tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8 },
   tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 4, borderTopWidth: 3, borderTopColor: 'transparent' },
   tabOn: { borderTopColor: color.accent },
-  tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  tabLabel: { fontSize: 12 },
-  badge: { backgroundColor: color.red, color: '#fff', borderRadius: 999, paddingHorizontal: 6, fontSize: 11, overflow: 'hidden' },
+  tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%' },
+  tabLabel: { fontSize: 12, flexShrink: 1 },
+  badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 11, overflow: 'hidden' },
   fab: { position: 'absolute', right: 16, minHeight: TAP, paddingHorizontal: 22, borderRadius: 999, backgroundColor: color.blue, flexDirection: 'row', alignItems: 'center', gap: 8 },
   fabText: { color: color.onBlue, fontSize: 16 },
 });

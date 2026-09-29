@@ -21,7 +21,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
           </View>
         ))}
         {v.unconfirmed > 0 && (
-          <Pressable onPress={onOpenPlan} style={[u.card, s.strip]} accessibilityRole="button">
+          <Pressable onPress={onOpenPlan} style={({ pressed }) => [u.card, s.strip, pressed && u.pressed]} accessibilityRole="button">
             <Body semi>{v.unconfirmed} deck height{v.unconfirmed === 1 ? '' : 's'} unconfirmed</Body>
             <Text style={{ marginLeft: 'auto', fontFamily: f.body, fontSize: 14, color: color.muted }}>Confirm on Plan ›</Text>
           </Pressable>
@@ -31,7 +31,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
       <Card>
         {v.rows.map((r, i) => (
           <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} accessibilityRole="button" accessibilityLabel={`${r.label}, ${r.pill}, ${r.remaining} of ${r.start} remaining`}
-            style={[s.row, i > 0 && s.rowLine, r.low && { backgroundColor: color.rBg }]}>
+            style={({ pressed }) => [s.row, i > 0 && s.rowLine, r.low && { backgroundColor: color.rBg }, pressed && u.pressed]}>
             <View style={s.line}>
               <Text style={[s.dn, { fontFamily: f.display }]} numberOfLines={1} adjustsFontSizeToFit>{r.label}</Text>
               <Pill text={r.pill} />

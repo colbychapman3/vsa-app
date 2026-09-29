@@ -23,6 +23,7 @@ export const color = {
   onBlue: '#FFFFFF',
   orange: '#B45309',
   onOrange: '#FFFFFF',
+  onRed: '#FFFFFF',
   oBg: '#FFF7ED',
   oInk: '#7C2D12',
   red: '#B91C1C',

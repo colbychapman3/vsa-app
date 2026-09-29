@@ -318,7 +318,7 @@ test('round 4 R3 and strict types: skipped must be true/false; empty discrepancy
 
 // ---- Review round 5 (2026-09-26): Colby chose A — hours follow the day's start time ----
 
-test('round 5 R1: a 07:30 start logs 07:30–08:30 hours; an hour across a break start is refused', async (tc) => {
+test('round 5 R1: a 07:30 start logs 07:30–08:30 hours; an hour across a break start is cut at the break', async (tc) => {
   const dir = mkdtempSync(join(tmpdir(), 'vsa-entries-'));
   const store = await openStore(openNodeDb(join(dir, 'vsa.db')));
   tc.after(async () => { await store.close(); rmSync(dir, { recursive: true, force: true }); });
@@ -329,9 +329,22 @@ test('round 5 R1: a 07:30 start logs 07:30–08:30 hours; an hour across a break
   const save = async (evs: VsaEvent[] | Reject) => { const r = await store.append(OP, evs as VsaEvent[]); if (r.ok) state = r.state; return r; };
   assert.ok((await save(E.hourEvents(ctx(), { day: 1, start: '07:30', count: 100 }))).ok);
   assert.ok((await save(E.hourEvents(ctx(), { day: 1, start: '10:30', count: 120 }))).ok);
-  const r = await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60 }));
-  assert.ok(!r.ok && /Hour 11:30–12:30 runs through the 12:00 break/.test(r.error), JSON.stringify(r));
-  assert.deepEqual(state.periods.map((p) => p.start), ['07:30', '10:30']);
+  // Owner decision: the 11:30–12:00 pre-break half hour is always loggable, as the short hour.
+  const noStop = await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60 }));
+  assert.ok(!noStop.ok && /Pick when production stopped before the 12:00 break/.test(noStop.error), JSON.stringify(noStop));
+  const badStop = await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60, stopMin: 30 }));
+  assert.ok(!badStop.ok && /Stop time must be 11:30 or 11:45/.test(badStop.error), JSON.stringify(badStop));
+  assert.ok(!(await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 60, stopMin: 0 }))).ok); // stopped at 11:30: nothing to count
+  assert.ok((await save(E.hourEvents(ctx(), { day: 1, start: '11:30', count: 40, stopMin: 15 }))).ok); // stopped 11:45
+  const half = state.periods.find((p) => p.start === '11:30')!;
+  assert.deepEqual([half.short, half.min, half.pace], [true, 15, 160]); // 40 autos in 15 productive minutes
+  assert.deepEqual(state.periods.map((p) => p.start), ['07:30', '10:30', '11:30']);
+  // A wrong-length period through a break is still refused by the engine.
+  const long = E.hourEvents(ctx(), { day: 2, start: '11:30', count: 5, stopMin: 15 }) as VsaEvent[];
+  assert.ok(Array.isArray(long));
+  const bad = structuredClone(long).map((e) => ({ ...e, event_id: e.event_id + 'x', idempotency_key: e.idempotency_key + 'x', payload: { ...e.payload, period_end: '2026-09-22T12:30:00-04:00' } }));
+  const refused = await store.append(OP, bad);
+  assert.ok(!refused.ok && /runs through the 12:00 break/.test(refused.error), JSON.stringify(refused));
   // Day 2 starting 07:30 after end of shift.
   assert.ok((await save(E.endShiftEvents(ctx(), t('17:00')))).ok);
   assert.ok((await save(E.nextDayEvents(ctx(), t('07:30', 2)))).ok);
@@ -365,4 +378,20 @@ test('round 5 (import-only): brand only on counts; reasons must be text; strict 
   sec[0].payload.period_start = '2026-09-21T08:00:30-04:00'; sec[0].payload.period_end = '2026-09-21T09:00:30-04:00';
   r = await s.save(sec);
   assert.ok(!r.ok && /whole minutes/.test(r.error), JSON.stringify(r));
+});
+
+test('bad heights and bad times are refused as form errors, never thrown, and the vessel stays usable', async (tc) => {
+  const s = await setup(tc);
+  for (const m of [Infinity, NaN, -1, 0]) assert.match((E.heightEvents(s.ctx(), 'D7', m, null) as Reject).error, /deck height/);
+  assert.match((await s.save(E.heightEvents(s.ctx(), 'D7', Infinity, null)) as Reject).error, /deck height/);
+  const bad = [{ day: 1, hm: '25:00' }, { day: 1, hm: '10:99' }, { day: 0, hm: '10:00' }, { day: NaN, hm: '10:00' }, { day: 1, hm: 'soon' }];
+  for (const b of bad) {
+    const rs = [E.breakStartEvents(s.ctx(), b), E.breakEndEvents(s.ctx(), b), E.endShiftEvents(s.ctx(), b), E.nextDayEvents(s.ctx(), b),
+      E.heightEvents(s.ctx(), 'D7', 1.7, b), E.clerkEvents(s.ctx(), 5, b), E.openDiscrepancyEvents(s.ctx(), 'x', b), E.resolveDiscrepancyEvents(s.ctx(), 'E1', b),
+      E.missedBreakEvents(s.ctx(), b, t('11:00')), E.missedBreakEvents(s.ctx(), t('10:00'), b),
+      E.hourEvents(s.ctx(), { day: b.day, start: b.hm, count: 5 })];
+    for (const r of rs) assert.ok(!Array.isArray(r) && /valid|day/.test(r.error), JSON.stringify(b) + JSON.stringify(r));
+  }
+  assert.match((E.clearWorkdayDriversEvents(s.ctx(), NaN, 'Typo') as Reject).error, /Pick the operation day/);
+  await s.ok(E.heightEvents(s.ctx(), 'D7', 1.7, t('08:05'))); // still saves normally
 });

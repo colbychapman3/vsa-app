@@ -56,9 +56,35 @@ test('storage test 4: the database itself refuses to edit or delete history', as
 
   // Events must belong to a stored vessel, and ids and keys are unique per vessel.
   await assert.rejects(db.run(`INSERT INTO events VALUES ('NOPE', 1, 'E1', 'E1', '{}')`), /FOREIGN KEY/);
-  await assert.rejects(db.run(`INSERT INTO events VALUES ('TEST-1', 2, 'E1', 'E9', '{}')`), /UNIQUE/);
-  await assert.rejects(db.run(`INSERT INTO events VALUES ('TEST-1', 1, 'E2', 'E2', '{}')`), /UNIQUE/);
+  await assert.rejects(db.run(`INSERT INTO events VALUES ('TEST-1', 2, 'E1', 'E9', '{}')`), /append-only/);
+  await assert.rejects(db.run(`INSERT INTO events VALUES ('TEST-1', 1, 'E2', 'E2', '{}')`), /append-only/);
   assert.equal((await db.all('SELECT * FROM events')).length, 1);
+  await db.close();
+});
+
+test('storage v2: INSERT OR REPLACE cannot overwrite an event or a vessel', async (t) => {
+  const db = openNodeDb(tempFile(t));
+  await migrate(db);
+  await db.run(`INSERT INTO vessels VALUES ('TEST-1', 'Test', 1, '{"a":1}', '2026-09-25T08:00:00-04:00')`);
+  await db.run(`INSERT INTO events VALUES ('TEST-1', 1, 'E1', 'E1', '{"v":1}')`);
+  await assert.rejects(db.run(`INSERT OR REPLACE INTO events VALUES ('TEST-1', 1, 'E1', 'E1', '{"v":2}')`), /append-only/);
+  await assert.rejects(db.run(`INSERT OR REPLACE INTO events VALUES ('TEST-1', 2, 'E1', 'E1', '{"v":2}')`), /append-only/); // would delete E1 via its unique key
+  await assert.rejects(db.run(`INSERT OR REPLACE INTO vessels VALUES ('TEST-1', 'Other', 0, '{}', 'x')`), /cannot be changed/);
+  assert.deepEqual(await db.all('SELECT event_json FROM events'), [{ event_json: '{"v":1}' }]);
+  assert.deepEqual(await db.all('SELECT is_test, baseline_json FROM vessels'), [{ is_test: 1, baseline_json: '{"a":1}' }]);
+  await db.run(`INSERT INTO events VALUES ('TEST-1', 2, 'E2', 'E2', '{}')`); // a genuinely new event still saves
+  await db.close();
+});
+
+test('migrate is stepwise: a v1 phone database gets only v2 and keeps its data', async (t) => {
+  const db = openNodeDb(tempFile(t));
+  await migrate(db);
+  await db.run(`INSERT INTO vessels VALUES ('TEST-1', 'Test', 1, '{}', 'x')`);
+  await db.exec('DROP TRIGGER events_no_replace; DROP TRIGGER vessels_no_replace; PRAGMA user_version = 1');
+  await migrate(db); // re-running V1 here would throw "table vessels already exists"
+  assert.equal((await db.all<{ n: number }>("SELECT count(*) n FROM sqlite_master WHERE name LIKE '%_no_replace'"))[0].n, 2);
+  assert.equal((await db.all<{ user_version: number }>('PRAGMA user_version'))[0].user_version, SCHEMA_VERSION);
+  assert.equal((await db.all('SELECT * FROM vessels')).length, 1);
   await db.close();
 });
 
@@ -221,5 +247,41 @@ test('storage test 7: a crash partway through an append leaves the log as it was
   assert.deepEqual(await store.append('TEST-GLOVIS', hours('TEST-GLOVIS')),
     { ok: false, error: 'Nothing was saved (database error: disk full (simulated)).' });
   assert.equal(await count(db), 0);
+  await store.close();
+});
+
+test('reference baseline guard ignores case, spacing and punctuation in the name', async (t) => {
+  const store = await openStore(openNodeDb(tempFile(t)));
+  for (const name of ['GLOVIS CONDOR 101', 'Glovis  Condor-101', 'glovis_condor 101 (copy)']) {
+    const r = await store.createVessel({ operationId: 'LIVE-1', baseline: { ...glovis, vessel: name }, isTest: false });
+    assert.ok(!r.ok && /can only be loaded as TEST/.test(r.error), name);
+  }
+  await store.close();
+});
+
+test('append judges the JSON that will be stored: Infinity becomes null and is refused, the vessel stays usable', async (t) => {
+  const db = openNodeDb(tempFile(t));
+  const store = await openStore(db);
+  ok(await store.createVessel({ operationId: 'TEST-GLOVIS', baseline: glovis, isTest: true }));
+  const h1 = hours('TEST-GLOVIS', MORNING.slice(0, 1)), h2 = hours('TEST-GLOVIS', MORNING.slice(0, 2)).slice(h1.length);
+  ok(await store.append('TEST-GLOVIS', h1));
+  const inf = { ...plain(h2[0]), payload: { ...h2[0].payload, value: Infinity } };
+  const r = await store.append('TEST-GLOVIS', [inf, ...h2.slice(1)]);
+  assert.ok(!r.ok, JSON.stringify(r));
+  assert.equal(await count(db), h1.length);
+  assert.ok(ok(await store.load('TEST-GLOVIS')).state.ok); // still loads
+  assert.equal(ok(await store.append('TEST-GLOVIS', h2)).saved, h2.length); // and still takes entries
+  await store.close();
+});
+
+test('a new event must come after the last saved sequence', async (t) => {
+  const db = openNodeDb(tempFile(t));
+  const store = await openStore(db);
+  ok(await store.createVessel({ operationId: 'TEST-GLOVIS', baseline: glovis, isTest: true }));
+  const h1 = hours('TEST-GLOVIS', MORNING.slice(0, 1)), h2 = hours('TEST-GLOVIS', MORNING.slice(0, 2)).slice(h1.length);
+  ok(await store.append('TEST-GLOVIS', h1.map((e, i) => ({ ...plain(e), sequence: i === h1.length - 1 ? 50 : e.sequence }))));
+  const r = await store.append('TEST-GLOVIS', [{ ...plain(h2[0]), sequence: h1.length + 1 }]); // fills a gap behind the stored max (50)
+  assert.ok(!r.ok && /not after the last saved event \(50\)/.test(r.error), JSON.stringify(r));
+  assert.equal(await count(db), h1.length);
   await store.close();
 });

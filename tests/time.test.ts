@@ -60,3 +60,12 @@ test('timestamps: event time, labeled processing time, or "time not provided" (B
   assert.equal(eventTimeLabel(null), 'time not provided');
   assert.equal(eventTimeLabel(null, null), 'time not provided');
 });
+
+test('fromIso rejects an impossible time of day', () => {
+  assert.ok('error' in (fromIso('2026-09-23T25:00:00-04:00', '2026-09-23') as object));
+  assert.ok('error' in (fromIso('2026-09-23T10:99:00-04:00', '2026-09-23') as object));
+});
+
+test('destination: inherited object keys are not destinations', () => {
+  for (const k of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) assert.equal(destination(k), null, k);
+});

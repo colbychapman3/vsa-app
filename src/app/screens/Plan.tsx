@@ -11,18 +11,24 @@ import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, S
 
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
-export function Plan({ state, baseline, save, onNotice }: { state: State; baseline: Baseline; save: Save; onNotice: (n: { ok: boolean; text: string }) => void }) {
+export function Plan({ state, baseline, isTest, save, onNotice }: { state: State; baseline: Baseline; isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void }) {
   const f = useType();
   const [recheck, setRecheck] = useState<Set<string>>(new Set());
   const [shiftOpen, setShiftOpen] = useState(false);
   const [driversOpen, setDriversOpen] = useState(false);
+  const [busy, setBusy] = useState(false); // a save is in flight: no second tap
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
 
   const act = async (build: (c: E.Ctx) => VsaEvent[] | Reject, done: string) => {
-    const r = await save(build);
-    onNotice(r.ok ? { ok: true, text: done } : { ok: false, text: `Not saved: ${r.error}` });
-    return r.ok;
+    setBusy(true);
+    try {
+      const r = await save(build);
+      onNotice(r.ok ? { ok: true, text: done } : { ok: false, text: `Not saved: ${r.error}` });
+      return r.ok;
+    } finally {
+      setBusy(false);
+    }
   };
   const kv = (k: string, val: string) => (
     <View key={k} style={u.kv}><Body style={{ color: color.muted, maxWidth: '45%' }}>{k}</Body><Body semi style={{ textAlign: 'right', flex: 1 }}>{val}</Body></View>
@@ -39,14 +45,14 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
               <View style={u.secH}><Body semi style={{ fontSize: 17 }}>{d.label}</Body><Note>{d.stow}</Note></View>
               <Seg columns={Math.min(d.options.length, 3)} value={d.options.find((o) => o.selected)?.m ?? null}
                 options={d.options.map((o) => ({ value: o.m, label: o.label }))}
-                onChange={(m) => act((c) => E.heightEvents(c, d.id, m, null), `${d.label} height confirmed at ${m.toFixed(2)} m.`)
+                onChange={(m) => !busy && act((c) => E.heightEvents(c, d.id, m, null), `${d.label} height confirmed at ${m.toFixed(2)} m.`)
                   .then((ok) => { if (ok) setRecheck((x) => { const n = new Set(x); n.delete(d.id); return n; }); })} />
             </View>
           ))}
           {v.heights.confirmed.length > 0 && (
             <View style={s.chips}>
               {v.heights.confirmed.map((d) => (
-                <Pressable key={d.id} onPress={() => setRecheck((x) => new Set(x).add(d.id))} accessibilityRole="button" accessibilityLabel={`Change ${d.text}`}>
+                <Pressable key={d.id} onPress={() => setRecheck((x) => new Set(x).add(d.id))} style={({ pressed }) => pressed && u.pressed} accessibilityRole="button" accessibilityLabel={`Change ${d.text}`}>
                   <Chip text={d.text} tone={d.low ? 'red' : 'plain'} tall />
                 </Pressable>
               ))}
@@ -63,7 +69,7 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
             <Body semi>{i.text}</Body>
             <View style={u.secH}>
               <Note style={{ flexShrink: 1 }}>{i.opened}</Note>
-              <Go ghost label="Mark resolved" onPress={() => act((c) => E.resolveDiscrepancyEvents(c, i.id, null), 'Marked resolved.')} />
+              <Go ghost label="Mark resolved" disabled={busy} onPress={() => act((c) => E.resolveDiscrepancyEvents(c, i.id, null), 'Marked resolved.')} />
             </View>
           </View>
         ))}
@@ -147,15 +153,15 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
         <Note>Changes keep the old times in the log.</Note>
       </Card>
 
-      {driversOpen && <DriversSheet state={state} baseline={baseline} save={save} onClose={(done) => { setDriversOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
-      {breakOpen && <BreakSheet state={state} baseline={baseline} entry={breakOpen.entry} save={save} onClose={(done) => { setBreakOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
-      {shiftOpen && <ShiftSheet state={state} baseline={baseline} save={save} onClose={(done) => { setShiftOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
+      {driversOpen && <DriversSheet isTest={isTest} state={state} baseline={baseline} save={save} onClose={(done) => { setDriversOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
+      {breakOpen && <BreakSheet isTest={isTest} state={state} baseline={baseline} entry={breakOpen.entry} save={save} onClose={(done) => { setBreakOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
+      {shiftOpen && <ShiftSheet isTest={isTest} state={state} baseline={baseline} save={save} onClose={(done) => { setShiftOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
     </View>
   );
 }
 
 // Shift settings sheet: "Finish today" or "Carries to Day 2" with Day 1 end and next start.
-function ShiftSheet({ state, baseline, save, onClose }: { state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void }) {
+function ShiftSheet({ state, baseline, isTest, save, onClose }: { isTest: boolean; state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void }) {
   const [mode, setMode] = useState<'one' | 'two'>(state.plan.shiftEnd ? 'two' : 'one');
   const [end, setEnd] = useState(state.plan.shiftEnd ?? '');
   const [next, setNext] = useState(state.plan.nextStart ?? baseline.start);
@@ -167,7 +173,7 @@ function ShiftSheet({ state, baseline, save, onClose }: { state: State; baseline
     if (r.ok) onClose('Shift settings saved.'); else setError(r.error);
   };
   return (
-    <Sheet title="Shift settings" isTest={state.operationId.startsWith('TEST-')} onClose={() => onClose()}>
+    <Sheet title="Shift settings" isTest={isTest} onClose={() => onClose()}>
       <Seg columns={2} value={mode} onChange={setMode} options={[{ value: 'one', label: 'Finish today' }, { value: 'two', label: 'Carries to Day 2' }]} />
       <View style={{ flexDirection: 'row', gap: 10 }}>
         {mode === 'two' && <Field label="Day 1 shift ends" value={end} onChange={setEnd} keyboard="numbers-and-punctuation" maxLength={5} />}
@@ -194,7 +200,7 @@ function Reasons({ options, value, onChange, other, onOther }: { options: readon
 }
 
 // Workday drivers: set once per operation day; every hour of that day without its own count uses it.
-function DriversSheet({ state, baseline, save, onClose }: { state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void }) {
+function DriversSheet({ state, baseline, isTest, save, onClose }: { isTest: boolean; state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void }) {
   const days = planView(state, baseline).workday;
   const [day, setDay] = useState(Math.min(state.ops.day, days.length));
   const cur = days.find((d) => d.day === day)?.n ?? null;
@@ -212,7 +218,7 @@ function DriversSheet({ state, baseline, save, onClose }: { state: State; baseli
     if (r.ok) onClose(`Day ${day} drivers set to ${v}.`); else setError(r.error);
   };
   return (
-    <Sheet title="Day’s drivers" isTest={state.operationId.startsWith('TEST-')} onClose={() => onClose()}>
+    <Sheet title="Day’s drivers" isTest={isTest} onClose={() => onClose()}>
       <Seg columns={days.length} value={day} onChange={pick} options={days.map((d) => ({ value: d.day, label: `Day ${d.day}` }))} />
       <Field label={`Drivers on Day ${day}`} value={n} onChange={setN} />
       {cur != null && <Reasons options={E.REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />}
@@ -229,7 +235,7 @@ function DriversSheet({ state, baseline, save, onClose }: { state: State; baseli
 }
 
 // Break log: fix a break's times, remove a wrong or duplicate one, or add one that was missed.
-function BreakSheet({ state, baseline, entry, save, onClose }: { state: State; baseline: Baseline; entry: BreakEntry | null; save: Save; onClose: (done?: string) => void }) {
+function BreakSheet({ state, baseline, isTest, entry, save, onClose }: { isTest: boolean; state: State; baseline: Baseline; entry: BreakEntry | null; save: Save; onClose: (done?: string) => void }) {
   const hm = (abs: number | null) => (abs == null ? '' : formatHM(abs));
   const entryDay = entry ? Math.floor(entry.startAbs / 1440) + 1 : state.ops.day;
   const [day, setDay] = useState(entryDay);
@@ -240,7 +246,7 @@ function BreakSheet({ state, baseline, entry, save, onClose }: { state: State; b
   const [error, setError] = useState<string | null>(null);
   const inProgress = !!entry && entry.endAbs == null;
   const stranded = inProgress && !E.isCurrentBreak(state, entry!); // an old start that never got an end
-  const now = (set: (v: string) => void) => () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) set(t.hm); };
+  const now = (set: (v: string) => void) => () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) set(t.hm); else setError('The phone’s date is before this operation’s Day 1.'); };
   const time = (v: string) => (v.trim() === '' ? null : parseHM(v.trim()) == null ? 'bad' as const : { day, hm: v.trim().padStart(5, '0') });
   const why = () => (reason === 'Other' ? other.trim() : reason);
   const run = async (build: (c: E.Ctx) => VsaEvent[] | Reject, done: string) => {
@@ -257,7 +263,7 @@ function BreakSheet({ state, baseline, entry, save, onClose }: { state: State; b
   };
   const days = Array.from({ length: state.ops.day }, (_, i) => i + 1);
   return (
-    <Sheet title={entry ? 'Edit break' : 'Add a missed break'} isTest={state.operationId.startsWith('TEST-')} onClose={() => onClose()}>
+    <Sheet title={entry ? 'Edit break' : 'Add a missed break'} isTest={isTest} onClose={() => onClose()}>
       {!entry && days.length > 1 && <Seg columns={days.length} value={day} onChange={setDay} options={days.map((d) => ({ value: d, label: `Day ${d}` }))} />}
       {stranded && <Note style={{ color: color.oInk }}>{E.STRANDED}</Note>}
       {!stranded && <TimeField required label="Break started at" value={start} onChange={setStart} onNow={now(setStart)} />}

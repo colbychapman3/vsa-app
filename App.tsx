@@ -95,15 +95,17 @@ export default function App() {
     const c = ctx();
     if (!c || !store.current) return { ok: false, error: 'The vessel is still loading.' };
     if (saving.current) return { ok: false, error: 'Still saving the last entry. Try again.' };
-    const evs = build(c);
-    if (!Array.isArray(evs)) return evs;
     saving.current = true;
     try {
+      const evs = build(c);
+      if (!Array.isArray(evs)) return evs;
       const r = await store.current.append(OP, evs);
       if (!r.ok) return r;
       latest.current = r.state;
       setVessel((v) => (v ? { ...v, state: r.state } : v));
       return { ok: true };
+    } catch (e) {
+      return { ok: false, error: `Could not write to the phone: ${(e as Error).message}` };
     } finally {
       saving.current = false;
     }
@@ -146,15 +148,15 @@ export default function App() {
                     ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} />
-                      : <Plan state={vessel.state} baseline={vessel.baseline} save={save} onNotice={setNotice} />}
+                      : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} onNotice={setNotice} />}
               </ScrollView>
               <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />
               {logOpen && (
-                <LogSheet state={vessel.state} baseline={vessel.baseline} save={save}
+                <LogSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save}
                   onClose={(done) => { setLogOpen(false); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {deckOpen && (
-                <DeckSheet state={vessel.state} baseline={vessel.baseline} deckId={deckOpen} save={save}
+                <DeckSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} deckId={deckOpen} save={save}
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />

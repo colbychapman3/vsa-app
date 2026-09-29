@@ -282,11 +282,51 @@ test('hour picker: follows the day start, skips break-crossing hours, defaults a
   assert.equal(h.defaultStart, '15:00');
   const empty = hourOptions(state([]), glovis);
   assert.equal(empty.defaultStart, '08:00');
-  // 07:30 start: 11:30–12:30 would cross noon, so it isn't offered; the default never lands on a logged hour.
+  // 07:30 start: the hour that would cross noon runs 11:30–12:00 as the short pre-break hour.
   const half = hourOptions(state([]), { ...glovis, start: '07:30' });
-  assert.ok(!half.hours.some((x) => x.start === '11:30'));
+  assert.deepEqual(half.hours.find((x) => x.start === '11:30'), { start: '11:30', end: '12:00', short: true, logged: false });
+  assert.deepEqual(half.hours.map((x) => x.start).slice(0, 6), ['07:30', '08:30', '09:30', '10:30', '11:30', '13:00']);
   assert.equal(half.hours[0].start, '07:30');
   // After 11:00 is logged, the default skips the 12:00 break hour.
   const morning = state(toEvents({ name: 'x', hourly: MORNING }, OP));
   assert.equal(hourOptions(morning, glovis).defaultStart, '13:00');
+});
+
+test('hourly: no percent when the prior hour was 0; field-over is red only at reconciliation', () => {
+  const s = demo();
+  const zeroPrior = { ...s, periods: s.periods.map((p, i) => (i === 1 ? { ...p, delta: 5, deltaPct: null } : p)) } as State;
+  assert.equal(hourlyView(zeroPrior).rows[1].delta, '+5 vs prior hour');
+
+  const over = (phase: State['ops']['phase']) => hourlyView({ ...s, ops: { ...s.ops, phase }, brands: s.brands.map((b) => ({ ...b, variance: -5 })) } as State).brandTable[0].diff;
+  assert.deepEqual(over('working'), { tone: 'plain', text: '+5 field over' });
+  assert.equal(over('break').tone, 'red');
+  assert.equal(over('shift_end').tone, 'red');
+});
+
+test('side split clear-by note comes from the clear-by table, no trailing separator', () => {
+  const v = snapshot(demo(), glovis, 11 * 60);
+  assert.equal(v.side.clearByNote, 'Clear-by −15 N');
+  assert.ok(!/[\/\s]$/.test(v.side.clearByNote));
+});
+
+test('clear-by note with only Southside destinations has no trailing separator', () => {
+  const south = { ...glovis, destinations: glovis.destinations.map((d: object) => ({ ...d, side: 'S' })) };
+  assert.equal(snapshot(demo(), south as typeof glovis, 11 * 60).side.clearByNote, 'Clear-by −30 S');
+});
+
+test('late start: a break-cut hour is labeled to the break, not +60 min', () => {
+  const late = { ...glovis, start: '07:30' };
+  const build = (stopMin: number) => {
+    const evs = toEvents({ name: 'late', hourly: [{ day: 1, start: '11:30', count: 100, drivers: 70, stopMin }] }, OP);
+    for (const e of evs) if (e.payload.period_end) e.payload.period_end = at('12:00'); // the cut hour ends at the break
+    const s = project(late, evs, OP);
+    assert.ok(s.ok, JSON.stringify(s));
+    return s as State;
+  };
+  const set = build(15);
+  assert.equal(subtitles(set, late).snap, '9/21/2026 · Field counts through 12:00');
+  assert.equal(hourlyView(set).rows[0].range, '11:30–12:00');
+  // The projection refuses an unset stop, so feed the view an unset list directly.
+  const unset = { ...set, production: { ...set.production, unsetShort: ['11:30'] } } as State;
+  assert.equal(hourlyView(unset).unsetShort, 'Stoppage time not set for 11:30–12:00');
 });

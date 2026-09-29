@@ -108,3 +108,14 @@ test('envelope validation: counts, times, sequence, event type', () => {
   const late = { ...copy(kit[0]), event_id: 'E5', idempotency_key: 'E5', sequence: 2 };
   rejected(appendEvent(log, late), /sequence 2 is not after 3/);
 });
+
+test('impossible timestamps (month 13, hour 25, minute 99) are refused, never skipped past the overlap checks', () => {
+  const field = kit.filter((e) => e.payload.metric === 'field_units' && e.payload.period_start);
+  assert.ok(field.length >= 1);
+  const bad = (f: (e: VsaEvent) => void, pattern: RegExp) => { const e = copy(field[0]); f(e); rejected(appendEvent(emptyLog(OP), e), pattern); };
+  bad((e) => (e.payload.period_start = '2026-13-21T08:00:00-04:00'), /period_start/);
+  bad((e) => (e.payload.period_end = '2026-09-21T25:00:00-04:00'), /period_end/);
+  bad((e) => (e.payload.period_end = '2026-09-21T09:99:00-04:00'), /period_end/);
+  bad((e) => (e.occurred_at = '2026-09-21T08:99:00-04:00'), /occurred_at/);
+  bad((e) => (e.recorded_at = '2026-00-21T08:00:00-04:00'), /recorded_at/);
+});

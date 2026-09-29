@@ -35,7 +35,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack }: Props)
       )}
 
       {v.openIssues > 0 && (
-        <Pressable onPress={() => onOpenTab('plan')} style={[s.strip, s.issues]} accessibilityRole="button">
+        <Pressable onPress={() => onOpenTab('plan')} style={({ pressed }) => [s.strip, s.issues, pressed && u.pressed]} accessibilityRole="button">
           <Text style={[s.issueDot, { fontFamily: f.bodySemi }]}>!</Text>
           <Body semi style={{ color: color.oInk }}>{v.openIssues} open discrepanc{v.openIssues === 1 ? 'y' : 'ies'}</Body>
           <Text style={[s.stripRight, { color: color.oInk, fontFamily: f.body }]}>View ›</Text>
@@ -64,8 +64,8 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack }: Props)
           <View style={s.hr}>
             {h.rows.map((r) => (
               <View key={r.k} style={u.kv}>
-                <Body style={{ color: color.muted }}>{r.k}</Body>
-                <Text numberOfLines={1}>
+                <Body style={{ color: color.muted, maxWidth: '45%' }}>{r.k}</Body>
+                <Text style={{ flex: 1, textAlign: 'right' }}>
                   <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{r.v}</Text>
                   {r.sub ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> {r.sub}</Text> : null}
                 </Text>
@@ -85,7 +85,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack }: Props)
             <Big size={56}>{v.eta.value}</Big>
             {v.eta.notes.map((n) => <Note key={n}>{n}</Note>)}
           </Card>
-          <Pressable style={[u.card, s.tile]} onPress={() => onOpenTab('hourly')} accessibilityRole="button" accessibilityLabel="Average hourly, open hourly breakdown">
+          <Pressable style={({ pressed }) => [u.card, s.tile, pressed && u.pressed]} onPress={() => onOpenTab('hourly')} accessibilityRole="button" accessibilityLabel="Average hourly, open hourly breakdown">
             <Tag kind="CALCULATED" />
             <Label>AVG HOURLY (H.A.)</Label>
             <View style={s.haRow}>
@@ -153,7 +153,7 @@ const s = StyleSheet.create({
   strip: { backgroundColor: color.card, borderBottomWidth: 1, borderBottomColor: color.line, paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   stripRight: { marginLeft: 'auto', fontSize: 14, color: color.muted, flexShrink: 1, textAlign: 'right' },
   issues: { backgroundColor: color.oBg },
-  issueDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.orange, color: '#fff', textAlign: 'center', fontSize: 12, lineHeight: 18, overflow: 'hidden' },
+  issueDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.orange, color: color.onOrange, textAlign: 'center', fontSize: 12, lineHeight: 18, overflow: 'hidden' },
   main: { padding: 20, gap: 16 },
   clerk: { fontSize: 12, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1.5, overflow: 'hidden' },
   clerkOk: { backgroundColor: color.gBg, color: color.gInk, borderColor: color.green },

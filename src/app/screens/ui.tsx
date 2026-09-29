@@ -1,7 +1,7 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
 import { useEffect, type ReactNode } from 'react';
-import { AccessibilityInfo, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
 import { color, TAP, useType } from '../theme.ts';
 
@@ -30,9 +30,10 @@ export function Big({ children, size, style }: { children: ReactNode; size: numb
   );
 }
 
-export function Body({ children, style, semi }: { children: ReactNode; style?: StyleProp<TextStyle>; semi?: boolean }) {
+// `fit`: one line, shrinks to fit (table cells), so a word never splits.
+export function Body({ children, style, semi, fit }: { children: ReactNode; style?: StyleProp<TextStyle>; semi?: boolean; fit?: boolean }) {
   const f = useType();
-  return <Text style={[u.body, { fontFamily: semi ? f.bodySemi : f.body }, style]}>{children}</Text>;
+  return <Text style={[u.body, { fontFamily: semi ? f.bodySemi : f.body }, style]} {...(fit ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 } : {})}>{children}</Text>;
 }
 
 export function Note({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
@@ -89,7 +90,7 @@ export function BannerView({ banner, onTrack }: { banner: Banner; onTrack?: (b: 
       {banner.trackable && onTrack ? (
         banner.tracked
           ? <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: t.ink, marginTop: 6 }}>On the open discrepancy list</Text>
-          : <Pressable onPress={() => onTrack(banner)} style={[u.track, { borderColor: t.ink }]} accessibilityRole="button">
+          : <Pressable onPress={() => onTrack(banner)} style={({ pressed }) => [u.track, { borderColor: t.ink }, pressed && u.pressed]} accessibilityRole="button">
               <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: t.ink }}>Track as open discrepancy</Text>
             </Pressable>
       ) : null}
@@ -119,7 +120,8 @@ export const u = StyleSheet.create({
   track: { alignSelf: 'flex-start', marginTop: 8, minHeight: TAP, paddingHorizontal: 12, borderWidth: 1.5, borderRadius: 8, justifyContent: 'center' },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
   tap: { minHeight: TAP },
-  input: { minHeight: 52, borderWidth: 1.5, borderColor: color.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
+  pressed: { opacity: 0.6 },
+  input: { minHeight: TAP, borderWidth: 1.5, borderColor: color.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
   segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   segOn: { backgroundColor: color.ink, borderColor: color.ink },
   goBtn: { minHeight: TAP, borderRadius: 12, backgroundColor: color.blue, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
@@ -137,7 +139,7 @@ export function Field({ label, value, onChange, placeholder, keyboard = 'number-
   const f = useType();
   return (
     <View style={{ gap: 6, flex: 1 }}>
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} keyboardType={keyboard} maxLength={maxLength}
         style={[u.input, { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
     </View>
@@ -149,7 +151,7 @@ export function TimeField({ label, value, onChange, onNow, required, hint }: { l
   const f = useType();
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>{label}</Text>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <TextInput value={value} onChangeText={onChange} placeholder="HH:MM" keyboardType="numbers-and-punctuation" maxLength={5}
           style={[u.input, { flex: 1, fontFamily: f.bodyMedium, fontSize: 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
@@ -169,13 +171,13 @@ export function Seg<T extends string | number>({ options, value, onChange, colum
 }) {
   const f = useType();
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }} accessibilityRole="radiogroup">
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
       {options.map((o) => {
         const on = o.value === value;
         return (
           <Pressable key={String(o.value)} onPress={() => onChange(o.value)} accessibilityRole="radio" accessibilityState={{ selected: on }}
-            style={[u.segBtn, { flexBasis: `${100 / columns - 2}%` }, on && u.segOn]}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: on ? color.bg : color.ink, textAlign: 'center' }}>{o.label}</Text>
+            style={({ pressed }) => [u.segBtn, { flexBasis: `${100 / columns - 2}%` }, on && u.segOn, pressed && u.pressed]}>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: on ? color.bg : color.ink, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -234,18 +236,17 @@ export function Sheet({ title, isTest, onClose, children, scrollKey }: { title: 
   const f = useType();
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView key={scrollKey} contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }} keyboardShouldPersistTaps="handled">
+      <ScrollView key={scrollKey} style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }}
+        keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
           <View style={u.secH}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
               {isTest && <Text style={{ fontFamily: f.bodySemi, fontSize: 12, backgroundColor: color.accent, color: color.ink, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' }}>TEST</Text>}
               <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }}>{title}</Text>
             </View>
-            <Pressable onPress={onClose} style={u.x} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
+            <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
           </View>
           {children}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </Modal>
   );
 }

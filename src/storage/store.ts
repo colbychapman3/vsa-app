@@ -9,8 +9,10 @@ export type Vessel = { operationId: string; name: string; isTest: boolean; creat
 export type State = Extract<ReturnType<typeof project>, { ok: true }>;
 type Row = { operation_id: string; name: string; is_test: number; baseline_json: string; created_at: string };
 
-// Reference baselines that may only ever be loaded as TEST.
-const TEST_ONLY = /glovis condor 101/i;
+// Reference baselines that may only ever be loaded as TEST. Names are compared with case,
+// spaces and punctuation removed, so "GLOVIS  Condor-101" is still caught.
+const TEST_ONLY = ['gloviscondor101'];
+const squash = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 const reject = (error: string): Reject => ({ ok: false, error });
 const toVessel = (r: Row): Vessel => ({ operationId: r.operation_id, name: r.name, isTest: r.is_test === 1, createdAt: r.created_at });
 
@@ -28,7 +30,7 @@ export async function openStore(db: Db) {
       const { operationId: id, baseline, isTest } = v;
       if (!id.trim()) return reject('A vessel needs an operation id.');
       if (isTest !== id.startsWith('TEST-')) return reject(isTest ? `TEST vessel ids start with "TEST-" (got ${id}).` : `A LIVE vessel id cannot start with "TEST-" (got ${id}).`);
-      if (!isTest && TEST_ONLY.test(baseline.vessel)) return reject(`${baseline.vessel} is reference data and can only be loaded as TEST.`);
+      if (!isTest && TEST_ONLY.some((n) => squash(baseline.vessel).includes(n))) return reject(`${baseline.vessel} is reference data and can only be loaded as TEST.`);
       const check = project(baseline, [], id);
       if (!check.ok) return check;
       if (await row(id)) return reject(`Vessel ${id} already exists. Nothing was changed.`);
@@ -59,14 +61,19 @@ export async function openStore(db: Db) {
       const other = events.find((e) => e?.operation_id !== id);
       if (other) return reject(`Event ${other?.event_id} belongs to operation ${other?.operation_id}, not ${id}. Nothing was saved.`);
       const baseline = JSON.parse(r.baseline_json) as Baseline;
+      // The database keeps JSON text, so the engine must judge what will be read back (Infinity becomes null).
+      const incoming = events.map((e) => JSON.parse(JSON.stringify(e)) as VsaEvent);
       let result: { ok: true; saved: number; state: State } | Reject = reject('Nothing was saved.');
       try {
         await db.transaction(async (tx) => {
           const stored = await eventsOf(tx, id);
-          const state = project(baseline, [...stored, ...events], id);
+          const state = project(baseline, [...stored, ...incoming], id);
           if (!state.ok) { result = state; return; }
           const have = new Set(stored.map((e) => e.event_id));
           const fresh = state.log.events.filter((e) => !have.has(e.event_id));
+          const max = stored.at(-1)?.sequence ?? 0;
+          const late = fresh.find((e) => e.sequence <= max);
+          if (late) { result = reject(`Event ${late.event_id}: sequence ${late.sequence} is not after the last saved event (${max}). Nothing was saved.`); return; }
           for (const e of fresh) {
             await tx.run('INSERT INTO events VALUES (?, ?, ?, ?, ?)', [id, e.sequence, e.event_id, e.idempotency_key, JSON.stringify(e)]);
           }

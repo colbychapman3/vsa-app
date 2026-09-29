@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, formatHM, parseHM, toAbs, type BreakEntry, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -17,6 +17,10 @@ export const REASONS = ['Recount', 'Typo', 'Checker update'] as const;
 export const BREAK_REASONS = ['Wrong time', 'Duplicate', 'Logged by mistake'] as const;
 
 const reject = (error: string): Reject => ({ ok: false, error });
+
+// A time that isn't a real day and HH:MM would throw inside iso(); refuse it as a normal form error instead.
+const badTimes = (...ts: (OpTime | null)[]): Reject | null =>
+  ts.some((t) => t && toAbs(t) == null) ? reject('That time isn’t valid. Enter the day and a time as HH:MM.') : null;
 
 export function iso(ctx: Ctx, t: OpTime): string {
   const d = new Date(`${ctx.opDate}T00:00:00Z`);
@@ -77,7 +81,10 @@ export type HourForm = {
 // A new hour is observations. Re-entering an hour corrects only the values that
 // changed (total, each brand, drivers, stop time), each keeping its history.
 export function hourEvents(ctx: Ctx, f: HourForm): VsaEvent[] | Reject {
-  const endMin = parseHM(f.start)! + 60; // the 23:00 hour ends at 00:00 the next day
+  const bt = badTimes({ day: f.day, hm: f.start });
+  if (bt) return bt;
+  // The 23:00 hour ends at 00:00 the next day; the hour before a break ends at the break (07:30 day: 11:30–12:00).
+  const endMin = preBreak(f.start, ctx.state.breaks) ?? parseHM(f.start)! + 60;
   const period: [string, string] = [iso(ctx, { day: f.day, hm: f.start }), iso(ctx, endMin >= 1440 ? { day: f.day + 1, hm: formatHM(endMin) } : { day: f.day, hm: formatHM(endMin) })];
   const existing = activeEvents(ctx.state.log).filter((e) => e.payload.period_start === period[0]);
   const find = (metric: string, commodity: string | null) => existing.find((e) => e.payload.metric === metric && e.scope.commodity === commodity);
@@ -118,6 +125,8 @@ export type DeckForm = {
 // A deck save is a full snapshot (Colby chose tracker behavior, 2026-09-26): only
 // what differs from the current deck is written; a cleared box records "unknown".
 export function deckEvents(ctx: Ctx, f: DeckForm): VsaEvent[] | Reject {
+  const bt = badTimes(f.time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   const cur = ctx.state.decks.find((d) => d.id === f.deck);
   if (!cur) return reject(`Deck ${f.deck} is not on this vessel.`);
@@ -138,7 +147,10 @@ export function deckEvents(ctx: Ctx, f: DeckForm): VsaEvent[] | Reject {
   return out.length ? out : reject(`Nothing to save: ${cur.label} already shows these values.`);
 }
 
-export function heightEvents(ctx: Ctx, deck: string, m: number, time: OpTime | null): VsaEvent[] {
+export function heightEvents(ctx: Ctx, deck: string, m: number, time: OpTime | null): VsaEvent[] | Reject {
+  if (!Number.isFinite(m) || m <= 0) return reject('Enter the deck height in metres, as a number above 0.');
+  const bt = badTimes(time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'observation', metric: 'deck_height_m', value: m, deck, at: time });
   return out;
@@ -146,25 +158,33 @@ export function heightEvents(ctx: Ctx, deck: string, m: number, time: OpTime | n
 
 // ---------- Breaks and shifts ----------
 
-export function breakStartEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] {
+export function breakStartEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reject {
+  const bt = badTimes(time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'pause', metric: 'break', value: null, workstream: 'operation', at: time });
   return out;
 }
 
-export function breakEndEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] {
+export function breakEndEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reject {
+  const bt = badTimes(time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'resume', metric: 'break', value: null, workstream: 'operation', at: time });
   return out;
 }
 
-export function endShiftEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] {
+export function endShiftEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reject {
+  const bt = badTimes(time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'status_change', metric: 'shift', value: 'ended', workstream: 'operation', at: time });
   return out;
 }
 
-export function nextDayEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] {
+export function nextDayEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reject {
+  const bt = badTimes(time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'status_change', metric: 'shift', value: 'started', workstream: 'operation', at: time });
   return out;
@@ -183,6 +203,8 @@ export function shiftSettingsEvents(ctx: Ctx, shiftEnd: string | null, nextStart
 
 export function clerkEvents(ctx: Ctx, remaining: number, time: OpTime | null): VsaEvent[] | Reject {
   if (!Number.isInteger(remaining) || remaining < 0) return reject('Enter the clerk’s remaining count as a whole number.');
+  const bt = badTimes(time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'observation', metric: 'clerk_remaining', value: remaining, kind: 'remaining', at: time });
   return out;
@@ -193,12 +215,16 @@ export function openDiscrepancyEvents(ctx: Ctx, text: string, time: OpTime | nul
   const t = text.trim();
   if (!t) return reject('Describe what doesn’t match.');
   if (t.length > 200) return reject('Keep it under 200 characters.');
+  const bt = badTimes(time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'discrepancy_opened', metric: 'discrepancy', value: key, workstream: 'operation', reason: t, at: time });
   return out;
 }
 
-export function resolveDiscrepancyEvents(ctx: Ctx, issueId: string, time: OpTime | null): VsaEvent[] {
+export function resolveDiscrepancyEvents(ctx: Ctx, issueId: string, time: OpTime | null): VsaEvent[] | Reject {
+  const bt = badTimes(time);
+  if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'discrepancy_resolved', metric: 'discrepancy', value: null, workstream: 'operation', inputs: [issueId], at: time });
   return out;
@@ -224,6 +250,7 @@ export function workdayDriversEvents(ctx: Ctx, day: number, n: number, reason?: 
 
 // Back to unknown (e.g. a figure entered for the wrong day). Needs a reason; the log keeps it.
 export function clearWorkdayDriversEvents(ctx: Ctx, day: number, reason: string | null): VsaEvent[] | Reject {
+  if (!Number.isInteger(day) || day < 1) return reject('Pick the operation day.');
   const old = activeEvents(ctx.state.log).find((e) => e.payload.metric === 'workday_drivers' && e.payload.period_start === iso(ctx, { day, hm: '00:00' }) && e.payload.value !== 'void');
   if (!old) return reject(`Day ${day}’s drivers aren’t set.`);
   if (!reason?.trim()) return reject(`Pick a reason for clearing Day ${day}’s drivers. The old value is kept.`);
@@ -269,6 +296,8 @@ function overlap(s: State, startAbs: number, endAbs: number, self: BreakEntry | 
 
 export function missedBreakEvents(ctx: Ctx, start: OpTime | null, end: OpTime | null): VsaEvent[] | Reject {
   if (!start || !end) return reject('Enter when the break started and ended.');
+  const bt = badTimes(start, end);
+  if (bt) return bt;
   if (toAbs(end)! <= toAbs(start)!) return reject('The break end must be after its start.');
   const o = overlap(ctx.state, toAbs(start)!, toAbs(end)!, null);
   if (o) return o;
@@ -280,6 +309,8 @@ export function missedBreakEvents(ctx: Ctx, start: OpTime | null, end: OpTime | 
 export function editBreakEvents(ctx: Ctx, b: BreakEntry, start: OpTime | null, end: OpTime | null, reason: string | null): VsaEvent[] | Reject {
   if (b.kind === 'shift' || !b.startId) return reject('Shift changes can’t be edited here.');
   if (!start) return reject('Enter when the break started.');
+  const bt = badTimes(start, end);
+  if (bt) return bt;
   const why = reason?.trim();
   if (b.kind === 'missed') {
     if (!end) return reject('Enter when the break ended.');
