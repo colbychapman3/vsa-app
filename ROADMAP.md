@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 4 in progress (started 2026-09-27). Phases 1–3 complete; 184 tests passing on main (2026-09-29). Phase 4 code merged; awaiting phone check; whole-app spec approved (`docs/specs/app-spec.md`).
+**Current status:** Phase 4 complete (2026-09-29, phone check passed). Phase 5 spec in progress. 184 tests passing.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
