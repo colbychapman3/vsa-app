@@ -18,6 +18,15 @@ export * from './production.ts';
 export * from './ledger.ts';
 export * from './eta.ts';
 
+// One row of the break log. startId/endId are the current events to correct (null = not editable here).
+export type BreakEntry = {
+  kind: 'break' | 'missed' | 'shift';
+  start: string; end: string | null;
+  startAbs: number; endAbs: number | null; // minutes since Day 1 00:00
+  startId: string | null; endId: string | null;
+  edited: boolean;
+};
+
 const STATUS_LABEL: Record<DeckStatus, string> = { notStarted: 'Not started', active: 'Active', paused: 'Paused', complete: 'Complete', unknown: 'Unknown' };
 const STATUSES = Object.keys(STATUS_LABEL) as DeckStatus[];
 const fail = (error: string, event_id?: string): Reject & { event_id?: string } => ({ ok: false, error, ...(event_id ? { event_id } : {}) });
@@ -49,14 +58,18 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const hours = new Map<string, HourEntry & { key: string; was?: number[] }>();
   const hourValue = new Map<string, string>(); // hour|metric|brand → the one active event holding it
   const ops: Ops & { shiftEnd?: string | null } = { day: 1 };
-  const breakLog: { start: string; end: string | null }[] = [];
+  const breakLog: BreakEntry[] = [];
+  const dayDrivers = new Map<number, { n: number; id: string }>(); // workday driver setting per operation day
   const plan: { shiftEnd: string | null; nextStart: string | null } = { shiftEnd: null, nextStart: null };
   const clerks: { remaining: number; time: string; seq: number }[] = [];
   const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
   let recStart = 0; // sequence of the latest break/shift-end start
   const lastDeckEvent: Record<string, string> = {}; // for naming the event in whole-sheet errors
 
-  for (const e of activeEvents(log)) {
+  // Each event is applied at its original's place in the log, so a corrected break time
+  // takes effect where the break happened, not where the correction was saved.
+  const ordered = activeEvents(log).map((e) => ({ e, root: historyOf(log, e.event_id)[0] })).sort((a, b) => a.root.sequence - b.root.sequence);
+  for (const { e, root } of ordered) {
     const p = e.payload, id = e.event_id, sc = e.scope;
     if (sc.workstream !== 'auto_discharge' && sc.workstream !== 'operation') return fail(`Event ${id}: ${sc.workstream} is not tracked by this engine (autos only).`, id);
     const occurred = at(e.occurred_at);
@@ -143,29 +156,54 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         if ((p.value as number) > base.start) return fail(`Chief clerk remaining (${p.value}) exceeds starting cargo (${base.start}) by ${(p.value as number) - base.start}. Check the count.`, id);
         clerks.push({ remaining: p.value as number, time: when(occurred, e.recorded_at), seq: e.sequence });
         continue;
-      case 'break':
-        if (e.event_type !== 'pause' && e.event_type !== 'resume') return fail(`Event ${id}: break must be a pause or resume.`, id);
-        if (e.event_type === 'pause') {
+      case 'break': {
+        // A correction keeps its original's type (pause, resume, or a missed break added later).
+        const edited = e.event_type === 'correction';
+        const type = edited ? root.event_type : e.event_type;
+        if (edited && p.value === 'void') continue; // removed with a reason; the log keeps it
+        if (p.value !== null) return fail(`Event ${id}: a break has no value (only a correction can remove one, with "void").`, id);
+        if (type === 'observation') {
+          if (!p.period_start || !p.period_end) return fail(`Event ${id}: break must be a pause or resume, or a missed break with its start and end.`, id);
+          const s = fromIso(p.period_start, opDate), z = fromIso(p.period_end, opDate);
+          if ('error' in s) return fail(s.error, id);
+          if ('error' in z) return fail(z.error, id);
+          breakLog.push({ kind: 'missed', start: eventTimeLabel(s), end: eventTimeLabel(z), startAbs: toAbs(s)!, endAbs: toAbs(z)!, startId: id, endId: null, edited });
+        } else if (type === 'pause') {
           if (!occurred) return fail(`Event ${id}: enter the break start time.`, id);
-          Object.assign(ops, { onBreak: true, breakStart: occurred.hm, day: occurred.day }); recStart = e.sequence;
-          breakLog.push({ start: when(occurred, e.recorded_at), end: null });
-        } else if (e.event_type === 'resume') {
+          Object.assign(ops, { onBreak: true, breakStart: occurred.hm, day: occurred.day }); recStart = root.sequence;
+          breakLog.push({ kind: 'break', start: when(occurred, e.recorded_at), end: null, startAbs: toAbs(occurred)!, endAbs: null, startId: id, endId: null, edited });
+        } else if (type === 'resume') {
           if (!occurred) return fail(`Event ${id}: enter the time work resumed.`, id);
           ops.onBreak = false;
-          const open = breakLog.at(-1);
-          if (open && open.end == null) open.end = when(occurred, e.recorded_at);
-        }
+          const open = breakLog.findLast((x) => x.kind !== 'missed');
+          if (open && open.end == null) Object.assign(open, { end: when(occurred, e.recorded_at), endAbs: toAbs(occurred)!, endId: open.kind === 'break' ? id : null, edited: open.edited || edited });
+        } else return fail(`Event ${id}: break must be a pause or resume.`, id);
         continue;
+      }
+      case 'workday_drivers': {
+        if (e.event_type !== 'observation' && e.event_type !== 'correction') return fail(`Event ${id}: workday drivers must be an observation.`, id);
+        if (p.count_kind !== 'not_applicable') return fail(`Event ${id}: workday_drivers must not be a count kind (count_kind not_applicable).`, id);
+        if (!p.period_start || !p.period_end) return fail(`Event ${id}: workday drivers need the day they cover.`, id);
+        const s = fromIso(p.period_start, opDate), z = fromIso(p.period_end, opDate);
+        if ('error' in s) return fail(s.error, id);
+        if ('error' in z) return fail(z.error, id);
+        if (s.hm !== '00:00' || z.hm !== '00:00' || z.day !== s.day + 1) return fail(`Event ${id}: workday drivers cover one whole operation day.`, id);
+        if (!Number.isInteger(p.value) || (p.value as number) < 1) return fail(`Event ${id}: the day's drivers must be a whole number of 1 or more. Leave it unset if unknown.`, id);
+        const held = dayDrivers.get(s.day);
+        if (held) return fail(`Event ${id}: Day ${s.day} already has a driver count (event ${held.id}); correct that event instead.`, id);
+        dayDrivers.set(s.day, { n: p.value as number, id });
+        continue;
+      }
       case 'shift':
         if (e.event_type !== 'status_change') return fail(`Event ${id}: shift must be a status change.`, id);
         if (!occurred) return fail(`Event ${id}: shift changes need a time.`, id);
         if (p.value === 'ended') {
-          Object.assign(ops, { shiftEnded: true, onBreak: false, day: occurred.day, shiftEnd: occurred.hm }); recStart = e.sequence;
-          breakLog.push({ start: `Shift end ${when(occurred, e.recorded_at)}`, end: null });
+          Object.assign(ops, { shiftEnded: true, onBreak: false, day: occurred.day, shiftEnd: occurred.hm }); recStart = root.sequence;
+          breakLog.push({ kind: 'shift', start: `Shift end ${when(occurred, e.recorded_at)}`, end: null, startAbs: toAbs(occurred)!, endAbs: null, startId: null, endId: null, edited: false });
         } else if (p.value === 'started') {
           Object.assign(ops, { shiftEnded: false, day: occurred.day }); if (occurred.day > 1) plan.nextStart = occurred.hm;
-          const open = breakLog.at(-1);
-          if (open && open.end == null) open.end = when(occurred, e.recorded_at);
+          const open = breakLog.findLast((x) => x.kind !== 'missed');
+          if (open && open.end == null) Object.assign(open, { end: when(occurred, e.recorded_at), endAbs: toAbs(occurred)! });
         }
         else return fail(`Event ${id}: shift value must be "ended" or "started".`, id);
         continue;
@@ -193,6 +231,17 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     }
   }
 
+  // Break log: an edited break must still end after it starts; a missed break added later
+  // must not overlap another break (remove or correct that one instead).
+  for (const b of breakLog) {
+    if ((b.edited || b.kind === 'missed') && b.endAbs != null && b.endAbs <= b.startAbs) return fail(`Break ${b.start}–${b.end}: the end must be after the start.`, b.endId ?? b.startId ?? undefined);
+  }
+  for (const m of breakLog.filter((x) => x.kind === 'missed')) {
+    const other = breakLog.find((b) => b !== m && b.kind !== 'shift' && m.startAbs < (b.endAbs ?? Infinity) && b.startAbs < m.endAbs!);
+    if (other) return fail(`Missed break ${m.start}–${m.end} overlaps the break ${other.start}${other.end ? `–${other.end}` : ' (in progress)'}. Correct or remove that one instead.`, m.startId ?? undefined);
+  }
+  breakLog.sort((a, b) => a.startAbs - b.startAbs);
+
   // Whole-sheet check per deck: hatch counts must agree with a deck total when both are complete.
   for (const [id, st] of Object.entries(decks)) {
     const u = deckUpdate(deckById.get(id)!, st);
@@ -204,6 +253,9 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const entries: HourEntry[] = [];
   for (const h of hours.values()) {
     if (Number.isNaN(h.count)) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })} has a brand split or drivers but no total count.`);
+    // The hour's own driver count wins; otherwise the day's workday setting applies.
+    const own = h.drivers ?? null, day = dayDrivers.get(h.day)?.n ?? null;
+    Object.assign(h, { hourDrivers: own, drivers: own ?? day, driversFrom: own != null ? 'hour' : day != null ? 'day' : null });
     const bad = checkHour(h, brandNames, baseline.breaks);
     if (bad) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: ${bad.error}`);
     const { key: _key, ...entry } = h;
@@ -222,7 +274,8 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   });
   const phase: Phase = ops.shiftEnded ? 'shift_end' : ops.onBreak ? 'break' : 'working';
   const clerk = phase === 'working' ? null : clerks.filter((c) => c.seq > recStart).at(-1) ?? null;
-  const drivers = currentDrivers(periods, baseline.labor);
+  const today = dayDrivers.get(ops.day);
+  const drivers = currentDrivers(periods, baseline.labor, today ? { day: ops.day, n: today.n } : null);
   const L = ledger({ decks: deckResults, periods, phase, drivers, clerk: clerk && { remaining: clerk.remaining, time: clerk.time } });
   const forecast = eta({
     remaining: L.vesselRemaining ?? L.fieldBalance,
@@ -249,6 +302,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     plan,
     issues: [...issues.values()],
     breakLog,
+    workdayDrivers: Object.fromEntries([...dayDrivers].map(([d, v]) => [d, v.n])) as Record<number, number>,
     corrections,
     log,
   };

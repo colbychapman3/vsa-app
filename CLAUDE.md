@@ -24,6 +24,13 @@ Plan: `ROADMAP.md` (phases and current status). Specs from `/spec` go in `docs/s
 - **AgentSkills**: follow its workflow for every feature: spec → plan → build → test → review → ship.
 - **Ponytail**: keeps code minimal. It never overrides the domain rules below; validation and data integrity always stay.
 
+## Repository skills (`.claude/skills/`)
+
+Load the matching skill before changing that layer. They apply the rules below; they never override them.
+- **vsa-field-ui**: screens and sheets (tap size, sun contrast, no mid-word wrapping, one modal at a time).
+- **vsa-event-ledger**: events, corrections, storage and migrations.
+- **vsa-rules-engine**: engine and view-model math, validation, and the `node:test` discipline.
+
 Authority order: current user correction > project instructions > protocol > current-vessel paperwork > historical references > inference.
 
 ## Working agreement

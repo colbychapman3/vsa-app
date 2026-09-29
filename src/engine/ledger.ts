@@ -22,12 +22,15 @@ export function checkNotOver(label: string, value: number, limitLabel: string, l
   return value > limit ? { ok: false, error: `${label} (${n(value)}) exceeds ${limitLabel} (${n(limit)}) by ${n(value - limit)}. Check the count.` } : null;
 }
 
-// Last logged driver count, else the labor order.
-export function currentDrivers(periods: Period[], labor?: { autoDrivers?: number }): { n: number; src: string } | null {
+// Drivers now: the latest hour today with drivers (its own count or the day's setting),
+// else today's workday setting, else the last logged count, else the labor order.
+export function currentDrivers(periods: Period[], labor?: { autoDrivers?: number }, today?: { day: number; n: number } | null): { n: number; src: string } | null {
   for (let i = periods.length - 1; i >= 0; i--) {
-    const d = periods[i].drivers;
-    if (typeof d === 'number' && d > 0) return { n: d, src: `logged ${periods[i].start}` };
+    const p = periods[i], d = p.drivers;
+    if (today && p.day < today.day) break; // today's setting is newer than any earlier day's count
+    if (typeof d === 'number' && d > 0) return { n: d, src: p.driversFrom === 'day' ? `Day ${p.day} setting` : `logged ${p.start}` };
   }
+  if (today) return { n: today.n, src: `Day ${today.day} setting` };
   return typeof labor?.autoDrivers === 'number' ? { n: labor.autoDrivers, src: 'labor order' } : null;
 }
 

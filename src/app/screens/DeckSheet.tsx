@@ -81,7 +81,7 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
 
           {counted ? (
             <>
-              <Label>REMAINING BY HATCH (H4 → H1) · CLEAR A BOX IF UNKNOWN</Label>
+              <Label wrap>REMAINING BY HATCH (H4 → H1) · CLEAR A BOX IF UNKNOWN</Label>
               <View style={s.grid}>
                 {d.hatches.map((h, i) => (
                   <View key={h.h} style={s.cell}>

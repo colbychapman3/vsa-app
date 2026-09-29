@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, formatHM, parseHM, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, formatHM, parseHM, toAbs, type BreakEntry, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -14,6 +14,7 @@ export type Ctx = {
 };
 
 export const REASONS = ['Recount', 'Typo', 'Checker update'] as const;
+export const BREAK_REASONS = ['Wrong time', 'Duplicate', 'Logged by mistake'] as const;
 
 const reject = (error: string): Reject => ({ ok: false, error });
 
@@ -200,5 +201,77 @@ export function openDiscrepancyEvents(ctx: Ctx, text: string, time: OpTime | nul
 export function resolveDiscrepancyEvents(ctx: Ctx, issueId: string, time: OpTime | null): VsaEvent[] {
   const { add, out } = builder(ctx);
   add({ type: 'discrepancy_resolved', metric: 'discrepancy', value: null, workstream: 'operation', inputs: [issueId], at: time });
+  return out;
+}
+
+// ---------- Workday drivers ----------
+
+// Drivers are set once per operation day (e.g. Day 1 = 70, Day 2 = 50) and used for every
+// hour of that day that has no count of its own. Changing a day's figure is a correction.
+export function workdayDriversEvents(ctx: Ctx, day: number, n: number, reason?: string | null): VsaEvent[] | Reject {
+  if (!Number.isInteger(day) || day < 1) return reject('Pick the operation day.');
+  if (!Number.isInteger(n) || n < 1) return reject('Enter the day’s drivers as a whole number (1 or more).');
+  const period: [string, string] = [iso(ctx, { day, hm: '00:00' }), iso(ctx, { day: day + 1, hm: '00:00' })];
+  const old = activeEvents(ctx.state.log).find((e) => e.payload.metric === 'workday_drivers' && e.payload.period_start === period[0]);
+  if (old?.payload.value === n) return reject(`Nothing to save: Day ${day} is already set to ${n} drivers.`);
+  if (old && !reason?.trim()) return reject(`Pick a reason for changing Day ${day}’s drivers. The old value is kept.`);
+  const { add, out } = builder(ctx);
+  add({ type: old ? 'correction' : 'observation', metric: 'workday_drivers', value: n, workstream: 'operation', period,
+    supersedes: old?.event_id ?? null, reason: old ? reason!.trim() : null });
+  return out;
+}
+
+// ---------- Break log edits ----------
+// Corrections keep the old times in the log. Removing a break supersedes it with "void".
+
+const eventById = (ctx: Ctx, id: string) => ctx.state.log.events.find((e) => e.event_id === id);
+
+// A correction of `target` (same scope, metric and period, as the engine requires).
+function correctionOf(add: ReturnType<typeof builder>['add'], target: VsaEvent, value: VsaEvent['payload']['value'], at: OpTime | null, reason: string) {
+  const p = target.payload;
+  add({ type: 'correction', metric: p.metric, value, workstream: 'operation', at,
+    period: p.period_start && p.period_end ? [p.period_start, p.period_end] : null, supersedes: target.event_id, reason });
+}
+
+export function missedBreakEvents(ctx: Ctx, start: OpTime | null, end: OpTime | null): VsaEvent[] | Reject {
+  if (!start || !end) return reject('Enter when the break started and ended.');
+  if (toAbs(end)! <= toAbs(start)!) return reject('The break end must be after its start.');
+  const { add, out } = builder(ctx);
+  add({ type: 'observation', metric: 'break', value: null, workstream: 'operation', period: [iso(ctx, start), iso(ctx, end)] });
+  return out;
+}
+
+export function editBreakEvents(ctx: Ctx, b: BreakEntry, start: OpTime | null, end: OpTime | null, reason: string | null): VsaEvent[] | Reject {
+  if (b.kind === 'shift' || !b.startId) return reject('Shift changes can’t be edited here.');
+  if (!start) return reject('Enter when the break started.');
+  const why = reason?.trim();
+  if (b.kind === 'missed') {
+    if (!end) return reject('Enter when the break ended.');
+    if (toAbs(start) === b.startAbs && toAbs(end) === b.endAbs) return reject('Nothing to save: the break already has these times.');
+    if (!why) return reject('Pick a reason for changing this break. The old times are kept.');
+    if (toAbs(end)! <= toAbs(start)!) return reject('The break end must be after its start.');
+    // A missed break's times are its period, which a correction can't change: remove it and add it again.
+    const { add, out } = builder(ctx);
+    correctionOf(add, eventById(ctx, b.startId)!, 'void', null, why);
+    add({ type: 'observation', metric: 'break', value: null, workstream: 'operation', period: [iso(ctx, start), iso(ctx, end)] });
+    return out;
+  }
+  if (end && !b.endId) return reject('This break is still in progress. End it from the Log sheet first.');
+  const startChanged = toAbs(start) !== b.startAbs, endChanged = !!end && toAbs(end) !== b.endAbs;
+  if (!startChanged && !endChanged) return reject('Nothing to save: the break already has these times.');
+  if (!why) return reject('Pick a reason for changing this break. The old times are kept.');
+  const { add, out } = builder(ctx);
+  if (startChanged) correctionOf(add, eventById(ctx, b.startId)!, null, start, why);
+  if (endChanged) correctionOf(add, eventById(ctx, b.endId!)!, null, end, why);
+  return out;
+}
+
+export function removeBreakEvents(ctx: Ctx, b: BreakEntry, reason: string | null): VsaEvent[] | Reject {
+  if (b.kind === 'shift' || !b.startId) return reject('Shift changes can’t be removed here.');
+  const why = reason?.trim();
+  if (!why) return reject('Pick a reason for removing this break. It stays in the log, marked removed.');
+  const { add, out } = builder(ctx);
+  correctionOf(add, eventById(ctx, b.startId)!, 'void', null, why);
+  if (b.endId) correctionOf(add, eventById(ctx, b.endId)!, 'void', null, why);
   return out;
 }

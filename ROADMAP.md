@@ -27,9 +27,9 @@ Update the status line when a phase changes.
 ## Phase 4: Real device build
 - Apple Developer account active; EAS development build installed on the iPhone.
 - Field feedback from Colby's airplane-mode test (2026-09-27), fix and verify on the dev build:
-  - Some text wraps its last letter onto the next line (screens TBD, screenshots requested).
-  - Drivers are set once per workday (Day 1 = 70, Day 2 = 50), not asked every hour.
-  - Break log: edit start/end times, add a missed break, remove a wrong/duplicate one (corrections keep history).
+  - Some text wraps its last letter onto the next line. Fixed 2026-09-28 (Plan "Brea/ks"; Snapshot tile labels and FORECAST/CALCULATED tags now stay on one line and shrink). Verify on the dev build at large text size.
+  - Drivers are set once per workday (Day 1 = 70, Day 2 = 50), not asked every hour. Built 2026-09-28: Plan › Labor › Set the day's drivers; an hour's own count still overrides. Verify on the phone.
+  - Break log: edit start/end times, add a missed break, remove a wrong/duplicate one (corrections keep history). Built 2026-09-28: Plan › Break log (tap a break, or Add a missed break). Verify on the phone.
 **Done when:** the app runs from its own icon, outside Expo Go.
 
 ## Phase 5: New-vessel setup and sync

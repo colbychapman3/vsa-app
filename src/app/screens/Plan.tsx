@@ -2,12 +2,12 @@
 // Actions (confirm height, resolve discrepancy, shift settings) save through App.save().
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { parseHM, type Baseline, type Reject, type VsaEvent } from '../../engine/index.ts';
+import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { planView } from '../view.ts';
 import { color, useType } from '../theme.ts';
-import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
+import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
@@ -15,6 +15,8 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
   const f = useType();
   const [recheck, setRecheck] = useState<Set<string>>(new Set());
   const [shiftOpen, setShiftOpen] = useState(false);
+  const [driversOpen, setDriversOpen] = useState(false);
+  const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
 
   const act = async (build: (c: E.Ctx) => VsaEvent[] | Reject, done: string) => {
@@ -88,6 +90,8 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
         {kv('Van drivers', v.labor.vanDrivers)}
         {kv('Heavy gang', v.labor.heavyGang)}
         <Note>Labor order figures are ordered, not a confirmed shape-up.</Note>
+        {v.workday.map((d) => kv(d.label, d.value))}
+        <Go ghost label="Set the day’s drivers" onPress={() => setDriversOpen(true)} />
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
@@ -129,9 +133,22 @@ export function Plan({ state, baseline, save, onNotice }: { state: State; baseli
 
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Break log" />
-        {v.breakLog.length === 0 ? <Note>No breaks logged yet.</Note> : v.breakLog.map((b, i) => <View key={i}>{kv(b.label, b.value)}</View>)}
+        {v.breakLog.length === 0 ? <Note>No breaks logged yet.</Note> : v.breakLog.map((b, i) => {
+          const entry = state.breakLog[i];
+          return entry.kind === 'shift'
+            ? <View key={i} style={s.logRow}>{kv(b.label, b.value)}</View>
+            : <Pressable key={i} onPress={() => setBreakOpen({ entry })} style={({ pressed }) => [s.logRow, pressed && { opacity: 0.6 }]}
+                accessibilityRole="button" accessibilityLabel={`${b.label} ${b.value}. Edit or remove`}>
+                {kv(b.label, b.value)}
+                <Text style={[s.edit, { fontFamily: f.bodySemi }]}>Edit ›</Text>
+              </Pressable>;
+        })}
+        <Go ghost label="Add a missed break" onPress={() => setBreakOpen({ entry: null })} />
+        <Note>Changes keep the old times in the log.</Note>
       </Card>
 
+      {driversOpen && <DriversSheet state={state} baseline={baseline} save={save} onClose={(done) => { setDriversOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
+      {breakOpen && <BreakSheet state={state} baseline={baseline} entry={breakOpen.entry} save={save} onClose={(done) => { setBreakOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {shiftOpen && <ShiftSheet state={state} baseline={baseline} save={save} onClose={(done) => { setShiftOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
     </View>
   );
@@ -162,8 +179,97 @@ function ShiftSheet({ state, baseline, save, onClose }: { state: State; baseline
   );
 }
 
+// '' → null; digits → number; anything else → NaN (refused with a message).
+const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN);
+
+// Reason picker: quick picks plus "Other…" with a text box.
+function Reasons({ options, value, onChange, other, onOther }: { options: readonly string[]; value: string | null; onChange: (r: string) => void; other: string; onOther: (v: string) => void }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Label>REASON</Label>
+      <Seg columns={2} value={value} onChange={onChange} options={[...options, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
+      {value === 'Other' && <Field label="Reason" value={other} onChange={onOther} keyboard="default" maxLength={120} />}
+    </View>
+  );
+}
+
+// Workday drivers: set once per operation day; every hour of that day without its own count uses it.
+function DriversSheet({ state, baseline, save, onClose }: { state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void }) {
+  const days = planView(state, baseline).workday;
+  const [day, setDay] = useState(Math.min(state.ops.day, days.length));
+  const cur = days.find((d) => d.day === day)?.n ?? null;
+  const [n, setN] = useState(cur != null ? String(cur) : '');
+  const [reason, setReason] = useState<string | null>(null);
+  const [other, setOther] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const pick = (d: number) => { setDay(d); const x = days.find((y) => y.day === d)?.n; setN(x != null ? String(x) : ''); setReason(null); setError(null); };
+  const submit = async () => {
+    setError(null);
+    const v = num(n);
+    if (v == null || Number.isNaN(v)) return setError('Enter the day’s drivers as a whole number (1 or more).');
+    const why = reason === 'Other' ? other.trim() : reason;
+    const r = await save((c) => E.workdayDriversEvents(c, day, v, why));
+    if (r.ok) onClose(`Day ${day} drivers set to ${v}.`); else setError(r.error);
+  };
+  return (
+    <Sheet title="Day’s drivers" isTest={state.operationId.startsWith('TEST-')} onClose={() => onClose()}>
+      <Seg columns={days.length} value={day} onChange={pick} options={days.map((d) => ({ value: d.day, label: `Day ${d.day}` }))} />
+      <Field label={`Drivers on Day ${day}`} value={n} onChange={setN} />
+      {cur != null && <Reasons options={E.REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />}
+      <Note>Used for every hour of that day. If the gang changes during the day, enter the drivers on that hour in the Log sheet instead.</Note>
+      {error && <ErrorBox text={error} />}
+      <Go label="Save drivers" onPress={submit} />
+    </Sheet>
+  );
+}
+
+// Break log: fix a break's times, remove a wrong or duplicate one, or add one that was missed.
+function BreakSheet({ state, baseline, entry, save, onClose }: { state: State; baseline: Baseline; entry: BreakEntry | null; save: Save; onClose: (done?: string) => void }) {
+  const hm = (abs: number | null) => (abs == null ? '' : formatHM(abs));
+  const entryDay = entry ? Math.floor(entry.startAbs / 1440) + 1 : state.ops.day;
+  const [day, setDay] = useState(entryDay);
+  const [start, setStart] = useState(hm(entry?.startAbs ?? null));
+  const [end, setEnd] = useState(hm(entry?.endAbs ?? null));
+  const [reason, setReason] = useState<string | null>(null);
+  const [other, setOther] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const inProgress = !!entry && entry.endAbs == null;
+  const now = (set: (v: string) => void) => () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) set(t.hm); };
+  const time = (v: string) => (v.trim() === '' ? null : parseHM(v.trim()) == null ? 'bad' as const : { day, hm: v.trim().padStart(5, '0') });
+  const why = () => (reason === 'Other' ? other.trim() : reason);
+  const run = async (build: (c: E.Ctx) => VsaEvent[] | Reject, done: string) => {
+    setError(null);
+    const r = await save(build);
+    if (r.ok) onClose(done); else setError(r.error);
+  };
+  const submit = () => {
+    const a = time(start), b = inProgress ? null : time(end);
+    if (a === 'bad' || b === 'bad') return setError('Times are HH:MM, for example 12:00.');
+    return entry
+      ? run((c) => E.editBreakEvents(c, entry, a, b, why()), 'Break changed. The old times are kept in the log.')
+      : run((c) => E.missedBreakEvents(c, a, b), 'Missed break added.');
+  };
+  const days = Array.from({ length: state.ops.day }, (_, i) => i + 1);
+  return (
+    <Sheet title={entry ? 'Edit break' : 'Add a missed break'} isTest={state.operationId.startsWith('TEST-')} onClose={() => onClose()}>
+      {!entry && days.length > 1 && <Seg columns={days.length} value={day} onChange={setDay} options={days.map((d) => ({ value: d, label: `Day ${d}` }))} />}
+      <TimeField required label="Break started at" value={start} onChange={setStart} onNow={now(setStart)} />
+      {inProgress
+        ? <Note>This break is still in progress. End it from the Log sheet.</Note>
+        : <TimeField required label="Work resumed at" value={end} onChange={setEnd} onNow={now(setEnd)} />}
+      {entry && <Reasons options={E.BREAK_REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />}
+      {error && <ErrorBox text={error} />}
+      <Go label={entry ? 'Save changes' : 'Add break'} onPress={submit} />
+      {entry && <Go ghost label="Remove this break" onPress={() => run((c) => E.removeBreakEvents(c, entry, why()), 'Break removed. It stays in the log, marked removed.')} />}
+      <Note>Nothing is overwritten: the original times stay in the log.</Note>
+    </Sheet>
+  );
+}
+
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
+  logRow: { minHeight: 56, justifyContent: 'center', gap: 2, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: color.row },
+  edit: { fontSize: 13, color: color.blue, alignSelf: 'flex-end' },
   pending: { gap: 8, paddingVertical: 10, borderTopWidth: 1, borderTopColor: color.row },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   issue: { gap: 6, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color.row },

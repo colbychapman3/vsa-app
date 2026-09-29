@@ -85,7 +85,9 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
   const [hour, setHour] = useState(firstOpen);
   const existing = logged.get(hour);
   const [count, setCount] = useState(existing ? String(existing.count) : '');
-  const [drivers, setDrivers] = useState(existing?.drivers != null ? String(existing.drivers) : '');
+  // Only the hour's own driver count; the day's setting (Plan › Labor) covers the rest.
+  const [drivers, setDrivers] = useState(existing?.hourDrivers != null ? String(existing.hourDrivers) : '');
+  const dayDrivers = state.workdayDrivers[day] ?? null;
   const [brands, setBrands] = useState<Record<string, string>>(Object.fromEntries(state.brands.map((b) => [b.name, existing?.brands?.[b.name] != null ? String(existing.brands[b.name]) : ''])));
   const short = opts.hours.find((h) => h.start === hour)?.short ?? false;
   const sides = [...new Set(baseline.destinations.map((d) => (d.side === 'N' ? 'Northside' : 'Southside')))] as Side[];
@@ -97,7 +99,7 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
     const p = logged.get(h);
     setHour(h); setError(null); setReason(null); setOther('');
     setCount(p ? String(p.count) : '');
-    setDrivers(p?.drivers != null ? String(p.drivers) : '');
+    setDrivers(p?.hourDrivers != null ? String(p.hourDrivers) : '');
     setBrands(Object.fromEntries(state.brands.map((b) => [b.name, p?.brands?.[b.name] != null ? String(p.brands[b.name]) : ''])));
     setStop(p?.stopMin ?? suggestedStop(sides));
   };
@@ -115,7 +117,7 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
       split[b] = n;
     }
     if (short && stop == null) return setError(`Pick when production stopped before the ${formatHM(parseHM(hour)! + 60)} break.`);
-    if (existing && ((existing.drivers != null && dr == null) || state.brands.some((b) => existing.brands?.[b.name] != null && num(brands[b.name] ?? '') == null))) {
+    if (existing && ((existing.hourDrivers != null && dr == null) || state.brands.some((b) => existing.brands?.[b.name] != null && num(brands[b.name] ?? '') == null))) {
       return setError('Clearing a logged value isn’t supported yet. Enter the corrected number instead.');
     }
     const why = reason === 'Other' ? other.trim() : reason;
@@ -131,15 +133,16 @@ function HourForm({ state, baseline, run, setError }: { state: State; baseline: 
       <Note>{`${hour}–${formatHM(parseHM(hour)! + 60)}`}{existing ? ' · already logged: saving a change keeps the old value' : ''}</Note>
       <View style={s.row2}>
         <Field label="Autos counted this hour" value={count} onChange={setCount} />
-        <Field label="Drivers" note="(optional)" value={drivers} onChange={setDrivers} />
+        <Field label={dayDrivers != null ? 'Drivers this hour' : 'Drivers'} note={dayDrivers != null ? `(only if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} />
       </View>
+      {dayDrivers == null && <Note>Tip: set the day’s drivers once in Plan › Labor instead of every hour.</Note>}
       <Label>SPLIT BY BRAND (OPTIONAL)</Label>
       <View style={s.row2}>
         {state.brands.map((b) => <Field key={b.name} label={b.name} value={brands[b.name] ?? ''} onChange={(v) => setBrands((x) => ({ ...x, [b.name]: v }))} />)}
       </View>
       {short && (
         <View style={{ gap: 8 }}>
-          <Label>PRE-BREAK HOUR · WHEN DID PRODUCTION STOP?</Label>
+          <Label wrap>PRE-BREAK HOUR · WHEN DID PRODUCTION STOP?</Label>
           <Seg columns={2} value={stop} onChange={setStop}
             options={[30, 45].map((m) => ({ value: m, label: `Stopped ${formatHM(parseHM(hour)! + m)}` }))} />
         </View>

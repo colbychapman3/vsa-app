@@ -7,7 +7,9 @@ export type HourEntry = {
   day: number;
   start: string;                       // hour start, "HH:MM"
   count: number;                       // field autos counted in this hour
-  drivers?: number | null;
+  drivers?: number | null;             // drivers used for this hour: the hour's own count, else the day's setting
+  hourDrivers?: number | null;         // the count logged on the hour itself (null = none; the day's setting applies)
+  driversFrom?: 'hour' | 'day' | null;
   brands?: Record<string, number> | null;
   stopMin?: number | null;             // productive minutes in a short pre-break hour (30 or 45)
   was?: number[];                      // earlier values of this hour's total, oldest first (corrections)

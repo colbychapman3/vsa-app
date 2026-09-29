@@ -9,9 +9,14 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
   return <View style={[u.card, style]}>{children}</View>;
 }
 
-export function Label({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
+// Short caps labels stay on one line and shrink to fit, so a word never splits at
+// large text sizes ("COMPLETIO/N"). Sentence-length labels pass `wrap`: they wrap
+// between words in a full-width row.
+export function Label({ children, style, wrap }: { children: ReactNode; style?: StyleProp<TextStyle>; wrap?: boolean }) {
   const f = useType();
-  return <Text style={[u.lbl, { fontFamily: f.bodySemi }, style]}>{children}</Text>;
+  return wrap
+    ? <Text style={[u.lbl, { fontFamily: f.bodySemi }, style]}>{children}</Text>
+    : <Text style={[u.lbl, { fontFamily: f.bodySemi }, style]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{children}</Text>;
 }
 
 // Big numbers stay on one line and shrink to fit instead of wrapping mid-digit.
@@ -45,7 +50,7 @@ export function Bar({ pct, small }: { pct: number; small?: boolean }) {
 
 export function Tag({ kind }: { kind: 'FORECAST' | 'CALCULATED' }) {
   const f = useType();
-  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, { fontFamily: f.bodySemi }]}>{kind}</Text>;
+  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{kind}</Text>;
 }
 
 export function SectionHead({ title, right }: { title: string; right?: string }) {
@@ -102,7 +107,7 @@ export const u = StyleSheet.create({
   barSm: { height: 8, borderRadius: 4 },
   barFill: { height: '100%', backgroundColor: color.ink, borderRadius: 7 },
   barFillSm: { backgroundColor: color.blue, borderRadius: 4 },
-  tag: { alignSelf: 'flex-start', fontSize: 11, letterSpacing: 0.9, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
+  tag: { alignSelf: 'flex-start', maxWidth: '100%', fontSize: 11, letterSpacing: 0.9, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
   tagFc: { backgroundColor: color.orange, color: color.onOrange },
   tagCalc: { backgroundColor: color.soft, color: color.ink },
   secH: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' },

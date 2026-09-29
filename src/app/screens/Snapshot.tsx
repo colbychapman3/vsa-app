@@ -46,7 +46,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack }: Props)
         {/* Hero */}
         <Card style={[u.pad, { gap: 10 }]}>
           <View style={u.secH}>
-            <Label>{h.label}</Label>
+            <Label style={{ flexShrink: 1 }}>{h.label}</Label>
             {h.clerkBadge && (
               <Text style={[s.clerk, h.clerkBadge.ok ? s.clerkOk : s.clerkBad, { fontFamily: f.bodySemi }]}>
                 {h.clerkBadge.ok ? '✓ ' : '! '}{h.clerkBadge.text}
