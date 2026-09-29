@@ -1,6 +1,6 @@
 # Implementation Plan: Phase 3 — Screens
 
-Spec: `docs/specs/app-spec.md` (approved 2026-09-26). Plan approved by Colby 2026-09-26, with an independent reviewer agent at Checkpoints A and B. Tasks: `tasks/todo.md`. Earlier plans: `tasks/done/`.
+Spec: `docs/specs/app-spec.md` (approved 2026-09-26). Plan approved by Colby 2026-09-26, with an independent reviewer agent at Checkpoints A and B. Tasks: `tasks/done/phase-3-todo.md`. Earlier plans: `tasks/done/`.
 
 ## Overview
 

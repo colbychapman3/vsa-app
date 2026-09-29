@@ -1,6 +1,6 @@
 # Spec: Phase 1 — Rules engine (no UI)
 
-Status: **APPROVED by Colby 2026-09-25** (as written, including open-question defaults and the `typescript`/`@types/node` dev dependencies). Plan: `tasks/plan.md`.
+Status: **APPROVED by Colby 2026-09-25** (as written, including open-question defaults and the `typescript`/`@types/node` dev dependencies). Plan: `tasks/done/phase-1-plan.md`.
 
 ## Objective
 

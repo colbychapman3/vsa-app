@@ -1,6 +1,6 @@
 # Spec: Phase 2 — Offline storage
 
-Status: **APPROVED by Colby 2026-09-25.** Plan: `tasks/plan.md`.
+Status: **APPROVED by Colby 2026-09-25.** Plan: `tasks/done/phase-2-plan.md`.
 
 ## Objective
 

@@ -1,6 +1,6 @@
 # Implementation Plan: Phase 2 — Offline storage
 
-Spec: `docs/specs/phase-2-offline-storage.md` (approved 2026-09-25). Tasks: `tasks/todo.md`.
+Spec: `docs/specs/phase-2-offline-storage.md` (approved 2026-09-25). Tasks: `tasks/done/phase-2-todo.md`.
 Phase 1 plan: `tasks/done/`.
 
 ## Overview

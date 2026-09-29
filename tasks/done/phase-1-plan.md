@@ -1,6 +1,6 @@
 # Implementation Plan: Phase 1 — Rules engine
 
-Spec: `docs/specs/phase-1-rules-engine.md` (approved 2026-09-25). Tasks: `tasks/todo.md`.
+Spec: `docs/specs/phase-1-rules-engine.md` (approved 2026-09-25). Tasks: `tasks/done/phase-1-todo.md`.
 
 ## Overview
 
@@ -32,7 +32,7 @@ setup + tracker harness (T1)
 
 ## Task list
 
-See `tasks/todo.md` for acceptance criteria and verification per task.
+See `tasks/done/phase-1-todo.md` for acceptance criteria and verification per task.
 
 - Foundation: T1 setup and tracker harness · T2 time · T3 baseline and decks · T4 fit
 - Checkpoint A
