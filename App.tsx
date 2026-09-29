@@ -147,7 +147,7 @@ export default function App() {
     onImport: async (text) => {
       const r = await importLog(store.current!, text);
       if (!r.ok) return r;
-      await markExported(dbRef.current!, r.operationId, r.exportedAt, r.total); // those entries are in the file
+      if (r.kind !== 'current') await markExported(dbRef.current!, r.operationId, r.exportedAt, r.total); // those entries are in the file
       await reload();
       const msg = r.kind === 'current' ? `${r.operationId} is already up to date. Nothing changed.`
         : `${r.operationId}: ${r.added} ${r.added === 1 ? 'entry' : 'entries'} added (${r.kind === 'created' ? 'new vessel' : 'existing vessel kept'}).`;
@@ -176,7 +176,7 @@ export default function App() {
                 </View>
               )}
               <ScrollView key={tab} contentContainerStyle={s.scroll}>{/* new tab starts at the top */}
-                {tab === 'snap' && bk.unsaved > 0 && <Text style={[s.note, { paddingHorizontal: 20, paddingTop: 12 }]}>{bk.unsaved} {bk.unsaved === 1 ? 'entry' : 'entries'} not backed up. Export from Plan › Backup.</Text>}
+                {tab === 'snap' && bk.unsaved > 0 && <Text style={[s.note, { paddingHorizontal: 20, paddingTop: 12 }]}>{bk.unsaved} {bk.unsaved === 1 ? 'entry' : 'entries'} not backed up. Export from Plan, Backup.</Text>}
                 {tab === 'snap'
                   ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} />
                   : tab === 'decks'

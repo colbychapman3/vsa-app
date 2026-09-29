@@ -25,6 +25,7 @@ async function seeded(t: any, events: VsaEvent[], op = OP) {
   assert.ok(a.ok, a.ok ? '' : a.error);
   return x;
 }
+const reseal = (f: any) => { f.checksum = sha256Hex(JSON.stringify({ operation_id: f.vessel.operation_id, is_test: f.vessel.is_test, baseline: f.vessel.baseline, events: f.events })); return JSON.stringify(f); };
 const exp = async (store: any, op = OP) => { const r = await exportLog(store, op, NOW); assert.ok(r.ok); return r.text; };
 
 test('sha256 matches node:crypto, including multi-byte text and block edges', () => {
@@ -68,7 +69,7 @@ test('backup: tampered checksum, count, format and version are refused', async (
     [tweak((c) => { c.events[0].payload.value = 999; }), /checksum does not match/],
     [tweak((c) => { c.events.pop(); }), /says \d+ events but holds/],
     [tweak((c) => { c.format = 'other'; }), /not a VSA log file/],
-    [tweak((c) => { c.version = 2; }), /version 2/],
+    [tweak((c) => { c.version = 3; }), /version 3/],
     [tweak((c) => { c.app_schema_version = 99; }), /newer app/],
     ['not json', /not valid JSON/],
   ];
@@ -81,7 +82,7 @@ test('backup: TEST file cannot land as a LIVE vessel', async (t) => {
   const f = JSON.parse(await exp(a.store));
   f.vessel.is_test = false; // claim LIVE while the id says TEST-
   const b = await fresh(t);
-  const r = await importLog(b.store, JSON.stringify(f));
+  const r = await importLog(b.store, reseal(f));
   assert.ok(!r.ok && /LIVE vessel id|TEST/.test(r.error), JSON.stringify(r));
   assert.deepEqual(await b.store.listVessels(), []);
 });
@@ -118,7 +119,7 @@ test('backup: different baseline for the same vessel is refused', async (t) => {
   const a = await seeded(t, toEvents(SCENARIOS[0]));
   const f = JSON.parse(await exp(a.store));
   f.vessel.baseline = { ...f.vessel.baseline, vessel: 'Changed' };
-  const r = await importLog(a.store, JSON.stringify(f));
+  const r = await importLog(a.store, reseal(f));
   assert.ok(!r.ok && /different baseline/.test(r.error), JSON.stringify(r));
 });
 
@@ -131,4 +132,30 @@ test('backup: last-export marker and unsaved count', async (t) => {
   assert.deepEqual(await backupStatus(db, OP, n + 2), { lastAt: NOW, unsaved: 2 });
   await markExported(db, OP, NOW, n + 2); // replaces, never grows
   assert.equal((await db.all('SELECT 1 FROM settings')).length, 1);
+});
+
+test('backup v2: checksum covers baseline and operation_id; a v1 file still imports', async (t) => {
+  const a = await seeded(t, toEvents(SCENARIOS[1]));
+  const f = JSON.parse(await exp(a.store));
+  assert.equal(f.version, 2);
+  const b = await fresh(t);
+  for (const edit of [(c: any) => { c.vessel.baseline.vessel = 'Changed'; }, (c: any) => { c.vessel.operation_id = 'TEST-other'; }, (c: any) => { c.vessel.is_test = false; }]) {
+    const c = structuredClone(f); edit(c);
+    const r = await importLog(b.store, JSON.stringify(c));
+    assert.ok(!r.ok && /checksum does not match/.test(r.error), JSON.stringify(r));
+  }
+  assert.deepEqual(await b.store.listVessels(), []);
+  const v1 = structuredClone(f); v1.version = 1; v1.checksum = sha256Hex(JSON.stringify(f.events));
+  const r = await importLog(b.store, JSON.stringify(v1));
+  assert.ok(r.ok && r.kind === 'created', JSON.stringify(r));
+});
+
+test('backup: importing an older file does not lower the backed-up count; export during share stays unsaved', async (t) => {
+  const { db, store } = await seeded(t, toEvents(SCENARIOS[1]));
+  const n = (await store.load(OP) as any).events.length;
+  await markExported(db, OP, NOW, n);
+  await markExported(db, OP, '2026-09-28T10:00:00-04:00', n - 3); // older file: must not lower it
+  assert.deepEqual(await backupStatus(db, OP, n), { lastAt: NOW, unsaved: 0 });
+  // the file held n events; an entry saved while the share sheet was open makes the live count n + 1
+  assert.deepEqual(await backupStatus(db, OP, n + 1), { lastAt: NOW, unsaved: 1 });
 });
