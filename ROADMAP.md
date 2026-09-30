@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 4 complete (2026-09-29, phone check passed). Phase 5 spec in progress. 184 tests passing.
+**Current status:** Phase 4 complete (2026-09-29, phone check passed). Phase 5 approved 2026-09-29 (spec `docs/specs/phase-5-new-vessel.md`, all 5 defaults). 184 tests passing.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
@@ -36,6 +36,12 @@ Update the status line when a phase changes.
 - Load a new vessel's baseline (entered or imported). Optional sync/sharing when online.
   - Setup screen asks the VSA's startup questions (protocol §11.1); later, fill it from a photo of the labor order / game plan, read on-device, every value confirmed before saving.
   - Downloadable PDF report (via the share sheet) at any time: break/shift-end (protocol §11.2) and vessel completion (§9.3). Interim reports are time-stamped and labeled; unknowns stay unknown.
+**Phase 5 plan (approved 2026-09-29):**
+1. Setup + import core (pure TS, tests): `src/app/setup.ts`.
+2. Vessel list, switching, archive, last-opened (`src/storage/vessels.ts`, settings table; no schema change).
+3. Report content (pure TS, tests): `src/app/report.ts`, break/shift-end + completion, notes for analysis sections.
+4. Screens: Vessels sheet, 5-step Setup, import, report buttons; `App.tsx` no longer hard-codes the vessel.
+5. Add `expo-print` + `expo-sharing`; new EAS dev build; phone check.
 **Done when:** a second vessel can be started without developer help.
 
 ## Phase 6: On-device AI (optional)

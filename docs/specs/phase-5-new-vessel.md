@@ -1,6 +1,6 @@
 # Spec: Phase 5 — New vessel, vessel switching, reports
 
-Status: **DRAFT, awaiting Colby's approval.** Open questions at the end have recommended defaults.
+Status: **APPROVED 2026-09-29** with all recommended defaults for the open questions.
 
 ## Objective
 
