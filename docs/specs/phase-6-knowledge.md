@@ -4,7 +4,7 @@
 An offline, searchable knowledge pack built from the Brain's documents so Colby (and later the assistant) can look up SOPs, protocol rules and terminal facts without a signal. Success: a Search screen that returns cited passages from the source documents, or says "not found".
 
 ## Sources (from the Brain, 2026-09-30)
-- In: SOP Ver. 2024 (text supplied by Colby 2026-09-30 as `docs/knowledge-src/sop-ver-2024.md`; a markdown rendering with chapters and sections but **no page numbers**, so citations read "SOP Ver. 2024, Ch. 4 §2"; the original PDF wins on any difference); Operating Protocol v1.1 (`docs/knowledge-src/VSA-Operating-Protocol-v1.1.md`, sectioned, converted from the PDF; the PDF wins); VSA-Glossary.md (supplied; status column kept so Confirmed/Industry/Needs-definition shows in results); 02-Stevedoring-Operations-Reference.md (still to export). (The Terminal Yard Map PDF is not used: the Map screen and the terminal directory cover it.)
+- In: SOP Ver. 2024 (text supplied by Colby 2026-09-30 as `docs/knowledge-src/sop-ver-2024.md`; a markdown rendering with chapters and sections but **no page numbers**, so citations read "SOP Ver. 2024, Ch. 4 §2"; the original PDF wins on any difference); Operating Protocol v1.1 (`docs/knowledge-src/VSA-Operating-Protocol-v1.1.md`, sectioned, converted from the PDF; the PDF wins); VSA-Glossary.md (supplied; status column kept so Confirmed/Industry/Needs-definition shows in results); 02-Stevedoring-Operations-Reference.md (supplied 2026-09-30; rev. 2 is older than the protocol, so its Southside list is superseded by Appendix C). (The Terminal Yard Map PDF is not used: the Map screen and the terminal directory cover it.)
 - Vessel history (the Jun 19-20, Jun 11-12 and Sep 4-5 baselines): only if Colby asks.
 - Excluded: profile, session logs, runbook, projects index (history, not rules).
 - The Brain is history, not rules: where a passage conflicts with `CLAUDE.md` or `docs/`, `docs/` wins and the answer shows both.
@@ -41,4 +41,4 @@ A known SOP phrase returns its passage first; a nonsense query returns not-found
 4. All tests pass.
 
 ## Open questions
-None for the SOP (resolved: Colby's markdown export is the source; no PDF conversion needed). The protocol and glossary are supplied. Only the operations reference is still to be exported; same folder, same script. First real test questions come from the SOP: 20 km/h hold speed limit, BEV report threshold (50 C), belt scrapping cut size, which label goes on a low-clearance sports car.
+None for the SOP (resolved: Colby's markdown export is the source; no PDF conversion needed). The protocol and glossary are supplied. All four sources are supplied; same folder, same script. First real test questions come from the SOP: 20 km/h hold speed limit, BEV report threshold (50 C), belt scrapping cut size, which label goes on a low-clearance sports car.
