@@ -20,7 +20,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
 }) {
   const f = useType();
   const [step, setStep] = useState(0);
-  const [v, setV] = useState({ vessel: '', date: '', port: '', berth: '', sources: '', start: '08:00', drivers: '' });
+  const [v, setV] = useState({ vessel: '', date: '', port: '', berth: '', start: '08:00', drivers: '' });
   const set = (k: keyof typeof v) => (x: string) => setV({ ...v, [k]: x });
   const [allocs, setAllocs] = useState<Allocation[]>([blank()]);
   const [decks, setDecks] = useState<DeckDraft[]>([]);
@@ -43,7 +43,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
     const form: SetupForm = {
       vessel: v.vessel, date: v.date, port: v.port, berth: v.berth, isTest, start: v.start,
       drivers: v.drivers.trim() === '' ? null : Number(v.drivers),
-      sources: v.sources.split(';'), destinations: g.destinations, decks: ds,
+      sources: [], destinations: g.destinations, decks: ds,
     };
     const built = buildBaseline(form);
     return errs.length ? { ok: false, errors: [...errs, ...(built.ok ? [] : built.errors)] } : built;
@@ -83,7 +83,6 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
           <Body semi>Berth</Body>
           <Seg options={BERTHS} value={v.berth || null} onChange={set('berth')} />
           <Note>The berth sets the miles to each destination.</Note>
-          <Field label="Sources (optional)" note="which paperwork; separate with ;" value={v.sources} onChange={set('sources')} keyboard="default" placeholder="Game plan 9/30; Labor order 9/30" />
           <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
           <Note>TEST data never mixes with a live vessel. Reference vessels (Glovis Condor 101) can only be TEST.</Note>
           <Go label="Next" onPress={() => { if (!v.vessel.trim()) setError('The vessel needs a name.'); else if (!v.berth) setError('Choose the berth.'); else go(1); }} />
@@ -164,8 +163,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
                 <Field label="Deck total" note="check" value={d.total} onChange={(x) => setDeck(i, { ...d, total: x })} />
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Field label="Heights (m)" note="2.00, 1.70" value={d.heights} onChange={(x) => setDeck(i, { ...d, heights: x })} keyboard="numbers-and-punctuation" />
-                <Field label="Current (m)" value={d.current} onChange={(x) => setDeck(i, { ...d, current: x })} keyboard="numbers-and-punctuation" />
+                <Field label="Deck height (m)" note="optional" value={d.current} onChange={(x) => setDeck(i, { ...d, current: x })} keyboard="numbers-and-punctuation" />
               </View>
               {d.hatches.map((h, hi) => (
                 <View key={h.h} style={{ gap: 8, borderTopWidth: 1, borderTopColor: color.row, paddingTop: 10 }}>

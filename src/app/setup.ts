@@ -137,20 +137,18 @@ function finish(baseline: Baseline, isTest: boolean, errors: string[], warnings:
 
 // ---------- typed drafts (what the setup screen holds as text) ----------
 
-export type DeckDraft = { label: string; total: string; heights: string; current: string; hatches: { h: string; items: { brand: string; qty: string }[] }[] };
-export const emptyDeck = (): DeckDraft => ({ label: '', total: '', heights: '', current: '', hatches: ['H4', 'H3', 'H2', 'H1'].map((h) => ({ h, items: [{ brand: '', qty: '' }] })) });
+export type DeckDraft = { label: string; total: string; current: string; hatches: { h: string; items: { brand: string; qty: string }[] }[] };
+export const emptyDeck = (): DeckDraft => ({ label: '', total: '', current: '', hatches: ['H4', 'H3', 'H2', 'H1'].map((h) => ({ h, items: [{ brand: '', qty: '' }] })) });
 
 const num = (t: string) => (t.trim() === '' ? NaN : Number(t.trim()));
 
 // Text → deck. Blank cargo lines are dropped (a hatch may be empty); a brand with no quantity, or a
-// quantity with no brand, is refused. Heights: "2.00, 1.70" with the current one named or implied.
+// quantity with no brand, is refused. Height: only the deck's current height; blank = unknown.
 export function deckFromDraft(d: DeckDraft): { deck: SetupForm['decks'][number]; errors: string[] } {
   const errors: string[] = [];
   const label = d.label.trim() || 'Deck';
-  const list = d.heights.split(/[,\s]+/).filter(Boolean).map(Number);
-  if (list.some((m) => Number.isNaN(m))) errors.push(`${label}: heights must be numbers in metres, like 2.00, 1.70.`);
-  const cur = d.current.trim() === '' ? (list.length === 1 ? list[0] : NaN) : Number(d.current);
-  if (list.length && !list.includes(cur)) errors.push(`${label}: the current height must be one of the listed heights.`);
+  const cur = Number(d.current);
+  if (d.current.trim() !== '' && !(cur > 0)) errors.push(`${label}: the height must be a number in metres, like 2.00.`);
   const hatches = d.hatches.filter((h) => h.h.trim() || h.items.some((i) => i.brand.trim() || i.qty.trim())).map((h) => ({
     h: h.h,
     items: h.items.filter((i) => i.brand.trim() || i.qty.trim()).map((i) => {
@@ -162,7 +160,7 @@ export function deckFromDraft(d: DeckDraft): { deck: SetupForm['decks'][number];
   // The deck total is a cross-check Colby types once; it must equal the hatches (never adjusted to fit).
   const sum = hatches.reduce((s, h) => s + h.items.reduce((x, i) => x + (Number.isFinite(i.qty) ? i.qty : 0), 0), 0);
   if (d.total.trim() !== '' && Number(d.total) !== sum) errors.push(`${label}: deck total ${d.total.trim()} but the hatches add to ${sum.toLocaleString('en-US')}.`);
-  return { deck: { label: d.label, heights: list.map((m) => ({ m, current: m === cur })), hatches }, errors };
+  return { deck: { label: d.label, heights: d.current.trim() !== '' && cur > 0 ? [{ m: cur, current: true }] : [], hatches }, errors };
 }
 
 // Brand-first entry: each line is one brand going to one destination. Lines to the same destination merge

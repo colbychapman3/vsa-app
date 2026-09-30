@@ -100,7 +100,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
           <Chip text={v.baseline.missing} tone={v.baseline.missing === 'Nothing missing' ? 'plain' : 'orange'} />
         </View>
         {v.baseline.checks.map((c) => <Note key={c}>• {c}</Note>)}
-        <Note>{v.baseline.sources}</Note>
+        {v.baseline.sources !== 'Sources: ' && <Note>{v.baseline.sources}</Note>}
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
