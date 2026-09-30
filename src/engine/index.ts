@@ -18,6 +18,13 @@ export * from './production.ts';
 export * from './ledger.ts';
 export * from './eta.ts';
 
+// A ship-specific note (Plan tab). The current text, plus every earlier version.
+export type PlanNote = {
+  id: string; headId: string; title: string | null; text: string; source: 'typed' | 'photo-read'; photo: string | null;
+  createdAt: string; edited: boolean; removed: boolean; removedReason: string | null; removedAt: string | null;
+  history: { title: string | null; text: string; at: string; reason: string | null }[]; // oldest to newest
+};
+
 // One row of the break log. startId/endId are the current events to correct (null = not editable here).
 export type BreakEntry = {
   kind: 'break' | 'missed' | 'shift';
@@ -74,6 +81,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const dayActual = new Map<number, { hm: string; id: string; cause: string | null }>(); // actual (late) start per operation day
   const plan: { shiftEnd: string | null; nextStart: string | null } = { shiftEnd: null, nextStart: null };
   const clerks: { remaining: number; time: string; seq: number }[] = [];
+  const noteList: PlanNote[] = [];
   const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
   let recStart = 0; // sequence of the latest break/shift-end start
   const lastDeckEvent: Record<string, string> = {}; // for naming the event in whole-sheet errors
@@ -248,6 +256,32 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         if (typeof p.value !== 'string' || parseHM(p.value) == null) return fail(`Event ${id}: ${p.metric} must be an HH:MM time.`, id);
         plan[p.metric === 'plan_shift_end' ? 'shiftEnd' : 'nextStart'] = p.value;
         continue;
+      case 'plan_note': {
+        // Ship-specific notes: text only. A note never changes a count, ledger or forecast.
+        const T = e.event_type;
+        if (sc.workstream !== 'operation') return fail(`Event ${id}: a note belongs to the operation, not to ${sc.workstream}.`, id);
+        if (T !== 'note.added' && T !== 'note.corrected' && T !== 'note.removed') return fail(`Event ${id}: a note must be added, corrected or removed.`, id);
+        if (root.event_type !== 'note.added') return fail(`Event ${id}: a note chain must start with note.added.`, id);
+        if (p.count_kind !== 'not_applicable') return fail(`Event ${id}: a note must not be a count kind (count_kind not_applicable).`, id);
+        if (T === 'note.corrected' && byId.get(e.supersedes_event_id!)?.event_type === 'note.removed') return fail(`Event ${id}: that note was removed. Add a new note instead.`, id);
+        if (T === 'note.removed') {
+          if (p.value !== null) return fail(`Event ${id}: a note removal carries no text.`, id);
+        } else {
+          if (typeof p.value !== 'string' || !p.value.trim()) return fail(`Event ${id}: a note needs text.`, id);
+          if (p.title != null && typeof p.title !== 'string') return fail(`Event ${id}: a note title must be text.`, id);
+          if (p.source != null && p.source !== 'typed' && p.source !== 'photo-read') return fail(`Event ${id}: a note source must be typed or photo-read.`, id);
+          if (p.photo != null && typeof p.photo !== 'string') return fail(`Event ${id}: a note photo must be a file path.`, id);
+        }
+        const label = (x: VsaEvent) => { const o = at(x.occurred_at); return when(o && !('error' in o) ? o : null, x.recorded_at); };
+        const chain = historyOf(log, id), versions = chain.filter((x) => x.event_type !== 'note.removed'), last = versions.at(-1)!;
+        noteList.push({
+          id: root.event_id, headId: id, title: last.payload.title?.trim() || null, text: String(last.payload.value).trim(),
+          source: last.payload.source ?? 'typed', photo: last.payload.photo ?? null, createdAt: label(root),
+          edited: versions.length > 1, removed: T === 'note.removed', removedReason: T === 'note.removed' ? p.reason : null, removedAt: T === 'note.removed' ? label(e) : null,
+          history: versions.map((x) => ({ title: x.payload.title?.trim() || null, text: String(x.payload.value).trim(), at: label(x), reason: x.event_type === 'note.corrected' ? x.payload.reason : null })),
+        });
+        continue;
+      }
       case 'discrepancy':
         if (e.event_type !== 'discrepancy_opened' && e.event_type !== 'discrepancy_resolved') return fail(`Event ${id}: discrepancy must be opened or resolved.`, id);
         if (e.event_type === 'discrepancy_opened' && !(p.reason ?? (typeof p.value === 'string' ? p.value : '')).trim()) return fail(`Event ${id}: a discrepancy needs a description.`, id);
@@ -348,6 +382,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     ops: { ...ops, phase },
     plan,
     issues: [...issues.values()],
+    notes: noteList, // creation order; removed ones stay, flagged
     breakLog,
     // Per operation day: planned start and the actual start if one was recorded (null = the planned start applies).
     dayStarts: Object.fromEntries(Array.from({ length: Math.max(2, ops.day, ...dayActual.keys()) }, (_, i) => {

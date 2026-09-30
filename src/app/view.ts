@@ -339,6 +339,11 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
       open: open.map((i) => ({ id: i.id, text: i.text, opened: i.openedAt.startsWith('Logged') ? i.openedAt : `Opened ${i.openedAt}` })),
       resolved: resolved.length ? `Recently resolved: ${resolved.map((i) => `${i.text} (${i.resolvedAt})`).join(' · ')}` : null,
     },
+    // Ship-specific notes: current ones, then removed ones (kept in the log, shown greyed with the reason).
+    notes: {
+      current: s.notes.filter((n) => !n.removed).map((n) => ({ id: n.id, title: n.title, text: n.text, meta: `${n.createdAt}${n.edited ? ' · edited' : ''}${n.source === 'photo-read' ? ' · read from a photo' : ''}` })),
+      removed: s.notes.filter((n) => n.removed).map((n) => ({ id: n.id, text: n.text, meta: `Removed ${n.removedAt} · ${n.removedReason}` })),
+    },
     baseline: {
       start: fmt(s.start),
       brands: s.brands.map((x) => `${fmt(x.start)} ${x.name}`).join(' + '),

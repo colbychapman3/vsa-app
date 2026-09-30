@@ -105,6 +105,15 @@ function clearBy(s: State, b: Baseline): Section {
   return { title: 'Clear-by before breaks', table: { head: ['Break', 'Northside clear-by', 'Southside clear-by', 'Recorded'], rows } };
 }
 
+// Current notes only (removed ones stay in the log, not the report); edited ones say so.
+export function notesSection(s: State): Section {
+  const live = s.notes.filter((x) => !x.removed);
+  return {
+    title: 'Notes',
+    lines: live.length ? live.map((x) => `${x.title ? `${x.title}: ` : ''}${x.text} (${x.createdAt}${x.edited ? '; edited, earlier versions kept in the log' : ''}${x.source === 'photo-read' ? '; read from a photo' : ''})`) : ['None recorded.'],
+  };
+}
+
 function discrepancies(s: State, b: Baseline): Section {
   const base = validateBaseline(b);
   const lines = [
@@ -134,7 +143,7 @@ function breakSections(s: State, b: Baseline, phase: string): Section[] {
   const live = s.decks.filter((d) => d.status === 'active' || d.status === 'paused');
   return [
     { title: 'Status', lines: [phase, `Day ${s.ops.day}`, `Active/paused decks: ${live.length ? live.map((d) => `${d.label} (${STATUS[d.status].toLowerCase()}, ${n(d.rem)} left)`).join('; ') : 'none'}`] },
-    reconciliation(s), remainingByBrand(s), hours(s), eta(s, b), clearBy(s, b), discrepancies(s, b),
+    reconciliation(s), remainingByBrand(s), hours(s), eta(s, b), clearBy(s, b), discrepancies(s, b), notesSection(s),
   ];
 }
 
@@ -172,6 +181,7 @@ function completionSections(s: State, b: Baseline, phase: string, notes: Record<
     { title: '8. Timeline', lines: timeline.length ? timeline : ['No day starts or breaks recorded.'] },
     { title: '9. Corrections and discrepancies', lines: [...(disc.lines ?? []), ...corrected] },
     eta(s, b),
+    notesSection(s),
   ];
   NOTE_SECTIONS.forEach((t, i) => out.push({
     title: `${10 + i}. ${t}`,

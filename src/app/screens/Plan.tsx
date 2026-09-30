@@ -30,6 +30,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
   const [startOpen, setStartOpen] = useState<number | null>(null); // operation day whose start time is being set
   const [importOpen, setImportOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [noteSheet, setNoteSheet] = useState<{ id: string | null } | null>(null); // id null = add a note
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
   const [making, setMaking] = useState<'break' | 'completion' | null>(null); // which report is being made
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
@@ -89,6 +90,22 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
           </View>
         ))}
         {v.issues.resolved && <Note>{v.issues.resolved}</Note>}
+      </Card>
+
+      <Card style={[u.pad, { gap: 10 }]}>
+        <SectionHead title="Notes" right={v.notes.current.length ? `${v.notes.current.length}` : undefined} />
+        {v.notes.current.length === 0 && <Note>No ship notes yet. Notes never change any count or forecast.</Note>}
+        {v.notes.current.map((n) => (
+          <Pressable key={n.id} onPress={() => setNoteSheet({ id: n.id })} style={({ pressed }) => [s.logRow, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${n.title ?? 'Note'}. Edit or remove`}>
+            {n.title ? <Body semi>{n.title}</Body> : null}
+            <Body>{n.text}</Body>
+            <Note>{n.meta}</Note>
+            <Text style={[s.edit, { fontFamily: f.bodySemi }]}>Edit ›</Text>
+          </Pressable>
+        ))}
+        {v.notes.removed.map((n) => <Note key={n.id}>Removed: {n.text} ({n.meta})</Note>)}
+        <Go ghost label="Add a note" onPress={() => setNoteSheet({ id: null })} />
+        <Note>Edits and removals keep the earlier text in the log.</Note>
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
@@ -197,6 +214,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
       </Card>
 
+      {noteSheet && <PlanNoteSheet isTest={isTest} state={state} baseline={baseline} noteId={noteSheet.id} save={save} onClose={(done) => { setNoteSheet(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {notesOpen && <NotesSheet isTest={isTest} reports={reports} onClose={() => setNotesOpen(false)} />}
       {importOpen && <ImportSheet isTest={isTest} backup={backup} onClose={(done) => { setImportOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
       {startOpen != null && <StartSheet isTest={isTest} state={state} baseline={baseline} day={startOpen} save={save} onClose={(done) => { setStartOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
@@ -323,6 +341,54 @@ function StartSheet({ state, baseline, isTest, day: first, save, onClose }: { is
         if (r.ok) onClose(`Day ${day} start cleared. The old time is kept in the log.`); else setError(r.error);
       }} />}
       <Note>Nothing is overwritten: the old start stays in the log.</Note>
+    </Sheet>
+  );
+}
+
+// Ship notes: add, edit (reason required, old text kept) or remove (reason required, stays in the log).
+function PlanNoteSheet({ state, baseline, isTest, noteId, save, onClose }: { isTest: boolean; state: State; baseline: Baseline; noteId: string | null; save: Save; onClose: (done?: string) => void }) {
+  const f = useType();
+  const note = noteId ? state.notes.find((n) => n.id === noteId) ?? null : null;
+  const [title, setTitle] = useState(note?.title ?? '');
+  const [text, setText] = useState(note?.text ?? '');
+  const [time, setTime] = useState('');
+  const [reason, setReason] = useState<string | null>(null);
+  const [other, setOther] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const why = () => (reason === 'Other' ? other.trim() : reason);
+  const now = () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) setTime(t.hm); else setError('The phone’s date is before this operation’s Day 1.'); };
+  const run = async (build: (c: E.Ctx) => VsaEvent[] | Reject, done: string) => {
+    setError(null);
+    const r = await save(build);
+    if (r.ok) onClose(done); else setError(r.error);
+  };
+  const submit = () => {
+    if (!note) {
+      if (time.trim() !== '' && parseHM(time.trim()) == null) return setError('Times are HH:MM, for example 09:15.');
+      return run((c) => E.addNoteEvents(c, { title, text, time: time.trim() === '' ? null : { day: c.state.ops.day, hm: time.trim().padStart(5, '0') } }), 'Note added.');
+    }
+    return run((c) => E.editNoteEvents(c, note.id, { title, text }, why()), 'Note changed. The old text is kept in the log.');
+  };
+  return (
+    <Sheet title={note ? 'Edit note' : 'Add a note'} isTest={isTest} onClose={() => onClose()}>
+      <Field label="Title (optional)" value={title} onChange={setTitle} keyboard="default" maxLength={80} />
+      <View style={{ gap: 6 }}>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>Note</Text>
+        <TextInput value={text} onChangeText={setText} multiline accessibilityLabel="Note text" placeholder="Type the note" placeholderTextColor={color.muted}
+          style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 140, paddingTop: 12, textAlignVertical: 'top' }]} />
+      </View>
+      {!note && <TimeField label="Time (optional)" value={time} onChange={setTime} onNow={now} />}
+      {note && <Reasons options={E.NOTE_REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />}
+      {error && <ErrorBox text={error} />}
+      <Go label={note ? 'Save changes' : 'Add note'} onPress={submit} />
+      {note && <Go ghost label="Remove this note" onPress={() => run((c) => E.removeNoteEvents(c, note.id, why()), 'Note removed. It stays in the log, marked removed.')} />}
+      {note && note.history.length > 1 && (
+        <View style={{ gap: 6 }}>
+          <Label>EARLIER VERSIONS</Label>
+          {note.history.slice(0, -1).reverse().map((h, i) => <Note key={i}>{h.title ? `${h.title}: ` : ''}{h.text} ({h.at})</Note>)}
+        </View>
+      )}
+      <Note>Notes never change a count, ledger or forecast. Nothing is overwritten: the original text stays in the log.</Note>
     </Sheet>
   );
 }

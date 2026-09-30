@@ -53,6 +53,7 @@ function builder(ctx: Ctx) {
     workstream?: 'auto_discharge' | 'operation'; deck?: string | null; hatch?: string | null; commodity?: string | null;
     at?: OpTime | null; period?: [string, string] | null; reason?: string | null; supersedes?: string | null; inputs?: string[];
     provenance?: VsaEvent['provenance']; cause?: string | null;
+    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null }; // plan_note fields
   }) => {
     const id = `${ctx.operationId}-${seq}`;
     out.push({
@@ -61,7 +62,7 @@ function builder(ctx: Ctx) {
       occurred_at: e.at ? iso(ctx, e.at) : null, recorded_at: ctx.recordedAt, actor: 'colby', source_ids: ['vsa-app'], provenance: e.provenance ?? 'user_report',
       supersedes_event_id: e.supersedes ?? null,
       payload: { metric: e.metric, value: e.value, unit: null, count_kind: e.kind ?? 'not_applicable',
-        period_start: e.period?.[0] ?? null, period_end: e.period?.[1] ?? null, reason: e.reason ?? null, input_event_ids: e.inputs ?? [], ...(e.cause ? { cause: e.cause } : {}) },
+        period_start: e.period?.[0] ?? null, period_end: e.period?.[1] ?? null, reason: e.reason ?? null, input_event_ids: e.inputs ?? [], ...(e.cause ? { cause: e.cause } : {}), ...(e.extra ?? {}) },
     });
   };
   return { add, out };
@@ -383,5 +384,54 @@ export function removeBreakEvents(ctx: Ctx, b: BreakEntry, reason: string | null
   const { add, out } = builder(ctx);
   correctionOf(add, eventById(ctx, b.startId)!, 'void', null, why);
   if (b.endId) correctionOf(add, eventById(ctx, b.endId)!, 'void', null, why);
+  return out;
+}
+
+// ---------- Plan notes ----------
+
+export const NOTE_REASONS = ['Typo', 'New information', 'Added by mistake'] as const; // plus "Other…" (free text)
+
+export type NoteForm = { title?: string | null; text: string; time?: OpTime | null; source?: 'typed' | 'photo-read'; photo?: string | null };
+
+export function addNoteEvents(ctx: Ctx, f: NoteForm): VsaEvent[] | Reject {
+  const text = f.text.trim();
+  if (!text) return reject('A note needs text.');
+  const bt = badTimes(f.time ?? null);
+  if (bt) return bt;
+  const { add, out } = builder(ctx);
+  add({ type: 'note.added', metric: 'plan_note', value: text, workstream: 'operation', at: f.time ?? null,
+    extra: { title: f.title?.trim() || null, source: f.source ?? 'typed', photo: f.photo ?? null } });
+  return out;
+}
+
+function currentNote(ctx: Ctx, id: string) {
+  const n = ctx.state.notes.find((x) => x.id === id);
+  if (!n) return reject('That note is not on this vessel.');
+  if (n.removed) return reject('That note was removed. Add a new note instead.');
+  return n;
+}
+
+// An edit supersedes the current version (reason required); the old text stays in history.
+export function editNoteEvents(ctx: Ctx, id: string, f: { title?: string | null; text: string }, reason: string | null): VsaEvent[] | Reject {
+  const n = currentNote(ctx, id);
+  if ('ok' in n) return n;
+  const text = f.text.trim();
+  if (!text) return reject('A note needs text.');
+  const title = f.title?.trim() || null;
+  if (text === n.text && title === n.title) return reject('Nothing to save: the note is unchanged.');
+  if (!reason?.trim()) return reject('Pick a reason for changing this note. The old text is kept.');
+  const { add, out } = builder(ctx);
+  add({ type: 'note.corrected', metric: 'plan_note', value: text, workstream: 'operation', supersedes: n.headId, reason: reason.trim(),
+    extra: { title, source: n.source, photo: n.photo } });
+  return out;
+}
+
+// Removal is an entry, never a delete: the note stays in the log, marked removed, with its reason.
+export function removeNoteEvents(ctx: Ctx, id: string, reason: string | null): VsaEvent[] | Reject {
+  const n = currentNote(ctx, id);
+  if ('ok' in n) return n;
+  if (!reason?.trim()) return reject('Pick a reason for removing this note. It stays in the log, marked removed.');
+  const { add, out } = builder(ctx);
+  add({ type: 'note.removed', metric: 'plan_note', value: null, workstream: 'operation', supersedes: n.headId, reason: reason.trim() });
   return out;
 }

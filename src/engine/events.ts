@@ -4,7 +4,7 @@
 import type { Reject } from './time.ts';
 
 export type Workstream = 'auto_discharge' | 'hh_discharge' | 'static_discharge' | 'auto_loadback' | 'hh_loadback' | 'lashing' | 'operation';
-export type EventType = 'initialize' | 'observation' | 'correction' | 'status_change' | 'pause' | 'resume' | 'discrepancy_opened' | 'discrepancy_resolved' | 'forecast_created';
+export type EventType = 'initialize' | 'observation' | 'correction' | 'status_change' | 'pause' | 'resume' | 'discrepancy_opened' | 'discrepancy_resolved' | 'forecast_created' | 'note.added' | 'note.corrected' | 'note.removed';
 export type CountKind = 'interval' | 'cumulative' | 'remaining' | 'not_applicable';
 export type Scope = { workstream: Workstream; deck: string | null; hatch: string | null; commodity: string | null; destination: string | null };
 
@@ -32,6 +32,9 @@ export type VsaEvent = {
     reason: string | null;
     input_event_ids: string[];
     cause?: string | null;      // day_start only: why it started late (Late vessel, Ramp problem, ...); optional, for the record
+    title?: string | null;      // plan_note only: optional short title
+    source?: 'typed' | 'photo-read'; // plan_note only: how the text got here
+    photo?: string | null;      // plan_note only: kept photo file path (none while typed-only)
   };
 };
 
@@ -44,7 +47,9 @@ export type EventLog = {
 export type Change = { target: string; from: VsaEvent['payload']['value']; to: VsaEvent['payload']['value']; net: number | null };
 
 const WORKSTREAMS = ['auto_discharge', 'hh_discharge', 'static_discharge', 'auto_loadback', 'hh_loadback', 'lashing', 'operation'];
-const EVENT_TYPES = ['initialize', 'observation', 'correction', 'status_change', 'pause', 'resume', 'discrepancy_opened', 'discrepancy_resolved', 'forecast_created'];
+const EVENT_TYPES = ['initialize', 'observation', 'correction', 'status_change', 'pause', 'resume', 'discrepancy_opened', 'discrepancy_resolved', 'forecast_created', 'note.added', 'note.corrected', 'note.removed'];
+// Event types that replace an earlier event (and must name it, with a reason).
+export const SUPERSEDING: readonly string[] = ['correction', 'note.corrected', 'note.removed'];
 const COUNT_KINDS = ['interval', 'cumulative', 'remaining', 'not_applicable'];
 const PROVENANCE = ['source_fact', 'user_report', 'calculated', 'forecast', 'unknown'];
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -86,8 +91,8 @@ function checkEnvelope(e: VsaEvent): string | null {
   }
   for (const k of ['period_start', 'period_end'] as const) if (p[k] !== null && badTime(p[k])) return `Event ${e.event_id}: ${k} must be null or a date-time with UTC offset.`;
   if (p.period_start && p.period_end && Date.parse(p.period_end) <= Date.parse(p.period_start)) return `Event ${e.event_id}: period_end must be after period_start.`;
-  if (e.event_type === 'correction' ? !e.supersedes_event_id : e.supersedes_event_id !== null) {
-    return e.event_type === 'correction' ? `Correction ${e.event_id} must name the event it replaces.` : `Event ${e.event_id}: Only a correction can replace another event.`;
+  if (SUPERSEDING.includes(e.event_type) ? !e.supersedes_event_id : e.supersedes_event_id !== null) {
+    return SUPERSEDING.includes(e.event_type) ? `Correction ${e.event_id} must name the event it replaces.` : `Event ${e.event_id}: Only a correction can replace another event.`;
   }
   return null;
 }
