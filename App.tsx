@@ -224,8 +224,7 @@ export default function App() {
         <View style={s.page}>
           {vessel ? (
             <>
-              <Header isTest={vessel.isTest} place={`${String(vessel.baseline.port)} discharge · Berth ${String(vessel.baseline.berth)}`}
-                vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} onVessels={openVessels} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
+              <Header isTest={vessel.isTest} vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} onVessels={openVessels} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
               {notice && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>

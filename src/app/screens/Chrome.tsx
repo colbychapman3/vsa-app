@@ -28,19 +28,17 @@ export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName
   );
 }
 
-export function Header({ isTest, place, vessel, sub, onVessels, onMap, onSearch }: { isTest: boolean; place: string; vessel: string; sub: string; onVessels: () => void; onMap: () => void; onSearch: () => void }) {
+export function Header({ isTest, vessel, sub, onVessels, onMap, onSearch }: { isTest: boolean; vessel: string; sub: string; onVessels: () => void; onMap: () => void; onSearch: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
       <View style={s.headRow}>
         <Text style={[s.chip, isTest ? s.chipTest : s.chipLive, { fontFamily: f.bodySemi }]}>{isTest ? 'TEST' : 'LIVE'}</Text>
-        <Text style={[s.sub, { fontFamily: f.body }]} numberOfLines={1}>{place}</Text>
       </View>
       <View style={s.vesselRow}>
         <Pressable onPress={onVessels} style={({ pressed }) => [s.vesselBtn, { flex: 1 }, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${vessel}. Switch or start a vessel`}>
           <Text style={[s.h1, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>{vessel}</Text>
-          <Text style={[s.sub, { fontFamily: f.bodySemi }]} numberOfLines={1}>Vessels ›</Text>
         </Pressable>
         <Pressable onPress={onSearch} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Search the SOPs and protocol">
           <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Search</Text>

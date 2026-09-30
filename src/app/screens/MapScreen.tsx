@@ -173,11 +173,19 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
                   const p = inView([l.x, l.y]);
                   return p && zoomed >= 1.6 ? <Pin key={l.id} x={p.x} y={p.y - 30} text={l.label} lm /> : null;
                 })}
-                {FEATURES.map((ft) => {
-                  const p = inView(ft.at);
-                  if (!p || (on.length > 0 && !lit.has(ft.id) && sel?.id !== ft.id)) return null;
-                  return <Pin key={ft.id} x={p.x} y={p.y - (ft.poly ? 10 : 30)} text={labelOf(ft)} sel={sel?.id === ft.id} />;
-                })}
+                {(() => {
+                  const selP = sel ? inView(sel.at) : null;
+                  const small = zoomed < 1.6;
+                  const shown = FEATURES.flatMap((ft) => {
+                    const p = inView(ft.at);
+                    if (!p || (on.length > 0 && !lit.has(ft.id) && sel?.id !== ft.id)) return [];
+                    return [{ ft, x: p.x, y: p.y - (ft.poly ? 10 : 30) }];
+                  });
+                  // Other labels that would sit on the selected one are left off; the selected label draws last (on top).
+                  const others = shown.filter((q) => q.ft.id !== sel?.id && !(selP && Math.abs(q.x - selP.x) < 90 && Math.abs(q.y - (selP.y - (sel!.poly ? 10 : 30))) < 26));
+                  const top = shown.find((q) => q.ft.id === sel?.id);
+                  return [...others, ...(top ? [top] : [])].map((q) => <Pin key={q.ft.id} x={q.x} y={q.y} text={labelOf(q.ft)} sel={q.ft.id === sel?.id} small={small && q.ft.id !== sel?.id} />);
+                })()}
               </View>
               <View style={StyleSheet.absoluteFill} {...pan.panHandlers} accessibilityLabel="Terminal map. Drag to move, pinch to zoom, tap a lot for its card." />
               <View style={s.ctl}>
@@ -229,11 +237,11 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
 }
 
 // A short label centered on a point. The wrapper is only a positioning box; the text shrinks, never breaks mid-word.
-function Pin({ x, y, text, lm, sel }: { x: number; y: number; text: string; lm?: boolean; sel?: boolean }) {
+function Pin({ x, y, text, lm, sel, small }: { x: number; y: number; text: string; lm?: boolean; sel?: boolean; small?: boolean }) {
   const f = useType();
   return (
     <View style={{ position: 'absolute', left: x - 90, top: y, width: 180, alignItems: 'center' }}>
-      <Text style={[s.pill, lm && s.pillLm, sel && s.pillSel, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{text}</Text>
+      <Text style={[s.pill, lm && s.pillLm, sel && s.pillSel, small && s.pillSmall, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{text}</Text>
     </View>
   );
 }
@@ -252,6 +260,7 @@ const s = StyleSheet.create({
   ctl: { position: 'absolute', right: 12, bottom: 12, gap: 10 },
   round: { width: TAP, height: TAP, borderRadius: TAP / 2, backgroundColor: color.card, borderWidth: 1.5, borderColor: color.ink, alignItems: 'center', justifyContent: 'center' },
   rt: { fontSize: 28, color: color.ink, lineHeight: 32 },
+  pillSmall: { fontSize: 9, paddingHorizontal: 3, paddingVertical: 0, borderRadius: 4 },
   pill: { maxWidth: 180, textAlign: 'center', fontSize: 12, color: color.ink, backgroundColor: color.card, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden', borderWidth: 1, borderColor: color.line },
   pillLm: { backgroundColor: color.head, color: color.headInk, borderColor: color.head },
   pillSel: { backgroundColor: color.accent },

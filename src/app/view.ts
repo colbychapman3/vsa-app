@@ -23,7 +23,7 @@ export function subtitles(s: State, b: Baseline) {
   const last = s.periods.at(-1);
   const through = last ? `${last.day > 1 ? `Day ${last.day} ` : ''}${formatHM(preBreak(last.start, s.breaks) ?? parseHM(last.start)! + 60)}` : null;
   return {
-    snap: `${b.date} · ${through ? `Field counts through ${through}` : 'No counts yet'}`,
+    snap: through ? `${b.date} · Field counts through ${through}` : b.date,
     decks: 'Working view · what’s left aboard, H4 → H1',
     hourly: 'Official field record · autos per hour',
     plan: `${b.date} · Start ${b.start}`,

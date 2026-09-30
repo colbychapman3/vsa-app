@@ -90,7 +90,7 @@ test('screen 01: Snapshot mid-shift (tracker demo)', () => {
 test('screen 02: Snapshot before production', () => {
   const s = state([]);
   const v = snapshot(s, glovis, 7 * 60);
-  assert.equal(subtitles(s, glovis).snap, '9/21/2026 · No counts yet');
+  assert.equal(subtitles(s, glovis).snap, '9/21/2026');
   assert.equal(v.hero.value, '1,969');
   assert.equal(v.hero.of, 'of 1,969 autos · 0.0% complete');
   assert.deepEqual(v.hero.rows, [{ k: 'Ship progress', v: '0' }, { k: 'Field record', v: '0' }, { k: 'Gap (in transit)', v: '0', sub: 'of 70 drivers' }]);
