@@ -33,3 +33,8 @@ Build order (each stage phone-checked, one approval per stage):
 1. Photos are kept **full size**. Stored as files in the app's document folder (not database blobs); the event holds the file path. PDF reports embed a reduced copy so shared files stay small.
 2. Notes photos: the **extracted text is what matters**; the image is optional (Colby may discard it after confirming the text). Text is always confirmed before saving.
 3. Plan-item reminders every **25 minutes** while any item is unresolved; none once resolved.
+
+## Notes from the plan review (2026-09-30)
+- SOP (K Line Ver. 2024) names defective-vehicle conditions (dead battery, towing, oil leak, flat tire, gear failure, door lock/low fuel) and damage case causes (bumper scratch from claspers, pillar blind spot, slippery deck). Question for 6b: seed the photo **reason** list from these, and is "Defective vehicle" a fifth photo type? Default: reasons seeded from the SOP plus Other; no fifth type unless Colby asks.
+- SOP Ch. 2 §1 bans personal electronic devices for stevedores and vessel crew during operations. The camera is a supervisor's tool, so nothing changes, but it is Colby's call; noted, not assumed.
+- Reminder: the knowledge pack never does lashing or other math from the SOP text; numbers come from the engine only.
