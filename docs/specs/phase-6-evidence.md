@@ -16,7 +16,7 @@ Photo evidence from the Log button: pre-stow damage, poor stowage, accidents, an
 - Photo file: copied into the app's document folder as `evidence/<vesselId>/<eventId>.jpg`; the event holds the path. The original camera file is not relied on.
 - Place: deck id + hatch from the vessel's baseline (a value not in the baseline is refused). Time: `occurred_at`; processing time labeled separately.
 - VIN check (pure function): 17 characters, letters/digits, no I, O or Q. The check digit is also tested, but a failed check only **warns** ("does not pass the check digit; confirm"), because some import VINs don't validate. A VIN is never auto-corrected or guessed. Duplicate VINs within one photo are refused.
-- Reasons (quick picks plus Other): from SOP Ver. 2024 Ch. 6 causes and Ch. 2 §5 conditions: clasper/lashing contact, pillar or blind spot, slippery deck, driving too fast, poor stowage against pillar/wall, defective vehicle (dead battery, flat tire, oil leak, gear failure, door lock), other. Final list confirmed by Colby before build.
+- Reasons (quick picks plus Other): from SOP Ver. 2024 Ch. 6 causes and Ch. 2 §5 conditions: latch/lashing contact, pillar or blind spot, slippery deck, driving too fast, poor stowage against pillar/wall, defective vehicle (dead battery, flat tire, oil leak, gear failure, door lock), other. Final list confirmed by Colby before build.
 - Hourly: a photo dated inside an hour adds a note to that hour's row ("Accident, Deck 9 H3, 1 photo"). No count or rate is changed. No time = it cannot be placed in an hour and is listed under "time not provided".
 - Decks: a deck row and its hatch show a photo count; tapping lists the photos. TEST vessels keep TEST photos only.
 
@@ -44,7 +44,7 @@ VIN: valid 17-char passes; I/O/Q refused; wrong length refused; bad check digit 
 4. Edit and remove keep history.
 5. All tests pass.
 
-## Open questions (recommended default in bold)
-1. Reason list as above? **Yes, plus Other.**
-2. Keep the original photo only in the app folder (not the camera roll)? **Yes; no copy in Photos.**
-3. Photos not in the backup export for now? **Yes; state it on the Backup card.**
+## Decisions (Colby, 2026-09-30)
+1. Reason list approved as above ("latch/lashing contact"; the word clasper is not used).
+2. Photos live only in the app folder, no copy in the camera roll.
+3. Open: photos not in the backup export for now; state it on the Backup card (default, unless Colby says otherwise).

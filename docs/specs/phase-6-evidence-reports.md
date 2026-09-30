@@ -1,12 +1,13 @@
 # Spec: evidence-reports (Phase 6b)
 
 ## Objective
-Three PDF reports built from labeled photos: an **accident report**, a **poor-stowage report**, and a **stowage report**. A report exists only when photos of its type exist. Success: Plan › Reports shows a button per report that has photos; none appear otherwise.
+Four PDF reports built from labeled photos: an **accident report**, a **poor-stowage report**, a **pre-stow damage report**, and a **stowage report**. A report exists only when photos of its type exist. Success: Plan › Reports shows a button per report that has photos; none appear otherwise.
 
 ## Scope
 - **Accident report:** one entry per accident photo: photo, time, deck, hatch, reason, VIN(s), notes; sorted by time; photos without a time listed last under "time not provided". The hourly count for that hour is shown beside it as **context only**, labeled "hourly count (no cause claimed)". Causation is never stated (protocol §6.3: "consistent with", never "caused by").
 - **Poor-stowage report:** same layout, without the VIN requirement; VINs shown if entered.
-- **Stowage report:** the **Pre-stow** and **Pre-stow damage** photos, grouped by deck then hatch. (Default: pre-stow damage appears in this report in its own table first; see question 1.)
+- **Pre-stow damage report:** its own report (Colby's decision): pre-stow damage photos with time, deck, hatch, reason, VIN(s) if entered, notes.
+- **Stowage report:** the plain **Pre-stow** photos only, grouped by deck then hatch.
 - Every report carries the same header as the existing PDFs (vessel, date, berth, TEST mark, generated time as phone time, **INTERIM** until the vessel is complete) and lists removed photos as "removed" with their reasons.
 - Built in `src/app/evidenceReport.ts` (pure content, like `report.ts`), rendered by the existing expo-print/expo-sharing path.
 
@@ -19,7 +20,7 @@ Three PDF reports built from labeled photos: an **accident report**, a **poor-st
 - Typecheck: `npx tsc --noEmit`
 
 ## Testing
-No photos of a type = no report offered; accident report lists VINs and never states a cause; photos without a time are last; removed photos shown as removed; edited entries marked; TEST mark present; HTML escapes text; one photo of each type builds all three.
+No photos of a type = no report offered; accident report lists VINs and never states a cause; photos without a time are last; removed photos shown as removed; edited entries marked; TEST mark present; HTML escapes text; one photo of each type builds all four.
 
 ## Boundaries
 - Always: separate from the break/completion reports; unknown stays unknown; INTERIM label until complete.
@@ -27,11 +28,11 @@ No photos of a type = no report offered; accident report lists VINs and never st
 - Never: claim a cause; include a photo that has been removed as if current; mix TEST and LIVE.
 
 ## Success criteria
-1. Buttons show only for types with photos.
+1. Buttons show only for types with photos (four reports).
 2. Each report opens the share sheet offline.
 3. The accident report includes the VIN(s), time, deck, hatch, reason and the hourly count beside it.
 4. All tests pass.
 
-## Open questions (recommended default in bold)
-1. Where does **Pre-stow damage** go: the stowage report (**yes**, own table first) or its own fourth report?
-2. File size: full-size originals make big PDFs; reduce inside the PDF only? **Yes.**
+## Decisions (Colby, 2026-09-30)
+1. Pre-stow damage gets its own report.
+2. Open: file size; photos are reduced inside the PDF only, originals stay full size (default).
