@@ -43,7 +43,7 @@ export function Header({ isTest, berth, date, vessel, onVessels, onMap, onSearch
         </Pressable>
       </View>
       <View style={s.vesselRow}>
-        <Text style={[s.sub, { fontFamily: f.bodySemi, flex: 1 }]} numberOfLines={1}>{berth !== '' ? `Berth ${berth}` : ''}</Text>
+        <Text style={[s.sub, { fontFamily: f.display, fontSize: 28, color: color.headInk, flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>{berth !== '' ? `Berth ${berth}` : ''}</Text>
         <Pressable onPress={onSearch} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Search the SOPs and protocol">
           <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Search</Text>
         </Pressable>
