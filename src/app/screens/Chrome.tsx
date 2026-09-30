@@ -41,6 +41,9 @@ export function Header({ isTest, berth, vessel, sub, onVessels, onMap, onSearch 
         <Pressable onPress={onVessels} style={({ pressed }) => [s.vesselBtn, { flex: 1 }, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${vessel}. Switch or start a vessel`}>
           <Text style={[s.h1, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>{vessel}</Text>
         </Pressable>
+      </View>
+      <View style={s.vesselRow}>
+        <Text style={[s.sub, { fontFamily: f.body, flex: 1 }]}>{sub}</Text>
         <Pressable onPress={onSearch} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Search the SOPs and protocol">
           <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Search</Text>
         </Pressable>
@@ -48,7 +51,6 @@ export function Header({ isTest, berth, vessel, sub, onVessels, onMap, onSearch 
           <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Map</Text>
         </Pressable>
       </View>
-      <Text style={[s.sub, { fontFamily: f.body }]}>{sub}</Text>
     </View>
   );
 }
