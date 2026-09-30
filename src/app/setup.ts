@@ -39,6 +39,7 @@ export function buildBaseline(f: SetupForm): Built {
     if (!Number.isInteger(clearBy) || clearBy < 0) errors.push(`Destination "${name}": clear-by minutes must be a whole number (got ${clearBy}).`);
     if (d.autos != null && !(Number.isInteger(d.autos) && d.autos >= 0)) errors.push(`Destination "${name}": autos must be a whole number (got ${d.autos}).`);
     const out: Destination = { name, side: side ?? 'N', clearBy };
+    if (d.mi != null && !(Number.isFinite(d.mi) && d.mi >= 0)) errors.push(`Destination "${name}": miles must be a number, 0 or more.`);
     if (d.mi != null) out.mi = d.mi;
     if (d.ref?.trim()) out.ref = d.ref.trim(); // kept as typed: never labeled one-way or round trip
     if (d.brands?.length) out.brands = d.brands;
@@ -86,10 +87,18 @@ export function importBaseline(text: string, isTest: boolean): Built {
   if (b.format === 'vsa-log') return { ok: false, errors: ['This is a VSA log backup, not a baseline. Restore it from Plan › Backup.'] };
   for (const k of ['vessel', 'date', 'start'] as const) if (typeof b[k] !== 'string' || !b[k].trim()) e.push(`Baseline is missing "${k}".`);
   if (!Array.isArray(b.decks) || !b.decks.length) e.push('Baseline is missing "decks".');
-  if (!Array.isArray(b.breaks)) e.push('Baseline is missing "breaks".');
+  if (JSON.stringify(b.breaks) !== JSON.stringify(BREAKS)) e.push(`Breaks must be ${BREAKS.join(' and ')} (fixed by protocol).`);
+  if (Array.isArray(b.destinations)) b.destinations.forEach((d: any, i: number) => {
+    const nm = d?.name ?? `Destination ${i + 1}`;
+    if (!d || typeof d.name !== 'string' || !d.name.trim()) e.push(`Destination ${i + 1} needs a name.`);
+    else if (d.side !== 'N' && d.side !== 'S') e.push(`Destination "${nm}": side must be "N" or "S".`);
+    else if (!Number.isInteger(d.clearBy) || d.clearBy < 0) e.push(`Destination "${nm}": clear-by minutes must be a whole number.`);
+    else if (d.autos != null && !(Number.isInteger(d.autos) && d.autos >= 0)) e.push(`Destination "${nm}": autos must be a whole number (got ${d.autos}).`);
+  });
   if (b.destinations !== undefined && !Array.isArray(b.destinations)) e.push('"destinations" must be a list.');
   if (Array.isArray(b.decks)) b.decks.forEach((d: any, i: number) => {
     if (!d || typeof d.id !== 'string' || typeof d.label !== 'string' || !Array.isArray(d.hatches)) e.push(`Deck ${i + 1} needs an id, a label and a hatch list.`);
+    else if (d.heights !== undefined && (!Array.isArray(d.heights) || d.heights.some((h: any) => !(h?.m > 0 && Number.isFinite(h.m))) || (d.heights.length && d.heights.filter((h: any) => h.current === true).length !== 1))) e.push(`${d.label}: heights must be positive metres with exactly one marked current.`);
     else for (const h of d.hatches) if (!h || typeof h.h !== 'string' || !Array.isArray(h.items)) e.push(`${d.label}: every hatch needs a name and an items list.`);
       else for (const it of h.items) if (!it || typeof it.brand !== 'string' || typeof it.qty !== 'number') e.push(`${d.label} ${h.h}: every cargo line needs a brand and a number quantity.`);
   });
@@ -110,6 +119,8 @@ function finish(baseline: Baseline, isTest: boolean, errors: string[], warnings:
   if (errors.length) return { ok: false, errors };
   const check = validateBaseline(baseline);
   if (!check.ok) return { ok: false, errors: check.errors };
+  if (check.start === 0) return { ok: false, errors: ['Starting cargo is 0. Add at least one quantity.'] };
+  if (!slug(baseline.vessel)) return { ok: false, errors: ['The vessel name needs at least one letter or number.'] };
   const day = iso!.replace(/-/g, '');
   const operationId = `${isTest ? 'TEST-' : ''}${slug(baseline.vessel)}-${day}`;
   return { ok: true, baseline, operationId, total: check.start, brandStart: check.brandStart, discrepancies: check.discrepancies, warnings };

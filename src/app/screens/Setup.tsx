@@ -29,7 +29,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { onKey(`${step}${imported ? 'i' : ''}${pasteOpen}`); }, [step, imported, pasteOpen]);
+  useEffect(() => { setAck(false); onKey(`${step}${imported ? 'i' : ''}${pasteOpen}`); }, [step, imported, pasteOpen]);
   const input = [u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' as const }];
 
   // Draft text → SetupForm → checked baseline.

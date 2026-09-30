@@ -19,9 +19,13 @@ export function Vessels({ rows, currentId, isTest, onOpen, onArchive, onCreate, 
   const [mode, setMode] = useState<'list' | 'new'>('list');
   const [newTest, setNewTest] = useState(false);
   const [key, setKey] = useState('');
-  return mode === 'new'
-    ? <Sheet title="New vessel" isTest={newTest} onClose={onClose} scrollKey={key}><Setup isTest={newTest} setIsTest={setNewTest} onKey={setKey} onCreate={onCreate} /></Sheet>
-    : <Sheet title="Vessels" isTest={isTest} onClose={onClose}><List rows={rows} currentId={currentId} onOpen={onOpen} onArchive={onArchive} onNew={() => setMode('new')} /></Sheet>;
+  return (
+    <Sheet title={mode === 'new' ? 'New vessel' : 'Vessels'} isTest={mode === 'new' ? newTest : isTest} onClose={onClose} scrollKey={mode === 'new' ? key : 'list'}>
+      {mode === 'new'
+        ? <Setup isTest={newTest} setIsTest={setNewTest} onKey={setKey} onCreate={onCreate} />
+        : <List rows={rows} currentId={currentId} onOpen={onOpen} onArchive={onArchive} onNew={() => setMode('new')} />}
+    </Sheet>
+  );
 }
 
 function List({ rows, currentId, onOpen, onArchive, onNew }: {

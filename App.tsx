@@ -76,6 +76,7 @@ export default function App() {
     const r = await store.current!.load(id);
     if (!r.ok) throw new Error(r.error);
     if (!r.state.ok) throw new Error(`Stored log refused by the engine: ${r.state.error}`);
+    latestId.current = id;
     latest.current = r.state;
     setVessel({ id, baseline: r.baseline, isTest: r.vessel.isTest, state: r.state });
     setBk(await backupStatus(dbRef.current!, id, r.events.length));
@@ -125,6 +126,7 @@ export default function App() {
       if (!Array.isArray(evs)) return evs;
       const r = await store.current.append(c.operationId, evs);
       if (!r.ok) return r;
+      if (latestId.current !== c.operationId) return { ok: true }; // vessel switched while saving: the write is on the right vessel; the switch reloads its state
       latest.current = r.state;
       setBk(await backupStatus(dbRef.current!, c.operationId, r.state.log.events.length));
       setVessel((v) => (v ? { ...v, state: r.state } : v));
@@ -193,8 +195,13 @@ export default function App() {
     },
   };
 
-  const openVessels = async () => { setNotice(null); setRows(await listRows(dbRef.current!, store.current!)); setSheet('vessels'); };
+  const openVessels = async () => {
+    setNotice(null);
+    try { setRows(await listRows(dbRef.current!, store.current!)); setSheet('vessels'); }
+    catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); }
+  };
   const switchTo = async (id: string) => {
+    if (saving.current) return setNotice({ ok: false, text: 'Still saving the last entry. Try again.' });
     try { await openVessel(id); setSheet(null); setTab('snap'); setNotice(null); }
     catch (e) { setNotice({ ok: false, text: `Could not open the vessel: ${(e as Error).message}` }); setSheet(null); }
   };
@@ -247,7 +254,7 @@ export default function App() {
               )}
               {sheet === 'vessels' && (
                 <Vessels rows={rows} currentId={vessel.id} isTest={vessel.isTest} onClose={() => setSheet(null)} onOpen={switchTo} onCreate={create}
-                  onArchive={async (id, a) => { await setArchived(dbRef.current!, id, a); setRows(await listRows(dbRef.current!, store.current!)); }} />
+                  onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }} />
               )}
               <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
             </>

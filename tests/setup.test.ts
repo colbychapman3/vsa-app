@@ -96,3 +96,15 @@ test('deck drafts: text becomes a deck; blanks are dropped; half-filled lines ar
   bad.hatches[1].items[0] = { brand: '', qty: '4' };
   assert.deepEqual(deckFromDraft(bad).errors, ['D1: the current height must be one of the listed heights.', 'D1 H4: Kia needs a quantity.', 'D1 H3: a quantity needs a brand.']);
 });
+
+test('review fixes: zero cargo, wrong breaks, bad destination, NaN miles, empty slug are refused', () => {
+  const zero = structuredClone(glovis); zero.decks.forEach((d: any) => d.hatches.forEach((h: any) => { h.items = []; }));
+  const errs = (b: unknown) => { const r = importBaseline(JSON.stringify(b), true); assert.ok(!r.ok); return r.errors; };
+  assert.deepEqual(errs(zero), ['Starting cargo is 0. Add at least one quantity.']);
+  assert.deepEqual(errs({ ...glovis, breaks: ['10:00'] }), ['Breaks must be 12:00 and 18:00 (fixed by protocol).']);
+  assert.deepEqual(errs({ ...glovis, destinations: [{ ...glovis.destinations[0], side: 'X' }] }), ['Destination "Zone 3": side must be "N" or "S".']);
+  assert.deepEqual(errs({ ...glovis, vessel: '***' }), ['The vessel name needs at least one letter or number.']);
+  const mi = buildBaseline(form({ destinations: [{ name: 'Zone 3', mi: NaN }] }));
+  assert.ok(!mi.ok);
+  assert.deepEqual(mi.errors, ['Destination "Zone 3": miles must be a number, 0 or more.']);
+});
