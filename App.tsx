@@ -1,7 +1,9 @@
-// App root: opens on-phone storage, loads the TEST Glovis vessel (Phase 5 adds
-// real vessels), keeps the latest engine state, and shows the four tabs.
+// App root: opens on-phone storage, opens the last vessel (the TEST Glovis demo on first run),
+// keeps the latest engine state, and shows the four tabs. The header opens the vessel list.
 // Every save goes through save(): entries → store.append (engine-checked) → new state.
 import { StatusBar } from 'expo-status-bar';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useFonts as loadFonts } from 'expo-font';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, AppState, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -10,6 +12,9 @@ import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/
 import { openExpoDb, type Db } from './src/storage/db.ts';
 import { exportLog, importLog, markExported, backupStatus } from './src/storage/backup.ts';
 import { openStore, type State, type Store } from './src/storage/store.ts';
+import { getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, type VesselRow } from './src/storage/vessels.ts';
+import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
+import type { Built } from './src/app/setup.ts';
 import { offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, subtitles, type Banner } from './src/app/view.ts';
 import { color, fontFiles, fonts, FontContext } from './src/app/theme.ts';
@@ -19,13 +24,14 @@ import { LogSheet } from './src/app/screens/LogSheet.tsx';
 import { Decks } from './src/app/screens/Decks.tsx';
 import { DeckSheet } from './src/app/screens/DeckSheet.tsx';
 import { Hourly } from './src/app/screens/Hourly.tsx';
-import { Plan, type Backup } from './src/app/screens/Plan.tsx';
+import { Plan, type Backup, type Reports } from './src/app/screens/Plan.tsx';
+import { Vessels } from './src/app/screens/Vessels.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
 
-const OP = 'TEST-GLOVIS-101';
+const DEMO = 'TEST-GLOVIS-101';
 const glovis = glovisJson as Baseline;
 
-type Loaded = { baseline: Baseline; isTest: boolean; state: State };
+type Loaded = { id: string; baseline: Baseline; isTest: boolean; state: State };
 export type SaveResult = { ok: true } | Reject;
 
 const minutesNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
@@ -49,6 +55,9 @@ export default function App() {
   const [nowMin, setNowMin] = useState(minutesNow);
   const [logOpen, setLogOpen] = useState(false);
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<'vessels' | null>(null); // one modal at a time
+  const [rows, setRows] = useState<VesselRow[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   // The break strip and "forecast passed" follow the clock: refresh every minute and
   // whenever the app comes back to the foreground.
@@ -62,36 +71,47 @@ export default function App() {
   const latest = useRef<State | null>(null);
   useEffect(() => { latest.current = vessel?.state ?? null; }, [vessel]);
 
-  const reload = useCallback(async () => {
-    const r = await store.current!.load(OP);
+  // Load a vessel from its stored log and make it the open one. Nothing from another vessel stays in memory.
+  const openVessel = useCallback(async (id: string) => {
+    const r = await store.current!.load(id);
     if (!r.ok) throw new Error(r.error);
     if (!r.state.ok) throw new Error(`Stored log refused by the engine: ${r.state.error}`);
-    setVessel({ baseline: r.baseline, isTest: r.vessel.isTest, state: r.state });
-    setBk(await backupStatus(dbRef.current!, OP, r.events.length));
+    latest.current = r.state;
+    setVessel({ id, baseline: r.baseline, isTest: r.vessel.isTest, state: r.state });
+    setBk(await backupStatus(dbRef.current!, id, r.events.length));
+    setNotes(await getNotes(dbRef.current!, id));
+    await setLastOpened(dbRef.current!, id);
   }, []);
+  const reload = useCallback(async () => { await openVessel(latestId.current!); }, [openVessel]);
+  const latestId = useRef<string | null>(null);
+  useEffect(() => { latestId.current = vessel?.id ?? null; }, [vessel]);
 
   useEffect(() => {
     (async () => {
       try {
         dbRef.current = await openExpoDb();
         store.current = await openStore(dbRef.current);
-        if (!(await store.current.listVessels()).some((v) => v.operationId === OP)) {
-          const c = await store.current.createVessel({ operationId: OP, baseline: glovis, isTest: true });
+        const all = await store.current.listVessels();
+        if (!all.length) {
+          const c = await store.current.createVessel({ operationId: DEMO, baseline: glovis, isTest: true });
           if (!c.ok) throw new Error(c.error);
         }
-        await reload();
+        const last = await lastOpened(dbRef.current);
+        const id = (last && (await store.current.listVessels()).some((v) => v.operationId === last)) ? last : (await store.current.listVessels())[0].operationId;
+        latestId.current = id;
+        await openVessel(id);
       } catch (e) {
         setError((e as Error).message);
       }
     })();
-  }, [reload]);
+  }, [openVessel]);
 
   // Context for building events. The UTC offset is fixed per operation (its Day 1 at noon),
   // so an hour re-entered later is recognised as the same hour.
   const ctx = useCallback((): Ctx | null => {
     if (!vessel) return null;
     const opDate = operationDate(vessel.baseline)!;
-    return { operationId: OP, opDate, offset: offsetFor(new Date(`${opDate}T12:00:00`)), recordedAt: recordedNow(), state: latest.current ?? vessel.state };
+    return { operationId: vessel.id, opDate, offset: offsetFor(new Date(`${opDate}T12:00:00`)), recordedAt: recordedNow(), state: latest.current ?? vessel.state };
   }, [vessel]);
 
   // One save at a time; nothing is written unless the engine accepts the whole batch.
@@ -103,10 +123,10 @@ export default function App() {
     try {
       const evs = build(c);
       if (!Array.isArray(evs)) return evs;
-      const r = await store.current.append(OP, evs);
+      const r = await store.current.append(c.operationId, evs);
       if (!r.ok) return r;
       latest.current = r.state;
-      setBk(await backupStatus(dbRef.current!, OP, r.state.log.events.length));
+      setBk(await backupStatus(dbRef.current!, c.operationId, r.state.log.events.length));
       setVessel((v) => (v ? { ...v, state: r.state } : v));
       return { ok: true };
     } catch (e) {
@@ -132,7 +152,7 @@ export default function App() {
     ...bk,
     onExport: async () => {
       const at = recordedNow();
-      const r = await exportLog(store.current!, OP, at);
+      const r = await exportLog(store.current!, vessel!.id, at);
       if (!r.ok) return setNotice({ ok: false, text: `Not exported: ${r.error}` });
       try {
         const res = await Share.share({ title: r.fileName, message: r.text });
@@ -140,8 +160,8 @@ export default function App() {
       } catch (e) {
         return setNotice({ ok: false, text: `Not exported: ${(e as Error).message}` });
       }
-      await markExported(dbRef.current!, OP, at, r.count);
-      setBk(await backupStatus(dbRef.current!, OP, r.count));
+      await markExported(dbRef.current!, vessel!.id, at, r.count);
+      setBk(await backupStatus(dbRef.current!, vessel!.id, r.count));
       setNotice({ ok: true, text: `Shared ${r.count} entries.` });
     },
     onImport: async (text) => {
@@ -151,8 +171,39 @@ export default function App() {
       await reload();
       const msg = r.kind === 'current' ? `${r.operationId} is already up to date. Nothing changed.`
         : `${r.operationId}: ${r.added} ${r.added === 1 ? 'entry' : 'entries'} added (${r.kind === 'created' ? 'new vessel' : 'existing vessel kept'}).`;
-      return { ok: true as const, text: r.operationId === OP ? msg : `${msg} This app opens ${OP} for now.` };
+      return { ok: true as const, text: r.operationId === vessel!.id ? msg : `${msg} Open it from Vessels.` };
     },
+  };
+
+  // Reports: built from the engine state, printed to PDF on the phone, handed to the share sheet. Works offline.
+  const reports: Reports = {
+    notes,
+    onNote: async (section, text) => { await setNote(dbRef.current!, vessel!.id, section, text); setNotes(await getNotes(dbRef.current!, vessel!.id)); },
+    onReport: async (kind: ReportKind) => {
+      try {
+        const at = recordedNow();
+        const rep = buildReport(kind, vessel!.state, vessel!.baseline, { isTest: vessel!.isTest, generatedAt: `${at.slice(0, 10)} ${at.slice(11, 16)}`, notes });
+        const { uri } = await Print.printToFileAsync({ html: reportHtml(rep) });
+        if (!(await Sharing.isAvailableAsync())) return setNotice({ ok: false, text: 'Sharing is not available on this device. The report was not sent.' });
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: `${vessel!.baseline.vessel} ${rep.title}` });
+        setNotice({ ok: true, text: `${rep.title} ready${rep.interim ? ' (INTERIM)' : ''}.` });
+      } catch (e) {
+        setNotice({ ok: false, text: `Report not created: ${(e as Error).message}` });
+      }
+    },
+  };
+
+  const openVessels = async () => { setNotice(null); setRows(await listRows(dbRef.current!, store.current!)); setSheet('vessels'); };
+  const switchTo = async (id: string) => {
+    try { await openVessel(id); setSheet(null); setTab('snap'); setNotice(null); }
+    catch (e) { setNotice({ ok: false, text: `Could not open the vessel: ${(e as Error).message}` }); setSheet(null); }
+  };
+  const create = async (b: Extract<Built, { ok: true }>, isTest: boolean): Promise<{ ok: true } | Reject> => {
+    const c = await store.current!.createVessel({ operationId: b.operationId, baseline: b.baseline, isTest });
+    if (!c.ok) return c;
+    await switchTo(b.operationId);
+    setNotice({ ok: true, text: `${b.baseline.vessel} created (${isTest ? 'TEST' : 'LIVE'}).` });
+    return { ok: true };
   };
 
   // Fonts: wait for them, but never block the app if they fail.
@@ -165,7 +216,7 @@ export default function App() {
           {vessel ? (
             <>
               <Header isTest={vessel.isTest} place={`${String(vessel.baseline.port)} discharge · Berth ${String(vessel.baseline.berth)}`}
-                vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} />
+                vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} onVessels={openVessels} />
               {notice && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>
@@ -183,7 +234,7 @@ export default function App() {
                     ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} />
-                      : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} onNotice={setNotice} />}
+                      : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
               </ScrollView>
               <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />
               {logOpen && (
@@ -193,6 +244,10 @@ export default function App() {
               {deckOpen && (
                 <DeckSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} deckId={deckOpen} save={save}
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
+              )}
+              {sheet === 'vessels' && (
+                <Vessels rows={rows} currentId={vessel.id} isTest={vessel.isTest} onClose={() => setSheet(null)} onOpen={switchTo} onCreate={create}
+                  onArchive={async (id, a) => { await setArchived(dbRef.current!, id, a); setRows(await listRows(dbRef.current!, store.current!)); }} />
               )}
               <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
             </>

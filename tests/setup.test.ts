@@ -79,3 +79,20 @@ test('LIVE ids never start with TEST-; TEST ids always do', () => {
   const live = buildBaseline(form({ isTest: false }));
   assert.ok(live.ok && !live.operationId.startsWith('TEST-'));
 });
+
+import { deckFromDraft, emptyDeck } from '../src/app/setup.ts';
+
+test('deck drafts: text becomes a deck; blanks are dropped; half-filled lines are refused', () => {
+  const d = emptyDeck();
+  Object.assign(d, { label: 'D9', heights: '2.00, 1.70', current: '2' });
+  d.hatches[0].items[0] = { brand: 'Kia', qty: '58' };
+  const r = deckFromDraft(d);
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.deck.heights, [{ m: 2, current: true }, { m: 1.7, current: false }]);
+  assert.deepEqual(r.deck.hatches, [{ h: 'H4', items: [{ brand: 'Kia', qty: 58 }] }, { h: 'H3', items: [] }, { h: 'H2', items: [] }, { h: 'H1', items: [] }]);
+  const bad = emptyDeck();
+  Object.assign(bad, { label: 'D1', heights: '2.0, 1.7', current: '' });
+  bad.hatches[0].items[0] = { brand: 'Kia', qty: '' };
+  bad.hatches[1].items[0] = { brand: '', qty: '4' };
+  assert.deepEqual(deckFromDraft(bad).errors, ['D1: the current height must be one of the listed heights.', 'D1 H4: Kia needs a quantity.', 'D1 H3: a quantity needs a brand.']);
+});

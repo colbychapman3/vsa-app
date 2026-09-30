@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
+import { NOTE_SECTIONS } from '../report.ts';
 import { planView } from '../view.ts';
 import { color, useType } from '../theme.ts';
 import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
@@ -14,15 +15,21 @@ export type Backup = {
   onExport: () => Promise<void>;
   onImport: (text: string) => Promise<{ ok: true; text: string } | Reject>;
 };
+export type Reports = {
+  notes: Record<string, string>;
+  onReport: (kind: 'break' | 'completion') => Promise<void>;
+  onNote: (section: string, text: string) => Promise<void>;
+};
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
-export function Plan({ state, baseline, isTest, save, backup, onNotice }: { state: State; baseline: Baseline; isTest: boolean; save: Save; backup: Backup; onNotice: (n: { ok: boolean; text: string }) => void }) {
+export function Plan({ state, baseline, isTest, save, backup, reports, onNotice }: { state: State; baseline: Baseline; isTest: boolean; save: Save; backup: Backup; reports: Reports; onNotice: (n: { ok: boolean; text: string }) => void }) {
   const f = useType();
   const [recheck, setRecheck] = useState<Set<string>>(new Set());
   const [shiftOpen, setShiftOpen] = useState(false);
   const [driversOpen, setDriversOpen] = useState(false);
   const [startOpen, setStartOpen] = useState<number | null>(null); // operation day whose start time is being set
   const [importOpen, setImportOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
@@ -173,6 +180,14 @@ export function Plan({ state, baseline, isTest, save, backup, onNotice }: { stat
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
+        <SectionHead title="Reports" />
+        <Body>PDF through the share sheet. Unknowns print as unknown; a report is INTERIM until the vessel is complete.</Body>
+        <Go label="Break / shift-end report" disabled={busy} onPress={async () => { setBusy(true); try { await reports.onReport('break'); } finally { setBusy(false); } }} />
+        <Go label="Vessel completion report" disabled={busy} onPress={async () => { setBusy(true); try { await reports.onReport('completion'); } finally { setBusy(false); } }} />
+        <Go ghost label="Completion report notes" onPress={() => setNotesOpen(true)} />
+      </Card>
+
+      <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Backup" />
         <Body>Last exported: {backup.lastAt ? `${backup.lastAt.replace('T', ' ').slice(0, 16)} (phone clock)` : 'never'}</Body>
         {backup.unsaved > 0 && <Note>{backup.unsaved} {backup.unsaved === 1 ? 'entry' : 'entries'} not backed up.</Note>}
@@ -181,6 +196,7 @@ export function Plan({ state, baseline, isTest, save, backup, onNotice }: { stat
         <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
       </Card>
 
+      {notesOpen && <NotesSheet isTest={isTest} reports={reports} onClose={() => setNotesOpen(false)} />}
       {importOpen && <ImportSheet isTest={isTest} backup={backup} onClose={(done) => { setImportOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
       {startOpen != null && <StartSheet isTest={isTest} state={state} baseline={baseline} day={startOpen} save={save} onClose={(done) => { setStartOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {driversOpen && <DriversSheet isTest={isTest} state={state} baseline={baseline} save={save} onClose={(done) => { setDriversOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
@@ -375,6 +391,25 @@ function ImportSheet({ isTest, backup, onClose }: { isTest: boolean; backup: Bac
         placeholder="Paste here" placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' }]} />
       {error && <ErrorBox text={error} />}
       <Go label="Import" disabled={busy || text.trim() === ''} onPress={run} />
+    </Sheet>
+  );
+}
+
+// Typed notes for the completion report's analysis sections. The app never writes conclusions itself.
+function NotesSheet({ isTest, reports, onClose }: { isTest: boolean; reports: Reports; onClose: () => void }) {
+  const f = useType();
+  const [text, setText] = useState<Record<string, string>>(reports.notes);
+  return (
+    <Sheet title="Report notes" isTest={isTest} onClose={onClose}>
+      <Note>Short notes for sections the app has no data for. Empty prints “Not recorded.”</Note>
+      {NOTE_SECTIONS.map((sec) => (
+        <View key={sec} style={{ gap: 6 }}>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>{sec}</Text>
+          <TextInput value={text[sec] ?? ''} onChangeText={(x) => setText({ ...text, [sec]: x })} onEndEditing={() => reports.onNote(sec, text[sec] ?? '')} onBlur={() => reports.onNote(sec, text[sec] ?? '')}
+            multiline accessibilityLabel={sec} placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 80, paddingTop: 12, textAlignVertical: 'top' }]} />
+        </View>
+      ))}
+      <Go label="Done" onPress={async () => { for (const sec of NOTE_SECTIONS) await reports.onNote(sec, text[sec] ?? ''); onClose(); }} />
     </Sheet>
   );
 }

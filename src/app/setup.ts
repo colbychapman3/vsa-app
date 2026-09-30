@@ -114,3 +114,30 @@ function finish(baseline: Baseline, isTest: boolean, errors: string[], warnings:
   const operationId = `${isTest ? 'TEST-' : ''}${slug(baseline.vessel)}-${day}`;
   return { ok: true, baseline, operationId, total: check.start, brandStart: check.brandStart, discrepancies: check.discrepancies, warnings };
 }
+
+// ---------- typed drafts (what the setup screen holds as text) ----------
+
+export type DeckDraft = { label: string; heights: string; current: string; hatches: { h: string; items: { brand: string; qty: string }[] }[] };
+export const emptyDeck = (): DeckDraft => ({ label: '', heights: '', current: '', hatches: ['H4', 'H3', 'H2', 'H1'].map((h) => ({ h, items: [{ brand: '', qty: '' }] })) });
+
+const num = (t: string) => (t.trim() === '' ? NaN : Number(t.trim()));
+
+// Text → deck. Blank cargo lines are dropped (a hatch may be empty); a brand with no quantity, or a
+// quantity with no brand, is refused. Heights: "2.00, 1.70" with the current one named or implied.
+export function deckFromDraft(d: DeckDraft): { deck: SetupForm['decks'][number]; errors: string[] } {
+  const errors: string[] = [];
+  const label = d.label.trim() || 'Deck';
+  const list = d.heights.split(/[,\s]+/).filter(Boolean).map(Number);
+  if (list.some((m) => Number.isNaN(m))) errors.push(`${label}: heights must be numbers in metres, like 2.00, 1.70.`);
+  const cur = d.current.trim() === '' ? (list.length === 1 ? list[0] : NaN) : Number(d.current);
+  if (list.length && !list.includes(cur)) errors.push(`${label}: the current height must be one of the listed heights.`);
+  const hatches = d.hatches.filter((h) => h.h.trim() || h.items.some((i) => i.brand.trim() || i.qty.trim())).map((h) => ({
+    h: h.h,
+    items: h.items.filter((i) => i.brand.trim() || i.qty.trim()).map((i) => {
+      if (!i.brand.trim()) errors.push(`${label} ${h.h}: a quantity needs a brand.`);
+      if (i.qty.trim() === '') errors.push(`${label} ${h.h}: ${i.brand.trim()} needs a quantity.`);
+      return { brand: i.brand, qty: num(i.qty) };
+    }),
+  }));
+  return { deck: { label: d.label, heights: list.map((m) => ({ m, current: m === cur })), hatches }, errors };
+}

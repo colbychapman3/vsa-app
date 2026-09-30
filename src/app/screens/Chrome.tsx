@@ -28,7 +28,7 @@ export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName
   );
 }
 
-export function Header({ isTest, place, vessel, sub }: { isTest: boolean; place: string; vessel: string; sub: string }) {
+export function Header({ isTest, place, vessel, sub, onVessels }: { isTest: boolean; place: string; vessel: string; sub: string; onVessels: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   return (
@@ -37,7 +37,10 @@ export function Header({ isTest, place, vessel, sub }: { isTest: boolean; place:
         <Text style={[s.chip, isTest ? s.chipTest : s.chipLive, { fontFamily: f.bodySemi }]}>{isTest ? 'TEST' : 'LIVE'}</Text>
         <Text style={[s.sub, { fontFamily: f.body }]} numberOfLines={1}>{place}</Text>
       </View>
-      <Text style={[s.h1, { fontFamily: f.display }]} numberOfLines={1} adjustsFontSizeToFit>{vessel}</Text>
+      <Pressable onPress={onVessels} style={({ pressed }) => [s.vesselBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${vessel}. Switch or start a vessel`}>
+        <Text style={[s.h1, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>{vessel}</Text>
+        <Text style={[s.sub, { fontFamily: f.bodySemi }]} numberOfLines={1}>Vessels ›</Text>
+      </Pressable>
       <Text style={[s.sub, { fontFamily: f.body }]}>{sub}</Text>
     </View>
   );
@@ -85,6 +88,7 @@ const s = StyleSheet.create({
   chipTest: { backgroundColor: color.accent, color: color.ink },
   chipLive: { backgroundColor: color.green, color: color.card },
   sub: { fontSize: 14, color: color.headMuted, flexShrink: 1 },
+  vesselBtn: { minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   h1: { fontSize: 32, color: color.headInk },
   tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8 },
   tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 4, borderTopWidth: 3, borderTopColor: 'transparent' },
