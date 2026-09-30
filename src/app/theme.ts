@@ -37,6 +37,13 @@ export const color = {
   headMuted: '#D6D1C6',
   accent: '#FDBA74',
   done: '#5A5F66',
+  // Terminal map data colors (same as the Terminal & Yard Map artifact); only for shapes, never for text.
+  mapZone: '#2F8BFF',
+  mapSite: '#22C47F',
+  mapYard: '#FFB020',
+  mapOem: '#A45CF2',
+  mapRail: '#27C95A',
+  mapMeasure: '#FF4FA3',
 } as const;
 
 // Loaded once in App.tsx. Bundled with the app, so they work offline.
