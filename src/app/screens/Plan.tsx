@@ -212,6 +212,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Go label="Export vessel log" disabled={busy} onPress={async () => { setBusy(true); try { await backup.onExport(); } finally { setBusy(false); } }} />
         <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />
         <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
+        <Note>Photos are not in the export. They stay in the app on this phone ({state.evidence.filter((x) => !x.removed).length} saved for this vessel); the export keeps each photo’s record only.</Note>
       </Card>
 
       {noteSheet && <PlanNoteSheet isTest={isTest} state={state} baseline={baseline} noteId={noteSheet.id} save={save} onClose={(done) => { setNoteSheet(null); if (done) onNotice({ ok: true, text: done }); }} />}

@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, checkEvidence, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -53,7 +53,7 @@ function builder(ctx: Ctx) {
     workstream?: 'auto_discharge' | 'operation'; deck?: string | null; hatch?: string | null; commodity?: string | null;
     at?: OpTime | null; period?: [string, string] | null; reason?: string | null; supersedes?: string | null; inputs?: string[];
     provenance?: VsaEvent['provenance']; cause?: string | null;
-    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null }; // plan_note fields
+    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData }; // plan_note / evidence fields
   }) => {
     const id = `${ctx.operationId}-${seq}`;
     out.push({
@@ -433,5 +433,70 @@ export function removeNoteEvents(ctx: Ctx, id: string, reason: string | null): V
   if (!reason?.trim()) return reject('Pick a reason for removing this note. It stays in the log, marked removed.');
   const { add, out } = builder(ctx);
   add({ type: 'note.removed', metric: 'plan_note', value: null, workstream: 'operation', supersedes: n.headId, reason: reason.trim() });
+  return out;
+}
+
+// ---------- Photo evidence ----------
+
+export const EVIDENCE_CHANGE_REASONS = ['Wrong deck or hatch', 'Wrong time', 'Typo', 'New information'] as const; // plus "Other…"
+export const EVIDENCE_REMOVE_REASONS = ['Taken by mistake', 'Duplicate', 'Wrong vessel'] as const;
+
+// The id the next saved event will get; the photo file is named for it (evidence/<vesselId>/<eventId>.jpg).
+export const nextEventId = (s: State) => `${s.operationId}-${(s.log.events.at(-1)?.sequence ?? 0) + 1}`;
+
+export type EvidenceForm = { type: EvidenceType | null; deck: string; hatch: string; reason: string; vins: string[]; notes?: string | null; time: OpTime | null; photo?: string | null };
+
+// Every field Colby must give, named when missing. Place and VINs are checked against the baseline by the engine's checkEvidence.
+// Used by the screen before it copies a photo, and by the builders below (one set of words).
+export function evidenceProblem(state: State, f: EvidenceForm, photo: string | null | undefined): string | null {
+  const bad = checkEvidence({ type: f.type ?? undefined, deck: f.deck, hatch: f.hatch, reason: f.reason.trim(), vins: f.vins.map((v) => v.trim()).filter(Boolean), notes: f.notes?.trim() || null, photo: photo ?? '' }, state.decks);
+  if (bad) return bad;
+  if (!f.time) return 'Enter the time, or tap Now.';
+  return badTimes(f.time)?.error ?? null;
+}
+
+function evidenceData(ctx: Ctx, f: EvidenceForm, photo: string | null | undefined): EvidenceData | Reject {
+  const bad = evidenceProblem(ctx.state, f, photo);
+  if (bad) return reject(bad);
+  return { type: f.type!, deck: f.deck, hatch: f.hatch, reason: f.reason.trim(), vins: f.vins.map((v) => v.trim().toUpperCase()).filter(Boolean), notes: f.notes?.trim() || null, photo: photo! };
+}
+
+export function addEvidenceEvents(ctx: Ctx, f: EvidenceForm): VsaEvent[] | Reject {
+  const d = evidenceData(ctx, f, f.photo);
+  if ('ok' in d) return d;
+  const { add, out } = builder(ctx);
+  add({ type: 'evidence.added', metric: 'evidence', value: d.type, workstream: 'operation', at: f.time, extra: { evidence: d } });
+  return out;
+}
+
+function currentEvidence(ctx: Ctx, id: string) {
+  const x = ctx.state.evidence.find((e) => e.id === id);
+  if (!x) return reject('That photo is not on this vessel.');
+  if (x.removed) return reject('That photo was removed. Add a new photo instead.');
+  return x;
+}
+
+// An edit supersedes the current version (reason required). The photo file itself stays as taken.
+export function editEvidenceEvents(ctx: Ctx, id: string, f: EvidenceForm, reason: string | null): VsaEvent[] | Reject {
+  const x = currentEvidence(ctx, id);
+  if ('ok' in x) return x;
+  const d = evidenceData(ctx, f, x.photo);
+  if ('ok' in d) return d;
+  const same = d.type === x.type && d.deck === x.deck && d.hatch === x.hatch && d.reason === x.reason && d.notes === x.notes
+    && d.vins.join() === x.vins.join() && toAbs(f.time!) === (x.at ? toAbs(x.at) : null);
+  if (same) return reject('Nothing to save: the photo record is unchanged.');
+  if (!reason?.trim()) return reject('Pick a reason for changing this photo record. The old values are kept.');
+  const { add, out } = builder(ctx);
+  add({ type: 'evidence.corrected', metric: 'evidence', value: d.type, workstream: 'operation', at: f.time, supersedes: x.headId, reason: reason.trim(), extra: { evidence: d } });
+  return out;
+}
+
+// Removal is an entry, never a delete: the record and the photo file stay, marked removed, with the reason.
+export function removeEvidenceEvents(ctx: Ctx, id: string, reason: string | null): VsaEvent[] | Reject {
+  const x = currentEvidence(ctx, id);
+  if ('ok' in x) return x;
+  if (!reason?.trim()) return reject('Pick a reason for removing this photo. It stays in the log, marked removed.');
+  const { add, out } = builder(ctx);
+  add({ type: 'evidence.removed', metric: 'evidence', value: null, workstream: 'operation', supersedes: x.headId, reason: reason.trim() });
   return out;
 }

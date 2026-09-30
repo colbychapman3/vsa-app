@@ -81,9 +81,21 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
                 {r.delta && <Note>{r.delta}</Note>}
                 {r.brands.length > 0 && <View style={s.tagRow}>{r.brands.map((b) => <Chip key={b.b} text={`${b.b} ${b.v}`} />)}</View>}
                 {r.drivers && <Note>{r.drivers}</Note>}
+                {r.photos.map((p) => <Note key={p} style={{ color: color.ink }}>Photo: {p}</Note>)}
               </View>
             </View>
           ))}
+        </Card>
+      )}
+
+      {(v.photosNoTime.length > 0 || v.photosOutside.length > 0) && (
+        <Card style={[u.pad, { gap: 6 }]}>
+          <SectionHead title="Photos not on an hour" />
+          {v.photosNoTime.length > 0 && <Label>TIME NOT PROVIDED</Label>}
+          {v.photosNoTime.map((p) => <Body key={p}>{p}</Body>)}
+          {v.photosOutside.length > 0 && <Label wrap>OUTSIDE THE LOGGED HOURS (BREAK OR NOT LOGGED YET)</Label>}
+          {v.photosOutside.map((p) => <Body key={p}>{p}</Body>)}
+          <Note>Photos are records only. They never change a count or a rate.</Note>
         </Card>
       )}
 

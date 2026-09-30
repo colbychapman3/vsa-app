@@ -2,9 +2,10 @@
 // Checks log integrity only: operation, duplicates, sequence, corrections, overlaps.
 // What each metric means for the ledgers is decided by project() in index.ts.
 import type { Reject } from './time.ts';
+import type { EvidenceData } from './evidence.ts';
 
 export type Workstream = 'auto_discharge' | 'hh_discharge' | 'static_discharge' | 'auto_loadback' | 'hh_loadback' | 'lashing' | 'operation';
-export type EventType = 'initialize' | 'observation' | 'correction' | 'status_change' | 'pause' | 'resume' | 'discrepancy_opened' | 'discrepancy_resolved' | 'forecast_created' | 'note.added' | 'note.corrected' | 'note.removed';
+export type EventType = 'initialize' | 'observation' | 'correction' | 'status_change' | 'pause' | 'resume' | 'discrepancy_opened' | 'discrepancy_resolved' | 'forecast_created' | 'note.added' | 'note.corrected' | 'note.removed' | 'evidence.added' | 'evidence.corrected' | 'evidence.removed';
 export type CountKind = 'interval' | 'cumulative' | 'remaining' | 'not_applicable';
 export type Scope = { workstream: Workstream; deck: string | null; hatch: string | null; commodity: string | null; destination: string | null };
 
@@ -35,6 +36,7 @@ export type VsaEvent = {
     title?: string | null;      // plan_note only: optional short title
     source?: 'typed' | 'photo-read'; // plan_note only: how the text got here
     photo?: string | null;      // plan_note only: kept photo file path (none while typed-only)
+    evidence?: EvidenceData;    // evidence only (added / corrected): what the photo shows and where
   };
 };
 
@@ -47,9 +49,9 @@ export type EventLog = {
 export type Change = { target: string; from: VsaEvent['payload']['value']; to: VsaEvent['payload']['value']; net: number | null };
 
 const WORKSTREAMS = ['auto_discharge', 'hh_discharge', 'static_discharge', 'auto_loadback', 'hh_loadback', 'lashing', 'operation'];
-const EVENT_TYPES = ['initialize', 'observation', 'correction', 'status_change', 'pause', 'resume', 'discrepancy_opened', 'discrepancy_resolved', 'forecast_created', 'note.added', 'note.corrected', 'note.removed'];
+const EVENT_TYPES = ['initialize', 'observation', 'correction', 'status_change', 'pause', 'resume', 'discrepancy_opened', 'discrepancy_resolved', 'forecast_created', 'note.added', 'note.corrected', 'note.removed', 'evidence.added', 'evidence.corrected', 'evidence.removed'];
 // Event types that replace an earlier event (and must name it, with a reason).
-export const SUPERSEDING: readonly string[] = ['correction', 'note.corrected', 'note.removed'];
+export const SUPERSEDING: readonly string[] = ['correction', 'note.corrected', 'note.removed', 'evidence.corrected', 'evidence.removed'];
 const COUNT_KINDS = ['interval', 'cumulative', 'remaining', 'not_applicable'];
 const PROVENANCE = ['source_fact', 'user_report', 'calculated', 'forecast', 'unknown'];
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;

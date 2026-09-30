@@ -3,6 +3,7 @@
 // store the new events only if it succeeds.
 import { validateBaseline, type Baseline } from './baseline.ts';
 import { deckCalc, deckUpdate, heightInfo, type DeckState, type DeckStatus } from './decks.ts';
+import { checkEvidence, checkVin, evidencePath, type EvidenceData } from './evidence.ts';
 import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
 import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, type HourEntry } from './production.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
@@ -17,12 +18,21 @@ export * from './events.ts';
 export * from './production.ts';
 export * from './ledger.ts';
 export * from './eta.ts';
+export * from './evidence.ts';
 
 // A ship-specific note (Plan tab). The current text, plus every earlier version.
 export type PlanNote = {
   id: string; headId: string; title: string | null; text: string; source: 'typed' | 'photo-read'; photo: string | null;
   createdAt: string; edited: boolean; removed: boolean; removedReason: string | null; removedAt: string | null;
   history: { title: string | null; text: string; at: string; reason: string | null }[]; // oldest to newest
+};
+
+// A photo record (Log › Photo). The current values, plus every earlier version; removed ones stay, flagged.
+// `at` is the time Colby entered (null = time not provided); `atLabel` says which kind of time is shown.
+export type EvidenceItem = EvidenceData & {
+  id: string; headId: string; at: OpTime | null; atLabel: string; vinWarnings: string[];
+  edited: boolean; removed: boolean; removedReason: string | null; removedAt: string | null;
+  history: { reason: string; vins: string[]; notes: string | null; at: string; changeReason: string | null }[]; // oldest to newest
 };
 
 // One row of the break log. startId/endId are the current events to correct (null = not editable here).
@@ -82,6 +92,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const plan: { shiftEnd: string | null; nextStart: string | null } = { shiftEnd: null, nextStart: null };
   const clerks: { remaining: number; time: string; seq: number }[] = [];
   const noteList: PlanNote[] = [];
+  const evidenceList: EvidenceItem[] = [];
   const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
   let recStart = 0; // sequence of the latest break/shift-end start
   const lastDeckEvent: Record<string, string> = {}; // for naming the event in whole-sheet errors
@@ -282,6 +293,35 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         });
         continue;
       }
+      case 'evidence': {
+        // Photo evidence: where and when something was seen. It never changes a count, ledger or forecast.
+        const T = e.event_type;
+        if (sc.workstream !== 'operation') return fail(`Event ${id}: a photo record belongs to the operation, not to ${sc.workstream}.`, id);
+        if (T !== 'evidence.added' && T !== 'evidence.corrected' && T !== 'evidence.removed') return fail(`Event ${id}: a photo record must be added, corrected or removed.`, id);
+        if (root.event_type !== 'evidence.added') return fail(`Event ${id}: a photo record chain must start with evidence.added.`, id);
+        if (p.count_kind !== 'not_applicable') return fail(`Event ${id}: a photo record must not be a count kind (count_kind not_applicable).`, id);
+        if (T === 'evidence.corrected' && byId.get(e.supersedes_event_id!)?.event_type === 'evidence.removed') return fail(`Event ${id}: that photo was removed. Add a new photo instead.`, id);
+        if (T === 'evidence.removed') {
+          if (p.value !== null || p.evidence) return fail(`Event ${id}: a photo removal carries no photo details.`, id);
+        } else {
+          const bad = checkEvidence(p.evidence, baseline.decks);
+          if (bad) return fail(`Event ${id}: ${bad}`, id);
+          // The file is named for its first event, inside this vessel's own folder (a TEST photo can't sit in a LIVE vessel).
+          if (p.evidence!.photo !== evidencePath(operationId, root.event_id)) return fail(`Event ${id}: the photo file must be ${evidencePath(operationId, root.event_id)}.`, id);
+        }
+        const label = (x: VsaEvent) => { const o = at(x.occurred_at); return when(o && !('error' in o) ? o : null, x.recorded_at); };
+        const chain = historyOf(log, id), versions = chain.filter((x) => x.event_type !== 'evidence.removed'), last = versions.at(-1)!;
+        const d = last.payload.evidence!;
+        const lastAt = at(last.occurred_at);
+        evidenceList.push({
+          ...d, vins: [...d.vins], notes: d.notes?.trim() || null,
+          id: root.event_id, headId: id, at: lastAt && !('error' in lastAt) ? lastAt : null, atLabel: label(last),
+          vinWarnings: d.vins.map((v) => { const c = checkVin(v); return c.ok ? c.warning : null; }).filter((w): w is string => !!w),
+          edited: versions.length > 1, removed: T === 'evidence.removed', removedReason: T === 'evidence.removed' ? p.reason : null, removedAt: T === 'evidence.removed' ? label(e) : null,
+          history: versions.map((x) => ({ reason: x.payload.evidence!.reason, vins: x.payload.evidence!.vins, notes: x.payload.evidence!.notes?.trim() || null, at: label(x), changeReason: x.event_type === 'evidence.corrected' ? x.payload.reason : null })),
+        });
+        continue;
+      }
       case 'discrepancy':
         if (e.event_type !== 'discrepancy_opened' && e.event_type !== 'discrepancy_resolved') return fail(`Event ${id}: discrepancy must be opened or resolved.`, id);
         if (e.event_type === 'discrepancy_opened' && !(p.reason ?? (typeof p.value === 'string' ? p.value : '')).trim()) return fail(`Event ${id}: a discrepancy needs a description.`, id);
@@ -383,6 +423,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     plan,
     issues: [...issues.values()],
     notes: noteList, // creation order; removed ones stay, flagged
+    evidence: evidenceList, // creation order; removed ones stay, flagged
     breakLog,
     // Per operation day: planned start and the actual start if one was recorded (null = the planned start applies).
     dayStarts: Object.fromEntries(Array.from({ length: Math.max(2, ops.day, ...dayActual.keys()) }, (_, i) => {

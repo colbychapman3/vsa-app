@@ -28,7 +28,15 @@
     "plugins": [
       "expo-sqlite",
       "expo-font",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "VSA uses the camera to photograph damage, stowage and accidents. Photos stay on this phone.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

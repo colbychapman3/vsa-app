@@ -8,10 +8,11 @@ import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { deckSheet, decksView, hourOptions } from '../view.ts';
 import { DeckForm } from './DeckSheet.tsx';
+import { EvidenceForm } from './EvidenceForm.tsx';
 import { color, useType } from '../theme.ts';
 import { Body, ErrorBox, Field, Go, Label, Note, Seg, Sheet, TimeField, u } from './ui.tsx';
 
-export type Mode = 'hour' | 'deck' | 'break' | 'clerk' | 'issue';
+export type Mode = 'hour' | 'deck' | 'break' | 'clerk' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode };
 
@@ -47,6 +48,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
     { value: 'break', label: phase === 'break' ? 'End break' : phase === 'shift_end' ? 'Next day' : 'Break / shift' },
     { value: 'clerk', label: 'Clerk count' },
     { value: 'issue', label: 'Discrepancy' },
+    { value: 'photo', label: 'Photo' },
   ];
 
   if (deck) {
@@ -66,6 +68,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
           {mode === 'break' && <BreakForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'clerk' && <ClerkForm phase={phase} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setError} />}
+          {mode === 'photo' && <EvidenceForm state={state} baseline={baseline} save={save} onClose={(done) => onClose(done)} />}
           {error && <ErrorBox text={error} />}
     </Sheet>
   );

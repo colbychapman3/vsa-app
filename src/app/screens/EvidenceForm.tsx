@@ -1,0 +1,226 @@
+// Log › Photo (spec phase-6-evidence). Layout only: checks live in src/engine/evidence.ts and entries.ts, every
+// save goes through App.save(). Camera: expo-camera (CameraView) inside this same sheet, so only one modal is open.
+// The photo is copied at full size into the app folder (never the camera roll) just before saving.
+import { useState } from 'react';
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { EVIDENCE_REASONS, EVIDENCE_TYPES, TYPE_LABEL, checkVin, evidencePath, operationDate, parseHM, type Baseline, type EvidenceType, type Reject, type VsaEvent } from '../../engine/index.ts';
+import type { State } from '../../storage/store.ts';
+import * as E from '../entries.ts';
+import { deckPhotos } from '../view.ts';
+import { dropUnsavedPhoto, keepPhoto, photoExists, photoUri } from '../evidenceFiles.ts';
+import { color, useType } from '../theme.ts';
+import { Body, ErrorBox, Go, Label, Note, Seg, TimeField, u } from './ui.tsx';
+
+type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
+type Item = State['evidence'][number];
+
+// Add a photo (item = null) or edit one already saved (item set: no camera, the file stays as taken).
+export function EvidenceForm({ state, baseline, save, item = null, onClose }: { state: State; baseline: Baseline; save: Save; item?: Item | null; onClose: (done?: string) => void }) {
+  const f = useType();
+  const [perm, askPerm] = useCameraPermissions();
+  const [cam, setCam] = useState<CameraView | null>(null);
+  const [camOn, setCamOn] = useState(false);
+  const [shot, setShot] = useState<string | null>(null); // the camera's temporary file, until Save copies it
+  const [busy, setBusy] = useState(false);
+  const [type, setType] = useState<EvidenceType | null>(item?.type ?? null);
+  const [deck, setDeck] = useState(item?.deck ?? '');
+  const [hatch, setHatch] = useState(item?.hatch ?? '');
+  const [time, setTime] = useState(item?.at?.hm ?? '');
+  const listed = (r: string | undefined) => (r == null ? null : (EVIDENCE_REASONS as readonly string[]).includes(r) ? r : 'Other');
+  const [reason, setReason] = useState<string | null>(listed(item?.reason));
+  const [other, setOther] = useState(item && listed(item.reason) === 'Other' ? item.reason : '');
+  const [vins, setVins] = useState<string[]>(item?.vins ?? []);
+  const [vinText, setVinText] = useState('');
+  const [notes, setNotes] = useState(item?.notes ?? '');
+  const [why, setWhy] = useState<string | null>(null);
+  const [whyOther, setWhyOther] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const day = item?.at?.day ?? state.ops.day;
+  const hatches = state.decks.find((d) => d.id === deck)?.hatches ?? [];
+  const reasonText = reason === 'Other' ? other.trim() : reason ?? '';
+  const change = (r: string | null, o: string) => (r === 'Other' ? o.trim() : r);
+
+  const open = async () => {
+    setError(null);
+    const p = perm?.granted ? perm : await askPerm();
+    if (!p.granted) return setError(p.canAskAgain ? 'The camera was not allowed. Tap Take photo again and allow it.' : 'Camera access is off for VSA. Turn it on in iPhone Settings › VSA › Camera.');
+    setCamOn(true);
+  };
+  const snap = async () => {
+    if (!cam || busy) return;
+    setBusy(true);
+    try {
+      const pic = await cam.takePictureAsync({ quality: 1, exif: false }); // full size
+      setShot(pic.uri); setCamOn(false);
+    } catch (e) { setError(`The photo could not be taken: ${(e as Error).message}`); }
+    finally { setBusy(false); }
+  };
+  const addVin = () => {
+    setError(null);
+    const r = checkVin(vinText);
+    if (!r.ok) return setError(r.error);
+    if (vins.includes(r.vin)) return setError(`VIN ${r.vin} is listed twice on this photo.`);
+    setVins([...vins, r.vin]); setVinText('');
+  };
+  const now = () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) setTime(t.hm); else setError('The phone’s date is before this operation’s Day 1.'); };
+
+  const form = (photo: string | null): E.EvidenceForm => ({ type, deck, hatch, reason: reasonText, vins, notes, time: parseHM(time.trim()) == null ? null : { day, hm: time.trim().padStart(5, '0') }, photo });
+
+  const submit = async () => {
+    setError(null);
+    if (busy) return;
+    if (vinText.trim()) return setError('Tap Add VIN to add the VIN you typed, or clear the box.');
+    if (time.trim() !== '' && parseHM(time.trim()) == null) return setError('Enter the time as HH:MM.');
+    setBusy(true);
+    try {
+      if (item) {
+        const r = await save((c) => E.editEvidenceEvents(c, item.id, form(item.photo), change(why, whyOther)));
+        return r.ok ? onClose('Photo record changed. The old values are kept in the log.') : setError(r.error);
+      }
+      // Check everything first so a refused form never copies a file.
+      const rel = evidencePath(state.operationId, E.nextEventId(state));
+      const bad = E.evidenceProblem(state, form(shot ? rel : null), shot ? rel : null);
+      if (bad) return setError(bad);
+      try { keepPhoto(shot!, rel); } catch (e) { return setError(`The photo could not be kept on this phone: ${(e as Error).message} Nothing was saved.`); }
+      const r = await save((c) => E.addEvidenceEvents(c, form(rel)));
+      if (r.ok) onClose('Photo saved on this phone.');
+      else { dropUnsavedPhoto(rel); setError(r.error); }
+    } finally { setBusy(false); }
+  };
+  const remove = async () => {
+    setError(null);
+    const r = await save((c) => E.removeEvidenceEvents(c, item!.id, change(why, whyOther)));
+    if (r.ok) onClose('Photo removed. It stays in the log, marked removed.'); else setError(r.error);
+  };
+
+  return (
+    <View style={{ gap: 14 }}>
+      <Label>PHOTO TYPE</Label>
+      <Seg columns={2} value={type} onChange={setType} options={EVIDENCE_TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] }))} />
+
+      <Label>PHOTO</Label>
+      {item ? (
+        <Thumb path={item.photo} big />
+      ) : camOn ? (
+        <View style={{ gap: 10 }}>
+          <CameraView ref={setCam} style={s.cam} facing="back" />
+          <Go label={busy ? 'Taking photo…' : 'Take photo'} disabled={busy} onPress={snap} />
+          <Go ghost label="Cancel" onPress={() => setCamOn(false)} />
+        </View>
+      ) : shot ? (
+        <View style={{ gap: 10 }}>
+          <Image source={{ uri: shot }} style={s.cam} resizeMode="cover" accessibilityLabel="Photo just taken" />
+          <Go ghost label="Retake photo" onPress={() => { setShot(null); open(); }} />
+        </View>
+      ) : (
+        <Go label="Open camera" onPress={open} />
+      )}
+
+      <Label>DECK</Label>
+      <Seg columns={4} value={deck || null} onChange={(d) => { setDeck(d); setHatch(''); }} options={state.decks.map((d) => ({ value: d.id, label: d.label }))} />
+      {deck !== '' && (
+        <>
+          <Label>HATCH</Label>
+          <Seg columns={4} value={hatch || null} onChange={setHatch} options={hatches.map((h) => ({ value: h.h, label: h.h }))} />
+        </>
+      )}
+
+      <TimeField required label={`Time${day > 1 ? ` (Day ${day})` : ''}`} value={time} onChange={setTime} onNow={now} />
+
+      <Label>REASON</Label>
+      <Seg columns={1} value={reason} onChange={setReason} options={[...EVIDENCE_REASONS, 'Other'].map((r) => ({ value: r as string, label: r === 'Other' ? 'Other…' : r }))} />
+      {reason === 'Other' && <Input label="Reason" value={other} onChange={setOther} maxLength={120} />}
+
+      <Label wrap>{type === 'accident' ? 'VIN(S) · REQUIRED, AT LEAST ONE' : 'VIN(S) · OPTIONAL'}</Label>
+      {vins.map((v) => {
+        const c = checkVin(v);
+        return (
+          <View key={v} style={s.vin}>
+            <View style={{ flex: 1, flexShrink: 1 }}>
+              <Body semi>{v}</Body>
+              {c.ok && c.warning && <Note style={{ color: color.oInk }}>Does not pass the check digit; confirm it.</Note>}
+            </View>
+            <Pressable onPress={() => setVins(vins.filter((x) => x !== v))} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`Remove VIN ${v}`}><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
+          </View>
+        );
+      })}
+      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
+        <View style={{ flex: 1 }}><Input label="VIN (17 characters)" value={vinText} onChange={setVinText} maxLength={17} caps /></View>
+        <Pressable onPress={addVin} style={[u.ghostBtn, { paddingHorizontal: 18 }]} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>Add VIN</Text></Pressable>
+      </View>
+      <Note>Typed exactly as on the car. A VIN is never corrected for you; a check digit that does not pass only warns.</Note>
+
+      <View style={{ gap: 6 }}>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>Notes (optional)</Text>
+        <TextInput value={notes} onChangeText={setNotes} multiline accessibilityLabel="Notes" placeholder="Type what you saw" placeholderTextColor={color.muted}
+          style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 110, paddingTop: 12, textAlignVertical: 'top' }]} />
+      </View>
+
+      {item && (
+        <>
+          <Label wrap>REASON FOR A CHANGE OR A REMOVAL</Label>
+          <Seg columns={2} value={why} onChange={setWhy} options={[...E.EVIDENCE_CHANGE_REASONS, ...E.EVIDENCE_REMOVE_REASONS, 'Other'].map((r) => ({ value: r as string, label: r === 'Other' ? 'Other…' : r }))} />
+          {why === 'Other' && <Input label="Reason" value={whyOther} onChange={setWhyOther} maxLength={120} />}
+        </>
+      )}
+      {error && <ErrorBox text={error} />}
+      <Go label={item ? 'Save changes' : 'Save photo'} disabled={busy} onPress={submit} />
+      {item && (
+        <>
+          <Go ghost label="Remove this photo" onPress={remove} />
+        </>
+      )}
+      <Note>{item ? 'Nothing is overwritten: the old values and the photo file stay.' : 'The photo stays on this phone only (not in the camera roll and not in the backup export). It never changes a count.'}</Note>
+    </View>
+  );
+}
+
+function Input({ label, value, onChange, maxLength, caps }: { label: string; value: string; onChange: (v: string) => void; maxLength?: number; caps?: boolean }) {
+  const f = useType();
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
+      <TextInput value={value} onChangeText={onChange} maxLength={maxLength} accessibilityLabel={label} autoCorrect={false} autoCapitalize={caps ? 'characters' : 'sentences'}
+        placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.bodyMedium, fontSize: 17 }]} />
+    </View>
+  );
+}
+
+function Thumb({ path, big }: { path: string; big?: boolean }) {
+  return photoExists(path)
+    ? <Image source={{ uri: photoUri(path) }} style={big ? s.cam : s.thumb} resizeMode="cover" accessibilityLabel="Saved photo" />
+    : <Note style={{ color: color.oInk }}>The photo file is missing on this phone. The record is kept.</Note>;
+}
+
+// The photos of one deck (Decks tab → deck sheet): thumbnails, meta, and Edit ›. Editing swaps the list for the form.
+export function DeckPhotos({ state, deckId, onEdit }: { state: State; deckId: string; onEdit: (id: string) => void }) {
+  const f = useType();
+  const v = deckPhotos(state, deckId);
+  if (!v.current.length && !v.removed.length) return null;
+  return (
+    <View style={{ gap: 10 }}>
+      <Label>PHOTOS ({v.current.length})</Label>
+      {v.current.map((x) => (
+        <Pressable key={x.id} onPress={() => onEdit(x.id)} style={({ pressed }) => [s.card, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`${x.title}. Edit or remove`}>
+          <Thumb path={x.path} />
+          <Body semi>{x.title}</Body>
+          <Note>{x.meta}</Note>
+          {x.vins && <Note>{x.vins}</Note>}
+          {x.warn.map((w) => <Note key={w} style={{ color: color.oInk }}>{w}</Note>)}
+          {x.notes && <Note>{x.notes}</Note>}
+          <Text style={[s.edit, { fontFamily: f.bodySemi }]}>Edit ›</Text>
+        </Pressable>
+      ))}
+      {v.removed.map((x) => <Note key={x.id}>Removed: {x.text} ({x.meta})</Note>)}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  cam: { width: '100%', aspectRatio: 3 / 4, maxHeight: 460, borderRadius: 12, backgroundColor: color.ink, overflow: 'hidden' },
+  thumb: { width: '100%', height: 160, borderRadius: 10, backgroundColor: color.soft },
+  vin: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
+  card: { gap: 4, padding: 12, borderWidth: 1, borderColor: color.line, borderRadius: 12, backgroundColor: color.card, minHeight: 56 },
+  edit: { fontSize: 13, color: color.blue, alignSelf: 'flex-end' },
+});

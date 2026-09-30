@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, formatHM, parseHM, preBreak, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, TYPE_LABEL, formatHM, parseHM, preBreak, toAbs, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -13,6 +13,69 @@ const m2 = (m: number) => `${m.toFixed(2)} m`;
 type Deck = State['decks'][number];
 const isLow = (d: Deck) => d.height.level === 'hard' && d.status !== 'complete';
 const isUnconfirmed = (d: Deck) => d.height.level === 'soft' && d.status !== 'complete';
+
+// ---------- Photo evidence ----------
+// Photos are records of where and when something was seen. Nothing here touches a count or rate.
+
+type Photo = State['evidence'][number];
+const plural = (n: number) => `${n} photo${n === 1 ? '' : 's'}`;
+const livePhotos = (s: State) => s.evidence.filter((x) => !x.removed);
+const deckName = (s: State, id: string) => s.decks.find((d) => d.id === id)?.label ?? id;
+const hatchLabel = (s: State, x: Photo) => `${deckName(s, x.deck)} ${x.hatch}`;
+
+// "Accident, D9 H3, 2 photos" lines, one per type and place (and per time when `withTime`).
+function photoLines(s: State, list: Photo[], withTime: boolean): string[] {
+  const groups = new Map<string, { text: string; n: number }>();
+  for (const x of list) {
+    const when = withTime && x.at ? `${x.at.day > 1 ? `Day ${x.at.day} ` : ''}${x.at.hm}` : '';
+    const key = `${x.type}|${x.deck}|${x.hatch}|${when}`;
+    const g = groups.get(key) ?? { text: `${TYPE_LABEL[x.type]}, ${hatchLabel(s, x)}${when ? `, ${when}` : ''}`, n: 0 };
+    g.n++;
+    groups.set(key, g);
+  }
+  return [...groups.values()].map((g) => `${g.text}, ${plural(g.n)}`);
+}
+
+// Which photo types exist (not removed); a report is offered only for these.
+export const photoTypesPresent = (s: State) => TYPES_ORDER.filter((t) => livePhotos(s).some((x) => x.type === t));
+const TYPES_ORDER = Object.keys(TYPE_LABEL) as (keyof typeof TYPE_LABEL)[];
+
+// Notes for the Hourly tab: a photo inside a logged hour goes on that hour's row. No time = "time not provided".
+// A time outside every logged hour (a break, an hour not logged yet) is listed on its own, never forced into an hour.
+export function photoHourNotes(s: State) {
+  const perHour = new Map<string, Photo[]>(), noTime: Photo[] = [], outside: Photo[] = [];
+  for (const x of livePhotos(s)) {
+    if (!x.at) { noTime.push(x); continue; }
+    const t = toAbs(x.at)!;
+    const p = s.periods.find((q) => {
+      const a = (q.day - 1) * 1440 + parseHM(q.start)!, z = (q.day - 1) * 1440 + (preBreak(q.start, s.breaks) ?? parseHM(q.start)! + 60);
+      return t >= a && t < z;
+    });
+    if (!p) { outside.push(x); continue; }
+    const k = `${p.day}|${p.start}`;
+    perHour.set(k, [...(perHour.get(k) ?? []), x]);
+  }
+  return {
+    forHour: (day: number, start: string) => photoLines(s, perHour.get(`${day}|${start}`) ?? [], false),
+    noTime: photoLines(s, noTime, false),
+    outside: photoLines(s, outside, true),
+  };
+}
+
+// The photos of one deck for its sheet: current ones first, removed ones after with the reason.
+export function deckPhotos(s: State, deckId: string) {
+  const row = (x: Photo) => ({
+    id: x.id, path: x.photo, type: x.type, title: `${TYPE_LABEL[x.type]} · ${x.hatch}`,
+    meta: `${x.at ? `${x.at.day > 1 ? `Day ${x.at.day} ` : ''}${x.at.hm}` : x.atLabel} · ${x.reason}${x.edited ? ' · edited' : ''}`,
+    vins: x.vins.length ? `VIN${x.vins.length === 1 ? '' : 's'}: ${x.vins.join(', ')}` : null,
+    warn: x.vinWarnings, notes: x.notes,
+  });
+  const mine = s.evidence.filter((x) => x.deck === deckId);
+  return {
+    current: mine.filter((x) => !x.removed).map(row),
+    removed: mine.filter((x) => x.removed).map((x) => ({ id: x.id, text: `${TYPE_LABEL[x.type]} · ${x.hatch}`, meta: `Removed ${x.removedAt} · ${x.removedReason}` })),
+  };
+}
 
 // Tab badges: low decks with cargo left (Decks); unconfirmed heights with cargo left (Plan).
 export function badges(s: State) {
@@ -211,7 +274,8 @@ export function decksView(s: State) {
       ? `Cleared ${Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + ')} · ${d.time == null ? 'time not provided' : /^(Logged|time not)/.test(d.time) ? d.time : `at ${d.time}`}`
       : null,
     height: heightChip(d),
-    hatches: d.hatches.map((h) => ({ h: h.h, text: h.items.map((i) => `${i.brand} ${i.qty}`).join(' + ') })),
+    photos: livePhotos(s).filter((x) => x.deck === d.id).length,
+    hatches: d.hatches.map((h) => ({ h: h.h, text: h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), photos: livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h).length })),
   }));
   return { low, unconfirmed, rows };
 }
@@ -247,6 +311,7 @@ export function hourlyView(s: State, b?: Baseline) {
     };
   });
   const max = Math.max(1, ...s.periods.map((x) => x.count));
+  const ph = photoHourNotes(s);
   const multi = s.periods.some((x) => x.day > 1);
   const rows = s.periods.map((x, i) => {
     const start = parseHM(x.start)!;
@@ -262,6 +327,7 @@ export function hourlyView(s: State, b?: Baseline) {
       corrected: x.was?.length ? `Was ${x.was.map(fmt).join(' → ')} · original kept` : null,
       delta: x.delta == null ? null
         : `${x.delta >= 0 ? '+' : '−'}${fmt(Math.round(Math.abs(x.delta)))}${x.deltaPaced ? '/hr pace' : ''}${x.deltaPct == null ? '' : ` (${x.deltaPct >= 0 ? '+' : '−'}${Math.abs(x.deltaPct).toFixed(1)}%)`} vs prior hour`,
+      photos: ph.forHour(x.day, x.start),
       brands: x.brands ? Object.entries(x.brands).map(([b, v]) => ({ b, v: fmt(v) })) : [],
       drivers: typeof x.drivers === 'number' && x.drivers > 0
         ? `${x.drivers} drivers${x.driversFrom === 'day' ? ` (Day ${x.day} setting)` : ''} · ${x.driverRate.rate != null ? `${x.driverRate.rate.toFixed(2)} per driver per productive hr` : 'per-driver rate needs the stoppage time'}`
@@ -275,6 +341,7 @@ export function hourlyView(s: State, b?: Baseline) {
     brandTable,
     unsplitNote: s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,
     rows,
+    photosNoTime: ph.noTime, photosOutside: ph.outside,
     graph: s.periods.length ? graph(s) : null,
   };
 }
