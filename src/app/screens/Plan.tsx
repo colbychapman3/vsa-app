@@ -31,6 +31,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
   const [importOpen, setImportOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
+  const [making, setMaking] = useState<'break' | 'completion' | null>(null); // which report is being made
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
 
@@ -182,8 +183,8 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Reports" />
         <Body>PDF through the share sheet. Unknowns print as unknown; a report is INTERIM until the vessel is complete.</Body>
-        <Go label="Break / shift-end report" disabled={busy} onPress={async () => { setBusy(true); try { await reports.onReport('break'); } finally { setBusy(false); } }} />
-        <Go label="Vessel completion report" disabled={busy} onPress={async () => { setBusy(true); try { await reports.onReport('completion'); } finally { setBusy(false); } }} />
+        <Go label={making === 'break' ? 'Preparing report…' : 'Break / shift-end report'} disabled={making === 'break'} onPress={async () => { if (busy || making) return; setBusy(true); setMaking('break'); try { await reports.onReport('break'); } finally { setBusy(false); setMaking(null); } }} />
+        <Go label={making === 'completion' ? 'Preparing report…' : 'Vessel completion report'} disabled={making === 'completion'} onPress={async () => { if (busy || making) return; setBusy(true); setMaking('completion'); try { await reports.onReport('completion'); } finally { setBusy(false); setMaking(null); } }} />
         <Go ghost label="Completion report notes" onPress={() => setNotesOpen(true)} />
       </Card>
 
