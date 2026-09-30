@@ -10,7 +10,7 @@ Principle: every module works with AI off. AI (Apple on-device model, on-device 
 | plan-notes | New Plan-tab Notes section: ship-specific notes (typed; photo attach later). Events, corrections keep history. | event ledger (exists) |
 | evidence | Log › Photo: camera capture, type (pre-stow / poor stowage / accident / pre-stow damage), required deck, hatch, time, reason; VIN(s) required only for accident, optional otherwise; notes. Attaches to the Decks tab location and adds a note on that hour's count. Photos stored on the phone. | event ledger, decks |
 | evidence-reports | Accident, poor-stowage and stowage reports (PDF). A report button shows only if photos of that type exist. | evidence, report.ts (exists) |
-| knowledge | Offline knowledge pack built from the Brain (SOP Ver. 2024, protocol, glossary, operations reference, terminal map PDF): chunked, searchable, every answer cited, "not found" when absent. Plain keyword search screen first. | none |
+| knowledge | Offline knowledge pack built from the Brain (SOP Ver. 2024, protocol, glossary, operations reference): chunked, searchable, every answer cited, "not found" when absent. Plain keyword search screen first. | none |
 | ai-runtime | Availability check for Apple's on-device model, one wrapper, graceful fallback (search box / quick entry). Native module: new dev build. | none |
 | scan | On-device text recognition: VIN (17 chars, no I/O/Q, check digit = warning only, never auto-corrected) and document photos to candidate values. Every value confirmed. | ai-runtime |
 | setup-import | New vessel: Manual or Upload photos (prefills), Next through every step to check; last step uploads important notes into plan-notes. | scan, plan-notes, Setup (exists) |
