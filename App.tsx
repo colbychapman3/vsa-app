@@ -25,6 +25,7 @@ import { Decks } from './src/app/screens/Decks.tsx';
 import { DeckSheet } from './src/app/screens/DeckSheet.tsx';
 import { Hourly } from './src/app/screens/Hourly.tsx';
 import { MapScreen } from './src/app/screens/MapScreen.tsx';
+import { Search } from './src/app/screens/Search.tsx';
 import { Plan, type Backup, type Reports } from './src/app/screens/Plan.tsx';
 import { Vessels } from './src/app/screens/Vessels.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
@@ -56,7 +57,7 @@ export default function App() {
   const [nowMin, setNowMin] = useState(minutesNow);
   const [logOpen, setLogOpen] = useState(false);
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'vessels' | 'map' | null>(null); // one modal at a time
+  const [sheet, setSheet] = useState<'vessels' | 'map' | 'search' | null>(null); // one modal at a time
   const [rows, setRows] = useState<VesselRow[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
@@ -224,7 +225,7 @@ export default function App() {
           {vessel ? (
             <>
               <Header isTest={vessel.isTest} place={`${String(vessel.baseline.port)} discharge · Berth ${String(vessel.baseline.berth)}`}
-                vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} onVessels={openVessels} onMap={() => { setNotice(null); setSheet('map'); }} />
+                vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} onVessels={openVessels} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
               {notice && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>
@@ -258,6 +259,7 @@ export default function App() {
                   onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }} />
               )}
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
+              {sheet === 'search' && <Search isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
             </>
           ) : (

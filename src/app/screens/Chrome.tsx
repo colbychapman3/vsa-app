@@ -28,7 +28,7 @@ export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName
   );
 }
 
-export function Header({ isTest, place, vessel, sub, onVessels, onMap }: { isTest: boolean; place: string; vessel: string; sub: string; onVessels: () => void; onMap: () => void }) {
+export function Header({ isTest, place, vessel, sub, onVessels, onMap, onSearch }: { isTest: boolean; place: string; vessel: string; sub: string; onVessels: () => void; onMap: () => void; onSearch: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   return (
@@ -41,6 +41,9 @@ export function Header({ isTest, place, vessel, sub, onVessels, onMap }: { isTes
         <Pressable onPress={onVessels} style={({ pressed }) => [s.vesselBtn, { flex: 1 }, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${vessel}. Switch or start a vessel`}>
           <Text style={[s.h1, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>{vessel}</Text>
           <Text style={[s.sub, { fontFamily: f.bodySemi }]} numberOfLines={1}>Vessels ›</Text>
+        </Pressable>
+        <Pressable onPress={onSearch} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Search the SOPs and protocol">
+          <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Search</Text>
         </Pressable>
         <Pressable onPress={onMap} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Terminal map">
           <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Map</Text>
@@ -95,7 +98,7 @@ const s = StyleSheet.create({
   sub: { fontSize: 14, color: color.headMuted, flexShrink: 1 },
   vesselBtn: { minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   vesselRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  mapBtn: { minHeight: TAP, minWidth: 72, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
+  mapBtn: { minHeight: TAP, minWidth: 64, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
   mapText: { fontSize: 16, color: color.headInk },
   h1: { fontSize: 32, color: color.headInk },
   tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8 },
