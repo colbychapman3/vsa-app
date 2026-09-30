@@ -54,6 +54,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
 
   const save = async () => {
     if (!built?.ok) return;
+    if (built.discrepancies.length > 0 && !ack) return setError('Choose “I have seen this” under the discrepancy above, then Save.');
     setBusy(true); setError(null);
     try {
       const r = await onCreate(built, v.isTest);
@@ -197,7 +198,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
                 <Seg options={[{ value: 'no', label: 'Not yet' }, { value: 'yes', label: 'I have seen this' }]} columns={2} value={ack ? 'yes' : 'no'} onChange={(x) => setAck(x === 'yes')} />
               )}
               {error && <ErrorBox text={error} />}
-              <Go label="Save vessel" disabled={busy || (built.discrepancies.length > 0 && !ack)} onPress={save} />
+              <Go label="Save vessel" disabled={busy} onPress={save} />
               <Go ghost label="Back" onPress={back} />
             </>
           )}
