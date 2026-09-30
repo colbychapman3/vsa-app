@@ -28,14 +28,14 @@ export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName
   );
 }
 
-export function Header({ isTest, berth, vessel, sub, onVessels, onMap, onSearch }: { isTest: boolean; berth: string; vessel: string; sub: string; onVessels: () => void; onMap: () => void; onSearch: () => void }) {
+export function Header({ isTest, berth, date, vessel, onVessels, onMap, onSearch }: { isTest: boolean; berth: string; date: string; vessel: string; onVessels: () => void; onMap: () => void; onSearch: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
       <View style={s.headRow}>
         <Text style={[s.chip, isTest ? s.chipTest : s.chipLive, { fontFamily: f.bodySemi }]}>{isTest ? 'TEST' : 'LIVE'}</Text>
-        {berth !== '' && <Text style={[s.sub, { fontFamily: f.bodySemi }]} numberOfLines={1}>Berth {berth}</Text>}
+        <Text style={[s.sub, { fontFamily: f.body, flex: 1, textAlign: 'right' }]} numberOfLines={1}>{date}</Text>
       </View>
       <View style={s.vesselRow}>
         <Pressable onPress={onVessels} style={({ pressed }) => [s.vesselBtn, { flex: 1 }, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${vessel}. Switch or start a vessel`}>
@@ -43,7 +43,7 @@ export function Header({ isTest, berth, vessel, sub, onVessels, onMap, onSearch 
         </Pressable>
       </View>
       <View style={s.vesselRow}>
-        <Text style={[s.sub, { fontFamily: f.body, flex: 1 }]}>{sub}</Text>
+        <Text style={[s.sub, { fontFamily: f.bodySemi, flex: 1 }]} numberOfLines={1}>{berth !== '' ? `Berth ${berth}` : ''}</Text>
         <Pressable onPress={onSearch} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Search the SOPs and protocol">
           <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Search</Text>
         </Pressable>

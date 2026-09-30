@@ -16,7 +16,7 @@ import { getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, ty
 import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
 import type { Built } from './src/app/setup.ts';
 import { offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
-import { badges, subtitles, type Banner } from './src/app/view.ts';
+import { badges, type Banner } from './src/app/view.ts';
 import { color, fontFiles, fonts, FontContext } from './src/app/theme.ts';
 import { Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
@@ -224,7 +224,7 @@ export default function App() {
         <View style={s.page}>
           {vessel ? (
             <>
-              <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} vessel={vessel.baseline.vessel} sub={subtitles(vessel.state, vessel.baseline)[tab]} onVessels={openVessels} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
+              <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onVessels={openVessels} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
               {notice && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>

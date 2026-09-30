@@ -48,7 +48,8 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<View3>({ k: 0, tx: 0, ty: 0 });
   const [on, setOn] = useState<ChipId[]>([]);
   const [sel, setSel] = useState<Feature | null>(null);
-  const [measuring, setMeasuring] = useState(false);
+  const [measuring, setMeasuring] = useState(false); // running: the map fills the whole screen
+  const [ready, setReady] = useState(false); // Measure tapped, waiting for Start
   const [pts, setPts] = useState<Pt[]>([]);
 
   const k0 = box.w ? Math.min(box.w / MAP.w, box.h / MAP.h) : 1;
@@ -118,7 +119,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
   const toggle = (id: ChipId) => setOn((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
   const shown = useMemo(() => highlighted(on), [on]);
   const pick = (ft: Feature) => {
-    setMeasuring(false); setSel(ft);
+    setMeasuring(false); setReady(false); setSel(ft);
     const { box: b, k0: base } = live.current;
     const xs = ft.poly ? ft.poly.map((q) => q[0]) : [ft.at[0] - 60, ft.at[0] + 60], ys = ft.poly ? ft.poly.map((q) => q[1]) : [ft.at[1] - 60, ft.at[1] + 60];
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
@@ -135,11 +136,13 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: color.bg, paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: color.bg, paddingTop: measuring ? 0 : insets.top }}>
+        {!measuring && (
+          <>
         <View style={s.top}>
           <Text style={[s.title, { fontFamily: f.display }]} numberOfLines={1} adjustsFontSizeToFit>Terminal map</Text>
-          <Pressable onPress={() => { setMeasuring((x) => !x); setPts([]); }} style={({ pressed }) => [s.btn, measuring && s.btnOn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityState={{ selected: measuring }} accessibilityLabel="Measure a rough distance on the map">
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: measuring ? color.bg : color.ink }} numberOfLines={1}>Measure</Text>
+          <Pressable onPress={() => { setSel(null); setPts([]); setReady((x) => !x); }} style={({ pressed }) => [s.btn, ready && s.btnOn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityState={{ selected: ready }} accessibilityLabel="Measure a rough distance on the map">
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: ready ? color.bg : color.ink }} numberOfLines={1}>Measure</Text>
           </Pressable>
           <Pressable onPress={onClose} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close map"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
         </View>
@@ -161,6 +164,9 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
             </Pressable>
           ))}
         </ScrollView>
+
+          </>
+        )}
 
         <View ref={areaRef} style={s.area} onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
           {box.w > 0 && (
@@ -188,7 +194,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
                 })()}
               </View>
               <View style={StyleSheet.absoluteFill} {...pan.panHandlers} accessibilityLabel="Terminal map. Drag to move, pinch to zoom, tap a lot for its card." />
-              <View style={s.ctl}>
+              <View style={[s.ctl, measuring && { bottom: insets.bottom + 92 }]}>
                 <Pressable onPress={() => zoomAbout(box.w / 2, box.h / 2, 1.6)} style={({ pressed }) => [s.round, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Zoom in"><Text style={s.rt}>+</Text></Pressable>
                 <Pressable onPress={() => zoomAbout(box.w / 2, box.h / 2, 1 / 1.6)} style={({ pressed }) => [s.round, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Zoom out"><Text style={s.rt}>−</Text></Pressable>
                 <Pressable onPress={fitAll} style={({ pressed }) => [s.round, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Fit the whole map"><Text style={[s.rt, { fontSize: 14, fontFamily: f.bodySemi }]}>Fit</Text></Pressable>
@@ -198,14 +204,25 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
         </View>
 
         {measuring ? (
-          <View style={[s.panel, { paddingBottom: insets.bottom + 12 }]}>
-            <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }}>{m ? m.text : 'Tap two or more points'}</Text>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.oInk }}>{m ? `${m.label[0].toUpperCase()}${m.label.slice(1)}` : 'Straight lines between taps. Put a point at every turn.'}</Text>
-            <Note>Lot outlines and the map scale are approximate (about plus or minus 10%). For route distances use the berth miles on each lot's card.</Note>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1 }}><Go ghost label="Undo point" onPress={() => setPts((a) => a.slice(0, -1))} disabled={!pts.length} /></View>
+          <>
+            <View style={{ position: 'absolute', left: 12, right: 12, top: insets.top + 8, backgroundColor: color.card, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, padding: 10 }} pointerEvents="none">
+              <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit>{m ? m.text : 'Tap points on the map'}</Text>
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.oInk }} numberOfLines={1} adjustsFontSizeToFit>{m ? `${m.label[0].toUpperCase()}${m.label.slice(1)}` : 'Map estimate, not a route distance'}</Text>
+            </View>
+            <View style={{ position: 'absolute', left: 12, right: 12, bottom: insets.bottom + 12, flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}><Go ghost label="Undo" onPress={() => setPts((a) => a.slice(0, -1))} disabled={!pts.length} /></View>
               <View style={{ flex: 1 }}><Go ghost label="Clear" onPress={() => setPts([])} disabled={!pts.length} /></View>
               <View style={{ flex: 1 }}><Go label="Done" onPress={() => { setMeasuring(false); setPts([]); }} /></View>
+            </View>
+          </>
+        ) : ready ? (
+          <View style={[s.panel, { paddingBottom: insets.bottom + 12 }]}>
+            <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }}>Measure a rough distance</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.oInk }}>Start opens the map full screen. Tap a point at the start, then at every turn.</Text>
+            <Note>Lot outlines and the map scale are approximate (about plus or minus 10%). For route distances use the berth miles on each lot's card.</Note>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}><Go ghost label="Cancel" onPress={() => setReady(false)} /></View>
+              <View style={{ flex: 1 }}><Go label="Start" onPress={() => { setReady(false); setPts([]); setMeasuring(true); }} /></View>
             </View>
           </View>
         ) : c && sel ? (
