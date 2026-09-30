@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 4 complete (2026-09-29, phone check passed). Phase 5 approved 2026-09-29 (spec `docs/specs/phase-5-new-vessel.md`, all 5 defaults). 201 tests passing (run per file on this PC; the parallel run crashes from memory pressure). Phase 5 steps 1–4 built and reviewed 2026-09-29; step 5 (EAS dev build + phone check) next.
+**Current status:** Phase 5 complete (2026-09-30: second vessel set up, run and both PDFs shared offline on the preview build; reports-button busy fix 89b4b97 ships with the next build). Phase 6 (on-device AI) next: needs its spec and Colby's approval.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
