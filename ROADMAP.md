@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 5 complete (2026-09-30: second vessel set up, run and both PDFs shared offline on the preview build; reports-button busy fix 89b4b97 ships with the next build). Phase 6 capability map approved 2026-09-30; 6a specs written, awaiting Colby's approval of the 6a plan.
+**Current status:** Phase 6a approved 2026-09-30 (map, Plan Notes, knowledge search on the phone). 6b (photo evidence and its reports) spec next, then 6c, 6d. Fixes from the 6a check ship in the next preview build.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
@@ -46,7 +46,7 @@ Update the status line when a phase changes.
 
 ## Phase 6: Assistant, map and photo evidence
 Capability map and decisions: `docs/specs/phase-6-capability-map.md` (approved 2026-09-30). Every module works with AI off; AI only proposes, Colby confirms, the engine does the math.
-- **6a:** Map screen (`phase-6-terminal-map.md`), Plan Notes (`phase-6-plan-notes.md`), offline knowledge search from the Brain (`phase-6-knowledge.md`). Specs written; plan and approval next.
+- **6a:** Map screen (`phase-6-terminal-map.md`), Plan Notes (`phase-6-plan-notes.md`), offline knowledge search from the Brain (`phase-6-knowledge.md`). Built and approved 2026-09-30.
 - **6b:** Photo evidence from Log (damage, poor stowage, accident, pre-stow; VIN required only for accidents) and its three conditional reports.
 - **6c:** On-device AI runtime, VIN camera scan, photo-prefilled new vessel and notes.
 - **6d:** Floating assistant head: questions answered from the engine and the knowledge pack, then confirmed actions and 25-minute Plan reminders.
