@@ -28,13 +28,14 @@ export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName
   );
 }
 
-export function Header({ isTest, vessel, sub, onVessels, onMap, onSearch }: { isTest: boolean; vessel: string; sub: string; onVessels: () => void; onMap: () => void; onSearch: () => void }) {
+export function Header({ isTest, berth, vessel, sub, onVessels, onMap, onSearch }: { isTest: boolean; berth: string; vessel: string; sub: string; onVessels: () => void; onMap: () => void; onSearch: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
       <View style={s.headRow}>
         <Text style={[s.chip, isTest ? s.chipTest : s.chipLive, { fontFamily: f.bodySemi }]}>{isTest ? 'TEST' : 'LIVE'}</Text>
+        {berth !== '' && <Text style={[s.sub, { fontFamily: f.bodySemi }]} numberOfLines={1}>Berth {berth}</Text>}
       </View>
       <View style={s.vesselRow}>
         <Pressable onPress={onVessels} style={({ pressed }) => [s.vesselBtn, { flex: 1 }, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${vessel}. Switch or start a vessel`}>
@@ -96,8 +97,8 @@ const s = StyleSheet.create({
   sub: { fontSize: 14, color: color.headMuted, flexShrink: 1 },
   vesselBtn: { minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   vesselRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  mapBtn: { minHeight: TAP, minWidth: 64, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
-  mapText: { fontSize: 16, color: color.headInk },
+  mapBtn: { minHeight: 44, minWidth: 52, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
+  mapText: { fontSize: 14, color: color.headInk },
   h1: { fontSize: 32, color: color.headInk },
   tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8 },
   tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 4, borderTopWidth: 3, borderTopColor: 'transparent' },
