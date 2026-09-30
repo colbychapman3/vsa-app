@@ -1,6 +1,7 @@
 // New-vessel setup (protocol §11.1) and baseline import. Pure: turns typed answers or a pasted
 // baseline JSON into a Baseline, and refuses anything the engine would refuse, with exact messages.
 // Nothing is adjusted to make totals balance; mismatches come back as discrepancies to acknowledge.
+import { terminalInfo } from '../engine/terminal.ts';
 import { CLEAR_BY_MIN, destination, operationDate, parseHM, validateBaseline, type Baseline, type Deck, type Destination } from '../engine/index.ts';
 
 export const BREAKS = ['12:00', '18:00']; // fixed, always 1 hour
@@ -32,15 +33,17 @@ export function buildBaseline(f: SetupForm): Built {
   const destinations: Destination[] = f.destinations.map((d, i) => {
     const name = d.name.trim();
     if (!name) errors.push(`Destination ${i + 1} needs a name.`);
+    const term = terminalInfo(name, f.berth.trim()); // protocol Appendix C/D: side, cutoff and miles fill in from the destination
     const known = destination(name)?.side;
-    const side = d.side ?? (known === 'Southside' ? 'S' : known === 'Northside' ? 'N' : undefined);
+    const side = d.side ?? term?.side ?? (known === 'Southside' ? 'S' : known === 'Northside' ? 'N' : undefined);
     if (!side) errors.push(`Destination "${name}" is not a known zone: choose Northside or Southside.`);
-    const clearBy = d.clearBy ?? CLEAR_BY_MIN[side === 'S' ? 'Southside' : 'Northside'];
+    const clearBy = d.clearBy ?? term?.clearBy ?? CLEAR_BY_MIN[side === 'S' ? 'Southside' : 'Northside'];
     if (!Number.isInteger(clearBy) || clearBy < 0) errors.push(`Destination "${name}": clear-by minutes must be a whole number (got ${clearBy}).`);
     if (d.autos != null && !(Number.isInteger(d.autos) && d.autos >= 0)) errors.push(`Destination "${name}": autos must be a whole number (got ${d.autos}).`);
     const out: Destination = { name, side: side ?? 'N', clearBy };
-    if (d.mi != null && !(Number.isFinite(d.mi) && d.mi >= 0)) errors.push(`Destination "${name}": miles must be a number, 0 or more.`);
-    if (d.mi != null) out.mi = d.mi;
+    const mi = d.mi ?? term?.mi ?? undefined;
+    if (mi != null && !(Number.isFinite(mi) && mi >= 0)) errors.push(`Destination "${name}": miles must be a number, 0 or more.`);
+    if (mi != null) out.mi = mi;
     if (d.ref?.trim()) out.ref = d.ref.trim(); // kept as typed: never labeled one-way or round trip
     if (d.brands?.length) out.brands = d.brands;
     if (d.autos != null) out.autos = d.autos;
@@ -68,6 +71,12 @@ export function buildBaseline(f: SetupForm): Built {
     for (const it of h.items) if (!it.brand) errors.push(`${d.label} ${h.h}: a cargo line needs a brand.`);
   }
   if (f.drivers != null && !(Number.isInteger(f.drivers) && f.drivers >= 0)) errors.push(`Drivers must be a whole number (got ${f.drivers}).`);
+
+  // One spelling per brand (first typed wins), so "kia" and "Kia" never become two brands.
+  const spell = new Map<string, string>();
+  const canon = (b: string) => { const k = b.trim().toLowerCase(); if (!spell.has(k)) spell.set(k, b.trim()); return spell.get(k)!; };
+  for (const d of destinations) if (d.brands) d.brands = d.brands.map(canon);
+  for (const d of decks) for (const h of d.hatches) for (const i of h.items) i.brand = canon(i.brand);
 
   const baseline: Baseline = {
     vessel, date: f.date.trim(), port: f.port.trim(), berth: f.berth.trim(), start: f.start.trim(), breaks: [...BREAKS],
@@ -128,8 +137,8 @@ function finish(baseline: Baseline, isTest: boolean, errors: string[], warnings:
 
 // ---------- typed drafts (what the setup screen holds as text) ----------
 
-export type DeckDraft = { label: string; heights: string; current: string; hatches: { h: string; items: { brand: string; qty: string }[] }[] };
-export const emptyDeck = (): DeckDraft => ({ label: '', heights: '', current: '', hatches: ['H4', 'H3', 'H2', 'H1'].map((h) => ({ h, items: [{ brand: '', qty: '' }] })) });
+export type DeckDraft = { label: string; total: string; heights: string; current: string; hatches: { h: string; items: { brand: string; qty: string }[] }[] };
+export const emptyDeck = (): DeckDraft => ({ label: '', total: '', heights: '', current: '', hatches: ['H4', 'H3', 'H2', 'H1'].map((h) => ({ h, items: [{ brand: '', qty: '' }] })) });
 
 const num = (t: string) => (t.trim() === '' ? NaN : Number(t.trim()));
 
@@ -150,5 +159,28 @@ export function deckFromDraft(d: DeckDraft): { deck: SetupForm['decks'][number];
       return { brand: i.brand, qty: num(i.qty) };
     }),
   }));
+  // The deck total is a cross-check Colby types once; it must equal the hatches (never adjusted to fit).
+  const sum = hatches.reduce((s, h) => s + h.items.reduce((x, i) => x + (Number.isFinite(i.qty) ? i.qty : 0), 0), 0);
+  if (d.total.trim() !== '' && Number(d.total) !== sum) errors.push(`${label}: deck total ${d.total.trim()} but the hatches add to ${sum.toLocaleString('en-US')}.`);
   return { deck: { label: d.label, heights: list.map((m) => ({ m, current: m === cur })), hatches }, errors };
+}
+
+// Brand-first entry: each line is one brand going to one destination. Lines to the same destination merge
+// into one destination with its brands and total; the side, cutoff and miles come from the terminal directory.
+export type Allocation = { brand: string; autos: string; destination: string };
+export function groupAllocations(lines: Allocation[]): { destinations: SetupForm['destinations']; errors: string[] } {
+  const errors: string[] = [];
+  const by = new Map<string, { name: string; brands: string[]; autos: number }>();
+  lines.filter((l) => l.brand.trim() || l.autos.trim() || l.destination).forEach((l, i) => {
+    if (!l.brand.trim()) errors.push(`Line ${i + 1}: add the brand.`);
+    if (!l.destination) errors.push(`Line ${i + 1}: choose a destination.`);
+    const n = Number(l.autos);
+    if (l.autos.trim() === '' || !Number.isInteger(n) || n < 0) errors.push(`Line ${i + 1}: autos must be a whole number.`);
+    if (errors.length) return;
+    const g = by.get(l.destination) ?? { name: l.destination, brands: [], autos: 0 };
+    if (!g.brands.some((b) => b.toLowerCase() === l.brand.trim().toLowerCase())) g.brands.push(l.brand.trim());
+    g.autos += n;
+    by.set(l.destination, g);
+  });
+  return { destinations: [...by.values()], errors };
 }

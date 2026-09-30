@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { project, type VsaEvent, type HourEntry } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
 import { badges, subtitles, snapshot, decksView, deckSheet, hourlyView, planView, hourOptions } from '../src/app/view.ts';
-import { glovis, toEvents, DEMO_DECKS, LUNCH_DECKS, MORNING } from './scenarios.ts';
+import { glovis, toEvents, DEMO_DECKS, LUNCH_DECKS, MORNING, SCENARIOS } from './scenarios.ts';
 
 const OP = 'TEST-VIEW';
 const at = (hm: string) => `2026-09-21T${hm}:00-04:00`;
@@ -329,4 +329,14 @@ test('late start: a break-cut hour is labeled to the break, not +60 min', () => 
   // The projection refuses an unset stop, so feed the view an unset list directly.
   const unset = { ...set, production: { ...set.production, unsetShort: ['11:30'] } } as State;
   assert.equal(hourlyView(unset).unsetShort, 'Stoppage time not set for 11:30–12:00');
+});
+
+test("short pre-break hour names each side's clear-by cutoff from the destinations", () => {
+  const sc = SCENARIOS.find((x) => x.name === 'short hour stopped at :30')!;
+  const r = project(glovis, toEvents(sc, 'TEST-GLOVIS-PARITY'), 'TEST-GLOVIS-PARITY');
+  assert.ok(r.ok);
+  const b = { ...glovis, destinations: [{ name: 'Zone 3', side: 'N', clearBy: 15 }, { name: 'Zone T', side: 'S', clearBy: 30 }] };
+  const row = hourlyView(r, b).rows.find((x) => x.short)!;
+  assert.equal(row.cutoff, 'Clear-by before the 12:00 break: Southside −30 min (stop 11:30) · Northside −15 min (stop 11:45)');
+  assert.ok(hourlyView(r).rows.every((x) => x.cutoff === null));
 });

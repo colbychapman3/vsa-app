@@ -233,7 +233,7 @@ export function deckSheet(d: Deck, b: Baseline) {
 
 // ---------- Hourly ----------
 
-export function hourlyView(s: State) {
+export function hourlyView(s: State, b?: Baseline) {
   const p = s.production;
   // Field over ship is red only when the ship must equal the field (a break or shift end); mid-work it's just the gap to watch.
   const reconciling = s.ops.phase !== 'working';
@@ -257,6 +257,8 @@ export function hourlyView(s: State) {
       barPct: (x.count / max) * 100,
       short: x.short ? (x.min != null ? `Stopped ${formatHM(start + x.min)} · ${x.min} min worked · pace ${Math.round(x.pace!)}/hr` : 'Stoppage time not set') : null,
       shortUnset: x.short && x.min == null,
+      // Why a pre-break hour runs lower: each destination side stops clear-by minutes before the break (protocol App. C).
+      cutoff: x.short && b ? cutoffNote(b, preBreak(x.start, s.breaks)) : null,
       corrected: x.was?.length ? `Was ${x.was.map(fmt).join(' → ')} · original kept` : null,
       delta: x.delta == null ? null
         : `${x.delta >= 0 ? '+' : '−'}${fmt(Math.round(Math.abs(x.delta)))}${x.deltaPaced ? '/hr pace' : ''}${x.deltaPct == null ? '' : ` (${x.deltaPct >= 0 ? '+' : '−'}${Math.abs(x.deltaPct).toFixed(1)}%)`} vs prior hour`,
@@ -275,6 +277,15 @@ export function hourlyView(s: State) {
     rows,
     graph: s.periods.length ? graph(s) : null,
   };
+}
+
+function cutoffNote(b: Baseline, breakMin: number | null): string | null {
+  if (breakMin == null) return null;
+  const sides = new Map<'N' | 'S', number>();
+  for (const d of b.destinations) sides.set(d.side, d.clearBy);
+  const parts = ([['S', 'Southside'], ['N', 'Northside']] as const).filter(([k]) => sides.has(k))
+    .map(([k, name]) => `${name} −${sides.get(k)} min (stop ${formatHM(breakMin - sides.get(k)!)})`);
+  return parts.length ? `Clear-by before the ${formatHM(breakMin)} break: ${parts.join(' · ')}` : null;
 }
 
 // Tracker hourGraph(): pace line (count for hours with no pace), counts labeled,

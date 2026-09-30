@@ -240,7 +240,7 @@ export default function App() {
                   : tab === 'decks'
                     ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
-                      ? <Hourly state={vessel.state} />
+                      ? <Hourly state={vessel.state} baseline={vessel.baseline} />
                       : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
               </ScrollView>
               <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />

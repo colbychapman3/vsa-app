@@ -108,3 +108,44 @@ test('review fixes: zero cargo, wrong breaks, bad destination, NaN miles, empty 
   assert.ok(!mi.ok);
   assert.deepEqual(mi.errors, ['Destination "Zone 3": miles must be a number, 0 or more.']);
 });
+
+import { TERMINAL, terminalInfo } from '../src/engine/terminal.ts';
+import { destination, CLEAR_BY_MIN } from '../src/engine/index.ts';
+import { groupAllocations } from '../src/app/setup.ts';
+
+test('terminal directory: 26 destinations, sides/cutoffs agree with the engine, miles by berth (Appendix D)', () => {
+  assert.equal(TERMINAL.length, 26);
+  for (const d of TERMINAL) {
+    assert.equal(destination(d.name)?.side, d.side === 'S' ? 'Southside' : 'Northside', d.name);
+    assert.equal(d.clearBy, CLEAR_BY_MIN[d.side === 'S' ? 'Southside' : 'Northside'], d.name);
+  }
+  assert.deepEqual(TERMINAL.filter((d) => d.side === 'S').map((d) => d.name), ['Zone 1 (MB Field)', 'Zone T', 'Zone V', 'Zone X', 'Zone B', 'MBZ (Mercedes)', 'Site 5', 'Site 6', 'Gate 2']);
+  assert.deepEqual(terminalInfo('Zone 3', '2'), { name: 'Zone 3', side: 'N', clearBy: 15, mi: 1 });
+  assert.equal(terminalInfo('Yard 3', 3)!.mi, 0.07);
+  assert.equal(terminalInfo('Zone 3', '')!.mi, null);
+  assert.equal(terminalInfo('Rail Yard', 1), null);
+});
+
+test('brand-first lines: destination fills side, clear-by and miles for the berth; same destination merges', () => {
+  const g = groupAllocations([
+    { brand: 'Kia', autos: '100', destination: 'Zone 1 (MB Field)' },
+    { brand: 'kia', autos: '20', destination: 'Zone 1 (MB Field)' },
+    { brand: 'Hyundai', autos: '30', destination: 'Zone 3' },
+  ]);
+  assert.deepEqual(g.errors, []);
+  assert.deepEqual(g.destinations, [{ name: 'Zone 1 (MB Field)', brands: ['Kia'], autos: 120 }, { name: 'Zone 3', brands: ['Hyundai'], autos: 30 }]);
+  const r = buildBaseline(form({ berth: '2', destinations: g.destinations, decks: [{ label: 'D1', heights: [], hatches: [{ h: 'H4', items: [{ brand: 'Kia', qty: 120 }, { brand: 'Hyundai', qty: 30 }] }] }] }));
+  assert.ok(r.ok);
+  assert.deepEqual(r.baseline.destinations.map((d) => [d.name, d.side, d.clearBy, d.mi]), [['Zone 1 (MB Field)', 'S', 30, 1.7], ['Zone 3', 'N', 15, 1]]);
+  assert.deepEqual(r.discrepancies, []);
+  assert.deepEqual(groupAllocations([{ brand: '', autos: '5', destination: '' }]).errors, ['Line 1: add the brand.', 'Line 1: choose a destination.']);
+});
+
+test('brand spelling is unified and a deck total that disagrees with its hatches is refused', () => {
+  const r = buildBaseline(form({ decks: [{ label: 'D1', heights: [], hatches: [{ h: 'H4', items: [{ brand: 'Kia', qty: 5 }] }, { h: 'H3', items: [{ brand: 'kia ', qty: 5 }] }] }], destinations: [] }));
+  assert.ok(r.ok);
+  assert.deepEqual(Object.keys(r.brandStart), ['Kia']);
+  const d = emptyDeck(); Object.assign(d, { label: 'D1', total: '11' });
+  d.hatches[0].items[0] = { brand: 'Kia', qty: '5' }; d.hatches[1].items[0] = { brand: 'Kia', qty: '5' };
+  assert.deepEqual(deckFromDraft(d).errors, ['D1: deck total 11 but the hatches add to 10.']);
+});

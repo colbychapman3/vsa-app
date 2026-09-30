@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
+import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
 import { color, useType } from '../theme.ts';
 import { Bar, Big, Body, Card, Chip, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
-export function Hourly({ state }: { state: State }) {
+export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
   const f = useType();
-  const v = hourlyView(state);
+  const v = hourlyView(state, baseline);
   const [view, setView] = useState<'list' | 'graph'>('list');
 
   return (
@@ -68,6 +69,7 @@ export function Hourly({ state }: { state: State }) {
                   <View style={s.tagRow}>
                     <Text style={[s.tag, { borderColor: color.orange, color: color.oInk, fontFamily: f.bodySemi }]}>SHORT HOUR</Text>
                     <Note style={r.shortUnset ? { color: color.oInk, fontWeight: '600' } : undefined}>{r.short}</Note>
+                    {r.cutoff && <Note>{r.cutoff}</Note>}
                   </View>
                 )}
                 {r.corrected && (

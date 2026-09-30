@@ -1,15 +1,17 @@
 // New-vessel setup (protocol §11.1), one step per screen, plus baseline import. Nothing is saved until
-// Review. All checks live in src/app/setup.ts; this only lays out the questions.
+// Review. All checks live in src/app/setup.ts; the destination directory (side, cutoff, miles) is
+// src/engine/terminal.ts. This only lays out the questions.
 import { useEffect, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Reject } from '../../engine/index.ts';
-import { buildBaseline, deckFromDraft, emptyDeck, importBaseline, type Built, type DeckDraft, type SetupForm } from '../setup.ts';
-import { color, useType } from '../theme.ts';
-import { Body, Card, ErrorBox, Field, Go, Note, SectionHead, Seg, u } from './ui.tsx';
+import { TERMINAL, terminalInfo } from '../../engine/terminal.ts';
+import { buildBaseline, deckFromDraft, emptyDeck, groupAllocations, importBaseline, type Allocation, type Built, type DeckDraft, type SetupForm } from '../setup.ts';
+import { color, TAP, useType } from '../theme.ts';
+import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, u } from './ui.tsx';
 
-type Dest = { name: string; side: 'N' | 'S' | null; clearBy: string; brands: string; autos: string; mi: string; ref: string };
-const STEPS = ['Vessel', 'Start', 'Destinations', 'Decks', 'Review'];
-const blankDest = (): Dest => ({ name: '', side: null, clearBy: '', brands: '', autos: '', mi: '', ref: '' });
+const STEPS = ['Vessel', 'Start', 'Cargo to destinations', 'Decks', 'Review'];
+const blank = (): Allocation => ({ brand: '', autos: '', destination: '' });
+const BERTHS = [{ value: '1', label: 'Berth 1' }, { value: '2', label: 'Berth 2' }, { value: '3', label: 'Berth 3' }];
 
 // Content only: it lives inside the Vessels sheet, so there is never a second modal (iOS freezes on stacked modals).
 export function Setup({ isTest, setIsTest, onKey, onCreate }: {
@@ -18,34 +20,30 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
 }) {
   const f = useType();
   const [step, setStep] = useState(0);
-  const [v0, setV] = useState({ vessel: '', date: '', port: '', berth: '', sources: '', start: '08:00', drivers: '' });
-  const v = { ...v0, isTest };
-  const set = (k: keyof typeof v0) => (x: string) => setV({ ...v0, [k]: x });
-  const [dests, setDests] = useState<Dest[]>([blankDest()]);
-  const [decks, setDecks] = useState<DeckDraft[]>([emptyDeck()]);
+  const [v, setV] = useState({ vessel: '', date: '', port: '', berth: '', sources: '', start: '08:00', drivers: '' });
+  const set = (k: keyof typeof v) => (x: string) => setV({ ...v, [k]: x });
+  const [allocs, setAllocs] = useState<Allocation[]>([blank()]);
+  const [decks, setDecks] = useState<DeckDraft[]>([]);
   const [imported, setImported] = useState<Built | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [paste, setPaste] = useState('');
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { setAck(false); onKey(`${step}${imported ? 'i' : ''}${pasteOpen}`); }, [step, imported, pasteOpen]);
-  const input = [u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' as const }];
+  const [openDrop, setOpenDrop] = useState<number | null>(null);
 
-  // Draft text → SetupForm → checked baseline.
+  useEffect(() => { setAck(false); setOpenDrop(null); onKey(`${step}${imported ? 'i' : ''}${pasteOpen}`); }, [step, imported, pasteOpen]);
+
+  // Typed answers → SetupForm → checked baseline.
   const typed = (): Built => {
     const errs: string[] = [];
     const ds = decks.map((d) => { const r = deckFromDraft(d); errs.push(...r.errors); return r.deck; });
-    const drivers = v.drivers.trim() === '' ? null : Number(v.drivers);
+    const g = groupAllocations(allocs);
+    errs.push(...g.errors);
     const form: SetupForm = {
-      vessel: v.vessel, date: v.date, port: v.port, berth: v.berth, isTest: v.isTest, start: v.start, drivers,
-      sources: v.sources.split(';'),
-      destinations: dests.filter((d) => d.name.trim()).map((d) => ({
-        name: d.name, side: d.side ?? undefined, clearBy: d.clearBy.trim() ? Number(d.clearBy) : undefined,
-        brands: d.brands.split(',').map((x) => x.trim()).filter(Boolean), autos: d.autos.trim() ? Number(d.autos) : undefined,
-        mi: d.mi.trim() ? Number(d.mi) : undefined, ref: d.ref,
-      })),
-      decks: ds,
+      vessel: v.vessel, date: v.date, port: v.port, berth: v.berth, isTest, start: v.start,
+      drivers: v.drivers.trim() === '' ? null : Number(v.drivers),
+      sources: v.sources.split(';'), destinations: g.destinations, decks: ds,
     };
     const built = buildBaseline(form);
     return errs.length ? { ok: false, errors: [...errs, ...(built.ok ? [] : built.errors)] } : built;
@@ -57,35 +55,38 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
     if (built.discrepancies.length > 0 && !ack) return setError('Choose “I have seen this” under the discrepancy above, then Save.');
     setBusy(true); setError(null);
     try {
-      const r = await onCreate(built, v.isTest);
-      console.log('[setup] result', JSON.stringify(r));
+      const r = await onCreate(built, isTest);
       if (!r.ok) setError(r.error);
     } catch (e) {
-      console.log('[setup] threw', (e as Error).message);
       setError(`Could not save the vessel: ${(e as Error).message}`);
     } finally { setBusy(false); }
   };
   const back = () => { setError(null); if (imported) { setImported(null); setStep(0); } else setStep(step - 1); };
+  const go = (n: number) => { setError(null); setStep(n); };
 
+  const setAlloc = (i: number, a: Partial<Allocation>) => setAllocs(allocs.map((x, j) => (j === i ? { ...x, ...a } : x)));
   const setDeck = (i: number, d: DeckDraft) => setDecks(decks.map((x, j) => (j === i ? d : x)));
-  const setDest = (i: number, d: Partial<Dest>) => setDests(dests.map((x, j) => (j === i ? { ...x, ...d } : x)));
+  const brands = [...new Set(allocs.map((a) => a.brand.trim()).filter(Boolean))]; // brands already typed, offered as taps in Decks
+  const setItem = (i: number, hi: number, ii: number, p: Partial<{ brand: string; qty: string }>) =>
+    setDeck(i, { ...decks[i], hatches: decks[i].hatches.map((h, k) => (k === hi ? { ...h, items: h.items.map((z, m) => (m === ii ? { ...z, ...p } : z)) } : h)) });
+  const modes = [{ value: 'live', label: 'LIVE vessel' }, { value: 'test', label: 'TEST / demo' }];
 
   return (
     <>
-      <Note>{imported ? 'Imported baseline: check every value, then save.' : `Step ${step + 1} of 5: ${STEPS[step]}. Nothing is saved until Review.`}</Note>
+      <Note>{imported ? 'Imported baseline: check every value, then save.' : step === 4 ? 'Step 5 of 5: Review. Check everything, then save.' : `Step ${step + 1} of 5: ${STEPS[step]}. Nothing is saved until Review.`}</Note>
 
       {step === 0 && !pasteOpen && (
         <View style={{ gap: 12 }}>
           <Field label="Vessel name" value={v.vessel} onChange={set('vessel')} keyboard="default" />
           <Field label="Operation date" note="M/D/YYYY" value={v.date} onChange={set('date')} keyboard="numbers-and-punctuation" />
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Field label="Port" value={v.port} onChange={set('port')} keyboard="default" />
-            <Field label="Berth" value={v.berth} onChange={set('berth')} keyboard="default" />
-          </View>
-          <Field label="Sources" note="separate with ;" value={v.sources} onChange={set('sources')} keyboard="default" />
-          <Seg options={[{ value: 'live', label: 'LIVE vessel' }, { value: 'test', label: 'TEST / demo' }]} columns={2} value={v.isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
+          <Field label="Port" value={v.port} onChange={set('port')} keyboard="default" />
+          <Body semi>Berth</Body>
+          <Seg options={BERTHS} value={v.berth || null} onChange={set('berth')} />
+          <Note>The berth sets the miles to each destination.</Note>
+          <Field label="Sources (optional)" note="which paperwork; separate with ;" value={v.sources} onChange={set('sources')} keyboard="default" placeholder="Game plan 9/30; Labor order 9/30" />
+          <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
           <Note>TEST data never mixes with a live vessel. Reference vessels (Glovis Condor 101) can only be TEST.</Note>
-          <Go label="Next" onPress={() => { setError(null); if (!v.vessel.trim()) setError('The vessel needs a name.'); else setStep(1); }} />
+          <Go label="Next" onPress={() => { if (!v.vessel.trim()) setError('The vessel needs a name.'); else if (!v.berth) setError('Choose the berth.'); else go(1); }} />
           <Go ghost label="Import a baseline instead" onPress={() => { setError(null); setPasteOpen(true); }} />
         </View>
       )}
@@ -94,10 +95,10 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
         <View style={{ gap: 12 }}>
           <Note>Paste a baseline JSON (same shape as the Glovis Condor 101 baseline). Its text is data only.</Note>
           <TextInput value={paste} onChangeText={setPaste} multiline autoCorrect={false} autoCapitalize="none" accessibilityLabel="Baseline JSON"
-            placeholder="Paste here" placeholderTextColor={color.muted} style={input} />
-          <Seg options={[{ value: 'live', label: 'LIVE vessel' }, { value: 'test', label: 'TEST / demo' }]} columns={2} value={v.isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
+            placeholder="Paste here" placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' }]} />
+          <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
           <Go label="Review imported baseline" disabled={paste.trim() === ''} onPress={() => {
-            const r = importBaseline(paste, v.isTest);
+            const r = importBaseline(paste, isTest);
             if (r.ok) { setError(null); setImported(r); setStep(4); } else setError(r.errors.join('\n'));
           }} />
           <Go ghost label="Back" onPress={() => { setError(null); setPasteOpen(false); }} />
@@ -108,62 +109,88 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
         <View style={{ gap: 12 }}>
           <Field label="Planned start" note="HH:MM" value={v.start} onChange={set('start')} keyboard="numbers-and-punctuation" />
           <Field label="Drivers, Day 1" note="leave empty if unknown" value={v.drivers} onChange={set('drivers')} />
-          <Card style={[u.pad, { gap: 4 }]}><Body semi>Breaks: 12:00 and 18:00, 1 hour each</Body><Note>Fixed by protocol; not editable.</Note></Card>
-          <Nav back={back} next={() => setStep(2)} />
+          <Nav back={back} next={() => go(2)} />
         </View>
       )}
 
       {step === 2 && (
         <View style={{ gap: 12 }}>
-          {dests.map((d, i) => (
-            <Card key={i} style={[u.pad, { gap: 10 }]}>
-              <Field label="Destination" value={d.name} onChange={(x) => setDest(i, { name: x })} keyboard="default" placeholder="Zone 3, MBZ, Zone T…" />
-              <Seg options={[{ value: 'N', label: 'Northside' }, { value: 'S', label: 'Southside' }]} columns={2} value={d.side} onChange={(x) => setDest(i, { side: x })} />
-              <Note>Side left unset uses the protocol list (Zone 1, MBZ, Zone T, Zone V = Southside).</Note>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Field label="Clear-by min" note="15 N / 30 S" value={d.clearBy} onChange={(x) => setDest(i, { clearBy: x })} />
-                <Field label="Autos" value={d.autos} onChange={(x) => setDest(i, { autos: x })} />
-              </View>
-              <Field label="Brands" note="comma separated" value={d.brands} onChange={(x) => setDest(i, { brands: x })} keyboard="default" />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Field label="Miles" value={d.mi} onChange={(x) => setDest(i, { mi: x })} keyboard="numbers-and-punctuation" />
-                <Field label="Reference time" value={d.ref} onChange={(x) => setDest(i, { ref: x })} keyboard="default" placeholder="as typed" />
-              </View>
-              {dests.length > 1 && <Go ghost label="Remove destination" onPress={() => setDests(dests.filter((_, j) => j !== i))} />}
-            </Card>
-          ))}
-          <Go ghost label="Add a destination" onPress={() => setDests([...dests, blankDest()])} />
-          <Nav back={back} next={() => setStep(3)} />
+          <Note>One line per brand and destination. The side, clear-by and miles fill in from the destination you choose.</Note>
+          {allocs.map((a, i) => {
+            const info = a.destination ? terminalInfo(a.destination, v.berth) : null;
+            return (
+              <Card key={i} style={[u.pad, { gap: 10 }]}>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Field label="Brand" value={a.brand} onChange={(x) => setAlloc(i, { brand: x })} keyboard="default" placeholder="Kia, Hyundai…" />
+                  <Field label="Autos" value={a.autos} onChange={(x) => setAlloc(i, { autos: x })} />
+                </View>
+                <Body semi>Destination</Body>
+                <Pressable onPress={() => setOpenDrop(openDrop === i ? null : i)} accessibilityRole="button" accessibilityLabel="Choose destination"
+                  style={({ pressed }) => [u.input, { minHeight: TAP, justifyContent: 'center' }, pressed && { opacity: 0.6 }]}>
+                  <Text style={{ fontFamily: f.bodyMedium, fontSize: 18, color: a.destination ? color.ink : color.muted }}>{a.destination || 'Choose destination'}  ▾</Text>
+                </Pressable>
+                {openDrop === i && (['N', 'S'] as const).map((side) => (
+                  <View key={side} style={{ gap: 4 }}>
+                    <Note>{side === 'N' ? 'Northside · clear-by 15 min' : 'Southside · clear-by 30 min'}</Note>
+                    {TERMINAL.filter((d) => d.side === side).map((d) => {
+                      const mi = terminalInfo(d.name, v.berth)?.mi;
+                      return (
+                        <Pressable key={d.name} onPress={() => { setAlloc(i, { destination: d.name }); setOpenDrop(null); }} accessibilityRole="button"
+                          style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: color.row }, pressed && { opacity: 0.6 }]}>
+                          <Text style={{ fontFamily: f.bodyMedium, fontSize: 17, color: color.ink, flexShrink: 1 }}>{d.name}</Text>
+                          <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}>{mi == null ? '' : `${mi.toFixed(2)} mi`}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ))}
+                {info && <Chip text={`${info.side === 'N' ? 'Northside' : 'Southside'} · clear-by −${info.clearBy} min · ${info.mi == null ? 'miles unknown' : `${info.mi.toFixed(2)} mi from Berth ${v.berth}`}`} />}
+                {allocs.length > 1 && <Go ghost label="Remove line" onPress={() => setAllocs(allocs.filter((_, j) => j !== i))} />}
+              </Card>
+            );
+          })}
+          <Go ghost label="Add another brand / destination" onPress={() => setAllocs([...allocs, blank()])} />
+          <Nav back={back} next={() => go(3)} />
         </View>
       )}
 
       {step === 3 && (
         <View style={{ gap: 12 }}>
+          <Note>Decks in discharge order. Hatches read H4 → H1; leave a hatch empty if it holds nothing.</Note>
           {decks.map((d, i) => (
             <Card key={i} style={[u.pad, { gap: 10 }]}>
-              <Field label={`Deck ${i + 1} label`} value={d.label} onChange={(x) => setDeck(i, { ...d, label: x })} keyboard="default" placeholder="Upper, D12, D9…" />
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Field label="Heights (m)" note="e.g. 2.00, 1.70" value={d.heights} onChange={(x) => setDeck(i, { ...d, heights: x })} keyboard="numbers-and-punctuation" />
+                <Field label="Deck" value={d.label} onChange={(x) => setDeck(i, { ...d, label: x })} keyboard="default" placeholder="Upper, D12, D9…" />
+                <Field label="Deck total" note="check" value={d.total} onChange={(x) => setDeck(i, { ...d, total: x })} />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Field label="Heights (m)" note="2.00, 1.70" value={d.heights} onChange={(x) => setDeck(i, { ...d, heights: x })} keyboard="numbers-and-punctuation" />
                 <Field label="Current (m)" value={d.current} onChange={(x) => setDeck(i, { ...d, current: x })} keyboard="numbers-and-punctuation" />
               </View>
               {d.hatches.map((h, hi) => (
-                <View key={hi} style={{ gap: 6 }}>
-                  <Field label={`Hatch ${h.h || hi + 1}`} value={h.h} onChange={(x) => setDeck(i, { ...d, hatches: d.hatches.map((y, k) => (k === hi ? { ...y, h: x } : y)) })} keyboard="default" />
+                <View key={h.h} style={{ gap: 8, borderTopWidth: 1, borderTopColor: color.row, paddingTop: 10 }}>
+                  <Body semi>Hatch {h.h}</Body>
                   {h.items.map((it, ii) => (
-                    <View key={ii} style={{ flexDirection: 'row', gap: 10 }}>
-                      <Field label="Brand" value={it.brand} onChange={(x) => setDeck(i, { ...d, hatches: d.hatches.map((y, k) => (k === hi ? { ...y, items: y.items.map((z, m) => (m === ii ? { ...z, brand: x } : z)) } : y)) })} keyboard="default" />
-                      <Field label="Quantity" value={it.qty} onChange={(x) => setDeck(i, { ...d, hatches: d.hatches.map((y, k) => (k === hi ? { ...y, items: y.items.map((z, m) => (m === ii ? { ...z, qty: x } : z)) } : y)) })} />
+                    <View key={ii} style={{ gap: 6 }}>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <Field label="Brand" value={it.brand} onChange={(x) => setItem(i, hi, ii, { brand: x })} keyboard="default" />
+                        <Field label="Autos" value={it.qty} onChange={(x) => setItem(i, hi, ii, { qty: x })} />
+                      </View>
+                      {brands.length > 0 && (
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                          {brands.map((b) => <Pressable key={b} onPress={() => setItem(i, hi, ii, { brand: b })} accessibilityRole="button" accessibilityLabel={`Brand ${b}`}><Chip tall text={b} /></Pressable>)}
+                        </View>
+                      )}
                     </View>
                   ))}
-                  <Go ghost label="Add another brand in this hatch" onPress={() => setDeck(i, { ...d, hatches: d.hatches.map((y, k) => (k === hi ? { ...y, items: [...y.items, { brand: '', qty: '' }] } : y)) })} />
+                  <Go ghost label={`Add another brand in ${h.h}`} onPress={() => setDeck(i, { ...d, hatches: d.hatches.map((y, k) => (k === hi ? { ...y, items: [...y.items, { brand: '', qty: '' }] } : y)) })} />
                 </View>
               ))}
-              {decks.length > 1 && <Go ghost label="Remove deck" onPress={() => setDecks(decks.filter((_, j) => j !== i))} />}
+              <Go ghost label="Remove deck" onPress={() => setDecks(decks.filter((_, j) => j !== i))} />
             </Card>
           ))}
-          <Go ghost label="Add a deck" onPress={() => setDecks([...decks, emptyDeck()])} />
-          <Note>Decks in discharge order. Hatches read H4 → H1. Leave a hatch empty if it holds nothing.</Note>
-          <Nav back={back} next={() => setStep(4)} nextLabel="Review" />
+          <Go ghost label="Add deck" onPress={() => setDecks([...decks, emptyDeck()])} />
+          <Nav back={back} next={() => go(4)} nextLabel="Review" />
         </View>
       )}
 
@@ -178,9 +205,9 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
             <>
               <Card style={[u.pad, { gap: 6 }]}>
                 <SectionHead title={built.baseline.vessel} />
-                <Body>{built.baseline.date} · Start {built.baseline.start} · Breaks {built.baseline.breaks.join(', ')}</Body>
+                <Body>{built.baseline.date} · Start {built.baseline.start} · Berth {String(built.baseline.berth ?? '')}</Body>
                 <Body semi>{built.total.toLocaleString('en-US')} autos: {Object.entries(built.brandStart).map(([b, q]) => `${q.toLocaleString('en-US')} ${b}`).join(' + ') || 'no cargo'}</Body>
-                <Body>ID {built.operationId} · {v.isTest ? 'TEST' : 'LIVE'}</Body>
+                <Body>ID {built.operationId} · {isTest ? 'TEST' : 'LIVE'}</Body>
               </Card>
               <Card style={[u.pad, { gap: 6 }]}>
                 <SectionHead title="Decks" />
@@ -192,7 +219,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
                 <Card style={[u.pad, { gap: 6 }]}>
                   <SectionHead title="Destinations" />
                   {built.baseline.destinations.map((d) => (
-                    <Body key={d.name}>{d.name} · {d.side === 'N' ? 'Northside' : 'Southside'} · clear-by −{d.clearBy} min{d.autos != null ? ` · ${d.autos.toLocaleString('en-US')} autos` : ''}{d.ref ? ` · ${d.ref}` : ''}</Body>
+                    <Body key={d.name}>{d.name} · {d.side === 'N' ? 'Northside' : 'Southside'} · clear-by −{d.clearBy} min{d.mi != null ? ` · ${d.mi.toFixed(2)} mi` : ''}{d.autos != null ? ` · ${d.autos.toLocaleString('en-US')} autos` : ''}{d.brands?.length ? ` · ${d.brands.join(' + ')}` : ''}</Body>
                   ))}
                 </Card>
               )}
