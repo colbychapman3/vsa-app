@@ -47,6 +47,8 @@ test('completion report: sections in order, analysis sections say Not recorded o
   assert.deepEqual(by('Lessons learned').lines, ['Not recorded.']);
   assert.match(by('Load-back').note!, /not tracked/);
   assert.equal(r.interim, true);
+  // Protocol 9.3: all 15 sections, in order.
+  assert.deepEqual(r.sections.slice(0, 15).map((x) => x.title.replace(/^\d+\. /, '')), ['Executive summary', 'Operation overview', 'Starting cargo', 'Discharge results', 'Hourly productivity', 'Deck progression', 'Reconciliation', 'Load-back', 'Timeline', 'Efficiency and trends', 'Destination and route effects', 'Bottlenecks', 'Corrections and discrepancies', 'Lessons learned', 'Recommendations']);
 });
 
 test('html escapes text and marks INTERIM', () => {

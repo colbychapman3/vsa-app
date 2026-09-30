@@ -10,7 +10,7 @@ export type Section = { title: string; lines?: string[]; table?: { head: string[
 export type Report = { title: string; meta: string[]; interim: boolean; sections: Section[] };
 
 // Sections the app has no data for. Colby may type a short note; otherwise "Not recorded".
-export const NOTE_SECTIONS = ['Load-back', 'Destination and route effects', 'Bottlenecks', 'Lessons learned', 'Recommendations'] as const;
+export const NOTE_SECTIONS = ['Load-back', 'Efficiency and trends', 'Destination and route effects', 'Bottlenecks', 'Lessons learned', 'Recommendations'] as const;
 
 const n = (x: number | null | undefined) => (x == null || Number.isNaN(x) ? 'unknown' : x.toLocaleString('en-US'));
 const complete = (s: State) => s.vesselRemaining === 0;
@@ -161,33 +161,40 @@ function completionSections(s: State, b: Baseline, phase: string, notes: Record<
     ...s.breakLog.map((x) => `${x.kind === 'shift' ? 'Shift' : 'Break'}${x.kind === 'missed' ? ' (added later)' : x.edited ? ' (edited)' : ''}: ${x.end ? `${x.start}–${x.end}` : `${x.start} (no end recorded)`}`),
   ];
   const disc = discrepancies(s, b);
-  const out: Section[] = [
-    { title: '1. Executive summary', lines: [
+  const src = ((b.sources as string[] | undefined) ?? []).join('; ');
+  const named = (t: (typeof NOTE_SECTIONS)[number]): Section => ({
+    title: t,
+    lines: [notes[t]?.trim() || 'Not recorded.'],
+    note: t === 'Load-back' ? 'Load-back is its own ledger and is not tracked in this app.' : undefined,
+  });
+  // Protocol §9.3 order; numbered 1-15 below. ETA and Plan notes follow the numbered sections.
+  const numbered: Section[] = [
+    { title: 'Executive summary', lines: [
       `${b.vessel}: ${n(s.field)} of ${n(s.start)} autos in the field record; vessel remaining ${n(s.vesselRemaining)}.`,
       `H.A. ${p.ha == null ? 'unknown' : Math.round(p.ha)}/hr over ${p.countedHours} counted hr; pace ${p.pace == null ? 'unknown' : Math.round(p.pace)}/hr.`,
       phase,
     ] },
-    { title: '2. Operation overview', lines: [
+    { title: 'Operation overview', lines: [
       `Date ${b.date} · planned start ${b.start} · breaks ${b.breaks.join(' and ')} (1 hour each)`,
       `Drivers: ${drivers}`,
-      `Sources: ${((b.sources as string[] | undefined) ?? []).join('; ') || 'none listed'}`,
+      ...(src ? [`Sources: ${src}`] : []),
     ] },
-    { title: '3. Starting cargo', lines: [`${n(s.start)} autos`], table: { head: ['Brand', 'Starting'], rows: s.brands.map((x) => [x.name, n(x.start)]) } },
-    { title: '4. Discharge results', lines: [`Field ${n(s.field)} · Ship progress ${n(s.progress)} · Vessel remaining ${n(s.vesselRemaining)}`],
+    { title: 'Starting cargo', lines: [`${n(s.start)} autos`], table: { head: ['Brand', 'Starting'], rows: s.brands.map((x) => [x.name, n(x.start)]) } },
+    { title: 'Discharge results', lines: [`Field ${n(s.field)} · Ship progress ${n(s.progress)} · Vessel remaining ${n(s.vesselRemaining)}`],
       table: { head: ['Brand', 'Field', 'Remaining'], rows: s.brands.map((x) => [x.name, `${x.fieldExact ? '' : '≥ '}${n(x.field)}`, n(x.remaining)]) } },
-    { ...hours(s), title: '5. Hourly productivity' },
-    { ...decksTable(s), title: '6. Deck progression' },
-    { ...reconciliation(s), title: '7. Reconciliation' },
-    { title: '8. Timeline', lines: timeline.length ? timeline : ['No day starts or breaks recorded.'] },
-    { title: '9. Corrections and discrepancies', lines: [...(disc.lines ?? []), ...corrected] },
-    eta(s, b),
-    notesSection(s),
+    { ...hours(s), title: 'Hourly productivity' },
+    { ...decksTable(s), title: 'Deck progression' },
+    { ...reconciliation(s), title: 'Reconciliation' },
+    named('Load-back'),
+    { title: 'Timeline', lines: timeline.length ? timeline : ['No day starts or breaks recorded.'] },
+    named('Efficiency and trends'),
+    named('Destination and route effects'),
+    named('Bottlenecks'),
+    { title: 'Corrections and discrepancies', lines: [...(disc.lines ?? []), ...corrected] },
+    named('Lessons learned'),
+    named('Recommendations'),
   ];
-  NOTE_SECTIONS.forEach((t, i) => out.push({
-    title: `${10 + i}. ${t}`,
-    lines: [notes[t]?.trim() || 'Not recorded.'],
-    note: t === 'Load-back' ? 'Load-back is its own ledger and is not tracked in this app.' : undefined,
-  }));
+  const out: Section[] = [...numbered.map((x, i) => ({ ...x, title: `${i + 1}. ${x.title}` })), eta(s, b), notesSection(s)];
   return out;
 }
 
