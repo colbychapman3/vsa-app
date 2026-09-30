@@ -285,3 +285,34 @@ test('a new event must come after the last saved sequence', async (t) => {
   assert.equal(await count(db), h1.length);
   await store.close();
 });
+
+test('two vessels on one store: events never cross, archive hides, last-opened remembered', async (t) => {
+  const { setArchived, setLastOpened, lastOpened, listRows } = await import('../src/storage/vessels.ts');
+  const db = openNodeDb(tempFile(t));
+  const store = await openStore(db);
+  const a = { ...plain(glovis), vessel: 'Ship A', date: '9/21/2026' }, b = { ...plain(glovis), vessel: 'Ship B', date: '9/30/2026' };
+  assert.ok((await store.createVessel({ operationId: 'SHIP-A-20260921', baseline: a, isTest: false })).ok);
+  assert.ok((await store.createVessel({ operationId: 'SHIP-B-20260930', baseline: b, isTest: false })).ok);
+  const evsA = toEvents(SCENARIOS[1], 'SHIP-A-20260921');
+  assert.ok((await store.append('SHIP-A-20260921', evsA)).ok);
+  const crossed = await store.append('SHIP-B-20260930', evsA);
+  assert.ok(!crossed.ok);
+  assert.equal((await store.load('SHIP-B-20260930') as any).events.length, 0);
+  assert.equal((await store.load('SHIP-A-20260921') as any).events.length, evsA.length);
+
+  await setLastOpened(db, 'SHIP-A-20260921');
+  assert.equal(await lastOpened(db), 'SHIP-A-20260921');
+  await setArchived(db, 'SHIP-B-20260930', true);
+  const rows = await listRows(db, store);
+  assert.deepEqual(rows.map((r) => [r.name, r.archived]), [['Ship B', true], ['Ship A', false]]);
+  assert.equal(rows.find((r) => r.name === 'Ship B')!.field, 0);
+  const { setNote, getNotes } = await import('../src/storage/vessels.ts');
+  await setNote(db, 'SHIP-A-20260921', 'Bottlenecks', 'Ramp 2');
+  await setNote(db, 'SHIP-B-20260930', 'Bottlenecks', 'Other ship');
+  assert.deepEqual(await getNotes(db, 'SHIP-A-20260921'), { Bottlenecks: 'Ramp 2' });
+  await setNote(db, 'SHIP-A-20260921', 'Bottlenecks', '  ');
+  assert.deepEqual(await getNotes(db, 'SHIP-A-20260921'), {});
+  await setArchived(db, 'SHIP-B-20260930', false);
+  assert.ok((await listRows(db, store)).every((r) => !r.archived));
+  await db.close();
+});
