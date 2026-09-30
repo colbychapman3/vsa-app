@@ -1,6 +1,6 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
 import { color, TAP, useType } from '../theme.ts';
@@ -232,11 +232,14 @@ export function Chip({ text, tone = 'plain', tall }: { text: string; tone?: 'pla
 
 // One sheet frame for every form: title, TEST chip (sheets cover the header), close.
 // Only one Modal is ever open: the deck sheet opens inside the Log sheet, not on top of it.
-export function Sheet({ title, isTest, onClose, children, scrollKey }: { title: string; isTest: boolean; onClose: () => void; children: ReactNode; scrollKey?: string }) {
+export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn }: { title: string; isTest: boolean; onClose: () => void; children: ReactNode; scrollKey?: string; scrollTopOn?: string }) {
   const f = useType();
+  const ref = useRef<ScrollView>(null);
+  // scrollTopOn: go back to the top without remounting the children (a form keeps its typed values).
+  useEffect(() => { ref.current?.scrollTo({ y: 0, animated: false }); }, [scrollTopOn]);
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <ScrollView key={scrollKey} style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }}
+      <ScrollView ref={ref} key={scrollKey} style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }}
         keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
           <View style={u.secH}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>

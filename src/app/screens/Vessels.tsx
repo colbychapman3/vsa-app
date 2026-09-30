@@ -20,7 +20,7 @@ export function Vessels({ rows, currentId, isTest, onOpen, onArchive, onCreate, 
   const [newTest, setNewTest] = useState(false);
   const [key, setKey] = useState('');
   return (
-    <Sheet title={mode === 'new' ? 'New vessel' : 'Vessels'} isTest={mode === 'new' ? newTest : isTest} onClose={onClose} scrollKey={mode === 'new' ? key : 'list'}>
+    <Sheet title={mode === 'new' ? 'New vessel' : 'Vessels'} isTest={mode === 'new' ? newTest : isTest} onClose={onClose} scrollTopOn={mode === 'new' ? key : 'list'}>
       {mode === 'new'
         ? <Setup isTest={newTest} setIsTest={setNewTest} onKey={setKey} onCreate={onCreate} />
         : <List rows={rows} currentId={currentId} onOpen={onOpen} onArchive={onArchive} onNew={() => setMode('new')} />}

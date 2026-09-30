@@ -58,7 +58,11 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
     setBusy(true); setError(null);
     try {
       const r = await onCreate(built, v.isTest);
+      console.log('[setup] result', JSON.stringify(r));
       if (!r.ok) setError(r.error);
+    } catch (e) {
+      console.log('[setup] threw', (e as Error).message);
+      setError(`Could not save the vessel: ${(e as Error).message}`);
     } finally { setBusy(false); }
   };
   const back = () => { setError(null); if (imported) { setImported(null); setStep(0); } else setStep(step - 1); };
