@@ -7,7 +7,7 @@ import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
 import { color, useType } from '../theme.ts';
-import { Bar, Big, Body, Card, Chip, Label, Note, SectionHead, Seg, u } from './ui.tsx';
+import { Bar, Big, Body, Card, Chip, FlipTile, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
   const f = useType();
@@ -16,16 +16,23 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
 
   return (
     <View style={s.main}>
-      <Card style={[u.pad, s.stats]}>
-        {([['H.A.', v.stats.ha, v.stats.haNote], ['Pace', v.stats.pace, v.stats.paceNote], ['Total', v.stats.total, 'field count']] as const).map(([l, n, note]) => (
-          <View key={l} style={{ flex: 1, gap: 2 }}>
-            <Label>{l}</Label>
-            <Big size={40}>{n}</Big>
-            <Note>{note}</Note>
-          </View>
-        ))}
-      </Card>
-      {v.paceLine && <Note>{v.paceLine}</Note>}
+      <FlipTile cardStyle={[u.pad, s.stats]} label="Hourly average, pace and total. Tap for how they are worked out"
+        front={<>
+          {([['H.A.', v.stats.ha], ['Pace', v.stats.pace], ['Total', v.stats.total]] as const).map(([l, n]) => (
+            <View key={l} style={{ flex: 1, gap: 2 }}>
+              <Label>{l}</Label>
+              <Big size={40}>{n}</Big>
+            </View>
+          ))}
+        </>}
+        back={<View style={{ flex: 1, gap: 6 }}>
+          <Label>HOW THESE ARE WORKED OUT</Label>
+          <Body>H.A.: {v.stats.haNote}. Every logged hour counts as a full hour.</Body>
+          <Body>Pace: {v.stats.paceNote}. Only the minutes worked count, so the short hour before a break is not held against it.</Body>
+          <Body>Total: field count.</Body>
+          {v.paceLine && <Note>{v.paceLine}</Note>}
+          <Note>They match when no hour was cut short. The forecast uses Pace. Tap to flip back.</Note>
+        </View>} />
       {v.unsetShort && (
         <View style={s.warn}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.oInk }}>{v.unsetShort}</Text>
@@ -85,17 +92,6 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
               </View>
             </View>
           ))}
-        </Card>
-      )}
-
-      {(v.photosNoTime.length > 0 || v.photosOutside.length > 0) && (
-        <Card style={[u.pad, { gap: 6 }]}>
-          <SectionHead title="Photos not on an hour" />
-          {v.photosNoTime.length > 0 && <Label>TIME NOT PROVIDED</Label>}
-          {v.photosNoTime.map((p) => <Body key={p}>{p}</Body>)}
-          {v.photosOutside.length > 0 && <Label wrap>OUTSIDE THE LOGGED HOURS (BREAK OR NOT LOGGED YET)</Label>}
-          {v.photosOutside.map((p) => <Body key={p}>{p}</Body>)}
-          <Note>Photos are records only. They never change a count or a rate.</Note>
         </Card>
       )}
 

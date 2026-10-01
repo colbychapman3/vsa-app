@@ -6,10 +6,10 @@ import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type 
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { NOTE_SECTIONS } from '../report.ts';
-import { planView, photoTypesPresent } from '../view.ts';
+import { planView, photoHourNotes, photoTypesPresent } from '../view.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
-import { color, useType } from '../theme.ts';
+import { color, TAP, useType } from '../theme.ts';
 import { Vans } from './Vans.tsx';
 import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
@@ -33,11 +33,13 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
   const [driversOpen, setDriversOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [backupInfo, setBackupInfo] = useState(false); // the Backup wording shows only when the card's info line is tapped
   const [noteSheet, setNoteSheet] = useState<{ id: string | null } | null>(null); // id null = add a note
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
   const [making, setMaking] = useState<'break' | 'completion' | EvidenceReportKind | null>(null); // which report is being made
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
+  const ph = photoHourNotes(state); // photos that cannot be placed on an hour (no time, or outside the logged hours)
 
   const act = async (build: (c: E.Ctx) => VsaEvent[] | Reject, done: string) => {
     setBusy(true);
@@ -113,6 +115,17 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
 
       <Vans state={state} baseline={baseline} isTest={isTest} save={save} onNotice={onNotice} />
 
+      {(ph.noTime.length > 0 || ph.outside.length > 0) && (
+        <Card style={[u.pad, { gap: 6 }]}>
+          <SectionHead title="Photos not on an hour" />
+          {ph.noTime.length > 0 && <Label>TIME NOT PROVIDED</Label>}
+          {ph.noTime.map((p) => <Body key={p}>{p}</Body>)}
+          {ph.outside.length > 0 && <Label wrap>OUTSIDE THE LOGGED HOURS (BREAK OR NOT LOGGED YET)</Label>}
+          {ph.outside.map((p) => <Body key={p}>{p}</Body>)}
+          <Note>Photos are records only. They never change a count or a rate.</Note>
+        </Card>
+      )}
+
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Labor" />
         {kv('Start', v.labor.start)}
@@ -168,9 +181,16 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         {backup.unsaved > 0 && <Note>{backup.unsaved} {backup.unsaved === 1 ? 'entry' : 'entries'} not backed up.</Note>}
         <Go label="Export vessel log" disabled={busy} onPress={async () => { setBusy(true); try { await backup.onExport(); } finally { setBusy(false); } }} />
         <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />
-        <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
-        <Note>Photos are not in the export. They stay in the app on this phone ({state.evidence.filter((x) => !x.removed).length} saved for this vessel); the export keeps each photo’s record only.</Note>
-        <Note>{AI_STATUS_TEXT[aiStatus()]}</Note>
+        <Pressable onPress={() => setBackupInfo(!backupInfo)} accessibilityRole="button" accessibilityState={{ expanded: backupInfo }} style={({ pressed }) => [{ minHeight: TAP - 8, justifyContent: 'center' }, pressed && { opacity: 0.6 }]}>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{backupInfo ? 'Hide details ▴' : 'About backups ▾'}</Text>
+        </Pressable>
+        {backupInfo && (
+          <>
+            <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
+            <Note>Photos are not in the export. They stay in the app on this phone ({state.evidence.filter((x) => !x.removed).length} saved for this vessel); the export keeps each photo’s record only.</Note>
+            <Note>{AI_STATUS_TEXT[aiStatus()]}</Note>
+          </>
+        )}
       </Card>
 
       {noteSheet && <PlanNoteSheet isTest={isTest} state={state} baseline={baseline} noteId={noteSheet.id} save={save} onClose={(done) => { setNoteSheet(null); if (done) onNotice({ ok: true, text: done }); }} />}

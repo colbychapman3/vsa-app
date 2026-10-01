@@ -4,12 +4,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { snapshot, type Banner } from '../view.ts';
-import { color, useType } from '../theme.ts';
+import { color, TAP, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
 import { VesselCards, type Save } from './Plan.tsx';
-import { Bar, BannerView, Big, Body, Card, Label, Note, SectionHead, Tag, u } from './ui.tsx';
+import { Bar, BannerView, Big, Body, Card, FlipTile, Label, Note, SectionHead, Tag, u } from './ui.tsx';
 
-type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'plan') => void; onTrack: (b: Banner) => void;
+type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'decks' | 'plan') => void; onTrack: (b: Banner) => void;
   isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void };
 
 export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice }: Props) {
@@ -20,7 +20,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
 
   return (
     <View>
-      {v.banners.map((b, i) => <BannerView key={i} banner={b} onTrack={onTrack} />)}
+      {v.banners.map((b, i) => <BannerView key={i} banner={b} onTrack={onTrack} onGo={onOpenTab} />)}
 
       {v.strip && (
         <View style={s.strip}>
@@ -58,6 +58,10 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
           <Big size={112} style={{ color: heroColor }}>{h.value}</Big>
           <Body style={{ fontSize: 17 }}>{h.of}</Body>
           <Bar pct={h.pct} />
+          <View style={u.secH}>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barLeft}</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barRight}</Text>
+          </View>
           {h.clerkLine && (
             <Text style={[{ fontFamily: f.body, fontSize: 14 }, h.clerkLine.tone === 'red' ? s.err : h.clerkLine.tone === 'green' ? { color: color.gInk } : { color: color.muted }]}>
               {h.clerkLine.text}
@@ -80,23 +84,41 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
 
         {/* Tiles */}
         <View style={s.grid2}>
-          <Card style={[s.tile, s.tileFc, v.eta.dashed && s.dashed]}>
-            <Tag kind="FORECAST" />
-            <Label>EST. COMPLETION</Label>
-            {v.eta.day && <Body semi style={{ fontSize: 20 }}>{v.eta.day}</Body>}
-            <Big size={56}>{v.eta.value}</Big>
-            {v.eta.notes.map((n) => <Note key={n}>{n}</Note>)}
-          </Card>
-          <Pressable style={({ pressed }) => [u.card, s.tile, pressed && u.pressed]} onPress={() => onOpenTab('hourly')} accessibilityRole="button" accessibilityLabel="Average hourly, open hourly breakdown">
-            <Tag kind="CALCULATED" />
-            <Label>AVG HOURLY (H.A.)</Label>
-            <View style={s.haRow}>
-              <Big size={56} style={{ flexShrink: 1 }}>{v.ha.value}</Big>
-              {v.ha.perHr && <Body style={{ fontSize: 16 }}>/hr</Body>}
-            </View>
-            {v.ha.notes.map((n) => <Note key={n}>{n}</Note>)}
-            <Text style={[s.link, { fontFamily: f.bodySemi }]}>Hourly breakdown ›</Text>
-          </Pressable>
+          <FlipTile style={{ flex: 1 }} cardStyle={[s.tile, s.tileFc, v.eta.dashed && s.dashed]} label="Estimated completion forecast. Tap for how it is worked out"
+            front={<>
+              <Tag kind="FORECAST" />
+              <Label>EST. COMPLETION</Label>
+              {v.eta.day && <Body semi style={{ fontSize: 20 }}>{v.eta.day}</Body>}
+              <Big size={56}>{v.eta.value}</Big>
+              <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for details</Text>
+            </>}
+            back={<>
+              <Tag kind="FORECAST" />
+              <Label>HOW THIS IS WORKED OUT</Label>
+              {v.eta.notes.map((n) => <Body key={n}>{n}</Body>)}
+              <Note>A forecast, not a result: it follows the recent pace, skips the 12:00 and 18:00 breaks, and is never marked complete by itself.</Note>
+              <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap to flip back</Text>
+            </>} />
+          <FlipTile style={{ flex: 1 }} cardStyle={s.tile} label="Average hourly. Tap for how it is worked out"
+            front={<>
+              <Tag kind="CALCULATED" />
+              <Label>AVG HOURLY (H.A.)</Label>
+              <View style={s.haRow}>
+                <Big size={56} style={{ flexShrink: 1 }}>{v.ha.value}</Big>
+                {v.ha.perHr && <Body style={{ fontSize: 16 }}>/hr</Body>}
+              </View>
+              <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for details</Text>
+            </>}
+            back={<>
+              <Tag kind="CALCULATED" />
+              <Label>HOW THIS IS WORKED OUT</Label>
+              {v.ha.notes.map((n) => <Body key={n}>{n}</Body>)}
+              <Note>H.A. counts every logged hour as a full hour. Pace counts only the minutes worked, so the short hour before a break is not held against it. They match when no hour was cut short. The forecast uses Pace.</Note>
+              <Pressable onPress={() => onOpenTab('hourly')} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP - 8, justifyContent: 'center' }, pressed && u.pressed]}>
+                <Text style={[s.link, { fontFamily: f.bodySemi }]}>Hourly breakdown ›</Text>
+              </Pressable>
+              <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap the box to flip back</Text>
+            </>} />
         </View>
 
         {/* Remaining by brand */}

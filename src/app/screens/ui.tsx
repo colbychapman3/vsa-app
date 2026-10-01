@@ -1,7 +1,7 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
-import { useEffect, useRef, type ReactNode } from 'react';
-import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
 import { color, TAP, useType } from '../theme.ts';
 
@@ -41,6 +41,29 @@ export function Note({ children, style }: { children: ReactNode; style?: StylePr
   return <Text style={[u.note, { fontFamily: f.body }, style]}>{children}</Text>;
 }
 
+// A box that flips to its explanation when tapped and back when tapped again (a quarter turn out, swap, a quarter turn in).
+// The front stays short; the back carries the wording. Respects Reduce Motion by swapping at once.
+export function FlipTile({ front, back, style, cardStyle, label }: { front: ReactNode; back: ReactNode; style?: StyleProp<ViewStyle>; cardStyle?: StyleProp<ViewStyle>; label: string }) {
+  const [showBack, setShowBack] = useState(false);
+  const turn = useRef(new Animated.Value(0)).current;
+  const reduce = useRef(false);
+  useEffect(() => { AccessibilityInfo.isReduceMotionEnabled().then((r) => { reduce.current = r; }).catch(() => {}); }, []);
+  const flip = () => {
+    if (reduce.current) return setShowBack((b) => !b);
+    Animated.timing(turn, { toValue: 1, duration: 140, useNativeDriver: true }).start(() => {
+      setShowBack((b) => !b);
+      turn.setValue(-1);
+      Animated.timing(turn, { toValue: 0, duration: 140, useNativeDriver: true }).start();
+    });
+  };
+  const rotate = turn.interpolate({ inputRange: [-1, 0, 1], outputRange: ['-90deg', '0deg', '90deg'] });
+  return (
+    <Pressable onPress={flip} style={style} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={showBack ? 'Shows the figure again' : 'Shows how it is worked out'}>
+      <Animated.View style={[u.card, cardStyle, { transform: [{ perspective: 900 }, { rotateY: rotate }] }]}>{showBack ? back : front}</Animated.View>
+    </Pressable>
+  );
+}
+
 export function Bar({ pct, small }: { pct: number; small?: boolean }) {
   return (
     <View style={[u.bar, small && u.barSm]}>
@@ -72,7 +95,7 @@ const TONES = {
 };
 
 // Full-width status banner (tracker .alert). Red/orange alerts can be tracked as a discrepancy.
-export function BannerView({ banner, onTrack }: { banner: Banner; onTrack?: (b: Banner) => void }) {
+export function BannerView({ banner, onTrack, onGo }: { banner: Banner; onTrack?: (b: Banner) => void; onGo?: (tab: 'hourly' | 'decks') => void }) {
   const f = useType();
   const t = TONES[banner.tone];
   if (banner.tone === 'break') {
@@ -85,8 +108,19 @@ export function BannerView({ banner, onTrack }: { banner: Banner; onTrack?: (b: 
   }
   return (
     <View style={[u.alert, { backgroundColor: t.bg, borderBottomColor: t.border }]} accessibilityRole="alert">
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: t.ink }}>{banner.title}</Text>
-      <Text style={{ fontFamily: f.body, fontSize: 14, color: t.ink }}>{banner.sub}</Text>
+      {banner.go && onGo ? (
+        <Pressable onPress={() => onGo(banner.go!)} accessibilityRole="button" accessibilityLabel={`${banner.title}. ${banner.sub}. Open ${banner.go === 'decks' ? 'Decks' : 'Hourly'} to fix it`}
+          style={({ pressed }) => [{ minHeight: TAP - 8, justifyContent: 'center', gap: 2 }, pressed && u.pressed]}>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: t.ink }}>{banner.title}</Text>
+          <Text style={{ fontFamily: f.body, fontSize: 14, color: t.ink }}>{banner.sub}</Text>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: t.ink, textDecorationLine: 'underline' }}>Open {banner.go === 'decks' ? 'Decks' : 'Hourly'} to fix ›</Text>
+        </Pressable>
+      ) : (
+        <>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: t.ink }}>{banner.title}</Text>
+          <Text style={{ fontFamily: f.body, fontSize: 14, color: t.ink }}>{banner.sub}</Text>
+        </>
+      )}
       {banner.trackable && onTrack ? (
         banner.tracked
           ? <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: t.ink, marginTop: 6 }}>On the open discrepancy list</Text>

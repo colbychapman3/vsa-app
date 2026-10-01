@@ -6,7 +6,7 @@ import { CLEAR_BY_MIN, TYPE_LABEL, formatHM, parseHM, preBreak, toAbs, backNotMa
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
-export type Banner = { tone: Tone; title: string; sub: string; trackable: boolean; tracked: boolean };
+export type Banner = { tone: Tone; title: string; sub: string; trackable: boolean; tracked: boolean; go?: 'hourly' | 'decks' }; // go: the tab that addresses the warning
 
 const fmt = (n: number | null | undefined) => (n == null || Number.isNaN(n) ? '—' : n.toLocaleString('en-US'));
 const m2 = (m: number) => `${m.toFixed(2)} m`;
@@ -107,28 +107,28 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   const when = endShift ? 'at end of shift' : 'at break';
   const openIssues = s.issues.filter((i) => i.status === 'open');
   const tracked = (title: string) => openIssues.some((i) => i.key === title);
-  const alert = (tone: Tone, title: string, sub: string): Banner => ({ tone, title, sub, trackable: true, tracked: tracked(title) });
+  const alert = (tone: Tone, title: string, sub: string, go?: Banner['go']): Banner => ({ tone, title, sub, trackable: true, tracked: tracked(title), go });
   const nextStart = s.plan.nextStart ?? b.start;
 
   const banners: Banner[] = [];
   if (s.ops.shiftEnded) banners.push({ tone: 'break', title: 'SHIFT ENDED', sub: `At ${s.ops.shiftEnd} · Day ${s.ops.day + 1} starts ${nextStart}`, trackable: false, tracked: false });
   else if (s.ops.onBreak) banners.push({ tone: 'break', title: 'ON BREAK', sub: `From ${s.ops.breakStart}`, trackable: false, tracked: false });
-  if (s.field > s.start) banners.push(alert('red', `Field count exceeds starting cargo by ${fmt(s.field - s.start)}`, `Field ${fmt(s.field)} · Starting ${fmt(s.start)} · Check hourly entries`));
+  if (s.field > s.start) banners.push(alert('red', `Field count exceeds starting cargo by ${fmt(s.field - s.start)}`, `Field ${fmt(s.field)} · Starting ${fmt(s.start)} · Check hourly entries`, 'hourly'));
   if (recon) {
     const v = s.variance;
-    if (v == null) banners.push({ tone: 'orange', title: `${endShift ? 'End-of-shift' : 'Break'} reconciliation waiting on deck counts`, sub: `Add a remaining count for ${s.missingDecks.join(', ')} to compare ship and field.`, trackable: false, tracked: false });
-    else if (v < 0) banners.push(alert('red', `${label}: field exceeds ship by ${fmt(-v)}`, `Ship progress ${fmt(s.progress)} · Field ${fmt(s.field)} · These should match ${when}`));
-    else if (v > 0) banners.push(alert('orange', `${label}: ship is ${fmt(v)} ahead of field`, `Ship progress ${fmt(s.progress)} · Field ${fmt(s.field)} · No cars should be in transit ${when}`));
+    if (v == null) banners.push({ tone: 'orange', title: `${endShift ? 'End-of-shift' : 'Break'} reconciliation waiting on deck counts`, sub: `Add a remaining count for ${s.missingDecks.join(', ')} to compare ship and field.`, trackable: false, tracked: false, go: 'decks' });
+    else if (v < 0) banners.push(alert('red', `${label}: field exceeds ship by ${fmt(-v)}`, `Ship progress ${fmt(s.progress)} · Field ${fmt(s.field)} · These should match ${when}`, 'decks'));
+    else if (v > 0) banners.push(alert('orange', `${label}: ship is ${fmt(v)} ahead of field`, `Ship progress ${fmt(s.progress)} · Field ${fmt(s.field)} · No cars should be in transit ${when}`, 'decks'));
     else banners.push({ tone: 'green', title: `${endShift ? 'End-of-shift' : 'Break'} reconciliation: ship and field match`, sub: `Both at ${fmt(s.field)}`, trackable: false, tracked: false });
     for (const br of s.brands) {
       if (br.variance == null || br.variance === 0) continue;
       banners.push(alert(br.variance < 0 ? 'red' : 'orange', `${label}: ${br.name} field ${br.variance < 0 ? 'exceeds' : 'is short of'} cleared by ${fmt(Math.abs(br.variance))}`,
-        `Field ${fmt(br.field)} · Cleared from ship ${fmt(br.cleared)}`));
+        `Field ${fmt(br.field)} · Cleared from ship ${fmt(br.cleared)}`, 'hourly'));
     }
   }
   const nowAbs = (s.ops.day - 1) * 1440 + nowMin;
   if (s.eta.etaAbs != null && s.vesselRemaining !== 0 && !recon && nowAbs > s.eta.etaAbs) {
-    banners.push({ tone: 'orange', title: 'Forecast passed · completion not reported', sub: 'Log a count or update decks to refresh.', trackable: false, tracked: false });
+    banners.push({ tone: 'orange', title: 'Forecast passed · completion not reported', sub: 'Log a count or update decks to refresh.', trackable: false, tracked: false, go: 'hourly' });
   }
 
   // Break strip: next scheduled break today and clear-by per side. Hidden while reconciling.
@@ -174,7 +174,10 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   const hero = {
     label: known ? 'VESSEL REMAINING' : 'FIELD BALANCE',
     value: fmt(known ? s.vesselRemaining : s.fieldBalance),
-    of: `of ${fmt(s.start)} autos · ${pct == null ? '—' : pct.toFixed(1)}% ${known ? 'complete' : 'field-counted'}`,
+    of: `of ${fmt(s.start)} autos · ${pct == null ? '—' : pct.toFixed(1)}%${known ? ' complete' : ''}`,
+    // Under the bar: how many are done (left, under the dark part) and how many to go (right). Both come from the same ledger as the headline.
+    barLeft: known ? `${fmt(s.progress)} done` : `${fmt(s.field)} counted`,
+    barRight: `${fmt(known ? s.vesselRemaining : s.fieldBalance)} to go`,
     pct: pct ?? 0,
     clerkBadge, clerkLine, rows, gapNote,
     unknownNote: known ? null : `Vessel remaining unknown · needs a remaining count on ${s.missingDecks.join(', ')}`,

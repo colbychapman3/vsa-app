@@ -338,3 +338,18 @@ test("short pre-break hour names each side's clear-by cutoff from the destinatio
   assert.equal(row.cutoff, 'Clear-by before the 12:00 break: Southside −30 min (stop 11:30) · Northside −15 min (stop 11:45)');
   assert.ok(hourlyView(r).rows.every((x) => x.cutoff === null));
 });
+
+test('hero: no "field-counted" wording; bar labels say how many are done and how many to go; warnings name the tab that fixes them', () => {
+  const unknown = snapshot(state(toEvents(SCENARIOS.find((x) => x.name === 'Active deck with no count')!, OP)), glovis, 14 * 60);
+  assert.ok(!/field-counted/.test(unknown.hero.of), unknown.hero.of);
+  assert.equal(unknown.hero.barLeft, `${unknown.hero.rows.find((r) => r.k === 'Field record')!.v} counted`);
+  assert.equal(unknown.hero.barRight, `${unknown.hero.value} to go`);
+  const known = snapshot(demo(), glovis, 14 * 60);
+  assert.ok(/complete$/.test(known.hero.of));
+  assert.equal(known.hero.barRight, `${known.hero.value} to go`);
+  assert.equal(known.hero.barLeft, `${known.hero.rows.find((r) => r.k === 'Ship progress')!.v} done`);
+  const sc = (name: string) => snapshot(state(toEvents(SCENARIOS.find((x) => x.name === name)!, OP)), glovis, 12 * 60 + 5).banners;
+  assert.equal(sc('lunch: ship ahead (warning)').find((x) => /ahead of field/.test(x.title))!.go, 'decks');
+  assert.equal(sc('end of shift: field ahead (alarm)').find((x) => /field exceeds ship/.test(x.title))!.go, 'decks');
+  assert.equal(sc('lunch: ship = field (green)').find((x) => /match/.test(x.title))!.go, undefined, 'a matching banner has nothing to fix');
+});
