@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { snapshot, type Banner } from '../view.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { color, HA_COLOR, TAP, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
 import { VesselCards, type Save } from './Plan.tsx';
 import { Bar, BannerView, Big, Body, Card, FlipTile, Label, Note, SectionHead, Tag, u } from './ui.tsx';
@@ -104,7 +104,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
               <Tag kind="CALCULATED" />
               <Label>AVG HOURLY (H.A.)</Label>
               <View style={s.haRow}>
-                <Big size={56} style={{ flexShrink: 1 }}>{v.ha.value}</Big>
+                <Big size={56} style={{ flexShrink: 1, color: HA_COLOR }}>{v.ha.value}</Big>
                 {v.ha.perHr && <Body style={{ fontSize: 16 }}>/hr</Body>}
               </View>
               <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for details</Text>

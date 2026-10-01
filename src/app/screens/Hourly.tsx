@@ -6,7 +6,7 @@ import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
-import { color, useType } from '../theme.ts';
+import { color, HA_COLOR, PACE_COLOR, useType } from '../theme.ts';
 import { Bar, Big, Body, Card, Chip, FlipTile, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
@@ -18,17 +18,17 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
     <View style={s.main}>
       <FlipTile cardStyle={[u.pad, s.stats]} label="Hourly average, pace and total. Tap for how they are worked out"
         front={<>
-          {([['H.A.', v.stats.ha], ['Pace', v.stats.pace], ['Total', v.stats.total]] as const).map(([l, n]) => (
+          {([['H.A.', v.stats.ha, HA_COLOR], ['Pace', v.stats.pace, PACE_COLOR], ['Total', v.stats.total, color.ink]] as const).map(([l, n, c]) => (
             <View key={l} style={{ flex: 1, gap: 2 }}>
-              <Label>{l}</Label>
-              <Big size={40}>{n}</Big>
+              <Label style={{ color: c }}>{l}</Label>
+              <Big size={40} style={{ color: c }}>{n}</Big>
             </View>
           ))}
         </>}
         back={<View style={{ flex: 1, gap: 6 }}>
           <Label>HOW THESE ARE WORKED OUT</Label>
-          <Body>H.A.: {v.stats.haNote}. Every logged hour counts as a full hour.</Body>
-          <Body>Pace: {v.stats.paceNote}. Only the minutes worked count, so the short hour before a break is not held against it.</Body>
+          <Body semi style={{ color: HA_COLOR }}>H.A.: {v.stats.haNote}. Every logged hour counts as a full hour.</Body>
+          <Body semi style={{ color: PACE_COLOR }}>Pace: {v.stats.paceNote}. Only the minutes worked count, so the short hour before a break is not held against it.</Body>
           <Body>Total: field count.</Body>
           {v.paceLine && <Note>{v.paceLine}</Note>}
           <Note>They match when no hour was cut short. The forecast uses Pace. Tap to flip back.</Note>

@@ -55,6 +55,10 @@ export const fontFiles = {
   IBMPlexSans_600SemiBold,
 };
 
+// H.A. and Pace each keep one color wherever they appear, so the two figures are never mistaken for each other.
+export const HA_COLOR = color.blue;
+export const PACE_COLOR = color.oInk;
+
 // If fonts fail to load, fall back to system fonts rather than block the app.
 export function fonts(loaded: boolean) {
   return {
