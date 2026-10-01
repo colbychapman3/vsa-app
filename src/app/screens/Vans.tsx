@@ -11,9 +11,11 @@ import { color, TAP, useType } from '../theme.ts';
 import type { Save } from './Plan.tsx';
 import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
-type Which = { k: 'create'; more: boolean } | { k: 'edit'; id: string } | { k: 'mark' } | { k: 'photo' } | null;
+type Which = { k: 'list' } | { k: 'create'; more: boolean } | { k: 'edit'; id: string } | { k: 'mark' } | { k: 'photo' } | null;
 type Row = ReturnType<typeof vanView>['rows'][number];
 
+// The Plan tab shows only a summary box. Tapping it opens the list in one sheet; a van, the shortcut, the photo read and
+// "add slots" swap into that same sheet and come back to the list (one modal at a time).
 export function Vans({ state, baseline, isTest, save, onNotice }: {
   state: State; baseline: Baseline; isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void;
 }) {
@@ -21,35 +23,48 @@ export function Vans({ state, baseline, isTest, save, onNotice }: {
   const [which, setWhich] = useState<Which>(null);
   const v = vanView(state);
   const opDate = operationDate(baseline)!;
-  const done = (text?: string) => { setWhich(null); if (text) onNotice({ ok: true, text }); };
+  // Back to the list after a save or a close; the list's own close shuts everything.
+  const toList = (text?: string) => { setWhich(v.exists ? { k: 'list' } : null); if (text) onNotice({ ok: true, text }); };
+  const created = (text?: string) => { setWhich({ k: 'list' }); if (text) onNotice({ ok: true, text }); };
 
   return (
     <>
-      <Card style={[u.pad, { gap: 10 }, v.alert ? { borderWidth: 2, borderColor: color.red } : null]}>
-        <SectionHead title="Van list" right={v.exists ? v.header : undefined} />
-        {!v.exists ? (
-          <>
-            <Note>No van list for this ship yet. Start by choosing how many vans were checked out. Vans never change a count or forecast.</Note>
-            <Go label="Create the van list" onPress={() => setWhich({ k: 'create', more: false })} />
-          </>
-        ) : (
-          <>
-            {v.alert && <ErrorBox text={`${v.alert}. The vessel is finished: set each van to Gassed or Not gassed.`} />}
-            <Body>{v.counts}</Body>
-            <Body>{v.lashers}</Body>
-            <Body>{v.gassing}</Body>
-            {v.rows.map((r) => <VanRowView key={r.id} r={r} onOpen={() => setWhich({ k: 'edit', id: r.id })} />)}
-            {v.backToMark.length > 0 && <Go ghost label={`Mark Back vans gassed (${v.backToMark.length})`} onPress={() => setWhich({ k: 'mark' })} />}
-            {ocrAvailable() && <Go ghost label="Read van sheet from a photo" onPress={() => setWhich({ k: 'photo' })} />}
-            <Go ghost label="Add more slots" onPress={() => setWhich({ k: 'create', more: true })} />
-            <Note>Changes to a van number or driver keep their history. Driver names stay on this phone and are in the backup.</Note>
-          </>
-        )}
-      </Card>
-      {which?.k === 'create' && <CreateSheet more={which.more} state={state} isTest={isTest} save={save} onClose={done} />}
-      {which?.k === 'edit' && <EditSheet id={which.id} opDate={opDate} state={state} isTest={isTest} save={save} onClose={done} />}
-      {which?.k === 'mark' && <MarkSheet opDate={opDate} state={state} isTest={isTest} save={save} onClose={done} />}
-      {which?.k === 'photo' && <PhotoSheet state={state} isTest={isTest} save={save} onClose={done} />}
+      <Pressable onPress={() => setWhich(v.exists ? { k: 'list' } : { k: 'create', more: false })} accessibilityRole="button"
+        accessibilityLabel={v.exists ? `Van list. ${v.header}. Open the list` : 'Van list. Not created yet. Create it'}
+        style={({ pressed }) => [pressed && u.pressed]}>
+        <Card style={[u.pad, { gap: 8, minHeight: TAP }, v.alert ? { borderWidth: 2, borderColor: color.red } : null]}>
+          <SectionHead title="Van list" right={v.exists ? v.header : undefined} />
+          {!v.exists ? (
+            <Note>No van list for this ship yet. Tap to choose how many vans were checked out.</Note>
+          ) : (
+            <>
+              {v.alert && <Body semi style={{ color: color.rInk }}>{v.alert}</Body>}
+              <Body>{v.counts}</Body>
+              <Body>{v.gassing}</Body>
+            </>
+          )}
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{v.exists ? 'Open the van list ›' : 'Create the van list ›'}</Text>
+        </Card>
+      </Pressable>
+
+      {which?.k === 'list' && (
+        <Sheet title="Van list" isTest={isTest} onClose={() => setWhich(null)}>
+          <Body semi>{v.header}</Body>
+          {v.alert && <ErrorBox text={`${v.alert}. The vessel is finished: set each van to Gassed or Not gassed.`} />}
+          <Body>{v.counts}</Body>
+          <Body>{v.lashers}</Body>
+          <Body>{v.gassing}</Body>
+          {v.backToMark.length > 0 && <Go ghost label={`Mark Back vans gassed (${v.backToMark.length})`} onPress={() => setWhich({ k: 'mark' })} />}
+          {v.rows.map((r) => <VanRowView key={r.id} r={r} onOpen={() => setWhich({ k: 'edit', id: r.id })} />)}
+          {ocrAvailable() && <Go ghost label="Read van sheet from a photo" onPress={() => setWhich({ k: 'photo' })} />}
+          <Go ghost label="Add more slots" onPress={() => setWhich({ k: 'create', more: true })} />
+          <Note>Changes to a van number or driver keep their history. Driver names stay on this phone and are in the backup.</Note>
+        </Sheet>
+      )}
+      {which?.k === 'create' && <CreateSheet more={which.more} state={state} isTest={isTest} save={save} onClose={(t) => (t ? created(t) : toList())} />}
+      {which?.k === 'edit' && <EditSheet id={which.id} opDate={opDate} state={state} isTest={isTest} save={save} onClose={(t) => (t ? created(t) : toList())} />}
+      {which?.k === 'mark' && <MarkSheet opDate={opDate} state={state} isTest={isTest} save={save} onClose={(t) => (t ? created(t) : toList())} />}
+      {which?.k === 'photo' && <PhotoSheet state={state} isTest={isTest} save={save} onClose={(t) => (t ? created(t) : toList())} />}
     </>
   );
 }
