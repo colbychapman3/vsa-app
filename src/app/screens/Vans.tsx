@@ -113,14 +113,14 @@ function CreateSheet({ more, state, isTest, save, onClose }: { more: boolean; st
 }
 
 const timeText = (t: OpTime | null) => t?.hm ?? '';
-// '' → null; a valid HH:MM → keeps the existing day when unchanged, else the operation's current day; anything else → 'bad'.
+// '' → null; a valid HH:MM → keeps the existing time's own day, else the operation's current day; anything else → 'bad'.
 function toTime(text: string, existing: OpTime | null, day: number): OpTime | null | 'bad' {
   const t = text.trim();
   if (t === '') return null;
   const m = parseHM(t);
   if (m == null) return 'bad';
   const hm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-  return existing && existing.hm === hm ? existing : { day, hm };
+  return existing ? { day: existing.day, hm } : { day, hm }; // correcting a time keeps its day; a blank one gets today's operation day
 }
 
 function EditSheet({ id, opDate, state, isTest, save, onClose }: { id: string; opDate: string; state: State; isTest: boolean; save: Save; onClose: (done?: string) => void }) {

@@ -345,7 +345,9 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         vanList.push({
           ...d, id: root.event_id, headId: id, slot: vanList.length + 1, status: vanStatus(d), createdAt: label(root),
           removed: T === 'van.removed', removedReason: T === 'van.removed' ? p.reason : null, removedAt: T === 'van.removed' ? label(e) : null,
-          changes: versions.flatMap((x, i) => (i === 0 ? [] : diffVan(trimVan(versions[i - 1].payload.van!), trimVan(x.payload.van!), label(x), x.payload.reason?.trim() || null))),
+          changes: versions.flatMap((x, i) => (i === 0 ? [] : diffVan(trimVan(versions[i - 1].payload.van!), trimVan(x.payload.van!), label(x), x.payload.reason?.trim() || null, {
+            number: versions.slice(0, i).some((y) => y.payload.van!.number != null), driver: versions.slice(0, i).some((y) => y.payload.van!.driver != null),
+          }))),
         });
         continue;
       }

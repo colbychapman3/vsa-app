@@ -227,3 +227,27 @@ test('the gassing alert joins the Plan alerts and the 25-minute reminders only a
   const plan = reminderPlan(finished, glovis, 15 * 60, true);
   assert.ok(plan && plan.text.includes('2 vans not marked gassed'));
 });
+
+test('review fixes: re-filling a cleared number is a change; photo fill keeps what a slot already holds; parser skips dates, times and gas words', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.addVanSlotsEvents(s.ctx(), 3));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(1), { number: '1234' }, null));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(1), { number: '' }, null));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(1), { number: '5678' }, null));
+  const lines = s.state.vans[0].changes.filter((c) => c.field === 'number');
+  assert.deepEqual(lines.map((c) => [c.text, c.assignment]), [['Van none → 1234', true], ['Van 1234 → none', false], ['Van none → 5678', false]]);
+  // A slot that already has a driver, lasher label and remarks before its number keeps them when the photo fills it.
+  await s.ok(E.editVanEvents(s.ctx(), s.id(2), { driver: 'Bob Lee', lasher: true, remarks: 'spare' }, null));
+  await s.ok(E.fillVanSlotsEvents(s.ctx(), [{ number: '4411', driver: null }]));
+  const v = s.state.vans[1];
+  assert.deepEqual([v.number, v.driver, v.lasher, v.remarks], ['4411', 'Bob Lee', true, 'spare']);
+  assert.deepEqual(parseVanSheet('2026-10-01\n0915\n10-1-2026\n129 Full\n130 Gas\n131 Sam Hall\n2026'), [{ number: '129', driver: null }, { number: '130', driver: null }, { number: '131', driver: 'Sam Hall' }, { number: '2026', driver: null }]);
+});
+
+test('a time correction keeps its own day (Day 1 22:00 corrected on Day 2 stays Day 1)', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.addVanSlotsEvents(s.ctx(), 1));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(1), { number: '109', out: { day: 1, hm: '22:00' } }, null));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(1), { out: { day: 1, hm: '21:30' } }, 'wrote the wrong time'));
+  assert.deepEqual(s.state.vans[0].out, { day: 1, hm: '21:30' });
+});

@@ -582,7 +582,8 @@ export function fillVanSlotsEvents(ctx: Ctx, rows: { number: string; driver: str
   const { add, out } = builder(ctx);
   for (let i = 0; i < rows.length; i++) {
     const number = rows[i].number.trim(), driver = rows[i].driver?.trim() || null;
-    const next = trimVan({ ...BLANK_VAN, number, driver });
+    // Keep whatever the slot already holds (a driver, lasher label or remarks entered before the number): only number and a read name change.
+    const next = trimVan({ ...dataOf(free[i]), number, driver: driver ?? free[i].driver });
     const bad = checkVan(next);
     if (bad) return reject(`Row ${i + 1} (${number || 'no number'}): ${bad}`);
     const held = numberHeldBy(ctx.state.vans, number);

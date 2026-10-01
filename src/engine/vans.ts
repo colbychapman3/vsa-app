@@ -61,14 +61,15 @@ const show = (f: VanField, v: VanData[VanField]): string => {
 const FIELDS: VanField[] = ['number', 'driver', 'lasher', 'out', 'in', 'gas', 'gassed', 'gassedAt', 'gassedNote', 'remarks'];
 const WORDS: Record<VanField, string> = { number: 'Van', driver: 'Driver', lasher: 'Lasher van', out: 'Checked out', in: 'Checked in', gas: 'Gas', gassed: 'Gassed at end of vessel', gassedAt: 'Gassed time', gassedNote: 'Gassing note', remarks: 'Remarks' };
 
-// Every field that differs between two versions of a row, in words. Putting a first number or driver into an empty slot
-// is an assignment, not a change (no history line); everything after that is a change.
-export function diffVan(prev: VanData, next: VanData, at: string, note: string | null): VanChange[] {
+// Every field that differs between two versions of a row, in words. Putting a row's first number or driver into an empty slot
+// is an assignment, not a change (no history line); everything after that, including re-filling a cleared one, is a change.
+// `had` says which of number/driver the row held in any earlier version.
+export function diffVan(prev: VanData, next: VanData, at: string, note: string | null, had: { number?: boolean; driver?: boolean } = {}): VanChange[] {
   const out: VanChange[] = [];
   for (const f of FIELDS) {
     const a = prev[f], b = next[f];
     if (JSON.stringify(a) === JSON.stringify(b)) continue;
-    const assignment = (f === 'number' || f === 'driver') && a == null;
+    const assignment = (f === 'number' || f === 'driver') && a == null && !had[f]; // a field that held a value before and was cleared is re-filled, not first-filled
     out.push({ field: f, from: show(f, a), to: show(f, b), assignment, text: `${WORDS[f]} ${show(f, a)} → ${show(f, b)}`, at, note });
   }
   return out;
@@ -115,11 +116,11 @@ export function numberHeldBy(slots: readonly VanSlot[], number: string, exceptId
 export function parseVanSheet(textIn: string): { number: string; driver: string | null }[] {
   const seen = new Set<string>(), out: { number: string; driver: string | null }[] = [];
   for (const line of textIn.split(/\r?\n/)) {
-    const m = line.trim().match(/^(?:\d{1,2}[.)]?\s+)?(\d{3,4})\b\s*(.*)$/);
+    const m = line.trim().match(/^(?:\d{1,2}[.)]?\s+)?([1-9]\d{2,3})(?![\d\-/:.])\b\s*(.*)$/); // not a date or time, no leading zero
     if (!m || seen.has(m[1])) continue;
     seen.add(m[1]);
     const name = m[2].replace(/[^A-Za-z .'-]/g, ' ').replace(/\s+/g, ' ').trim();
-    out.push({ number: m[1], driver: name.length >= 2 ? name : null });
+    out.push({ number: m[1], driver: name.length >= 2 && !/^(full|empty|half|quarter|gas)$/i.test(name) ? name : null });
   }
   return out;
 }
