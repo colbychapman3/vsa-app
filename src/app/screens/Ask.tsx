@@ -30,6 +30,7 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
   const [res, setRes] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null); // the quick question shown as selected, until the text is edited
 
   const run = async (text: string) => {
     setError(null);
@@ -44,21 +45,24 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
       setRes({ kind: 'answer', a: answer(intent, state, baseline, nowMin, INDEX) });
     } finally { setBusy(false); }
   };
-  const quick = (ask: string) => { setQ(ask); if (ask.endsWith(' ')) return setRes(null); void run(ask); };
+  const quick = (label: string, ask: string) => { setPicked(label); setQ(ask); if (ask.endsWith(' ')) return setRes(null); void run(ask); };
 
   return (
     <Sheet title="Ask" isTest={isTest} onClose={() => onClose()} scrollTopOn={res ? 'r' : 'q'}>
-      <TextInput value={q} onChangeText={(v) => { setQ(v); setRes(null); }} placeholder="Ask about this vessel, or look something up" placeholderTextColor={color.muted}
+      <TextInput value={q} onChangeText={(v) => { setQ(v); setRes(null); setPicked(null); }} placeholder="Ask about this vessel, or look something up" placeholderTextColor={color.muted}
         accessibilityLabel="Ask a question" autoCorrect={false} returnKeyType="search" onSubmitEditing={() => run(q)} clearButtonMode="while-editing"
         style={[u.input, { fontFamily: f.bodyMedium, fontSize: 18 }]} />
       <Go label={busy ? 'Looking…' : 'Ask'} disabled={busy || !q.trim()} onPress={() => run(q)} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        {QUICK.map((x) => (
-          <Pressable key={x.label} onPress={() => quick(x.ask)} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: color.ink, backgroundColor: color.card }, pressed && u.pressed]}
-            accessibilityRole="button" accessibilityLabel={x.label}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }} numberOfLines={1}>{x.label}</Text>
-          </Pressable>
-        ))}
+        {QUICK.map((x) => {
+          const on = picked === x.label;
+          return (
+            <Pressable key={x.label} onPress={() => quick(x.label, x.ask)} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: color.ink, backgroundColor: on ? color.ink : color.card }, pressed && u.pressed]}
+              accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={x.label}>
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: on ? color.bg : color.ink }} numberOfLines={1}>{x.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {res?.kind === 'answer' && <AnswerCard a={res.a} onShow={(w) => { onShow(w); onClose(); }} />}
