@@ -90,6 +90,16 @@ export function LogButton({ onPress }: { onPress: () => void }) {
   );
 }
 
+export function AskButton({ onPress }: { onPress: () => void }) {
+  const f = useType();
+  const insets = useSafeAreaInsets();
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [s.ask, { bottom: insets.bottom + 84 }, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Ask the assistant">
+      <Text style={[s.askText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>Ask</Text>
+    </Pressable>
+  );
+}
+
 const s = StyleSheet.create({
   header: { backgroundColor: color.head, paddingHorizontal: 20, paddingBottom: 16, gap: 6 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -109,5 +119,7 @@ const s = StyleSheet.create({
   tabLabel: { fontSize: 12, flexShrink: 1 },
   badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 11, overflow: 'hidden' },
   fab: { position: 'absolute', right: 16, minHeight: TAP, paddingHorizontal: 22, borderRadius: 999, backgroundColor: color.blue, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ask: { position: 'absolute', left: 16, width: TAP, height: TAP, borderRadius: TAP / 2, backgroundColor: color.head, borderWidth: 2, borderColor: color.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  askText: { color: color.headInk, fontSize: 16 },
   fabText: { color: color.onBlue, fontSize: 16 },
 });

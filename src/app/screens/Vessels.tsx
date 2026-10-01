@@ -11,12 +11,12 @@ import { Setup } from './Setup.tsx';
 const n = (x: number | null) => (x == null ? 'unknown' : x.toLocaleString('en-US'));
 
 // One sheet for the list and for New vessel: the content swaps inside it (never two modals).
-export function Vessels({ rows, currentId, isTest, onOpen, onArchive, onCreate, onClose }: {
-  rows: VesselRow[]; currentId: string; isTest: boolean;
+export function Vessels({ startNew, rows, currentId, isTest, onOpen, onArchive, onCreate, onClose }: {
+  startNew?: boolean; rows: VesselRow[]; currentId: string; isTest: boolean;
   onOpen: (id: string) => void; onArchive: (id: string, archived: boolean) => void; onClose: () => void;
   onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[]) => Promise<{ ok: true } | Reject>;
 }) {
-  const [mode, setMode] = useState<'list' | 'new'>('list');
+  const [mode, setMode] = useState<'list' | 'new'>(startNew ? 'new' : 'list');
   const [newTest, setNewTest] = useState(false);
   const [key, setKey] = useState('');
   return (

@@ -20,9 +20,12 @@ import type { Built } from './src/app/setup.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, type Banner } from './src/app/view.ts';
 import { color, fontFiles, fonts, FontContext } from './src/app/theme.ts';
-import { Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
+import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
-import { LogSheet } from './src/app/screens/LogSheet.tsx';
+import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
+import { Ask } from './src/app/screens/Ask.tsx';
+import { reminderPlan } from './src/app/assistant.ts';
+import { enableReminders, installHandlers, reminderStatus, syncReminders, type ReminderStatus } from './src/app/reminders.ts';
 import { Decks } from './src/app/screens/Decks.tsx';
 import { DeckSheet } from './src/app/screens/DeckSheet.tsx';
 import { Hourly } from './src/app/screens/Hourly.tsx';
@@ -58,8 +61,12 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('snap');
   const [nowMin, setNowMin] = useState(minutesNow);
   const [logOpen, setLogOpen] = useState(false);
+  const [prefill, setPrefill] = useState<HourPrefill | undefined>(undefined); // an hourly count typed in Ask, shown in the Log form
+  const [vesselsNew, setVesselsNew] = useState(false);
+  const [remind, setRemind] = useState<ReminderStatus>('ask');
+  const [fg, setFg] = useState(0); // bumps when the app returns to the foreground, to re-plan reminders
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'vessels' | 'map' | 'search' | null>(null); // one modal at a time
+  const [sheet, setSheet] = useState<'vessels' | 'map' | 'search' | 'ask' | null>(null); // one modal at a time
   const [rows, setRows] = useState<VesselRow[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
@@ -67,13 +74,22 @@ export default function App() {
   // whenever the app comes back to the foreground.
   useEffect(() => {
     const t = setInterval(() => setNowMin(minutesNow()), 60_000);
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') setNowMin(minutesNow()); });
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') { setNowMin(minutesNow()); setFg((n) => n + 1); } });
     return () => { clearInterval(t); sub.remove(); };
   }, []);
 
   // Latest state for building events, so two quick taps never build from a stale state.
   const latest = useRef<State | null>(null);
   useEffect(() => { latest.current = vessel?.state ?? null; }, [vessel]);
+
+  // Plan reminders: notifications tapped open Plan; the schedule is replaced whenever the vessel's state changes or the app returns.
+  const openPlan = useRef<() => void>(() => {});
+  useEffect(() => { openPlan.current = () => { setSheet(null); setLogOpen(false); setDeckOpen(null); setTab('plan'); }; });
+  useEffect(() => { reminderStatus().then(setRemind); return installHandlers(() => openPlan.current()); }, []);
+  useEffect(() => {
+    if (!vessel) return;
+    void syncReminders(remind === 'on' ? reminderPlan(vessel.state, vessel.baseline, minutesNow(), vessel.isTest) : null);
+  }, [vessel, remind, fg]);
 
   // Load a vessel from its stored log and make it the open one. Nothing from another vessel stays in memory.
   const openVessel = useCallback(async (id: string) => {
@@ -214,8 +230,9 @@ export default function App() {
     },
   };
 
-  const openVessels = async () => {
+  const openVessels = async (startNew = false) => {
     setNotice(null);
+    setVesselsNew(startNew);
     try { setRows(await listRows(dbRef.current!, store.current!)); setSheet('vessels'); }
     catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); }
   };
@@ -259,7 +276,7 @@ export default function App() {
         <View style={s.page}>
           {vessel ? (
             <>
-              <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onVessels={openVessels} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
+              <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onVessels={() => openVessels()} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
               {notice && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>
@@ -279,9 +296,10 @@ export default function App() {
                       ? <Hourly state={vessel.state} baseline={vessel.baseline} />
                       : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
               </ScrollView>
-              <LogButton onPress={() => { setNotice(null); setLogOpen(true); }} />
+              <LogButton onPress={() => { setNotice(null); setPrefill(undefined); setLogOpen(true); }} />
+              <AskButton onPress={() => { setNotice(null); setSheet('ask'); }} />
               {logOpen && (
-                <LogSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save}
+                <LogSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} prefill={prefill}
                   onClose={(done) => { setLogOpen(false); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {deckOpen && (
@@ -289,8 +307,14 @@ export default function App() {
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {sheet === 'vessels' && (
-                <Vessels rows={rows} currentId={vessel.id} isTest={vessel.isTest} onClose={() => setSheet(null)} onOpen={switchTo} onCreate={create}
+                <Vessels startNew={vesselsNew} rows={rows} currentId={vessel.id} isTest={vessel.isTest} onClose={() => setSheet(null)} onOpen={switchTo} onCreate={create}
                   onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }} />
+              )}
+              {sheet === 'ask' && (
+                <Ask state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} reminders={remind}
+                  onEnableReminders={async () => setRemind(await enableReminders())}
+                  onShow={(w) => openTab(w)} onLog={(p) => { setPrefill(p); setTimeout(() => setLogOpen(true), 450); }} onNewVessel={() => setTimeout(() => openVessels(true), 450)}
+                  onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
               {sheet === 'search' && <Search isTest={vessel.isTest} onClose={() => setSheet(null)} />}

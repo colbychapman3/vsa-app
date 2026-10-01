@@ -14,12 +14,14 @@ import { Body, ErrorBox, Field, Go, Label, Note, Seg, Sheet, TimeField, u } from
 
 export type Mode = 'hour' | 'deck' | 'break' | 'clerk' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
-type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode };
+type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode; prefill?: HourPrefill };
+// From the assistant: a count and hour that were typed. Shown in the form; nothing is saved until Save is tapped.
+export type HourPrefill = { count: number; start: string | null };
 
 // '' → null (blank); digits → number; anything else → NaN (refused with a message).
 const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN);
 
-export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'hour' }: Props) {
+export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'hour', prefill }: Props) {
   const f = useType();
   const [deck, setDeck] = useState<string | null>(null); // a deck opened from Deck mode, shown in this same sheet
   const [mode, setMode] = useState<Mode>(initial);
@@ -63,7 +65,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   return (
     <Sheet title="Log" isTest={isTest} onClose={() => onClose()}>
           <Seg options={modes} value={mode} onChange={(m) => { setMode(m); setError(null); }} />
-          {mode === 'hour' && <HourForm state={state} baseline={baseline} run={run} setError={setError} />}
+          {mode === 'hour' && <HourForm state={state} baseline={baseline} run={run} setError={setError} prefill={prefill} />}
           {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
           {mode === 'break' && <BreakForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'clerk' && <ClerkForm phase={phase} run={run} now={now} timeOf={timeOf} setError={setError} />}
@@ -79,14 +81,14 @@ type TimeOf = (v: string, d?: number) => OpTime | null | 'bad';
 
 // ---------- Hourly count ----------
 
-function HourForm({ state, baseline, run, setError }: { state: State; baseline: Baseline; run: Run; setError: (e: string | null) => void }) {
+function HourForm({ state, baseline, run, setError, prefill }: { state: State; baseline: Baseline; run: Run; setError: (e: string | null) => void; prefill?: HourPrefill }) {
   const opts = hourOptions(state, baseline);
   const day = opts.day;
   const logged = new Map(state.periods.filter((p) => p.day === day).map((p) => [p.start, p]));
-  const firstOpen = opts.defaultStart ?? opts.hours[0]?.start ?? baseline.start;
+  const firstOpen = prefill?.start && opts.hours.some((h) => h.start === prefill.start) ? prefill.start : opts.defaultStart ?? opts.hours[0]?.start ?? baseline.start;
   const [hour, setHour] = useState(firstOpen);
   const existing = logged.get(hour);
-  const [count, setCount] = useState(existing ? String(existing.count) : '');
+  const [count, setCount] = useState(prefill ? String(prefill.count) : existing ? String(existing.count) : '');
   // Only the hour's own driver count; the day's setting (Plan › Labor) covers the rest.
   const [drivers, setDrivers] = useState(existing?.hourDrivers != null ? String(existing.hourDrivers) : '');
   const dayDrivers = state.workdayDrivers[day] ?? null;

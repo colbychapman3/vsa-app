@@ -29,6 +29,7 @@
       "expo-sqlite",
       "expo-font",
       "expo-sharing",
+      "expo-notifications",
       [
         "expo-camera",
         {

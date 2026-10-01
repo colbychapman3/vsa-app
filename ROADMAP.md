@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 6a, 6b and 6c approved (6c phone-checked 2026-10-01, build 83cc0968). 6d (assistant) next, spec first.
+**Current status:** Phase 6a, 6b and 6c approved (6c phone-checked 2026-10-01, build 83cc0968). 6d (assistant) approved 2026-10-01; built, tests/typecheck/iOS export pass, new EAS dev build + phone check pending.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.

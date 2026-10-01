@@ -3,6 +3,8 @@
 // null / 'unavailable' and show the manual path. The model only proposes; src/engine/proposal.ts decides what
 // of a proposal may be shown, and nothing is saved without Colby's confirm. No network is used.
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { checkIntent, INTENT_SCHEMA, type Intent } from './assistant.ts';
+import type { State } from '../storage/store.ts';
 import { checkNoteTidy, checkSetupProposal, SETUP_SCHEMA, type Checked, type SetupProposal } from '../engine/proposal.ts';
 
 type Llm = typeof import('@react-native-ai/apple').AppleFoundationModels;
@@ -55,6 +57,12 @@ export async function proposeSetup(text: string): Promise<Checked<SetupProposal>
 export async function tidyNote(text: string): Promise<Checked<string>> {
   const out = await ask(`Rewrite this field note in clear, short sentences. Keep every number, VIN, deck and hatch exactly. Add nothing.\n${quoted(text)}`);
   return out == null ? null : checkNoteTidy(out, text);
+}
+
+// Assistant: the model only picks which fixed kind of question this is (plus a deck or zone it copied). It never answers.
+export async function pickIntent(question: string, s: State): Promise<Intent | null> {
+  const out = await ask(`Choose which kind of question this is. Do not answer it.\n${quoted(question)}`, INTENT_SCHEMA);
+  return out == null ? null : checkIntent(out, s, question);
 }
 
 // ---------- Text recognition ----------
