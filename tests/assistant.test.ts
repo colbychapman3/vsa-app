@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { project } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
 import type { KnowledgeIndex } from '../src/app/knowledge/search.ts';
-import { alerts, answer, checkIntent, findZone, parseAction, reminderPlan, routeQuestion } from '../src/app/assistant.ts';
+import { alerts, answer, checkIntent, findZone, handoffPrompt, parseAction, reminderPlan, routeQuestion } from '../src/app/assistant.ts';
 import { snapshot } from '../src/app/view.ts';
 import { glovis, toEvents, SCENARIOS, OP } from './scenarios.ts';
 
@@ -171,4 +171,27 @@ test('reminders pause in the 12:00 and 18:00 breaks, stop on a break or at shift
   assert.equal(reminderPlan({ ...s, ops: { ...s.ops, shiftEnded: true } } as State, glovis, 17 * 60, false), null);
   const ends = reminderPlan({ ...s, plan: { ...s.plan, shiftEnd: '15:00' } } as State, glovis, 14 * 60, false)!;
   assert.deepEqual(ends.atMin, [25, 50]); // 14:25, 14:50; 15:15 is after shift end
+});
+
+test('hand-off message: instructions, the question, the screens\' facts and cited passages; name only when included; no ids or paths', () => {
+  const s = working();
+  const text = handoffPrompt('how should we handle an EV with a dead battery?', s, glovis, 15 * 60, INDEX, true, false);
+  assert.match(text, /Answer only from the vessel facts and document passages/);
+  assert.match(text, /never invent counts, times or approvals/i);
+  assert.match(text, /one-way vs round trip is not stated/);
+  assert.match(text, /QUESTION: how should we handle an EV with a dead battery\?/);
+  assert.ok(text.includes(`- ${ask('remaining', s).title}`), 'the same remaining value the screen shows');
+  assert.match(text, /ETA[^\n]*\[FORECAST\]/);
+  assert.match(text, /\[SOP Ver\. 2024, Ch\. \d/, 'a passage with its citation');
+  assert.match(text, /TEST VESSEL, demo data/);
+  assert.ok(!text.includes(glovis.vessel), 'vessel name is left out by default');
+  assert.ok(!/TEST-[A-Z0-9-]+|evidence\/|\.jpg/.test(text), 'no ids or file paths');
+  assert.ok(handoffPrompt('x', s, glovis, 15 * 60, INDEX, false, true).includes(`vessel ${glovis.vessel}`), 'name only when included');
+  assert.ok(!handoffPrompt('x', s, glovis, 15 * 60, INDEX, false, false).includes('TEST VESSEL'), 'no TEST marker on a live vessel');
+});
+
+test('hand-off message: unknown stays unknown and an unanswerable question says no passages were found', () => {
+  const text = handoffPrompt('zebra unicorn xylophone', noCount(), glovis, 15 * 60, INDEX, false, false);
+  assert.match(text, /DOCUMENT PASSAGES:\nNone found in the loaded documents\./);
+  assert.match(text, /unknown|needs a remaining count|—/i);
 });

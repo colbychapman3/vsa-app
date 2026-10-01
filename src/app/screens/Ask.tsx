@@ -2,19 +2,19 @@
 // directory or the knowledge pack (src/app/assistant.ts); nothing here does math. Actions are confirm cards:
 // the hourly form opens prefilled, a note saves only on Add, a new vessel opens the Vessels sheet.
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Share, Text, TextInput, View } from 'react-native';
 import type { Baseline, Reject, VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import indexJson from '../../../assets/knowledge/index.json';
-import type { KnowledgeIndex } from '../knowledge/search.ts';
+import { NOT_FOUND, type KnowledgeIndex } from '../knowledge/search.ts';
 import { aiStatus, pickIntent } from '../ai.ts';
-import { answer, parseAction, QUICK, routeQuestion, type Action, type Answer, type Where } from '../assistant.ts';
+import { answer, handoffPrompt, parseAction, QUICK, routeQuestion, type Action, type Answer, type Where } from '../assistant.ts';
 import { addNoteEvents, type Ctx } from '../entries.ts';
 import { hourOptions } from '../view.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
 import { color, TAP, useType } from '../theme.ts';
 import type { HourPrefill } from './LogSheet.tsx';
-import { Body, Card, ErrorBox, Go, Note, Sheet, Tag, u } from './ui.tsx';
+import { Body, Card, ErrorBox, Go, Note, Seg, Sheet, Tag, u } from './ui.tsx';
 
 const INDEX = indexJson as unknown as KnowledgeIndex;
 type Save = (build: (c: Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
@@ -30,10 +30,11 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
   const [res, setRes] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hand, setHand] = useState<{ q: string; name: boolean } | null>(null); // the Ask my AI preview, shown inside this same sheet
   const [picked, setPicked] = useState<string | null>(null); // the quick question shown as selected, until the text is edited
 
   const run = async (text: string) => {
-    setError(null);
+    setError(null); setHand(null);
     if (!text.trim()) return;
     const action = parseAction(text);
     if (action) return setRes({ kind: 'action', action });
@@ -66,6 +67,23 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
       </View>
 
       {res?.kind === 'answer' && <AnswerCard a={res.a} onShow={(w) => { onShow(w); onClose(); }} />}
+      {res?.kind === 'answer' && !hand && (
+        <Go ghost={!res.a.lines.includes(NOT_FOUND)} label="Ask my AI" onPress={() => setHand({ q, name: false })} />
+      )}
+      {res?.kind === 'answer' && hand && (() => {
+        const text = handoffPrompt(hand.q, state, baseline, nowMin, INDEX, isTest, hand.name);
+        return (
+          <Card style={[u.pad, { gap: 10 }]}>
+            <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }}>Send to your AI app</Text>
+            <Note>This exact text goes to the app you pick in the next step. Nothing is sent until you choose one. Its reply stays in that app and is not checked by this app.</Note>
+            <Body semi>Vessel name</Body>
+            <Seg options={[{ value: 'out', label: 'Keep out' }, { value: 'in', label: 'Include' }]} columns={2} value={hand.name ? 'in' : 'out'} onChange={(x) => setHand({ ...hand, name: x === 'in' })} />
+            <Text selectable style={{ fontFamily: f.body, fontSize: 14, color: color.ink, lineHeight: 20 }}>{text}</Text>
+            <Go label="Send…" onPress={() => { onClose(); setTimeout(() => { void Share.share({ message: text }); }, 450); }} />
+            <Go ghost label="Cancel" onPress={() => setHand(null)} />
+          </Card>
+        );
+      })()}
       {res?.kind === 'action' && <ActionCard action={res.action} state={state} baseline={baseline} save={save} setError={setError} onClose={onClose} onLog={onLog} onNewVessel={onNewVessel} />}
       {error && <ErrorBox text={error} />}
 

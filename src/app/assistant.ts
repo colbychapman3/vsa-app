@@ -207,3 +207,33 @@ export function reminderPlan(s: State, b: Baseline, nowMin: number, isTest: bool
   const labels = a.map((x) => (x.length > 40 ? `${x.slice(0, 39)}…` : x));
   return { text: `${isTest ? 'TEST · ' : ''}${a.length} Plan alert${a.length === 1 ? '' : 's'} open: ${labels.join(', ')}`, atMin };
 }
+
+// ---------- Hand-off to the user's own AI app ----------
+
+// The message Colby can send to any AI app through the share sheet. Built only from what the screens already show and the
+// pack's own passages. The vessel name is left out unless asked for; nothing here carries ids, VINs or photos.
+export function handoffPrompt(question: string, s: State, b: Baseline, nowMin: number, index: KnowledgeIndex, isTest: boolean, includeName: boolean): string {
+  const asks: Intent[] = [{ k: 'remaining' }, { k: 'pace' }, { k: 'eta' }, { k: 'decks' }, { k: 'alerts' }, { k: 'clearby', zone: null }];
+  const facts = asks.map((i) => {
+    const a = answer(i, s, b, nowMin, index);
+    return `- ${a.title}${a.tags.length ? ` [${a.tags.join(', ')}]` : ''}${a.lines.length ? `: ${a.lines.join('; ')}` : ''}`;
+  });
+  const r = search(index, question, 3);
+  const found = r.hits.length ? r.hits : r.related;
+  const passages = found.length
+    ? found.map((h) => { const t = h.chunk.text.trim(); return `[${h.chunk.cite}]\n${t.slice(0, 1200)}${t.length > 1200 ? ' …(cut)' : ''}`; }).join('\n\n')
+    : 'None found in the loaded documents.';
+  return [
+    'You are helping a ro-ro auto discharge supervisor. Answer only from the vessel facts and document passages below.',
+    'Say which one you used. If something needed is not given, say what is missing; do not guess. Never invent counts, times or approvals.',
+    'Travel distances are measured; one-way vs round trip is not stated. The passages are quoted from the SOP and operating protocol; the protocol wins on any difference.',
+    '',
+    `QUESTION: ${question.trim()}`,
+    '',
+    `VESSEL FACTS (from the app${isTest ? '; TEST VESSEL, demo data' : ''}${includeName ? `; vessel ${b.vessel}` : ''}; Berth ${String(b.berth ?? 'unknown')}):`,
+    ...facts,
+    '',
+    'DOCUMENT PASSAGES:',
+    passages,
+  ].join('\n');
+}
