@@ -2,7 +2,7 @@
 
 ## Feasibility check (2026-10-01)
 - **On-device model:** `@react-native-ai/apple` (Callstack, Vercel AI SDK provider) wraps Apple Foundation Models. Needs iOS 26+, Apple Intelligence on, iPhone 15 Pro or later (iPhone 16 Pro qualifies), New Architecture (Expo 57 default). Preview-grade; chosen over `@drewalth/react-native-foundation-models` (single author, experimental) because it is maintained by Callstack and keeps one API if the model changes.
-- **Text recognition:** `@infinitered/react-native-mlkit-text-recognition` (Expo module, ML Kit, fully offline, bundled model). Chosen over a hand-written Apple Vision module because it is tested and needs no Swift we cannot compile on Windows.
+- **Text recognition:** `expo-text-extractor` (Expo module, Apple Vision on iOS, fully offline, no extra model download). Photos are saved upright first (expo-image-manipulator) because Vision ignores the rotation tag. Replaced `@infinitered/react-native-mlkit-text-recognition` on 2026-10-01: its Swift fails to compile on Expo 57 (`'Text' is ambiguous`, EAS build 60d32945).
 - Both are native: one new EAS dev build. Nothing costs money.
 
 ## Objective

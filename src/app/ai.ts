@@ -2,10 +2,11 @@
 // Everything here is optional: if a module is missing (old build, web) or the model is unavailable, callers get
 // null / 'unavailable' and show the manual path. The model only proposes; src/engine/proposal.ts decides what
 // of a proposal may be shown, and nothing is saved without Colby's confirm. No network is used.
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { checkNoteTidy, checkSetupProposal, SETUP_SCHEMA, type Checked, type SetupProposal } from '../engine/proposal.ts';
 
 type Llm = typeof import('@react-native-ai/apple').AppleFoundationModels;
-type Ocr = typeof import('@infinitered/react-native-mlkit-text-recognition').recognizeText;
+type Ocr = typeof import('expo-text-extractor').extractTextFromImage; // Apple Vision on iOS: one string per recognized line
 type Picker = typeof import('expo-image-picker');
 
 // Native modules throw at import when they are not in the build; load once, lazily, and remember a miss.
@@ -14,7 +15,7 @@ let ocr: Ocr | null | undefined;
 let picker: Picker | null | undefined;
 const loadPicker = () => { if (picker === undefined) { try { picker = require('expo-image-picker'); } catch { picker = null; } } return picker; };
 const loadLlm = () => { if (llm === undefined) { try { llm = require('@react-native-ai/apple').AppleFoundationModels; } catch { llm = null; } } return llm; };
-const loadOcr = () => { if (ocr === undefined) { try { ocr = require('@infinitered/react-native-mlkit-text-recognition').recognizeText; } catch { ocr = null; } } return ocr; };
+const loadOcr = () => { if (ocr === undefined) { try { const m = require('expo-text-extractor'); ocr = m.isSupported ? m.extractTextFromImage : null; } catch { ocr = null; } } return ocr; };
 
 // Apple reports only available / not available: off in Settings, still downloading and unsupported phone all read the same.
 export type AiStatus = 'ready' | 'unavailable' | 'missing';
@@ -73,6 +74,10 @@ export async function readPhotos(from: 'camera' | 'library'): Promise<{ pages: s
     : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: 10, quality: 1 });
   if (r.canceled) return null;
   const pages: string[] = [];
-  for (const a of r.assets) pages.push((await recognize(a.uri)).text);
+  for (const a of r.assets) {
+    // Vision reads the raw pixels and ignores the photo's rotation tag, so save an upright copy first (temporary, not kept).
+    const upright = await (await ImageManipulator.manipulate(a.uri).renderAsync()).saveAsync({ compress: 1, format: SaveFormat.JPEG });
+    pages.push((await recognize(upright.uri)).join('\n'));
+  }
   return { pages };
 }
