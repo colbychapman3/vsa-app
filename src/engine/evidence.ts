@@ -64,8 +64,9 @@ export function checkEvidence(d: Partial<EvidenceData> | null | undefined, decks
   if (!deck) return `Deck ${d.deck} is not on this vessel.`;
   if (!d.hatch?.trim()) return 'Pick the hatch.';
   if (!deck.hatches.some((h) => h.h === d.hatch)) return `Hatch ${d.hatch} is not on deck ${deck.label}.`;
-  if (needsReason(d.type)) { if (!d.reason?.trim()) return 'Pick a reason.'; }
-  else if (d.reason?.trim()) return 'Poor stowage and pre-stow photos take no reason: the photo type is the reason.';
+  if (needsReason(d.type) && !d.reason?.trim()) return 'Pick a reason.';
+  // "No reason on poor stowage / pre-stow" is an entry rule (entries.ts), not a log rule: photos saved before it
+  // (2026-09-30) carry one and must still replay. History is never refused for a rule made later.
   if (d.notes != null && typeof d.notes !== 'string') return 'Notes must be text.';
   if (!Array.isArray(d.vins)) return 'VINs must be a list.';
   if (d.type === 'accident' && d.vins.length === 0) return 'An accident photo needs at least one VIN.';

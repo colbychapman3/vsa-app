@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, checkEvidence, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, checkEvidence, needsReason, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -451,6 +451,7 @@ export type EvidenceForm = { type: EvidenceType | null; deck: string; hatch: str
 export function evidenceProblem(state: State, f: EvidenceForm, photo: string | null | undefined): string | null {
   const bad = checkEvidence({ type: f.type ?? undefined, deck: f.deck, hatch: f.hatch, reason: f.reason.trim(), vins: f.vins.map((v) => v.trim()).filter(Boolean), notes: f.notes?.trim() || null, photo: photo ?? '' }, state.decks);
   if (bad) return bad;
+  if (f.type && !needsReason(f.type) && f.reason.trim()) return 'Poor stowage and pre-stow photos take no reason: the photo type is the reason.';
   if (!f.time) return 'Enter the time, or tap Now.';
   return badTimes(f.time)?.error ?? null;
 }

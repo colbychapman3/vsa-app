@@ -104,6 +104,16 @@ test('every missing required field is named; nothing is saved', async (tc) => {
   assert.equal(s.state.evidence.length, 0);
 });
 
+test('a photo stored under the earlier rule (poor stowage with a reason) still replays; the vessel opens', async (tc) => {
+  // Field bug 2026-10-01: TEST-RAIN-20260930-5 was saved by the first 6b build, before 63d9f05 made these types reasonless.
+  const s = await setup(tc);
+  await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type: 'pre-stow-damage', reason: 'Slippery deck' })));
+  const old = s.state.log.events.map((e) => (e.payload.evidence ? { ...e, payload: { ...e.payload, evidence: { ...e.payload.evidence, type: 'poor-stowage' as const } } } : e));
+  const p = project(glovis, old, OP);
+  assert.ok(!('error' in p), JSON.stringify(p));
+  assert.equal(p.evidence[0].reason, 'Slippery deck', 'history is shown as recorded, never rewritten');
+});
+
 test('a deck or hatch that is not on the baseline is refused, by the form and by the engine', async (tc) => {
   const s = await setup(tc);
   assert.equal((E.addEvidenceEvents(s.ctx(), s.form({ deck: 'D99' })) as Reject).error, 'Deck D99 is not on this vessel.');
