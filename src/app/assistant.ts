@@ -210,6 +210,20 @@ export function reminderPlan(s: State, b: Baseline, nowMin: number, isTest: bool
 
 // ---------- Hand-off to the user's own AI app ----------
 
+export const DOCS_FILE = 'VSA documents.md';
+export const QUESTION_FILE = 'VSA question.md';
+
+// The whole pack as one Markdown file Colby can attach in an AI app, or upload once to a project and reuse.
+export function documentsFile(index: KnowledgeIndex): string {
+  const out = [`# VSA documents (from the app, pack built ${index.builtAt})`, '', 'Quoted as written from the loaded documents. The operating protocol wins on any difference. Do not use these for lashing or any other math.', ''];
+  let doc = '';
+  for (const c of index.chunks) {
+    if (c.doc !== doc) { doc = c.doc; out.push(`## ${doc}`, ''); }
+    out.push(`### ${c.cite}`, '', c.text.trim(), '');
+  }
+  return out.join('\n');
+}
+
 // The message Colby can send to any AI app through the share sheet. Built only from what the screens already show and the
 // pack's own passages. The vessel name is left out unless asked for; nothing here carries ids, VINs or photos.
 export function handoffPrompt(question: string, s: State, b: Baseline, nowMin: number, index: KnowledgeIndex, isTest: boolean, includeName: boolean, scope: 'all' | 'closest' = 'all'): string {
@@ -222,9 +236,10 @@ export function handoffPrompt(question: string, s: State, b: Baseline, nowMin: n
   const found = r.hits.length ? r.hits : r.related;
   // 'all': the whole pack (about 39,000 characters), grouped by document, so the AI is not limited to three passages.
   const everything = index.chunks.map((c) => `[${c.cite}]\n${c.text.trim()}`).join('\n\n');
-  const passages = scope === 'all' ? everything : found.length
+  const closest = found.length
     ? found.map((h) => { const t = h.chunk.text.trim(); return `[${h.chunk.cite}]\n${t.slice(0, 1200)}${t.length > 1200 ? ' …(cut)' : ''}`; }).join('\n\n')
     : 'None found in the loaded documents.';
+  const passages = scope === 'all' ? everything : closest;
   return [
     'You are helping a ro-ro auto discharge supervisor. Answer only from the vessel facts and document passages below.',
     'Say which one you used. If something needed is not given, say what is missing; do not guess. Never invent counts, times or approvals.',

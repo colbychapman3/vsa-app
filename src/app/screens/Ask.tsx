@@ -8,7 +8,8 @@ import type { State } from '../../storage/store.ts';
 import indexJson from '../../../assets/knowledge/index.json';
 import { NOT_FOUND, type KnowledgeIndex } from '../knowledge/search.ts';
 import { aiStatus, pickIntent } from '../ai.ts';
-import { answer, handoffPrompt, parseAction, QUICK, routeQuestion, type Action, type Answer, type Where } from '../assistant.ts';
+import { shareTextFile } from '../aiFiles.ts';
+import { answer, DOCS_FILE, documentsFile, handoffPrompt, QUESTION_FILE, parseAction, QUICK, routeQuestion, type Action, type Answer, type Where } from '../assistant.ts';
 import { addNoteEvents, type Ctx } from '../entries.ts';
 import { hourOptions } from '../view.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
@@ -30,7 +31,7 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
   const [res, setRes] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hand, setHand] = useState<{ q: string; name: boolean; all: boolean } | null>(null); // the Ask my AI preview, shown inside this same sheet
+  const [hand, setHand] = useState<{ q: string; name: boolean; how: 'text' | 'file' | 'closest' } | null>(null); // the Ask my AI preview, shown inside this same sheet
   const [picked, setPicked] = useState<string | null>(null); // the quick question shown as selected, until the text is edited
 
   const run = async (text: string) => {
@@ -68,12 +69,12 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
 
       {res?.kind === 'answer' && <AnswerCard a={res.a} onShow={(w) => { onShow(w); onClose(); }} />}
       {res?.kind === 'answer' && !hand && (
-        <Go ghost={!res.a.lines.includes(NOT_FOUND)} label="Ask my AI" onPress={() => setHand({ q, name: false, all: true })} />
+        <Go ghost={!res.a.lines.includes(NOT_FOUND)} label="Ask my AI" onPress={() => setHand({ q, name: false, how: 'text' })} />
       )}
       {res?.kind === 'answer' && hand && (() => {
-        const text = handoffPrompt(hand.q, state, baseline, nowMin, INDEX, isTest, hand.name, hand.all ? 'all' : 'closest');
+        const text = handoffPrompt(hand.q, state, baseline, nowMin, INDEX, isTest, hand.name, hand.how === 'closest' ? 'closest' : 'all');
         const cut = text.indexOf('DOCUMENT PASSAGES');
-        const shown = hand.all && cut > 0 ? text.slice(0, cut) : text; // the full pack is long: the preview shows everything before it
+        const shown = hand.how !== 'closest' && cut > 0 ? text.slice(0, cut) : text; // the full pack is long: the preview shows everything before it
         return (
           <Card style={[u.pad, { gap: 10 }]}>
             <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }}>Send to your AI app</Text>
@@ -81,10 +82,18 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
             <Body semi>Vessel name</Body>
             <Seg options={[{ value: 'out', label: 'Keep out' }, { value: 'in', label: 'Include' }]} columns={2} value={hand.name ? 'in' : 'out'} onChange={(x) => setHand({ ...hand, name: x === 'in' })} />
             <Body semi>Documents</Body>
-            <Seg options={[{ value: 'all', label: 'All documents' }, { value: 'closest', label: 'Closest 3' }]} columns={2} value={hand.all ? 'all' : 'closest'} onChange={(x) => setHand({ ...hand, all: x === 'all' })} />
+            <Seg options={[{ value: 'text', label: 'All, in message' }, { value: 'file', label: 'All, as file' }, { value: 'closest', label: 'Closest 3' }]} value={hand.how} onChange={(x) => setHand({ ...hand, how: x })} />
             <Text selectable style={{ fontFamily: f.body, fontSize: 14, color: color.ink, lineHeight: 20 }}>{shown}</Text>
-            {hand.all && <Note>Then all {INDEX.chunks.length} passages of the SOP, protocol, glossary and operations reference, quoted as written (about {Math.round(text.length / 1000)},000 characters in all).</Note>}
-            <Go label="Send…" onPress={() => { onClose(); setTimeout(() => { void Share.share({ message: text }); }, 450); }} />
+            {hand.how !== 'closest' && <Note>Then all {INDEX.chunks.length} passages of the SOP, protocol, glossary and operations reference, quoted as written ({(Math.round(text.length / 1000) * 1000).toLocaleString('en-US')} characters in all).</Note>}
+            {hand.how === 'file'
+              ? <Note>As a file: attach “{QUESTION_FILE}” in your AI app and say “Answer the question in this file.” Use this if the app refuses a very long message.</Note>
+              : null}
+            <Go label={hand.how === 'file' ? 'Share as a file…' : 'Send…'} onPress={() => {
+              onClose();
+              setTimeout(() => { if (hand.how === 'file') void shareTextFile(QUESTION_FILE, text); else void Share.share({ message: text }); }, 450);
+            }} />
+            <Go ghost label="Documents only, to upload once…" onPress={() => { onClose(); setTimeout(() => { void shareTextFile(DOCS_FILE, documentsFile(INDEX)); }, 450); }} />
+            <Note>Documents only: upload “{DOCS_FILE}” once to a project or chat in your AI app, then later questions only need the short message (Closest 3).</Note>
             <Go ghost label="Cancel" onPress={() => setHand(null)} />
           </Card>
         );

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { project } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
 import type { KnowledgeIndex } from '../src/app/knowledge/search.ts';
-import { alerts, answer, checkIntent, findZone, handoffPrompt, parseAction, reminderPlan, routeQuestion } from '../src/app/assistant.ts';
+import { alerts, answer, checkIntent, documentsFile, findZone, handoffPrompt, parseAction, reminderPlan, routeQuestion } from '../src/app/assistant.ts';
 import { snapshot } from '../src/app/view.ts';
 import { glovis, toEvents, SCENARIOS, OP } from './scenarios.ts';
 
@@ -202,4 +202,13 @@ test('hand-off message: by default the whole pack goes with the question; "close
   for (const c of INDEX.chunks) assert.ok(all.includes(`[${c.cite}]`), c.cite);
   const short = handoffPrompt('EV parking', working(), glovis, 15 * 60, INDEX, false, false, 'closest');
   assert.ok(short.length < all.length / 3, 'closest is much shorter');
+});
+
+test('documents file: every passage, grouped by document with its citation, plus the protocol-wins and no-math reminders', () => {
+  const md = documentsFile(INDEX);
+  assert.ok(md.startsWith('# VSA documents'));
+  for (const c of INDEX.chunks) assert.ok(md.includes(`### ${c.cite}`) && md.includes(c.text.trim()), c.cite);
+  for (const d of new Set(INDEX.chunks.map((c) => c.doc))) assert.ok(md.includes(`## ${d}`), d);
+  assert.match(md, /protocol wins on any difference/);
+  assert.match(md, /Do not use these for lashing or any other math/);
 });
