@@ -87,7 +87,7 @@ export default function App() {
   useEffect(() => { openPlan.current = () => { setSheet(null); setLogOpen(false); setDeckOpen(null); setTab('plan'); }; });
   useEffect(() => { reminderStatus().then(setRemind); return installHandlers(() => openPlan.current()); }, []);
   useEffect(() => {
-    if (!vessel) return;
+    if (!vessel) { void syncReminders(null); return; } // no open vessel: no reminders
     void syncReminders(remind === 'on' ? reminderPlan(vessel.state, vessel.baseline, minutesNow(), vessel.isTest) : null);
   }, [vessel, remind, fg]);
 

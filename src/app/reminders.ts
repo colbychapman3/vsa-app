@@ -43,7 +43,14 @@ export function installHandlers(onOpenPlan: () => void): () => void {
 }
 
 // Replace everything scheduled with this plan (null = cancel all). Quietly does nothing without permission.
-export async function syncReminders(plan: ReminderPlan | null): Promise<void> {
+// Calls run one after another: an older, slower call must never finish scheduling after a newer cancel.
+let queue: Promise<void> = Promise.resolve();
+export function syncReminders(plan: ReminderPlan | null): Promise<void> {
+  queue = queue.then(() => run(plan));
+  return queue;
+}
+
+async function run(plan: ReminderPlan | null): Promise<void> {
   const n = load();
   if (!n) return;
   try {
