@@ -32,7 +32,7 @@ async function setup(tc: { after: (fn: () => Promise<void>) => void }) {
     if (r.ok) state = r.state;
   };
   const add = async (o: Partial<E.EvidenceForm> = {}, noTime = false) => {
-    const f: E.EvidenceForm = { type: 'poor-stowage', deck: 'D9', hatch: 'H3', reason: 'Pillar or blind spot', vins: [], notes: null, time: { day: 1, hm: '08:30' }, photo: evidencePath(OP, E.nextEventId(state)), ...o };
+    const f: E.EvidenceForm = { type: 'poor-stowage', deck: 'D9', hatch: 'H3', vins: [], notes: null, time: { day: 1, hm: '08:30' }, photo: evidencePath(OP, E.nextEventId(state)), reason: o.type === 'accident' || o.type === 'pre-stow-damage' ? 'Slippery deck' : '', ...o };
     const evs = E.addEvidenceEvents(ctx(), f);
     await ok(Array.isArray(evs) && noTime ? evs.map((e) => ({ ...e, occurred_at: null })) : evs); // the engine allows "time not provided"
   };

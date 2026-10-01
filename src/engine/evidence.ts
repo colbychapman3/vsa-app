@@ -52,6 +52,10 @@ export function checkVins(list: string[]): { ok: true; vins: string[]; warnings:
 
 // Returns the first problem in plain words (naming the field), or null. Time is checked by the form (it lives on the event).
 // Place must exist on the vessel's baseline; accidents need at least one VIN.
+// Only these two types take a reason; for poor stowage and pre-stow the photo type is the reason.
+export const REASON_TYPES: readonly EvidenceType[] = ['accident', 'pre-stow-damage'];
+export const needsReason = (t: EvidenceType) => REASON_TYPES.includes(t);
+
 export function checkEvidence(d: Partial<EvidenceData> | null | undefined, decks: { id: string; label: string; hatches: { h: string }[] }[]): string | null {
   if (!d || !d.type || !EVIDENCE_TYPES.includes(d.type)) return 'Pick the photo type.';
   if (!d.photo?.trim()) return 'Take the photo first.';
@@ -60,7 +64,8 @@ export function checkEvidence(d: Partial<EvidenceData> | null | undefined, decks
   if (!deck) return `Deck ${d.deck} is not on this vessel.`;
   if (!d.hatch?.trim()) return 'Pick the hatch.';
   if (!deck.hatches.some((h) => h.h === d.hatch)) return `Hatch ${d.hatch} is not on deck ${deck.label}.`;
-  if (!d.reason?.trim()) return 'Pick a reason.';
+  if (needsReason(d.type)) { if (!d.reason?.trim()) return 'Pick a reason.'; }
+  else if (d.reason?.trim()) return 'Poor stowage and pre-stow photos take no reason: the photo type is the reason.';
   if (d.notes != null && typeof d.notes !== 'string') return 'Notes must be text.';
   if (!Array.isArray(d.vins)) return 'VINs must be a list.';
   if (d.type === 'accident' && d.vins.length === 0) return 'An accident photo needs at least one VIN.';

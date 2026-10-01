@@ -28,7 +28,7 @@ function entry(s: State, x: Item, type: EvidenceType): EvidenceEntry {
   const lines = [
     `Time: ${atText(x)}`,
     `Deck ${deck} · Hatch ${x.hatch}`,
-    `Reason (as recorded): ${x.reason}`,
+    ...(x.reason ? [`Reason (as recorded): ${x.reason}`] : []),
     x.vins.length ? `VIN${x.vins.length === 1 ? '' : 's'}: ${x.vins.join(', ')}` : type === 'accident' ? 'VIN: none recorded' : 'VIN: none entered',
     ...x.vinWarnings.map((w) => `Check: ${w}`),
     ...(x.notes ? [`Notes: ${x.notes}`] : []),

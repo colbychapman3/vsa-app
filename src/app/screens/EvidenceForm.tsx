@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { EVIDENCE_REASONS, EVIDENCE_TYPES, TYPE_LABEL, checkVin, evidencePath, operationDate, parseHM, type Baseline, type EvidenceType, type Reject, type VsaEvent } from '../../engine/index.ts';
+import { EVIDENCE_REASONS, EVIDENCE_TYPES, needsReason, TYPE_LABEL, checkVin, evidencePath, operationDate, parseHM, type Baseline, type EvidenceType, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { deckPhotos } from '../view.ts';
@@ -38,7 +38,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
   const [error, setError] = useState<string | null>(null);
   const day = item?.at?.day ?? state.ops.day;
   const hatches = state.decks.find((d) => d.id === deck)?.hatches ?? [];
-  const reasonText = reason === 'Other' ? other.trim() : reason ?? '';
+  const reasonText = !type || !needsReason(type) ? '' : reason === 'Other' ? other.trim() : reason ?? '';
   const change = (r: string | null, o: string) => (r === 'Other' ? o.trim() : r);
 
   const open = async () => {
@@ -128,9 +128,13 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
 
       <TimeField required label={`Time${day > 1 ? ` (Day ${day})` : ''}`} value={time} onChange={setTime} onNow={now} />
 
+      {type && needsReason(type) && (
+        <>
       <Label>REASON</Label>
       <Seg columns={1} value={reason} onChange={setReason} options={[...EVIDENCE_REASONS, 'Other'].map((r) => ({ value: r as string, label: r === 'Other' ? 'Other…' : r }))} />
       {reason === 'Other' && <Input label="Reason" value={other} onChange={setOther} maxLength={120} />}
+        </>
+      )}
 
       <Label wrap>{type === 'accident' ? 'VIN(S) · REQUIRED, AT LEAST ONE' : 'VIN(S) · OPTIONAL'}</Label>
       {vins.map((v) => {

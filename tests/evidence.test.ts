@@ -33,8 +33,8 @@ async function setup(tc: { after: (fn: () => Promise<void>) => void }, op = OP) 
   };
   // A form with every required field; the photo path is what the screen would compute.
   const form = (o: Partial<E.EvidenceForm> = {}): E.EvidenceForm => ({
-    type: 'poor-stowage', deck: 'D9', hatch: 'H3', reason: 'Pillar or blind spot', vins: [], notes: null, time: { day: 1, hm: '08:30' },
-    photo: evidencePath(op, E.nextEventId(state)), ...o,
+    type: 'poor-stowage', deck: 'D9', hatch: 'H3', vins: [], notes: null, time: { day: 1, hm: '08:30' },
+    photo: evidencePath(op, E.nextEventId(state)), reason: o.type === 'accident' || o.type === 'pre-stow-damage' ? 'Slippery deck' : '', ...o,
   });
   return { store, ctx, ok, form, get state() { return state; } };
 }
@@ -72,7 +72,7 @@ test('all four photo types save, keep the path, and survive a reload; VINs optio
   await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type: 'pre-stow-damage', reason: 'Latch/lashing contact' })));
   await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type: 'poor-stowage', vins: [VIN2], notes: ' tight to the wall ' })));
   await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type: 'accident', vins: [VIN, VIN2], reason: 'Driving too fast', hatch: 'H4' })));
-  await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type: 'pre-stow', reason: 'Other reason typed' })));
+  await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type: 'pre-stow' })));
   const items = s.state.evidence;
   assert.deepEqual(items.map((x) => x.type), ['pre-stow-damage', 'poor-stowage', 'accident', 'pre-stow']);
   assert.deepEqual(items.map((x) => x.photo), items.map((x) => `evidence/${OP}/${x.id}.jpg`));
@@ -97,7 +97,9 @@ test('every missing required field is named; nothing is saved', async (tc) => {
   assert.equal(refused({ deck: '' }), 'Pick the deck.');
   assert.equal(refused({ hatch: '' }), 'Pick the hatch.');
   assert.equal(refused({ time: null }), 'Enter the time, or tap Now.');
-  assert.equal(refused({ reason: '  ' }), 'Pick a reason.');
+  assert.equal(refused({ type: 'accident', vins: [VIN], reason: '  ' }), 'Pick a reason.');
+  assert.equal(refused({ type: 'poor-stowage', reason: 'Slippery deck' }), 'Poor stowage and pre-stow photos take no reason: the photo type is the reason.');
+  assert.equal(refused({ type: 'pre-stow-damage', reason: '' }), 'Pick a reason.');
   assert.match(refused({ time: { day: 1, hm: '25:99' } }), /isn.t valid\. Enter the day and a time as HH:MM/);
   assert.equal(s.state.evidence.length, 0);
 });
@@ -111,7 +113,7 @@ test('a deck or hatch that is not on the baseline is refused, by the form and by
   const bad = { ...ev, payload: { ...ev.payload, evidence: { ...ev.payload.evidence!, deck: 'D99' } } };
   const r = await s.store.append(OP, [bad]);
   assert.ok(!r.ok && r.error === `Event ${ev.event_id}: Deck D99 is not on this vessel.`, JSON.stringify(r));
-  const noVin = { ...ev, payload: { ...ev.payload, evidence: { ...ev.payload.evidence!, type: 'accident' as const } } };
+  const noVin = { ...ev, payload: { ...ev.payload, evidence: { ...ev.payload.evidence!, type: 'accident' as const, reason: 'Slippery deck' } } };
   const r2 = await s.store.append(OP, [noVin]);
   assert.ok(!r2.ok && /needs at least one VIN/.test(r2.error), JSON.stringify(r2));
   const dup = { ...ev, payload: { ...ev.payload, evidence: { ...ev.payload.evidence!, vins: [VIN, VIN] } } };
@@ -210,7 +212,7 @@ test('Decks: deck rows and hatches show photo counts; the sheet lists them; remo
   const list = deckPhotos(s.state, 'D9');
   assert.equal(list.current.length, 3);
   assert.equal(list.current[0].title, 'Poor stowage · H3');
-  assert.equal(list.current[0].meta, '08:30 · Pillar or blind spot');
+  assert.equal(list.current[0].meta, '08:30');
   assert.equal(list.current[0].warn.length, 1); // the check digit warning is shown, not hidden
   await s.ok(E.removeEvidenceEvents(s.ctx(), s.state.evidence[1].id, 'Duplicate'));
   v = decksView(s.state);

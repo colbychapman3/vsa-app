@@ -71,7 +71,7 @@ export function photoHourNotes(s: State) {
 export function deckPhotos(s: State, deckId: string) {
   const row = (x: Photo) => ({
     id: x.id, path: x.photo, type: x.type, title: `${TYPE_LABEL[x.type]} · ${x.hatch}`,
-    meta: `${x.at ? `${x.at.day > 1 ? `Day ${x.at.day} ` : ''}${x.at.hm}` : x.atLabel} · ${x.reason}${x.edited ? ' · edited' : ''}`,
+    meta: `${x.at ? `${x.at.day > 1 ? `Day ${x.at.day} ` : ''}${x.at.hm}` : x.atLabel}${x.reason ? ` · ${x.reason}` : ''}${x.edited ? ' · edited' : ''}`,
     vins: x.vins.length ? `VIN${x.vins.length === 1 ? '' : 's'}: ${x.vins.join(', ')}` : null,
     warn: x.vinWarnings, notes: x.notes,
   });

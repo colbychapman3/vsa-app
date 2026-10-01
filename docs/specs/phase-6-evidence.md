@@ -6,7 +6,7 @@ Photo evidence from the Log button: pre-stow damage, poor stowage, accidents, an
 ## Flow (Log › Photo)
 1. Choose the type: **Pre-stow damage**, **Poor stowage**, **Accident**, **Pre-stow**.
 2. Take the photo (camera). Full size kept.
-3. Required for every type: **deck, hatch, time, reason**. Time uses the same field as the rest of the Log (typed or **Now**; never filled silently).
+3. Required for every type: **deck, hatch, time**. **Reason** applies only to **Accident** and **Pre-stow damage**; for **Poor stowage** and **Pre-stow** the photo type is the reason, so no reason is asked or stored. Time uses the same field as the rest of the Log (typed or **Now**; never filled silently).
 4. **VIN(s):** required only for **Accident** (at least one). Optional for the other types. Several VINs per photo. Typed in 6b; camera scan arrives in 6c.
 5. **Notes:** optional text. (AI polish of the wording arrives in 6c; typed only in 6b.)
 6. Save. Nothing is saved with a required field missing; the exact missing field is named.
