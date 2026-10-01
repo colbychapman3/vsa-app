@@ -120,7 +120,8 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
 
       {photoAids}
 
-      {step === 0 && !pasteOpen && (
+      {step === 0 && !pasteOpen && busy && <Note>Reading the paperwork…</Note>}
+      {step === 0 && !pasteOpen && !busy && ( // fields hidden while reading, so nothing typed meanwhile is overwritten
         <View style={{ gap: 12 }}>
           {photo?.msgs.map((m) => <Note key={m}>{m}</Note>)}
           <Field label="Vessel name" value={v.vessel} onChange={set('vessel')} keyboard="default" />
@@ -134,7 +135,6 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
           <Go label="Next" onPress={() => { if (!v.vessel.trim()) setError('The vessel needs a name.'); else if (!v.berth) setError('Choose the berth.'); else go(1); }} />
           <Go ghost label="Read paperwork: choose photos" disabled={busy} onPress={() => fromPhotos('library')} />
           <Go ghost label="Read paperwork: take a picture" disabled={busy} onPress={() => fromPhotos('camera')} />
-          {busy && <Note>Reading the paperwork…</Note>}
           <Go ghost label="Import a baseline instead" onPress={() => { setError(null); setPasteOpen(true); }} />
         </View>
       )}

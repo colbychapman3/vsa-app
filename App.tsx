@@ -245,7 +245,7 @@ export default function App() {
     await switchTo(b.operationId);
     const made = `${b.baseline.vessel} created (${isTest ? 'TEST' : 'LIVE'})`;
     setNotice(failed
-      ? { ok: false, text: `${made}, but ${notes.length - saved} of ${notes.length} notes did not save: ${failed} Add them in Plan.` }
+      ? { ok: false, text: `${made}, but ${notes.length - saved} of ${notes.length} notes did not save: ${failed.replace(/\.?$/, '.')} Add them in Plan.` }
       : { ok: true, text: `${made}${saved ? `, ${saved} note${saved === 1 ? '' : 's'} added to Plan` : ''}.` });
     return { ok: true };
   };

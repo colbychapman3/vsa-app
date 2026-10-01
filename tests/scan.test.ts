@@ -48,6 +48,14 @@ test('proposal: values in the text pass; invented counts, names and hatches are 
   ]);
 });
 
+test('proposal: a count borrowed from a label, date, vessel name or another line is refused', () => {
+  const r = checkSetupProposal({ decks: [{ label: 'Upper', hatches: [{ h: 'H3', items: [{ brand: 'Kia', qty: 4 }, { brand: 'Kia', qty: 21 }] },
+    { h: 'H4', items: [{ brand: 'Kia', qty: 101 }, { brand: 'Kia', qty: 58 }] }] }] }, 'GLOVIS CONDOR 101 9/21/2026\nUpper H4 Kia 58')!;
+  assert.deepEqual(r.value.decks![0].hatches.map((h) => h.items), [[], [{ brand: 'Kia', qty: 58 }]]);
+  assert.equal(r.dropped.length, 3);
+  assert.deepEqual(checkSetupProposal({ destinations: [{ name: 'Zone 3', autos: 1969 }] }, 'Zone 3\nTotal 1,969')!.dropped, ['Zone 3: 1969 autos is not in the text.']);
+});
+
 test('proposal: malformed or non-object output = no proposal; a partial word is not a match', () => {
   assert.equal(checkSetupProposal('{not json', SOURCE), null);
   assert.equal(checkSetupProposal('[1,2]', SOURCE), null);
@@ -60,6 +68,7 @@ test('note tidy: rewording passes; a new number or VIN-like code means no propos
   assert.equal(checkNoteTidy('VIN 1HGCM82633A004353', 'vin 1HGCM82633A004352'), null, 'a changed VIN is a new code');
   assert.deepEqual(checkNoteTidy('Scratch on the rear bumper at H3.', 'scratch rear bumper h3')!.value, 'Scratch on the rear bumper at H3.');
   assert.equal(checkNoteTidy('Scratch on rear bumper, 2 cars.', 'scratch rear bumper'), null);
+  assert.equal(checkNoteTidy('Scratch on the rear bumper.', 'scratch rear bumper h3 vin 1HGCM82633A004352'), null, 'dropping facts is refused too');
   assert.equal(checkNoteTidy('', 'x'), null);
 });
 

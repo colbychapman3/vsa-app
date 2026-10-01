@@ -79,7 +79,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
     finally { setBusy(false); }
   };
   const pickVin = (vin: string) => {
-    if (vins.includes(vin)) return setError(`VIN ${vin} is listed twice on this photo.`);
+    if (vins.includes(vin)) return setError(`VIN ${vin} is already on this photo.`);
     setError(null); setVins([...vins, vin]); setFound(null);
   };
   const askTidy = async () => {
@@ -196,7 +196,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
 
       <View style={{ gap: 6 }}>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>Notes (optional)</Text>
-        <TextInput value={notes} onChangeText={setNotes} multiline accessibilityLabel="Notes" placeholder="Type what you saw" placeholderTextColor={color.muted}
+        <TextInput value={notes} onChangeText={(t) => { setNotes(t); setTidy(null); }} multiline accessibilityLabel="Notes" placeholder="Type what you saw" placeholderTextColor={color.muted}
           style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 110, paddingTop: 12, textAlignVertical: 'top' }]} />
       </View>
       {notes.trim() !== '' && aiStatus() === 'ready' && <Go ghost label="Tidy wording (AI)" disabled={busy} onPress={askTidy} />}

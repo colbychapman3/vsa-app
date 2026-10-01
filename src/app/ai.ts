@@ -2,15 +2,17 @@
 // Everything here is optional: if a module is missing (old build, web) or the model is unavailable, callers get
 // null / 'unavailable' and show the manual path. The model only proposes; src/engine/proposal.ts decides what
 // of a proposal may be shown, and nothing is saved without Colby's confirm. No network is used.
-import * as ImagePicker from 'expo-image-picker';
 import { checkNoteTidy, checkSetupProposal, SETUP_SCHEMA, type Checked, type SetupProposal } from '../engine/proposal.ts';
 
 type Llm = typeof import('@react-native-ai/apple').AppleFoundationModels;
 type Ocr = typeof import('@infinitered/react-native-mlkit-text-recognition').recognizeText;
+type Picker = typeof import('expo-image-picker');
 
 // Native modules throw at import when they are not in the build; load once, lazily, and remember a miss.
 let llm: Llm | null | undefined;
 let ocr: Ocr | null | undefined;
+let picker: Picker | null | undefined;
+const loadPicker = () => { if (picker === undefined) { try { picker = require('expo-image-picker'); } catch { picker = null; } } return picker; };
 const loadLlm = () => { if (llm === undefined) { try { llm = require('@react-native-ai/apple').AppleFoundationModels; } catch { llm = null; } } return llm; };
 const loadOcr = () => { if (ocr === undefined) { try { ocr = require('@infinitered/react-native-mlkit-text-recognition').recognizeText; } catch { ocr = null; } } return ocr; };
 
@@ -56,13 +58,14 @@ export async function tidyNote(text: string): Promise<Checked<string>> {
 
 // ---------- Text recognition ----------
 
-export const ocrAvailable = () => loadOcr() != null;
+export const ocrAvailable = () => loadOcr() != null && loadPicker() != null;
 
 // Camera or photo library → recognized text, page by page. null = cancelled; throws with a plain message on failure.
 // Pictures are read from the picker's temporary copy and never stored by the app.
 export async function readPhotos(from: 'camera' | 'library'): Promise<{ pages: string[] } | null> {
   const recognize = loadOcr();
-  if (!recognize) throw new Error('Text reading is not in this build. Type the values instead.');
+  const ImagePicker = loadPicker();
+  if (!recognize || !ImagePicker) throw new Error('Text reading is not in this build. Type the values instead.');
   const perm = from === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) throw new Error(from === 'camera' ? 'Camera permission is off. Turn it on in Settings › VSA.' : 'Photo access is off. Turn it on in Settings › VSA.');
   const r = from === 'camera'
