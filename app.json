@@ -29,7 +29,6 @@
       "expo-sqlite",
       "expo-font",
       "expo-sharing",
-      "expo-notifications",
       [
         "expo-camera",
         {
@@ -45,7 +44,8 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "./plugins/withoutPush.js"
     ],
     "extra": {
       "eas": {
