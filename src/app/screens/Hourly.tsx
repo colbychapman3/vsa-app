@@ -13,12 +13,14 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
   const f = useType();
   const v = hourlyView(state, baseline);
   const [view, setView] = useState<'list' | 'graph'>('list');
+  // H.A. and Pace share one color while their numbers are equal; Pace takes its own color only when it differs from H.A.
+  const paceColor = v.stats.pace === v.stats.ha ? HA_COLOR : PACE_COLOR;
 
   return (
     <View style={s.main}>
       <FlipTile cardStyle={[u.pad, s.stats]} label="Hourly average, pace and total. Tap for how they are worked out"
         front={<>
-          {([['H.A.', v.stats.ha, HA_COLOR], ['Pace', v.stats.pace, PACE_COLOR], ['Total', v.stats.total, color.ink]] as const).map(([l, n, c]) => (
+          {([['H.A.', v.stats.ha, HA_COLOR], ['Pace', v.stats.pace, paceColor], ['Total', v.stats.total, color.ink]] as const).map(([l, n, c]) => (
             <View key={l} style={{ flex: 1, gap: 2 }}>
               <Label style={{ color: c }}>{l}</Label>
               <Big size={40} style={{ color: c }}>{n}</Big>
@@ -28,7 +30,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
         back={<View style={{ flex: 1, gap: 6 }}>
           <Label>HOW THESE ARE WORKED OUT</Label>
           <Body semi style={{ color: HA_COLOR }}>H.A.: {v.stats.haNote}. Every logged hour counts as a full hour.</Body>
-          <Body semi style={{ color: PACE_COLOR }}>Pace: {v.stats.paceNote}. Only the minutes worked count, so the short hour before a break is not held against it.</Body>
+          <Body semi style={{ color: paceColor }}>Pace: {v.stats.paceNote}. Only the minutes worked count, so the short hour before a break is not held against it.</Body>
           <Body>Total: field count.</Body>
           {v.paceLine && <Note>{v.paceLine}</Note>}
           <Note>They match when no hour was cut short. The forecast uses Pace. Tap to flip back.</Note>

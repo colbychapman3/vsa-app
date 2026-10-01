@@ -55,7 +55,7 @@ export const fontFiles = {
   IBMPlexSans_600SemiBold,
 };
 
-// H.A. and Pace each keep one color wherever they appear, so the two figures are never mistaken for each other.
+// H.A. is blue. Pace is blue too while it equals H.A.; when it differs it turns dark orange so the difference is seen at a glance.
 export const HA_COLOR = color.blue;
 export const PACE_COLOR = color.oInk;
 
