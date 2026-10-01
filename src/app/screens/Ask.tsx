@@ -30,7 +30,7 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
   const [res, setRes] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hand, setHand] = useState<{ q: string; name: boolean } | null>(null); // the Ask my AI preview, shown inside this same sheet
+  const [hand, setHand] = useState<{ q: string; name: boolean; all: boolean } | null>(null); // the Ask my AI preview, shown inside this same sheet
   const [picked, setPicked] = useState<string | null>(null); // the quick question shown as selected, until the text is edited
 
   const run = async (text: string) => {
@@ -68,17 +68,22 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
 
       {res?.kind === 'answer' && <AnswerCard a={res.a} onShow={(w) => { onShow(w); onClose(); }} />}
       {res?.kind === 'answer' && !hand && (
-        <Go ghost={!res.a.lines.includes(NOT_FOUND)} label="Ask my AI" onPress={() => setHand({ q, name: false })} />
+        <Go ghost={!res.a.lines.includes(NOT_FOUND)} label="Ask my AI" onPress={() => setHand({ q, name: false, all: true })} />
       )}
       {res?.kind === 'answer' && hand && (() => {
-        const text = handoffPrompt(hand.q, state, baseline, nowMin, INDEX, isTest, hand.name);
+        const text = handoffPrompt(hand.q, state, baseline, nowMin, INDEX, isTest, hand.name, hand.all ? 'all' : 'closest');
+        const cut = text.indexOf('DOCUMENT PASSAGES');
+        const shown = hand.all && cut > 0 ? text.slice(0, cut) : text; // the full pack is long: the preview shows everything before it
         return (
           <Card style={[u.pad, { gap: 10 }]}>
             <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }}>Send to your AI app</Text>
             <Note>This exact text goes to the app you pick in the next step. Nothing is sent until you choose one. Its reply stays in that app and is not checked by this app.</Note>
             <Body semi>Vessel name</Body>
             <Seg options={[{ value: 'out', label: 'Keep out' }, { value: 'in', label: 'Include' }]} columns={2} value={hand.name ? 'in' : 'out'} onChange={(x) => setHand({ ...hand, name: x === 'in' })} />
-            <Text selectable style={{ fontFamily: f.body, fontSize: 14, color: color.ink, lineHeight: 20 }}>{text}</Text>
+            <Body semi>Documents</Body>
+            <Seg options={[{ value: 'all', label: 'All documents' }, { value: 'closest', label: 'Closest 3' }]} columns={2} value={hand.all ? 'all' : 'closest'} onChange={(x) => setHand({ ...hand, all: x === 'all' })} />
+            <Text selectable style={{ fontFamily: f.body, fontSize: 14, color: color.ink, lineHeight: 20 }}>{shown}</Text>
+            {hand.all && <Note>Then all {INDEX.chunks.length} passages of the SOP, protocol, glossary and operations reference, quoted as written (about {Math.round(text.length / 1000)},000 characters in all).</Note>}
             <Go label="Send…" onPress={() => { onClose(); setTimeout(() => { void Share.share({ message: text }); }, 450); }} />
             <Go ghost label="Cancel" onPress={() => setHand(null)} />
           </Card>

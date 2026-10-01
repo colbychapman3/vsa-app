@@ -212,7 +212,7 @@ export function reminderPlan(s: State, b: Baseline, nowMin: number, isTest: bool
 
 // The message Colby can send to any AI app through the share sheet. Built only from what the screens already show and the
 // pack's own passages. The vessel name is left out unless asked for; nothing here carries ids, VINs or photos.
-export function handoffPrompt(question: string, s: State, b: Baseline, nowMin: number, index: KnowledgeIndex, isTest: boolean, includeName: boolean): string {
+export function handoffPrompt(question: string, s: State, b: Baseline, nowMin: number, index: KnowledgeIndex, isTest: boolean, includeName: boolean, scope: 'all' | 'closest' = 'all'): string {
   const asks: Intent[] = [{ k: 'remaining' }, { k: 'pace' }, { k: 'eta' }, { k: 'decks' }, { k: 'alerts' }, { k: 'clearby', zone: null }];
   const facts = asks.map((i) => {
     const a = answer(i, s, b, nowMin, index);
@@ -220,7 +220,9 @@ export function handoffPrompt(question: string, s: State, b: Baseline, nowMin: n
   });
   const r = search(index, question, 3);
   const found = r.hits.length ? r.hits : r.related;
-  const passages = found.length
+  // 'all': the whole pack (about 39,000 characters), grouped by document, so the AI is not limited to three passages.
+  const everything = index.chunks.map((c) => `[${c.cite}]\n${c.text.trim()}`).join('\n\n');
+  const passages = scope === 'all' ? everything : found.length
     ? found.map((h) => { const t = h.chunk.text.trim(); return `[${h.chunk.cite}]\n${t.slice(0, 1200)}${t.length > 1200 ? ' …(cut)' : ''}`; }).join('\n\n')
     : 'None found in the loaded documents.';
   return [
@@ -233,7 +235,7 @@ export function handoffPrompt(question: string, s: State, b: Baseline, nowMin: n
     `VESSEL FACTS (from the app${isTest ? '; TEST VESSEL, demo data' : ''}${includeName ? `; vessel ${b.vessel}` : ''}; Berth ${String(b.berth ?? 'unknown')}):`,
     ...facts,
     '',
-    'DOCUMENT PASSAGES:',
+    scope === 'all' ? `DOCUMENT PASSAGES (all ${index.chunks.length} passages in the app's loaded documents, quoted as written):` : 'DOCUMENT PASSAGES:',
     passages,
   ].join('\n');
 }

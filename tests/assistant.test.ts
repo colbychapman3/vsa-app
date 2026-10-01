@@ -191,7 +191,15 @@ test('hand-off message: instructions, the question, the screens\' facts and cite
 });
 
 test('hand-off message: unknown stays unknown and an unanswerable question says no passages were found', () => {
-  const text = handoffPrompt('zebra unicorn xylophone', noCount(), glovis, 15 * 60, INDEX, false, false);
+  const text = handoffPrompt('zebra unicorn xylophone', noCount(), glovis, 15 * 60, INDEX, false, false, 'closest');
   assert.match(text, /DOCUMENT PASSAGES:\nNone found in the loaded documents\./);
   assert.match(text, /unknown|needs a remaining count|—/i);
+});
+
+test('hand-off message: by default the whole pack goes with the question; "closest" keeps it short', () => {
+  const all = handoffPrompt('EV parking', working(), glovis, 15 * 60, INDEX, false, false);
+  assert.ok(all.includes(`DOCUMENT PASSAGES (all ${INDEX.chunks.length} passages`));
+  for (const c of INDEX.chunks) assert.ok(all.includes(`[${c.cite}]`), c.cite);
+  const short = handoffPrompt('EV parking', working(), glovis, 15 * 60, INDEX, false, false, 'closest');
+  assert.ok(short.length < all.length / 3, 'closest is much shorter');
 });
