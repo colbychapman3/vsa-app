@@ -11,7 +11,14 @@ A list of the ship's TICO shuttle vans, which longshoremen check out, kept per v
 
 ## Each row (one slot on the TICO check in/out sheet)
 - **Van #** (blank until assigned; once entered, unique among current rows on this vessel), **Driver name** (the longshoreman, optional), **Lasher van** label (yes/no, default no), **Checked out** and **Checked in** times (typed or **Now**, never filled silently; blank = "time not provided"), **Gas** (Full, ¾, ½, ¼, Empty, or blank = not recorded), **Remarks**.
-- Status shown: Not assigned, Not out yet, Out, Back. Header counts: vans on the list, assigned, out, back, and out with no check-in (unknown stays unknown, never 0). Lasher vans are tagged and counted separately.
+- Status shown: Not assigned, Not out yet, Out, Back. Header counts: vans on the list, assigned, out, back, out with no check-in, and the gassing tally (unknown stays unknown, never 0). Lasher vans are tagged and counted separately.
+
+## Gassed at end of vessel (the signal)
+- The sheet's **Gas** column is the fuel level when the van is checked in or out. Separate from it, every van has a **Gassed at end of vessel** status with three states, so "we skipped it" is never confused with "nobody recorded it": **Not recorded** (default, shown in grey), **Gassed ✓** (green, with an optional time: typed or Now), **Not gassed** (red, with an optional note, e.g. "van out of service").
+- The header shows the tally: "Gassed 9 · Not gassed 2 · Not recorded 3 (of 14)". A van with no number assigned is not counted.
+- **Plan alert when the vessel is finished:** once vessel remaining is confirmed 0 (never marked complete automatically), any assigned van that is Not recorded raises one soft Plan alert, "3 vans not marked gassed", which also feeds the 25-minute reminders until each is set to Gassed or Not gassed. A van marked Not gassed counts as dealt with.
+- **Mark gassed:** tap a van to set the status. One shortcut, **Mark Back vans gassed**, opens a confirm card listing exactly which vans (only those checked in) before saving; it never touches a van that is Out, Not assigned or already Not gassed.
+- Changes to this status are kept in the history like any other change (with the optional note).
 
 ## Changes and history
 - The van number and the driver name can each be changed at any time. Each change saves a history entry: what it was, what it is now, when it was changed, and an **optional note** for Colby to say why. The note is never required.
@@ -32,7 +39,7 @@ A list of the ship's TICO shuttle vans, which longshoremen check out, kept per v
 - New events `van.added` (one per slot, blank fields allowed, saved as one batch), `van.corrected`, `van.removed` (same pattern as `note.*`): payload carries number, driver, lasher, out, in, gas, remarks, plus the optional change note. Replay must accept every earlier log (new types only). Projection in `src/engine/index.ts` (`State.vans` with history), view model `vanView` in `src/app/view.ts`, builders in `src/app/entries.ts`, UI in `src/app/screens/Vans.tsx` (card in Plan below Notes, one sheet at a time). Backup export covers the new events automatically.
 
 ## Testing
-Unique number among current rows and freed after a swap; check-in before check-out refused; history lists every change in order with notes; driver and number histories separate; lasher count; TEST isolation; correction supersedes; removed stays in log; old logs still replay; photo parse never invents values. Phone: add, swap number, swap driver with and without a note, airplane mode, large text.
+Unique number among current rows and freed after a swap; check-in before check-out refused; history lists every change in order with notes; driver and number histories separate; lasher count; gassing: three states, tally excludes unassigned slots, alert only after remaining is confirmed 0 and clears when every assigned van is Gassed or Not gassed, shortcut lists only Back vans; TEST isolation; correction supersedes; removed stays in log; old logs still replay; photo parse never invents values. Phone: add, swap number, swap driver with and without a note, airplane mode, large text.
 
 ## Later (not in this phase)
 A printable van check in/out PDF matching the TICO sheet.
