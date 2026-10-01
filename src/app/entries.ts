@@ -571,3 +571,25 @@ export function markGassedEvents(ctx: Ctx, ids: string[], time: OpTime | null): 
   }
   return out;
 }
+
+// Photo read: confirmed rows go into the empty (Not assigned) slots in order from the top, in one save.
+// A number already on the list, or repeated in these rows, is refused; nothing is guessed or skipped silently.
+export function fillVanSlotsEvents(ctx: Ctx, rows: { number: string; driver: string | null }[]): VsaEvent[] | Reject {
+  const free = ctx.state.vans.filter((v) => !v.removed && v.number == null);
+  if (!rows.length) return reject('No van rows to add.');
+  if (rows.length > free.length) return reject(`${rows.length} rows but only ${free.length} empty slot${free.length === 1 ? '' : 's'}. Add more slots first, or remove rows.`);
+  const seen = new Set<string>();
+  const { add, out } = builder(ctx);
+  for (let i = 0; i < rows.length; i++) {
+    const number = rows[i].number.trim(), driver = rows[i].driver?.trim() || null;
+    const next = trimVan({ ...BLANK_VAN, number, driver });
+    const bad = checkVan(next);
+    if (bad) return reject(`Row ${i + 1} (${number || 'no number'}): ${bad}`);
+    const held = numberHeldBy(ctx.state.vans, number);
+    if (held) return reject(`Van ${number} is already on Van slot ${held.slot}.`);
+    if (seen.has(number.toLowerCase())) return reject(`Van ${number} is listed twice in these rows.`);
+    seen.add(number.toLowerCase());
+    add({ type: 'van.corrected', metric: 'van', value: null, workstream: 'operation', supersedes: free[i].headId, extra: { van: next } });
+  }
+  return out;
+}

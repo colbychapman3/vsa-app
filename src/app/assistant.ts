@@ -1,7 +1,7 @@
 // Assistant (Phase 6d), pure. Routes a typed question to one fixed intent, fills the answer from the same view
 // model the screens use, parses the three confirmable actions, and plans the 25-minute Plan reminders.
 // The on-device model (if any) may only pick an intent from this list; it never writes an answer or a number.
-import { formatHM, parseHM, type Baseline } from '../engine/index.ts';
+import { formatHM, gassingAlert, parseHM, type Baseline } from '../engine/index.ts';
 import { TERMINAL, terminalInfo } from '../engine/terminal.ts';
 import type { State } from '../storage/store.ts';
 import { NOT_FOUND, search, type KnowledgeIndex } from './knowledge/search.ts';
@@ -163,7 +163,8 @@ export function answer(i: Intent, s: State, b: Baseline, nowMin: number, index: 
 // Deck heights waiting for confirmation + open discrepancies, as on the Plan tab.
 export function alerts(s: State, b: Baseline): string[] {
   const p = planView(s, b);
-  return [...p.heights.pending.map((h) => `${h.label} height not confirmed`), ...p.issues.open.map((x) => x.text)];
+  const vans = gassingAlert(s.vans, s.vesselRemaining); // only once the vessel is finished (remaining confirmed 0)
+  return [...p.heights.pending.map((h) => `${h.label} height not confirmed`), ...p.issues.open.map((x) => x.text), ...(vans ? [vans] : [])];
 }
 
 // ---------- Actions ----------

@@ -10,6 +10,8 @@ import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
+import { vanView } from '../src/app/view.ts';
+import { alerts, reminderPlan } from '../src/app/assistant.ts';
 
 const OP = 'TEST-VANS';
 
@@ -178,4 +180,50 @@ test('van sheet text: numbers and same-line names are proposed; row numbers, dat
     { number: '170', driver: null }, { number: '172', driver: 'Brandon Pace' }, { number: '202', driver: 'Mary Brown' },
   ]);
   assert.deepEqual(parseVanSheet(''), []);
+});
+
+test('photo read: confirmed rows fill empty slots in order in one save; too many rows or a held number is refused', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.addVanSlotsEvents(s.ctx(), 4));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(2), { number: '120' }, null));
+  await s.ok(E.fillVanSlotsEvents(s.ctx(), [{ number: '109', driver: null }, { number: '129', driver: 'R Dunn' }]));
+  assert.deepEqual(s.state.vans.map((v) => v.number), ['109', '120', '129', null]);
+  assert.equal(s.state.vans[2].driver, 'R Dunn');
+  assert.equal(s.err(E.fillVanSlotsEvents(s.ctx(), [{ number: '120', driver: null }])), 'Van 120 is already on Van slot 2.');
+  assert.equal(s.err(E.fillVanSlotsEvents(s.ctx(), [{ number: '130', driver: null }, { number: '130', driver: null }])), '2 rows but only 1 empty slot. Add more slots first, or remove rows.');
+  await s.ok(E.addVanSlotsEvents(s.ctx(), 1));
+  assert.equal(s.err(E.fillVanSlotsEvents(s.ctx(), [{ number: '130', driver: null }, { number: '130', driver: null }])), 'Van 130 is listed twice in these rows.');
+  assert.equal(s.err(E.fillVanSlotsEvents(s.ctx(), [])), 'No van rows to add.');
+});
+
+test('van view: header, counts, gassing tally, history lines newest first; removed rows last', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.addVanSlotsEvents(s.ctx(), 3));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(1), { number: '211', driver: 'Sonja Hill', lasher: true, out: { day: 1, hm: '08:00' } }, null));
+  await s.ok(E.editVanEvents(s.ctx('10:42'), s.id(1), { number: '216' }, '211 would not start'));
+  await s.ok(E.editVanEvents(s.ctx('11:05'), s.id(1), { driver: 'Reggie Tyson' }, null));
+  await s.ok(E.removeVanEvents(s.ctx(), s.id(2), 'not needed'));
+  const v = vanView(s.state);
+  assert.equal(v.header, '1 of 2 vans assigned');
+  assert.equal(v.counts, 'Out 1 · Back 0 · Not out yet 0');
+  assert.equal(v.lashers, 'Lasher vans 1');
+  assert.equal(v.gassing, 'Gassed 0 · Not gassed 0 · Not recorded 1 (of 1)');
+  assert.equal(v.rows[0].title, 'Van 216');
+  assert.deepEqual(v.rows[0].history.map((h) => h.text), ['Driver Sonja Hill → Reggie Tyson', 'Van 211 → 216']);
+  assert.equal(v.rows[0].history[1].note, '211 would not start');
+  assert.equal(v.rows[0].times, 'Out 08:00 · In time not provided');
+  assert.equal(v.rows.at(-1)!.removed, true);
+  assert.equal(v.alert, null);
+});
+
+test('the gassing alert joins the Plan alerts and the 25-minute reminders only after the vessel is finished', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.addVanSlotsEvents(s.ctx(), 2));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(1), { number: '109' }, null));
+  await s.ok(E.editVanEvents(s.ctx(), s.id(2), { number: '120' }, null));
+  assert.ok(!alerts(s.state, glovis).some((a) => /not marked gassed/.test(a)), 'vessel still has autos remaining');
+  const finished = { ...s.state, vesselRemaining: 0 } as State;
+  assert.ok(alerts(finished, glovis).includes('2 vans not marked gassed'));
+  const plan = reminderPlan(finished, glovis, 15 * 60, true);
+  assert.ok(plan && plan.text.includes('2 vans not marked gassed'));
 });

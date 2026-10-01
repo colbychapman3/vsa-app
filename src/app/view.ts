@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, TYPE_LABEL, formatHM, parseHM, preBreak, toAbs, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, TYPE_LABEL, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -485,4 +485,40 @@ export function hourOptions(s: State, b: Baseline) {
   if (breaks.includes(next)) next += 60;
   const open = hours.find((h) => h.start === formatHM(next)) ?? hours.find((h) => !h.logged) ?? hours[0];
   return { day, hours, defaultStart: open?.start ?? null };
+}
+
+// ---------- Van list (Plan) ----------
+// Display strings for the shuttle van list. Counts come from vanTally; a blank stays "not recorded", never a default.
+const vanTime = (t: { day: number; hm: string } | null) => (t == null ? 'time not provided' : t.day > 1 ? `Day ${t.day} ${t.hm}` : t.hm);
+
+export function vanView(s: State) {
+  const t = vanTally(s.vans);
+  const rows = s.vans.map((v) => {
+    const numberLines = v.changes.filter((c) => !c.assignment && (c.field === 'number' || c.field === 'driver')).reverse(); // newest first
+    const other = v.changes.filter((c) => c.assignment || (c.field !== 'number' && c.field !== 'driver')).reverse();
+    return {
+      id: v.id, slot: v.slot, removed: v.removed, removedNote: v.removed ? `Removed ${v.removedAt} · ${v.removedReason}` : null,
+      title: v.number ? `Van ${v.number}` : `Van slot ${v.slot}`,
+      driver: v.driver ?? (v.number ? 'Driver not recorded' : null),
+      status: STATUS_LABEL[v.status], statusKey: v.status, lasher: v.lasher,
+      times: v.number ? `Out ${vanTime(v.out)} · In ${vanTime(v.in)}` : null,
+      gas: v.gas ? `Gas ${v.gas}` : v.number ? 'Gas not recorded' : null,
+      gassed: v.gassed === 'gassed' ? { tone: 'green' as const, text: `Gassed ✓${v.gassedAt ? ` ${vanTime(v.gassedAt)}` : ''}` }
+        : v.gassed === 'not_gassed' ? { tone: 'red' as const, text: `Not gassed${v.gassedNote ? `: ${v.gassedNote}` : ''}` }
+        : v.number ? { tone: 'plain' as const, text: 'Gassing not recorded' } : null,
+      remarks: v.remarks,
+      history: numberLines.map((c) => ({ text: c.text, at: c.at, note: c.note })),
+      allChanges: other.map((c) => ({ text: c.assignment ? `${c.text} (first entry)` : c.text, at: c.at, note: c.note })),
+    };
+  });
+  return {
+    exists: s.vans.length > 0,
+    header: `${t.assigned} of ${t.total} vans assigned`,
+    counts: `Out ${t.out} · Back ${t.back} · Not out yet ${t.notOut}`,
+    lashers: `Lasher vans ${t.lashers}`,
+    gassing: `Gassed ${t.gassed} · Not gassed ${t.notGassed} · Not recorded ${t.notRecorded} (of ${t.assigned})`,
+    alert: gassingAlert(s.vans, s.vesselRemaining),
+    backToMark: backNotMarked(s.vans).map((v) => ({ id: v.id, label: `Van ${v.number}` })),
+    rows: [...rows.filter((r) => !r.removed), ...rows.filter((r) => r.removed)],
+  };
 }

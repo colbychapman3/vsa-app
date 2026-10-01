@@ -10,6 +10,7 @@ import { planView, photoTypesPresent } from '../view.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
 import { color, useType } from '../theme.ts';
+import { Vans } from './Vans.tsx';
 import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Backup = {
@@ -109,6 +110,8 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Go ghost label="Add a note" onPress={() => setNoteSheet({ id: null })} />
         <Note>Edits and removals keep the earlier text in the log.</Note>
       </Card>
+
+      <Vans state={state} baseline={baseline} isTest={isTest} save={save} onNotice={onNotice} />
 
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Labor" />
