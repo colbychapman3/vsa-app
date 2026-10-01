@@ -48,12 +48,15 @@ export function FlipTile({ front, back, style, cardStyle, label }: { front: Reac
   const turn = useRef(new Animated.Value(0)).current;
   const reduce = useRef(false);
   useEffect(() => { AccessibilityInfo.isReduceMotionEnabled().then((r) => { reduce.current = r; }).catch(() => {}); }, []);
+  const turning = useRef(false); // a second tap during a flip is ignored, so a fast double tap cannot flip twice and cancel itself
   const flip = () => {
     if (reduce.current) return setShowBack((b) => !b);
+    if (turning.current) return;
+    turning.current = true;
     Animated.timing(turn, { toValue: 1, duration: 140, useNativeDriver: true }).start(() => {
       setShowBack((b) => !b);
       turn.setValue(-1);
-      Animated.timing(turn, { toValue: 0, duration: 140, useNativeDriver: true }).start();
+      Animated.timing(turn, { toValue: 0, duration: 140, useNativeDriver: true }).start(() => { turning.current = false; });
     });
   };
   const rotate = turn.interpolate({ inputRange: [-1, 0, 1], outputRange: ['-90deg', '0deg', '90deg'] });
