@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 6a and 6b approved 2026-09-30. 6c (AI runtime, VIN scan, photo setup) built 2026-10-01, preview build 60d32945 awaiting phone check. 6d (assistant) next.
+**Current status:** Phase 6a and 6b approved 2026-09-30. 6c (AI runtime, VIN scan, photo setup) built 2026-10-01, preview build 91ee4874 awaiting phone check. 6d (assistant) next.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
