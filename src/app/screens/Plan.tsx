@@ -23,14 +23,13 @@ export type Reports = {
   onEvidenceReport: (kind: EvidenceReportKind) => Promise<void>;
   onNote: (section: string, text: string) => Promise<void>;
 };
-type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
+export type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
 export function Plan({ state, baseline, isTest, save, backup, reports, onNotice }: { state: State; baseline: Baseline; isTest: boolean; save: Save; backup: Backup; reports: Reports; onNotice: (n: { ok: boolean; text: string }) => void }) {
   const f = useType();
   const [recheck, setRecheck] = useState<Set<string>>(new Set());
   const [shiftOpen, setShiftOpen] = useState(false);
   const [driversOpen, setDriversOpen] = useState(false);
-  const [startOpen, setStartOpen] = useState<number | null>(null); // operation day whose start time is being set
   const [importOpen, setImportOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [noteSheet, setNoteSheet] = useState<{ id: string | null } | null>(null); // id null = add a note
@@ -112,19 +111,6 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
-        <SectionHead title="Baseline & data status" />
-        {kv('Starting autos', `${v.baseline.start} · ${v.baseline.brands}`)}
-        {kv('High & Heavy', `${v.baseline.hh} · separate ledger`)}
-        <View style={s.chips}>
-          <Chip text={v.baseline.verified ? '✓ Totals verified' : 'Not verified'} tone={v.baseline.verified ? 'plain' : 'orange'} />
-          <Chip text={v.baseline.discrepancies} />
-          <Chip text={v.baseline.missing} tone={v.baseline.missing === 'Nothing missing' ? 'plain' : 'orange'} />
-        </View>
-        {v.baseline.checks.map((c) => <Note key={c}>• {c}</Note>)}
-        {v.baseline.sources !== 'Sources: ' && <Note>{v.baseline.sources}</Note>}
-      </Card>
-
-      <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Labor" />
         {kv('Start', v.labor.start)}
         {kv('Auto drivers (ordered)', v.labor.autoDrivers)}
@@ -136,18 +122,6 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
-        <SectionHead title="Day’s start time" />
-        {v.dayStarts.map((d) => (
-          <Pressable key={d.day} onPress={() => setStartOpen(d.day)} style={({ pressed }) => [s.logRow, pressed && { opacity: 0.6 }]}
-            accessibilityRole="button" accessibilityLabel={`${d.label}: ${d.value}. Change`}>
-            {kv(d.label, d.value)}
-            <Text style={[s.edit, { fontFamily: f.bodySemi }]}>{d.actual ? 'Change ›' : 'Started late? ›'}</Text>
-          </Pressable>
-        ))}
-        <Note>Operations start on the hour. If something delays the start, enter when work actually started. Hours before it count only the minutes worked.</Note>
-      </Card>
-
-      <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Forecast settings" />
         {kv('Breaks', v.forecast.breaks)}
         {kv('Day 1 shift ends', v.forecast.dayEnd)}
@@ -155,34 +129,6 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Note>Set a shift end when the ship carries over to a second day. The ETA then resumes the next morning.</Note>
         <Go ghost label="Change shift settings" onPress={() => setShiftOpen(true)} />
       </Card>
-
-      <Card style={[u.pad, { gap: 12 }]}>
-        <SectionHead title="Side split" right="Calculated from destinations" />
-        {v.side.northPct == null ? <Note>{v.side.unknown}</Note> : (
-          <View style={s.split}>
-            {v.side.northPct > 0 && <View style={{ flex: v.side.northPct, backgroundColor: color.blue }} />}
-            {v.side.northPct < 100 && <View style={{ flex: 100 - v.side.northPct, backgroundColor: color.ink }} />}
-          </View>
-        )}
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          {([['Northside', v.side.north, v.side.northAutos], ['Southside', v.side.south, v.side.southAutos]] as const).map(([l, pc, n]) => (
-            <View key={l} style={{ flex: 1, gap: 2 }}><Label>{l}</Label><Big size={40}>{pc}</Big><Note>{n}</Note></View>
-          ))}
-        </View>
-      </Card>
-
-      <View style={{ gap: 10 }}>
-        <SectionHead title={v.destinations.title} />
-        <Card>
-          {v.destinations.rows.map((d, i) => (
-            <View key={d.name} style={[s.row, i > 0 && s.rowLine]}>
-              <View style={u.secH}><Body semi style={{ fontSize: 16, flexShrink: 1 }}>{d.name}</Body><Big size={26}>{d.autos}</Big></View>
-              <Note>{d.note}</Note>
-            </View>
-          ))}
-        </Card>
-        <Note>{v.destinations.footnote}</Note>
-      </View>
 
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Break log" />
@@ -227,7 +173,6 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
       {noteSheet && <PlanNoteSheet isTest={isTest} state={state} baseline={baseline} noteId={noteSheet.id} save={save} onClose={(done) => { setNoteSheet(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {notesOpen && <NotesSheet isTest={isTest} reports={reports} onClose={() => setNotesOpen(false)} />}
       {importOpen && <ImportSheet isTest={isTest} backup={backup} onClose={(done) => { setImportOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
-      {startOpen != null && <StartSheet isTest={isTest} state={state} baseline={baseline} day={startOpen} save={save} onClose={(done) => { setStartOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {driversOpen && <DriversSheet isTest={isTest} state={state} baseline={baseline} save={save} onClose={(done) => { setDriversOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
       {breakOpen && <BreakSheet isTest={isTest} state={state} baseline={baseline} entry={breakOpen.entry} save={save} onClose={(done) => { setBreakOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
       {shiftOpen && <ShiftSheet isTest={isTest} state={state} baseline={baseline} save={save} onClose={(done) => { setShiftOpen(false); if (done) onNotice({ ok: true, text: done }); }} />}
@@ -236,6 +181,60 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
 }
 
 // Shift settings sheet: "Finish today" or "Carries to Day 2" with Day 1 end and next start.
+// Vessel facts shown on the Snapshot tab (moved from Plan 2026-10-01): baseline status, the day's start time, destinations.
+// Same view-model values as before; the start-time sheet opens from here (one sheet at a time).
+export function VesselCards({ state, baseline, isTest, save, onNotice }: { state: State; baseline: Baseline; isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void }) {
+  const f = useType();
+  const [startOpen, setStartOpen] = useState<number | null>(null); // operation day whose start time is being set
+  const v = planView(state, baseline);
+  const kv = (k: string, val: string) => (
+    <View key={k} style={u.kv}><Body style={{ color: color.muted, maxWidth: '45%' }}>{k}</Body><Body semi style={{ textAlign: 'right', flex: 1 }}>{val}</Body></View>
+  );
+  return (
+    <View style={{ gap: 16 }}>
+        <Card style={[u.pad, { gap: 10 }]}>
+          <SectionHead title="Baseline status" />
+          {kv('Starting autos', `${v.baseline.start} · ${v.baseline.brands}`)}
+          {kv('High & Heavy', `${v.baseline.hh} · separate ledger`)}
+          <View style={s.chips}>
+            <Chip text={v.baseline.verified ? '✓ Totals verified' : 'Not verified'} tone={v.baseline.verified ? 'plain' : 'orange'} />
+            <Chip text={v.baseline.discrepancies} />
+            <Chip text={v.baseline.missing} tone={v.baseline.missing === 'Nothing missing' ? 'plain' : 'orange'} />
+          </View>
+          {v.baseline.checks.map((c) => <Note key={c}>• {c}</Note>)}
+          {v.baseline.sources !== 'Sources: ' && <Note>{v.baseline.sources}</Note>}
+        </Card>
+
+        <Card style={[u.pad, { gap: 10 }]}>
+          <SectionHead title="Day’s start time" />
+          {v.dayStarts.map((d) => (
+            <Pressable key={d.day} onPress={() => setStartOpen(d.day)} style={({ pressed }) => [s.logRow, pressed && { opacity: 0.6 }]}
+              accessibilityRole="button" accessibilityLabel={`${d.label}: ${d.value}. Change`}>
+              {kv(d.label, d.value)}
+              <Text style={[s.edit, { fontFamily: f.bodySemi }]}>{d.actual ? 'Change ›' : 'Started late? ›'}</Text>
+            </Pressable>
+          ))}
+          <Note>Operations start on the hour. If something delays the start, enter when work actually started. Hours before it count only the minutes worked.</Note>
+        </Card>
+
+        <View style={{ gap: 10 }}>
+          <SectionHead title={v.destinations.title} />
+          <Card>
+            {v.destinations.rows.map((d, i) => (
+              <View key={d.name} style={[s.row, i > 0 && s.rowLine]}>
+                <View style={u.secH}><Body semi style={{ fontSize: 16, flexShrink: 1 }}>{d.name}</Body><Big size={26}>{d.autos}</Big></View>
+                <Note>{d.note}</Note>
+              </View>
+            ))}
+          </Card>
+          <Note>{v.destinations.footnote}</Note>
+        </View>
+
+      {startOpen != null && <StartSheet isTest={isTest} state={state} baseline={baseline} day={startOpen} save={save} onClose={(done) => { setStartOpen(null); if (done) onNotice({ ok: true, text: done }); }} />}
+    </View>
+  );
+}
+
 function ShiftSheet({ state, baseline, isTest, save, onClose }: { isTest: boolean; state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void }) {
   const [mode, setMode] = useState<'one' | 'two'>(state.plan.shiftEnd ? 'two' : 'one');
   const [end, setEnd] = useState(state.plan.shiftEnd ?? '');

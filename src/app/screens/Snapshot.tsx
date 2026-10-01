@@ -6,11 +6,13 @@ import type { State } from '../../storage/store.ts';
 import { snapshot, type Banner } from '../view.ts';
 import { color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
+import { VesselCards, type Save } from './Plan.tsx';
 import { Bar, BannerView, Big, Body, Card, Label, Note, SectionHead, Tag, u } from './ui.tsx';
 
-type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'plan') => void; onTrack: (b: Banner) => void };
+type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'plan') => void; onTrack: (b: Banner) => void;
+  isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void };
 
-export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack }: Props) {
+export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice }: Props) {
   const f = useType();
   const v = snapshot(state, baseline, nowMin);
   const h = v.hero;
@@ -144,6 +146,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack }: Props)
             </View>
           </Card>
         </View>
+        <VesselCards state={state} baseline={baseline} isTest={isTest} save={save} onNotice={onNotice} />
       </View>
     </View>
   );

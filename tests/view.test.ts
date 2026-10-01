@@ -214,7 +214,6 @@ test('screen 08: Plan (tracker demo)', () => {
   assert.equal(v.baseline.sources, 'Sources: Game plan 9/21/2026; Labor order 9/21/26; Stow plan (SSI blocks, deck heights)');
   assert.deepEqual(v.labor, { start: '08:00', autoDrivers: '70 · 35 + 35', vanDrivers: '10', heavyGang: '0' });
   assert.deepEqual(v.forecast, { breaks: '12:00 and 18:00 · 1 hour each', dayEnd: 'Works until finished', nextStart: '08:00' });
-  assert.deepEqual([v.side.north, v.side.northAutos, v.side.south, v.side.southAutos], ['100.0%', '1,969 autos', '0.0%', '0 autos']);
   assert.deepEqual(v.destinations.rows, [{ name: 'Zone 3 · Northside', autos: '1,969', note: 'Hyundai + Kia · 1.00 mi · ref ~8 min (Berth 2) · clear-by −15 min' }]);
   assert.equal(v.destinations.title, 'Destinations from Berth 2');
   assert.deepEqual(v.breakLog, [{ label: 'Break', value: '12:00–13:00' }]);
@@ -232,7 +231,6 @@ test('review 6: missing destination autos or miles show as unknown, never 0 or N
   assert.equal(side.unknown, 'Auto counts missing for MBZ; side split unknown.');
   assert.deepEqual([side.north.pct, side.south.pct], ['—', '—']);
   const p = planView(s, b);
-  assert.equal(p.side.north, '—');
   assert.equal(p.destinations.rows[1].autos, '—');
   assert.equal(p.destinations.rows[1].note, 'Kia · — mi · no reference time · clear-by −30 min');
   assert.equal(p.baseline.hh, '—'); // no H&H on the baseline = unknown, not 0

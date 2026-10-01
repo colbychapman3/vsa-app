@@ -404,7 +404,6 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
   const v = (b.verification ?? {}) as { status?: string; discrepancies?: string[]; missing?: string[]; checks?: string[] };
   const hh = b.hh as { qty: number }[] | undefined; // undefined = not on the baseline = unknown
   const labor = (b.labor ?? {}) as { autoDrivers?: number; gangs?: number[]; vanDrivers?: number; heavyGang?: number };
-  const sides = sideSplit(s, b);
   return {
     heights,
     issues: {
@@ -436,10 +435,6 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
       breaks: `${b.breaks.map((x) => formatHM(parseHM(x)!)).join(' and ')} · 1 hour each`,
       dayEnd: s.plan.shiftEnd ?? 'Works until finished',
       nextStart: s.plan.nextStart ?? b.start,
-    },
-    side: {
-      unknown: sides.unknown, northPct: sides.northPct,
-      north: sides.north.pct, northAutos: `${fmt(sides.north.autos)} autos`, south: sides.south.pct, southAutos: `${fmt(sides.south.autos)} autos`,
     },
     destinations: {
       title: `Destinations from Berth ${String(b.berth)}`,

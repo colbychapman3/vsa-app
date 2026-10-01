@@ -272,7 +272,7 @@ export default function App() {
               <ScrollView key={tab} contentContainerStyle={s.scroll}>{/* new tab starts at the top */}
                 {tab === 'snap' && bk.unsaved > 0 && <Text style={[s.note, { paddingHorizontal: 20, paddingTop: 12 }]}>{bk.unsaved} {bk.unsaved === 1 ? 'entry' : 'entries'} not backed up. Export from Plan, Backup.</Text>}
                 {tab === 'snap'
-                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} />
+                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice} />
                   : tab === 'decks'
                     ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
