@@ -20,16 +20,22 @@ export function buildReport(kind: ReportKind, s: State, b: Baseline, o: { isTest
   const interim = !complete(s);
   const phase = s.ops.shiftEnded ? `Shift ended${s.ops.shiftEnd ? ` at ${s.ops.shiftEnd}` : ''}` : s.ops.onBreak ? `On break${s.ops.breakStart ? ` since ${s.ops.breakStart}` : ''}` : 'Working (not at a break)';
   const title = kind === 'break' ? (s.ops.shiftEnded ? 'End-of-shift report' : 'Break report') : 'Vessel completion report';
+  const meta = reportMeta(title, s, b, o);
+  const sections = kind === 'break' ? breakSections(s, b, phase) : completionSections(s, b, phase, o.notes ?? {});
+  return { title, meta, interim, sections };
+}
+
+// The header every PDF carries: vessel, date, berth, TEST mark, generated time (phone time), INTERIM until complete.
+// The last line is the INTERIM/COMPLETE one (the HTML colors it).
+export function reportMeta(title: string, s: State, b: Baseline, o: { isTest: boolean; generatedAt: string }): string[] {
   const place = [b.port != null ? String(b.port) : '', b.berth != null ? `Berth ${String(b.berth)}` : ''].filter(Boolean).join(' ');
-  const meta = [
+  return [
     `${b.vessel} · ${b.date}${place ? ` · ${place}` : ''}`,
     o.isTest ? 'TEST DATA' : 'LIVE',
     title,
     `Generated ${o.generatedAt} (phone time)`,
-    interim ? 'INTERIM: the vessel is not complete' : 'COMPLETE',
+    complete(s) ? 'COMPLETE' : 'INTERIM: the vessel is not complete',
   ];
-  const sections = kind === 'break' ? breakSections(s, b, phase) : completionSections(s, b, phase, o.notes ?? {});
-  return { title, meta, interim, sections };
 }
 
 // ---------- shared pieces ----------
@@ -200,7 +206,14 @@ function completionSections(s: State, b: Baseline, phase: string, notes: Record<
 
 // ---------- HTML ----------
 
-const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+export const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+export const REPORT_CSS = `
+body{font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:12px;color:#111;margin:24px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
+p{margin:3px 0}.meta{font-weight:600}.interim{color:#b45309}.note{color:#555;font-style:italic}
+table{border-collapse:collapse;width:100%;margin-top:6px}th,td{border:1px solid #bbb;padding:3px 6px;text-align:left;vertical-align:top}th{background:#eee}
+`;
 
 export function reportHtml(r: Report): string {
   const table = (t: NonNullable<Section['table']>) =>
@@ -208,10 +221,5 @@ export function reportHtml(r: Report): string {
   const section = (x: Section) =>
     `<h2>${esc(x.title)}</h2>${(x.lines ?? []).map((l) => `<p>${esc(l)}</p>`).join('')}${x.table ? table(x.table) : ''}${x.note ? `<p class="note">${esc(x.note)}</p>` : ''}`;
   const meta = r.meta.map((m, i) => `<p class="meta${r.interim && i === r.meta.length - 1 ? ' interim' : ''}">${esc(m)}</p>`).join('');
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
-body{font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:12px;color:#111;margin:24px}
-h1{font-size:20px;margin:0 0 4px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
-p{margin:3px 0}.meta{font-weight:600}.interim{color:#b45309}.note{color:#555;font-style:italic}
-table{border-collapse:collapse;width:100%;margin-top:6px}th,td{border:1px solid #bbb;padding:3px 6px;text-align:left;vertical-align:top}th{background:#eee}
-</style></head><body><h1>${esc(r.title)}</h1>${meta}${r.sections.map(section).join('')}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${REPORT_CSS}</style></head><body><h1>${esc(r.title)}</h1>${meta}${r.sections.map(section).join('')}</body></html>`;
 }

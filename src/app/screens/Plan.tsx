@@ -6,7 +6,8 @@ import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type 
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { NOTE_SECTIONS } from '../report.ts';
-import { planView } from '../view.ts';
+import { planView, photoTypesPresent } from '../view.ts';
+import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { color, useType } from '../theme.ts';
 import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
@@ -18,6 +19,7 @@ export type Backup = {
 export type Reports = {
   notes: Record<string, string>;
   onReport: (kind: 'break' | 'completion') => Promise<void>;
+  onEvidenceReport: (kind: EvidenceReportKind) => Promise<void>;
   onNote: (section: string, text: string) => Promise<void>;
 };
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
@@ -32,7 +34,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
   const [notesOpen, setNotesOpen] = useState(false);
   const [noteSheet, setNoteSheet] = useState<{ id: string | null } | null>(null); // id null = add a note
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
-  const [making, setMaking] = useState<'break' | 'completion' | null>(null); // which report is being made
+  const [making, setMaking] = useState<'break' | 'completion' | EvidenceReportKind | null>(null); // which report is being made
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
 
@@ -203,6 +205,11 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Go label={making === 'break' ? 'Preparing report…' : 'Break / shift-end report'} disabled={making === 'break'} onPress={async () => { if (busy || making) return; setBusy(true); setMaking('break'); try { await reports.onReport('break'); } finally { setBusy(false); setMaking(null); } }} />
         <Go label={making === 'completion' ? 'Preparing report…' : 'Vessel completion report'} disabled={making === 'completion'} onPress={async () => { if (busy || making) return; setBusy(true); setMaking('completion'); try { await reports.onReport('completion'); } finally { setBusy(false); setMaking(null); } }} />
         <Go ghost label="Completion report notes" onPress={() => setNotesOpen(true)} />
+        {/* Photo reports exist only for photo types that have photos. */}
+        {photoTypesPresent(state).map((t) => {
+          const r = EVIDENCE_REPORTS[t];
+          return <Go key={r.kind} label={making === r.kind ? 'Preparing report…' : r.title} disabled={making === r.kind} onPress={async () => { if (busy || making) return; setBusy(true); setMaking(r.kind); try { await reports.onEvidenceReport(r.kind); } finally { setBusy(false); setMaking(null); } }} />;
+        })}
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>

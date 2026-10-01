@@ -40,17 +40,22 @@ function photoLines(s: State, list: Photo[], withTime: boolean): string[] {
 export const photoTypesPresent = (s: State) => TYPES_ORDER.filter((t) => livePhotos(s).some((x) => x.type === t));
 const TYPES_ORDER = Object.keys(TYPE_LABEL) as (keyof typeof TYPE_LABEL)[];
 
+// The logged hour a time falls in (the hour before a break ends at the break), or undefined.
+export function periodAt(s: State, at: { day: number; hm: string }) {
+  const t = toAbs(at)!;
+  return s.periods.find((q) => {
+    const a = (q.day - 1) * 1440 + parseHM(q.start)!, z = (q.day - 1) * 1440 + (preBreak(q.start, s.breaks) ?? parseHM(q.start)! + 60);
+    return t >= a && t < z;
+  });
+}
+
 // Notes for the Hourly tab: a photo inside a logged hour goes on that hour's row. No time = "time not provided".
 // A time outside every logged hour (a break, an hour not logged yet) is listed on its own, never forced into an hour.
 export function photoHourNotes(s: State) {
   const perHour = new Map<string, Photo[]>(), noTime: Photo[] = [], outside: Photo[] = [];
   for (const x of livePhotos(s)) {
     if (!x.at) { noTime.push(x); continue; }
-    const t = toAbs(x.at)!;
-    const p = s.periods.find((q) => {
-      const a = (q.day - 1) * 1440 + parseHM(q.start)!, z = (q.day - 1) * 1440 + (preBreak(q.start, s.breaks) ?? parseHM(q.start)! + 60);
-      return t >= a && t < z;
-    });
+    const p = periodAt(s, x.at);
     if (!p) { outside.push(x); continue; }
     const k = `${p.day}|${p.start}`;
     perHour.set(k, [...(perHour.get(k) ?? []), x]);

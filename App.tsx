@@ -14,6 +14,8 @@ import { exportLog, importLog, markExported, backupStatus } from './src/storage/
 import { openStore, type State, type Store } from './src/storage/store.ts';
 import { getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, type VesselRow } from './src/storage/vessels.ts';
 import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
+import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceReportKind } from './src/app/evidenceReport.ts';
+import { reducedPhotoData } from './src/app/evidencePhotos.ts';
 import type { Built } from './src/app/setup.ts';
 import { offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, type Banner } from './src/app/view.ts';
@@ -183,6 +185,21 @@ export default function App() {
   const reports: Reports = {
     notes,
     onNote: async (section, text) => { await setNote(dbRef.current!, vessel!.id, section, text); setNotes(await getNotes(dbRef.current!, vessel!.id)); },
+    // Photo reports embed a reduced copy of each photo (PDF only); the stored originals stay full size.
+    onEvidenceReport: async (kind: EvidenceReportKind) => {
+      try {
+        const at = recordedNow();
+        const rep = buildEvidenceReport(kind, vessel!.state, vessel!.baseline, { isTest: vessel!.isTest, generatedAt: `${at.slice(0, 10)} ${at.slice(11, 16)}` });
+        const data = new Map<string, string | null>();
+        for (const p of reportPhotos(rep)) data.set(p, await reducedPhotoData(p));
+        const { uri } = await Print.printToFileAsync({ html: evidenceReportHtml(rep, (p) => data.get(p) ?? null) });
+        if (!(await Sharing.isAvailableAsync())) return setNotice({ ok: false, text: 'Sharing is not available on this device. The report was not sent.' });
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: `${vessel!.baseline.vessel} ${rep.title}` });
+        setNotice({ ok: true, text: `${rep.title} ready${rep.interim ? ' (INTERIM)' : ''}.` });
+      } catch (e) {
+        setNotice({ ok: false, text: `Report not created: ${(e as Error).message}` });
+      }
+    },
     onReport: async (kind: ReportKind) => {
       try {
         const at = recordedNow();
