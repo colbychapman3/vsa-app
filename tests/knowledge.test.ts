@@ -95,7 +95,7 @@ test('nonsense and off-topic queries say not found, never a guess', () => {
     assert.deepEqual([r.hits.length, r.message], [0, NOT_FOUND], q);
   }
   assert.equal(NOT_FOUND, 'Not found in the loaded documents.');
-  assert.deepEqual(search(index, '   '), { hits: [], tokens: [], message: null }); // nothing typed: no message
+  assert.deepEqual(search(index, '   '), { hits: [], related: [], tokens: [], message: null }); // nothing typed: no message
   assert.equal(search(index, 'the of and').message, NOT_FOUND); // only filler words
 });
 
@@ -131,4 +131,16 @@ test('highlight and snippet use whole words only and keep the passage text', () 
 
 test('the pack holds no credentials', () => {
   assert.doesNotMatch(index.chunks.map((c) => c.text).join('\n'), /password|passwd|api[_ -]?key|secret|bearer |sk-[A-Za-z0-9]{10}/i);
+});
+
+test('EV and parking words: EV/BEV/electric find the BEV passage; near-misses are labeled related, never hits', () => {
+  const cites = (q: string) => search(index, q).hits.map((h) => h.chunk.cite);
+  for (const q of ['EV', 'EVs safety', 'electric vehicle', 'BEV temperature']) assert.ok(cites(q).some((c) => c.includes('Battery Electric Vehicle (BEV) Safety')), q);
+  // The pack says nothing about where EVs park: no hit may claim to answer that; only a labeled related list.
+  const r = search(index, 'hybrid charging station location');
+  assert.deepEqual(r.hits, []);
+  assert.equal(r.message, NOT_FOUND);
+  const none = search(index, 'zebra unicorn xylophone');
+  assert.deepEqual([none.hits, none.related], [[], []]);
+  assert.ok(search(index, 'where can EV cars be parked').tokens.includes('bev'), 'matched spellings are highlighted');
 });

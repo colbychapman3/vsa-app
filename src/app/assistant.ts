@@ -153,7 +153,8 @@ export function answer(i: Intent, s: State, b: Baseline, nowMin: number, index: 
     case 'missing': return { title: 'Not on this vessel', where: null, tags: [], lines: [i.what] };
     case 'knowledge': {
       const r = search(index, i.q, 3);
-      return { title: 'From the documents', where: null, tags: [], lines: r.hits.length ? [] : [NOT_FOUND], passages: r.hits.map((h) => ({ cite: h.chunk.cite, text: h.chunk.text, flag: h.chunk.flag })) };
+      const shown = r.hits.length ? r.hits : r.related; // no real match: the closest passages, clearly not an answer
+      return { title: 'From the documents', where: null, tags: [], lines: r.hits.length ? [] : [NOT_FOUND, ...(r.related.length ? ['Closest passages, not an answer:'] : [])], passages: shown.map((h) => ({ cite: h.chunk.cite, text: h.chunk.text, flag: h.chunk.flag })) };
     }
   }
 }

@@ -45,7 +45,8 @@ export function Search({ isTest, onClose }: { isTest: boolean; onClose: () => vo
             autoCorrect={false} autoCapitalize="none" returnKeyType="search" clearButtonMode="while-editing"
             style={[u.input, { fontFamily: f.bodyMedium, fontSize: 18 }]} />
           {r.message ? <Card style={[u.pad, { gap: 4 }]}><Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{r.message}</Text><Note>Try other words. The app only answers from the documents in the pack and never guesses.</Note></Card> : null}
-          {r.hits.map((h) => (
+          {!r.hits.length && r.related.length > 0 && <Note>Closest passages, not an answer. Check them yourself:</Note>}
+          {(r.hits.length ? r.hits : r.related).map((h) => (
             <Pressable key={h.chunk.id} onPress={() => setOpen(h.chunk)} style={({ pressed }) => [pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`${h.chunk.cite}. Open the passage`}>
               <Card style={[u.pad, { gap: 6, minHeight: TAP }]}>
                 <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{h.chunk.cite}</Text>
