@@ -7,7 +7,7 @@ import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
 import { color, HA_COLOR, PACE_COLOR, useType } from '../theme.ts';
-import { Bar, Big, Body, Card, Chip, FlipTile, Label, Note, SectionHead, Seg, u } from './ui.tsx';
+import { Bar, Big, Body, Card, Chip, FlipTile, InfoNote, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
   const f = useType();
@@ -56,7 +56,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
           </View>
         ))}
         {v.unsplitNote && <Note>{v.unsplitNote}</Note>}
-        <Note>Cleared = starting minus remaining on vessel for that brand. Unknown until every deck holding that brand has a count.</Note>
+        <InfoNote><Note>Cleared = starting minus remaining on vessel for that brand. Unknown until every deck holding that brand has a count.</Note></InfoNote>
       </Card>
 
       {v.rows.length === 0

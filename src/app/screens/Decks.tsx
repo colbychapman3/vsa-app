@@ -4,7 +4,7 @@ import type { State } from '../../storage/store.ts';
 import { decksView } from '../view.ts';
 import { color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
-import { Body, Card, Chip, Note, Pill, SectionHead, u } from './ui.tsx';
+import { Body, Card, Chip, InfoNote, Note, Pill, SectionHead, u } from './ui.tsx';
 
 export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenDeck: (id: string) => void; onOpenPlan: () => void }) {
   const f = useType();
@@ -50,7 +50,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
           </Pressable>
         ))}
       </Card>
-      <Note>Heights come from the stow plan until confirmed on the Plan tab. Red rows are low decks.</Note>
+      <InfoNote><Note>Heights come from the stow plan until confirmed on the Plan tab. Red rows are low decks.</Note></InfoNote>
     </View>
   );
 }
