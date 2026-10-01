@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 6a, 6b and 6c approved (6c phone-checked 2026-10-01, build 83cc0968). 6d (assistant) approved 2026-10-01; built, tests/typecheck/iOS export pass, new EAS dev build + phone check pending.
+**Current status:** Phase 6 (6a-6d) approved. 6d phone-checked 2026-10-01 (build dd533217). Next: Phase 7, TestFlight / App Store.
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
@@ -49,7 +49,7 @@ Capability map and decisions: `docs/specs/phase-6-capability-map.md` (approved 2
 - **6a:** Map screen (`phase-6-terminal-map.md`), Plan Notes (`phase-6-plan-notes.md`), offline knowledge search from the Brain (`phase-6-knowledge.md`). Built and approved 2026-09-30.
 - **6b:** Photo evidence from Log (damage, poor stowage, accident, pre-stow; VIN required only for accidents) and its three conditional reports. Built and approved 2026-09-30.
 - **6c:** On-device AI runtime, VIN camera scan, photo-prefilled new vessel and notes (`phase-6-ai-runtime.md`, `phase-6-scan.md`, `phase-6-setup-import.md`). Built and approved 2026-10-01.
-- **6d:** Floating assistant head: questions answered from the engine and the knowledge pack, then confirmed actions and 25-minute Plan reminders.
+- **6d:** Floating Ask button (questions answered from the engine and the knowledge pack, never a guess), three confirmed actions, 25-minute Plan reminders, and Ask my AI (hand a question plus the whole document pack to the user's own AI app by share sheet; no API, no cost). Built and approved 2026-10-01.
 **Done when:** each stage passes its phone check; the app still works fully with AI off.
 
 ## Phase 7: TestFlight / App Store
