@@ -17,7 +17,7 @@ import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
 import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceReportKind } from './src/app/evidenceReport.ts';
 import { reducedPhotoData } from './src/app/evidencePhotos.ts';
 import type { Built } from './src/app/setup.ts';
-import { offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
+import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, type Banner } from './src/app/view.ts';
 import { color, fontFiles, fonts, FontContext } from './src/app/theme.ts';
 import { Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
@@ -224,11 +224,29 @@ export default function App() {
     try { await openVessel(id); setSheet(null); setTab('snap'); setNotice(null); }
     catch (e) { setNotice({ ok: false, text: `Could not open the vessel: ${(e as Error).message}` }); setSheet(null); }
   };
-  const create = async (b: Extract<Built, { ok: true }>, isTest: boolean): Promise<{ ok: true } | Reject> => {
+  // Paperwork lines Colby ticked at Review become Plan notes (source photo-read), written before the vessel opens.
+  // If a note fails, the vessel is still created and the message says how many notes did not save.
+  const create = async (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[]): Promise<{ ok: true } | Reject> => {
     const c = await store.current!.createVessel({ operationId: b.operationId, baseline: b.baseline, isTest });
     if (!c.ok) return c;
+    let failed: string | null = null;
+    let saved = 0;
+    try {
+      const opDate = operationDate(b.baseline)!;
+      let state = (await store.current!.load(b.operationId) as { state: State }).state;
+      for (const text of notes) {
+        const evs = addNoteEvents({ operationId: b.operationId, opDate, offset: offsetFor(new Date(`${opDate}T12:00:00`)), recordedAt: recordedNow(), state }, { text, source: 'photo-read' });
+        if (!Array.isArray(evs)) { failed = evs.error; break; }
+        const r = await store.current!.append(b.operationId, evs);
+        if (!r.ok) { failed = r.error; break; }
+        state = r.state; saved++;
+      }
+    } catch (e) { failed = (e as Error).message; }
     await switchTo(b.operationId);
-    setNotice({ ok: true, text: `${b.baseline.vessel} created (${isTest ? 'TEST' : 'LIVE'}).` });
+    const made = `${b.baseline.vessel} created (${isTest ? 'TEST' : 'LIVE'})`;
+    setNotice(failed
+      ? { ok: false, text: `${made}, but ${notes.length - saved} of ${notes.length} notes did not save: ${failed} Add them in Plan.` }
+      : { ok: true, text: `${made}${saved ? `, ${saved} note${saved === 1 ? '' : 's'} added to Plan` : ''}.` });
     return { ok: true };
   };
 

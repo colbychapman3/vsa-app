@@ -8,6 +8,7 @@ import * as E from '../entries.ts';
 import { NOTE_SECTIONS } from '../report.ts';
 import { planView, photoTypesPresent } from '../view.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
+import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
 import { color, useType } from '../theme.ts';
 import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
@@ -220,6 +221,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />
         <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
         <Note>Photos are not in the export. They stay in the app on this phone ({state.evidence.filter((x) => !x.removed).length} saved for this vessel); the export keeps each photo’s record only.</Note>
+        <Note>{AI_STATUS_TEXT[aiStatus()]}</Note>
       </Card>
 
       {noteSheet && <PlanNoteSheet isTest={isTest} state={state} baseline={baseline} noteId={noteSheet.id} save={save} onClose={(done) => { setNoteSheet(null); if (done) onNotice({ ok: true, text: done }); }} />}
@@ -363,8 +365,21 @@ function PlanNoteSheet({ state, baseline, isTest, noteId, save, onClose }: { isT
   const [reason, setReason] = useState<string | null>(null);
   const [other, setOther] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fromPhoto, setFromPhoto] = useState(false); // text read from a photo: saved as source photo-read once Colby has checked it
+  const [reading, setReading] = useState(false);
   const why = () => (reason === 'Other' ? other.trim() : reason);
   const now = () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) setTime(t.hm); else setError('The phone’s date is before this operation’s Day 1.'); };
+  const read = async (src: 'camera' | 'library') => {
+    setError(null); setReading(true);
+    try {
+      const r = await readPhotos(src);
+      if (!r) return;
+      const t = r.pages.join('\n\n').trim();
+      if (!t) return setError('No text found in that photo. Try a sharper photo, or type the note.');
+      setText(text.trim() ? `${text.trim()}\n\n${t}` : t); setFromPhoto(true);
+    } catch (e) { setError(`Could not read the photo: ${(e as Error).message}`); }
+    finally { setReading(false); }
+  };
   const run = async (build: (c: E.Ctx) => VsaEvent[] | Reject, done: string) => {
     setError(null);
     const r = await save(build);
@@ -373,7 +388,7 @@ function PlanNoteSheet({ state, baseline, isTest, noteId, save, onClose }: { isT
   const submit = () => {
     if (!note) {
       if (time.trim() !== '' && parseHM(time.trim()) == null) return setError('Times are HH:MM, for example 09:15.');
-      return run((c) => E.addNoteEvents(c, { title, text, time: time.trim() === '' ? null : { day: c.state.ops.day, hm: time.trim().padStart(5, '0') } }), 'Note added.');
+      return run((c) => E.addNoteEvents(c, { title, text, source: fromPhoto ? 'photo-read' : 'typed', time: time.trim() === '' ? null : { day: c.state.ops.day, hm: time.trim().padStart(5, '0') } }), 'Note added.');
     }
     return run((c) => E.editNoteEvents(c, note.id, { title, text }, why()), 'Note changed. The old text is kept in the log.');
   };
@@ -385,6 +400,14 @@ function PlanNoteSheet({ state, baseline, isTest, noteId, save, onClose }: { isT
         <TextInput value={text} onChangeText={setText} multiline accessibilityLabel="Note text" placeholder="Type the note" placeholderTextColor={color.muted}
           style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 140, paddingTop: 12, textAlignVertical: 'top' }]} />
       </View>
+      {!note && ocrAvailable() && (
+        <View style={{ gap: 10 }}>
+          <Go ghost label="Read text from a photo" disabled={reading} onPress={() => read('library')} />
+          <Go ghost label="Read text: take a picture" disabled={reading} onPress={() => read('camera')} />
+          {reading && <Note>Reading the photo…</Note>}
+          {fromPhoto && <Note>Text read from a photo: check and fix it before adding. The photo is not kept.</Note>}
+        </View>
+      )}
       {!note && <TimeField label="Time (optional)" value={time} onChange={setTime} onNow={now} />}
       {note && <Reasons options={E.NOTE_REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />}
       {error && <ErrorBox text={error} />}

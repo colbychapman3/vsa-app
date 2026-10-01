@@ -14,7 +14,7 @@ const n = (x: number | null) => (x == null ? 'unknown' : x.toLocaleString('en-US
 export function Vessels({ rows, currentId, isTest, onOpen, onArchive, onCreate, onClose }: {
   rows: VesselRow[]; currentId: string; isTest: boolean;
   onOpen: (id: string) => void; onArchive: (id: string, archived: boolean) => void; onClose: () => void;
-  onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean) => Promise<{ ok: true } | Reject>;
+  onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[]) => Promise<{ ok: true } | Reject>;
 }) {
   const [mode, setMode] = useState<'list' | 'new'>('list');
   const [newTest, setNewTest] = useState(false);

@@ -9,6 +9,8 @@ import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { deckPhotos } from '../view.ts';
 import { dropUnsavedPhoto, keepPhoto, photoExists, photoUri } from '../evidenceFiles.ts';
+import { aiStatus, ocrAvailable, readPhotos, tidyNote } from '../ai.ts';
+import { vinCandidates, type VinCandidate } from '../../engine/scan.ts';
 import { color, useType } from '../theme.ts';
 import { Body, ErrorBox, Go, Label, Note, Seg, TimeField, u } from './ui.tsx';
 
@@ -33,6 +35,9 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
   const [vins, setVins] = useState<string[]>(item?.vins ?? []);
   const [vinText, setVinText] = useState('');
   const [notes, setNotes] = useState(item?.notes ?? '');
+  const [found, setFound] = useState<VinCandidate[] | null>(null); // VIN scan results; Colby taps the right one(s)
+  const [tidy, setTidy] = useState<string | null>(null); // AI rewording shown beside the original; only used if Colby picks it
+  const [aiNote, setAiNote] = useState<string | null>(null);
   const [why, setWhy] = useState<string | null>(null);
   const [whyOther, setWhyOther] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +69,27 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
     setVins([...vins, r.vin]); setVinText('');
   };
   const now = () => { const t = E.nowOpTime(operationDate(baseline)!, new Date()); if (t) setTime(t.hm); else setError('The phone’s date is before this operation’s Day 1.'); };
+
+  const scanVin = async () => {
+    setError(null); setFound(null); setBusy(true);
+    try {
+      const r = await readPhotos('camera');
+      if (r) setFound(vinCandidates(r.pages.join('\n')));
+    } catch (e) { setError(`Could not read the VIN: ${(e as Error).message}`); }
+    finally { setBusy(false); }
+  };
+  const pickVin = (vin: string) => {
+    if (vins.includes(vin)) return setError(`VIN ${vin} is listed twice on this photo.`);
+    setError(null); setVins([...vins, vin]); setFound(null);
+  };
+  const askTidy = async () => {
+    setAiNote(null); setTidy(null); setBusy(true);
+    try {
+      const t = await tidyNote(notes);
+      if (t && t.value !== notes.trim()) setTidy(t.value);
+      else setAiNote('No better wording was suggested. Your note is unchanged.');
+    } finally { setBusy(false); }
+  };
 
   const form = (photo: string | null): E.EvidenceForm => ({ type, deck, hatch, reason: reasonText, vins, notes, time: parseHM(time.trim()) == null ? null : { day, hm: time.trim().padStart(5, '0') }, photo });
 
@@ -153,13 +179,35 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
         <View style={{ flex: 1 }}><Input label="VIN (17 characters)" value={vinText} onChange={setVinText} maxLength={17} caps /></View>
         <Pressable onPress={addVin} style={[u.ghostBtn, { paddingHorizontal: 18 }]} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>Add VIN</Text></Pressable>
       </View>
-      <Note>Typed exactly as on the car. A VIN is never corrected for you; a check digit that does not pass only warns.</Note>
+      {ocrAvailable() && <Go ghost label="Scan a VIN with the camera" disabled={busy} onPress={scanVin} />}
+      {found && (found.length === 0 ? <Note>No VIN found. Type it or scan again.</Note> : (
+        <View style={{ gap: 8 }}>
+          <Note>Tap the VIN that matches the car. Check every character.</Note>
+          {found.map((c) => 'unreadable' in c ? (
+            <View key={c.vin} style={s.vin}><View style={{ flex: 1, flexShrink: 1 }}><Body semi>{c.vin}</Body><Note style={{ color: color.oInk }}>Unreadable: {c.unreadable} Type it instead.</Note></View></View>
+          ) : (
+            <Pressable key={c.vin} onPress={() => pickVin(c.vin)} accessibilityRole="button" accessibilityLabel={`Use VIN ${c.vin}`} style={({ pressed }) => [s.vin, u.ghostBtn, { paddingHorizontal: 12 }, pressed && u.pressed]}>
+              <View style={{ flex: 1, flexShrink: 1 }}><Body semi>{c.vin}</Body>{c.warning && <Note style={{ color: color.oInk }}>Does not pass the check digit; confirm it.</Note>}</View>
+            </Pressable>
+          ))}
+        </View>
+      ))}
+      <Note>Typed or scanned exactly as on the car. A VIN is never corrected for you; a check digit that does not pass only warns.</Note>
 
       <View style={{ gap: 6 }}>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>Notes (optional)</Text>
         <TextInput value={notes} onChangeText={setNotes} multiline accessibilityLabel="Notes" placeholder="Type what you saw" placeholderTextColor={color.muted}
           style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 110, paddingTop: 12, textAlignVertical: 'top' }]} />
       </View>
+      {notes.trim() !== '' && aiStatus() === 'ready' && <Go ghost label="Tidy wording (AI)" disabled={busy} onPress={askTidy} />}
+      {aiNote && <Note>{aiNote}</Note>}
+      {tidy && (
+        <View style={{ gap: 8 }}>
+          <Label wrap>SUGGESTED WORDING · CHECK IT</Label>
+          <Body>{tidy}</Body>
+          <Seg options={[{ value: 'mine', label: 'Keep mine' }, { value: 'tidy', label: 'Use this' }]} columns={2} value={null} onChange={(x) => { if (x === 'tidy') setNotes(tidy); setTidy(null); }} />
+        </View>
+      )}
 
       {item && (
         <>

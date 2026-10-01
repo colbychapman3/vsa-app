@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Reject } from '../../engine/index.ts';
 import { TERMINAL, terminalInfo } from '../../engine/terminal.ts';
-import { buildBaseline, deckFromDraft, emptyDeck, groupAllocations, importBaseline, type Allocation, type Built, type DeckDraft, type SetupForm } from '../setup.ts';
+import { buildBaseline, deckFromDraft, emptyDeck, groupAllocations, importBaseline, mergeProposal, noteLines, type Allocation, type Built, type DeckDraft, type SetupForm } from '../setup.ts';
+import { aiStatus, proposeSetup, readPhotos } from '../ai.ts';
 import { color, TAP, useType } from '../theme.ts';
 import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, u } from './ui.tsx';
 
@@ -16,7 +17,7 @@ const BERTHS = [{ value: '1', label: 'Berth 1' }, { value: '2', label: 'Berth 2'
 // Content only: it lives inside the Vessels sheet, so there is never a second modal (iOS freezes on stacked modals).
 export function Setup({ isTest, setIsTest, onKey, onCreate }: {
   isTest: boolean; setIsTest: (t: boolean) => void; onKey: (k: string) => void;
-  onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean) => Promise<{ ok: true } | Reject>;
+  onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[]) => Promise<{ ok: true } | Reject>;
 }) {
   const f = useType();
   const [step, setStep] = useState(0);
@@ -31,6 +32,12 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [openDrop, setOpenDrop] = useState<number | null>(null);
+  // Photo import: the recognized text, which fields were prefilled (tag clears when the step is confirmed with Next),
+  // messages about values that were not used, and the paperwork lines Colby ticked to keep as Plan notes.
+  const [photo, setPhoto] = useState<{ text: string; pages: number; filled: string[]; msgs: string[] } | null>(null);
+  const [confirmed, setConfirmed] = useState<number[]>([]);
+  const [showText, setShowText] = useState(false);
+  const [keep, setKeep] = useState<string[]>([]);
 
   useEffect(() => { setAck(false); setOpenDrop(null); onKey(`${step}${imported ? 'i' : ''}${pasteOpen}`); }, [step, imported, pasteOpen]);
 
@@ -43,7 +50,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
     const form: SetupForm = {
       vessel: v.vessel, date: v.date, port: v.port, berth: v.berth, isTest, start: v.start,
       drivers: v.drivers.trim() === '' ? null : Number(v.drivers),
-      sources: [], destinations: g.destinations, decks: ds,
+      sources: photo ? [`Photo import (${photo.pages} page${photo.pages === 1 ? '' : 's'})`] : [], destinations: g.destinations, decks: ds,
     };
     const built = buildBaseline(form);
     return errs.length ? { ok: false, errors: [...errs, ...(built.ok ? [] : built.errors)] } : built;
@@ -55,14 +62,50 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
     if (built.discrepancies.length > 0 && !ack) return setError('Choose “I have seen this” under the discrepancy above, then Save.');
     setBusy(true); setError(null);
     try {
-      const r = await onCreate(built, isTest);
+      const r = await onCreate(built, isTest, imported ? [] : keep);
       if (!r.ok) setError(r.error);
     } catch (e) {
       setError(`Could not save the vessel: ${(e as Error).message}`);
     } finally { setBusy(false); }
   };
   const back = () => { setError(null); if (imported) { setImported(null); setStep(0); } else setStep(step - 1); };
-  const go = (n: number) => { setError(null); setStep(n); };
+  const go = (n: number) => { setError(null); if (n > step && !confirmed.includes(step)) setConfirmed([...confirmed, step]); setStep(n); };
+
+  // Paperwork photos → text → (AI on) a checked proposal merged into the empty fields. AI off: text only.
+  const fromPhotos = async (src: 'camera' | 'library') => {
+    setError(null); setBusy(true);
+    try {
+      const r = await readPhotos(src);
+      if (!r) return;
+      const text = r.pages.join('\n\n').trim();
+      if (!text) return setError('No text found in those photos. Try a sharper photo, or type the values.');
+      const msgs: string[] = [];
+      let filled: string[] = [];
+      if (aiStatus() === 'ready') {
+        const p = await proposeSetup(text);
+        if (!p) msgs.push('The on-device AI could not read values from this text. Copy them from the text below.');
+        else {
+          const m = mergeProposal({ v: { vessel: v.vessel, date: v.date, port: v.port, berth: v.berth }, allocs, decks }, p.value);
+          setV({ ...v, ...m.drafts.v }); setAllocs(m.drafts.allocs); setDecks(m.drafts.decks);
+          filled = m.filled;
+          msgs.push(...m.unplaced, ...p.dropped.map((d) => `Not used: ${d}`));
+          if (!filled.length) msgs.push('Nothing could be filled from this text. Copy values from the text below.');
+        }
+      } else msgs.push('On-device AI is not available, so nothing is prefilled. The text is shown on every step to copy from.');
+      setPhoto({ text, pages: r.pages.length, filled, msgs }); setConfirmed([]); setKeep([]);
+    } catch (e) {
+      setError(`Could not read the photos: ${(e as Error).message}`);
+    } finally { setBusy(false); }
+  };
+  const STEP_FIELDS: Record<number, string[]> = { 0: ['vessel', 'date', 'port', 'berth'], 2: ['destinations'], 3: ['decks'] };
+  const tagged = photo && !confirmed.includes(step) ? (STEP_FIELDS[step] ?? []).filter((k) => photo.filled.includes(k)) : [];
+  const photoAids = photo && !imported && step < 4 && (
+    <View style={{ gap: 8 }}>
+      {tagged.length > 0 && <Chip tone="orange" text={`From photo: check ${tagged.join(', ')}`} />}
+      <Go ghost label={showText ? 'Hide paperwork text' : 'Show paperwork text'} onPress={() => setShowText(!showText)} />
+      {showText && <Card style={[u.pad]}><Body>{photo.text}</Body></Card>}
+    </View>
+  );
 
   const setAlloc = (i: number, a: Partial<Allocation>) => setAllocs(allocs.map((x, j) => (j === i ? { ...x, ...a } : x)));
   const setDeck = (i: number, d: DeckDraft) => setDecks(decks.map((x, j) => (j === i ? d : x)));
@@ -75,8 +118,11 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
     <>
       <Note>{imported ? 'Imported baseline: check every value, then save.' : step === 4 ? 'Step 5 of 5: Review. Check everything, then save.' : `Step ${step + 1} of 5: ${STEPS[step]}. Nothing is saved until Review.`}</Note>
 
+      {photoAids}
+
       {step === 0 && !pasteOpen && (
         <View style={{ gap: 12 }}>
+          {photo?.msgs.map((m) => <Note key={m}>{m}</Note>)}
           <Field label="Vessel name" value={v.vessel} onChange={set('vessel')} keyboard="default" />
           <Field label="Operation date" note="M/D/YYYY" value={v.date} onChange={set('date')} keyboard="numbers-and-punctuation" />
           <Field label="Port" value={v.port} onChange={set('port')} keyboard="default" />
@@ -86,6 +132,9 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
           <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
           <Note>TEST data never mixes with a live vessel. Reference vessels (Glovis Condor 101) can only be TEST.</Note>
           <Go label="Next" onPress={() => { if (!v.vessel.trim()) setError('The vessel needs a name.'); else if (!v.berth) setError('Choose the berth.'); else go(1); }} />
+          <Go ghost label="Read paperwork: choose photos" disabled={busy} onPress={() => fromPhotos('library')} />
+          <Go ghost label="Read paperwork: take a picture" disabled={busy} onPress={() => fromPhotos('camera')} />
+          {busy && <Note>Reading the paperwork…</Note>}
           <Go ghost label="Import a baseline instead" onPress={() => { setError(null); setPasteOpen(true); }} />
         </View>
       )}
@@ -225,6 +274,22 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
               {built.discrepancies.map((w) => <ErrorBox key={w} text={`Discrepancy: ${w} It stays visible on the vessel; nothing is adjusted.`} />)}
               {built.discrepancies.length > 0 && (
                 <Seg options={[{ value: 'no', label: 'Not yet' }, { value: 'yes', label: 'I have seen this' }]} columns={2} value={ack ? 'yes' : 'no'} onChange={(x) => setAck(x === 'yes')} />
+              )}
+              {photo && !imported && noteLines(photo.text).length > 0 && (
+                <Card style={[u.pad, { gap: 8 }]}>
+                  <SectionHead title="Notes for Plan" />
+                  <Note>Tick the paperwork lines to keep as Plan notes. You can edit them in Plan later.</Note>
+                  {noteLines(photo.text).map((line) => {
+                    const on = keep.includes(line);
+                    return (
+                      <Pressable key={line} onPress={() => setKeep(on ? keep.filter((x) => x !== line) : [...keep, line])} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
+                        style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: color.row }, pressed && { opacity: 0.6 }]}>
+                        <Text style={{ fontFamily: f.bodySemi, fontSize: 22, color: color.ink }}>{on ? '☑' : '☐'}</Text>
+                        <Body style={{ flexShrink: 1 }}>{line}</Body>
+                      </Pressable>
+                    );
+                  })}
+                </Card>
               )}
               {error && <ErrorBox text={error} />}
               <Go label="Save vessel" disabled={busy} onPress={save} />

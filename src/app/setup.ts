@@ -1,7 +1,8 @@
 // New-vessel setup (protocol §11.1) and baseline import. Pure: turns typed answers or a pasted
 // baseline JSON into a Baseline, and refuses anything the engine would refuse, with exact messages.
 // Nothing is adjusted to make totals balance; mismatches come back as discrepancies to acknowledge.
-import { terminalInfo } from '../engine/terminal.ts';
+import { TERMINAL, terminalInfo } from '../engine/terminal.ts';
+import type { SetupProposal } from '../engine/proposal.ts';
 import { CLEAR_BY_MIN, destination, operationDate, parseHM, validateBaseline, type Baseline, type Deck, type Destination } from '../engine/index.ts';
 
 export const BREAKS = ['12:00', '18:00']; // fixed, always 1 hour
@@ -181,4 +182,59 @@ export function groupAllocations(lines: Allocation[]): { destinations: SetupForm
     by.set(l.destination, g);
   });
   return { destinations: [...by.values()], errors };
+}
+
+// ---------- Photo import (Phase 6c) ----------
+// A checked proposal (src/engine/proposal.ts) → the Setup screen's typed fields. Fills only what is empty and
+// names every field it filled so Setup can tag it "from photo: check". Destinations resolve through the
+// protocol aliases ("MB Field" alone = MBZ); a name the terminal doesn't know is left for Colby to choose.
+export type Drafts = { v: { vessel: string; date: string; port: string; berth: string }; allocs: Allocation[]; decks: DeckDraft[] };
+
+export function mergeProposal(d: Drafts, p: SetupProposal): { drafts: Drafts; filled: string[]; unplaced: string[] } {
+  const filled: string[] = [];
+  const unplaced: string[] = [];
+  const v = { ...d.v };
+  for (const k of ['vessel', 'date', 'port', 'berth'] as const) {
+    if (p[k] && !v[k].trim()) {
+      if (k === 'berth' && !['1', '2', '3'].includes(p[k]!.replace(/\D/g, ''))) { unplaced.push(`Berth "${p[k]}" is not Berth 1, 2 or 3.`); continue; }
+      v[k] = k === 'berth' ? p[k]!.replace(/\D/g, '') : p[k]!;
+      filled.push(k);
+    }
+  }
+  const emptyAllocs = d.allocs.every((a) => !a.brand.trim() && !a.autos.trim() && !a.destination);
+  let allocs = d.allocs;
+  if (emptyAllocs && p.destinations?.length) {
+    allocs = p.destinations.map((x) => {
+      const hit = destination(x.name);
+      const known = hit && TERMINAL.some((t) => t.name === hit.name) ? hit.name : '';
+      if (!known) unplaced.push(`Destination "${x.name}" is not in the terminal list: choose it.`);
+      return { brand: x.brand ?? '', autos: x.autos == null ? '' : String(x.autos), destination: known };
+    });
+    filled.push('destinations');
+  }
+  let decks = d.decks;
+  if (!d.decks.length && p.decks?.length) {
+    decks = p.decks.map((x) => {
+      const base = emptyDeck();
+      const itemsOf = (h: string) => x.hatches.filter((y) => y.h === h).flatMap((y) => y.items).map((i) => ({ brand: i.brand, qty: String(i.qty) }));
+      const named = [...new Set(x.hatches.map((y) => y.h).filter((h) => !base.hatches.some((b) => b.h === h)))]; // Ramp etc., after H1
+      return { ...base, label: x.label, hatches: [...base.hatches.map((h) => (itemsOf(h.h).length ? { h: h.h, items: itemsOf(h.h) } : h)), ...named.map((h) => ({ h, items: itemsOf(h) }))] };
+    });
+    filled.push('decks');
+  }
+  return { drafts: { v, allocs, decks }, filled, unplaced };
+}
+
+// Paperwork lines offered as Plan notes at Review: sentences (4+ words, at most a third of them with digits), not cargo rows.
+// Nothing is ticked for Colby; at most 30 are offered, in the order they appear.
+export function noteLines(text: string): string[] {
+  const out: string[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/\s+/g, ' ').trim();
+    const words = line.split(' ');
+    const numeric = words.filter((w) => /\d/.test(w)).length;
+    if (words.length >= 4 && numeric * 3 <= words.length && !out.includes(line)) out.push(line);
+    if (out.length === 30) break;
+  }
+  return out;
 }
