@@ -64,6 +64,22 @@ export function FlipTile({ front, back, style, cardStyle, label }: { front: Reac
   );
 }
 
+// The wording behind a tap: a short "About this" row that shows or hides its notes. Keeps main screens short; nothing that
+// warns or blocks goes in here, only explanations.
+export function InfoNote({ children, label = 'About this' }: { children: ReactNode; label?: string }) {
+  const f = useType();
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ gap: 6 }}>
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={open ? 'Hide details' : label}
+        style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{open ? 'Hide details ▴' : `${label} ▾`}</Text>
+      </Pressable>
+      {open && children}
+    </View>
+  );
+}
+
 export function Bar({ pct, small }: { pct: number; small?: boolean }) {
   return (
     <View style={[u.bar, small && u.barSm]}>
@@ -110,7 +126,7 @@ export function BannerView({ banner, onTrack, onGo }: { banner: Banner; onTrack?
     <View style={[u.alert, { backgroundColor: t.bg, borderBottomColor: t.border }]} accessibilityRole="alert">
       {banner.go && onGo ? (
         <Pressable onPress={() => onGo(banner.go!)} accessibilityRole="button" accessibilityLabel={`${banner.title}. ${banner.sub}. Open ${banner.go === 'decks' ? 'Decks' : 'Hourly'} to fix it`}
-          style={({ pressed }) => [{ minHeight: TAP - 8, justifyContent: 'center', gap: 2 }, pressed && u.pressed]}>
+          style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', gap: 2 }, pressed && u.pressed]}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: t.ink }}>{banner.title}</Text>
           <Text style={{ fontFamily: f.body, fontSize: 14, color: t.ink }}>{banner.sub}</Text>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: t.ink, textDecorationLine: 'underline' }}>Open {banner.go === 'decks' ? 'Decks' : 'Hourly'} to fix ›</Text>

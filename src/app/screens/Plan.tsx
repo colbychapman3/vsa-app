@@ -9,9 +9,9 @@ import { NOTE_SECTIONS } from '../report.ts';
 import { planView, photoHourNotes, photoTypesPresent } from '../view.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { color, useType } from '../theme.ts';
 import { Vans } from './Vans.tsx';
-import { Big, Body, Card, Chip, ErrorBox, Field, Go, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
+import { Big, Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Backup = {
   lastAt: string | null; unsaved: number;
@@ -33,7 +33,6 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
   const [driversOpen, setDriversOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
-  const [backupInfo, setBackupInfo] = useState(false); // the Backup wording shows only when the card's info line is tapped
   const [noteSheet, setNoteSheet] = useState<{ id: string | null } | null>(null); // id null = add a note
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
   const [making, setMaking] = useState<'break' | 'completion' | EvidenceReportKind | null>(null); // which report is being made
@@ -99,7 +98,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
 
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Notes" right={v.notes.current.length ? `${v.notes.current.length}` : undefined} />
-        {v.notes.current.length === 0 && <Note>No ship notes yet. Notes never change any count or forecast.</Note>}
+        {v.notes.current.length === 0 && <Note>No ship notes yet.</Note>}
         {v.notes.current.map((n) => (
           <Pressable key={n.id} onPress={() => setNoteSheet({ id: n.id })} style={({ pressed }) => [s.logRow, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${n.title ?? 'Note'}. Edit or remove`}>
             {n.title ? <Body semi>{n.title}</Body> : null}
@@ -110,7 +109,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         ))}
         {v.notes.removed.map((n) => <Note key={n.id}>Removed: {n.text} ({n.meta})</Note>)}
         <Go ghost label="Add a note" onPress={() => setNoteSheet({ id: null })} />
-        <Note>Edits and removals keep the earlier text in the log.</Note>
+        <InfoNote><Note>Notes never change any count, ledger or forecast. Edits and removals keep the earlier text in the log.</Note></InfoNote>
       </Card>
 
       <Vans state={state} baseline={baseline} isTest={isTest} save={save} onNotice={onNotice} />
@@ -122,7 +121,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
           {ph.noTime.map((p) => <Body key={p}>{p}</Body>)}
           {ph.outside.length > 0 && <Label wrap>OUTSIDE THE LOGGED HOURS (BREAK OR NOT LOGGED YET)</Label>}
           {ph.outside.map((p) => <Body key={p}>{p}</Body>)}
-          <Note>Photos are records only. They never change a count or a rate.</Note>
+          <InfoNote><Note>Photos are records only. They never change a count or a rate.</Note></InfoNote>
         </Card>
       )}
 
@@ -142,7 +141,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         {kv('Breaks', v.forecast.breaks)}
         {kv('Day 1 shift ends', v.forecast.dayEnd)}
         {kv('Next day starts', v.forecast.nextStart)}
-        <Note>Set a shift end when the ship carries over to a second day. The ETA then resumes the next morning.</Note>
+        <InfoNote><Note>Set a shift end when the ship carries over to a second day. The ETA then resumes the next morning.</Note></InfoNote>
         <Go ghost label="Change shift settings" onPress={() => setShiftOpen(true)} />
       </Card>
 
@@ -159,7 +158,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
               </Pressable>;
         })}
         <Go ghost label="Add a missed break" onPress={() => setBreakOpen({ entry: null })} />
-        <Note>Changes keep the old times in the log.</Note>
+        <InfoNote><Note>Changes keep the old times in the log.</Note></InfoNote>
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
@@ -181,16 +180,11 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         {backup.unsaved > 0 && <Note>{backup.unsaved} {backup.unsaved === 1 ? 'entry' : 'entries'} not backed up.</Note>}
         <Go label="Export vessel log" disabled={busy} onPress={async () => { setBusy(true); try { await backup.onExport(); } finally { setBusy(false); } }} />
         <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />
-        <Pressable onPress={() => setBackupInfo(!backupInfo)} accessibilityRole="button" accessibilityState={{ expanded: backupInfo }} style={({ pressed }) => [{ minHeight: TAP - 8, justifyContent: 'center' }, pressed && { opacity: 0.6 }]}>
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{backupInfo ? 'Hide details ▴' : 'About backups ▾'}</Text>
-        </Pressable>
-        {backupInfo && (
-          <>
-            <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
-            <Note>Photos are not in the export. They stay in the app on this phone ({state.evidence.filter((x) => !x.removed).length} saved for this vessel); the export keeps each photo’s record only.</Note>
-            <Note>{AI_STATUS_TEXT[aiStatus()]}</Note>
-          </>
-        )}
+        <InfoNote label="About backups">
+          <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
+          <Note>Photos are not in the export. They stay in the app on this phone ({state.evidence.filter((x) => !x.removed).length} saved for this vessel); the export keeps each photo’s record only.</Note>
+          <Note>{AI_STATUS_TEXT[aiStatus()]}</Note>
+        </InfoNote>
       </Card>
 
       {noteSheet && <PlanNoteSheet isTest={isTest} state={state} baseline={baseline} noteId={noteSheet.id} save={save} onClose={(done) => { setNoteSheet(null); if (done) onNotice({ ok: true, text: done }); }} />}
@@ -237,7 +231,7 @@ export function VesselCards({ state, baseline, isTest, save, onNotice }: { state
               <Text style={[s.edit, { fontFamily: f.bodySemi }]}>{d.actual ? 'Change ›' : 'Started late? ›'}</Text>
             </Pressable>
           ))}
-          <Note>Operations start on the hour. If something delays the start, enter when work actually started. Hours before it count only the minutes worked.</Note>
+          <InfoNote><Note>Operations start on the hour. If something delays the start, enter when work actually started. Hours before it count only the minutes worked.</Note></InfoNote>
         </Card>
 
         <View style={{ gap: 10 }}>

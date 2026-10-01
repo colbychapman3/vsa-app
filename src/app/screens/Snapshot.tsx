@@ -114,7 +114,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
               <Label>HOW THIS IS WORKED OUT</Label>
               {v.ha.notes.map((n) => <Body key={n}>{n}</Body>)}
               <Note>H.A. counts every logged hour as a full hour. Pace counts only the minutes worked, so the short hour before a break is not held against it. They match when no hour was cut short. The forecast uses Pace.</Note>
-              <Pressable onPress={() => onOpenTab('hourly')} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP - 8, justifyContent: 'center' }, pressed && u.pressed]}>
+              <Pressable onPress={() => onOpenTab('hourly')} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
                 <Text style={[s.link, { fontFamily: f.bodySemi }]}>Hourly breakdown ›</Text>
               </Pressable>
               <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap the box to flip back</Text>
