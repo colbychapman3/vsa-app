@@ -3,9 +3,10 @@
 // What each metric means for the ledgers is decided by project() in index.ts.
 import type { Reject } from './time.ts';
 import type { EvidenceData } from './evidence.ts';
+import type { VanData } from './vans.ts';
 
 export type Workstream = 'auto_discharge' | 'hh_discharge' | 'static_discharge' | 'auto_loadback' | 'hh_loadback' | 'lashing' | 'operation';
-export type EventType = 'initialize' | 'observation' | 'correction' | 'status_change' | 'pause' | 'resume' | 'discrepancy_opened' | 'discrepancy_resolved' | 'forecast_created' | 'note.added' | 'note.corrected' | 'note.removed' | 'evidence.added' | 'evidence.corrected' | 'evidence.removed';
+export type EventType = 'initialize' | 'observation' | 'correction' | 'status_change' | 'pause' | 'resume' | 'discrepancy_opened' | 'discrepancy_resolved' | 'forecast_created' | 'note.added' | 'note.corrected' | 'note.removed' | 'evidence.added' | 'evidence.corrected' | 'evidence.removed' | 'van.added' | 'van.corrected' | 'van.removed';
 export type CountKind = 'interval' | 'cumulative' | 'remaining' | 'not_applicable';
 export type Scope = { workstream: Workstream; deck: string | null; hatch: string | null; commodity: string | null; destination: string | null };
 
@@ -37,6 +38,7 @@ export type VsaEvent = {
     source?: 'typed' | 'photo-read'; // plan_note only: how the text got here
     photo?: string | null;      // plan_note only: kept photo file path (none while typed-only)
     evidence?: EvidenceData;    // evidence only (added / corrected): what the photo shows and where
+    van?: VanData;              // van only (added / corrected): the row's values after this event
   };
 };
 
@@ -49,9 +51,9 @@ export type EventLog = {
 export type Change = { target: string; from: VsaEvent['payload']['value']; to: VsaEvent['payload']['value']; net: number | null };
 
 const WORKSTREAMS = ['auto_discharge', 'hh_discharge', 'static_discharge', 'auto_loadback', 'hh_loadback', 'lashing', 'operation'];
-const EVENT_TYPES = ['initialize', 'observation', 'correction', 'status_change', 'pause', 'resume', 'discrepancy_opened', 'discrepancy_resolved', 'forecast_created', 'note.added', 'note.corrected', 'note.removed', 'evidence.added', 'evidence.corrected', 'evidence.removed'];
+const EVENT_TYPES = ['initialize', 'observation', 'correction', 'status_change', 'pause', 'resume', 'discrepancy_opened', 'discrepancy_resolved', 'forecast_created', 'note.added', 'note.corrected', 'note.removed', 'evidence.added', 'evidence.corrected', 'evidence.removed', 'van.added', 'van.corrected', 'van.removed'];
 // Event types that replace an earlier event (and must name it, with a reason).
-export const SUPERSEDING: readonly string[] = ['correction', 'note.corrected', 'note.removed', 'evidence.corrected', 'evidence.removed'];
+export const SUPERSEDING: readonly string[] = ['correction', 'note.corrected', 'note.removed', 'evidence.corrected', 'evidence.removed', 'van.corrected', 'van.removed'];
 const COUNT_KINDS = ['interval', 'cumulative', 'remaining', 'not_applicable'];
 const PROVENANCE = ['source_fact', 'user_report', 'calculated', 'forecast', 'unknown'];
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -138,7 +140,8 @@ export function appendEvent(log: EventLog, e: VsaEvent): { log: EventLog; change
     if (!sameScope(target.scope, e.scope) || tp.metric !== p.metric || tp.count_kind !== p.count_kind || tp.period_start !== p.period_start || tp.period_end !== p.period_end) {
       return reject(`Correction ${e.event_id} must keep the same scope, metric and period as ${target.event_id}. Changing those needs a reviewed remapping.`);
     }
-    if (!p.reason || !p.reason.trim()) return reject(`Correction ${e.event_id} needs a reason.`);
+    // A van's change note is Colby's to fill in or leave blank; every other correction needs a reason.
+    if ((!p.reason || !p.reason.trim()) && e.event_type !== 'van.corrected') return reject(`Correction ${e.event_id} needs a reason.`);
     supersededBy[target.event_id] = e.event_id;
     change = { target: target.event_id, from: tp.value, to: p.value, net: typeof tp.value === 'number' && typeof p.value === 'number' ? p.value - tp.value : null };
   }

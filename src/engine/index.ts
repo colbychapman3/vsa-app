@@ -4,6 +4,7 @@
 import { validateBaseline, type Baseline } from './baseline.ts';
 import { deckCalc, deckUpdate, heightInfo, type DeckState, type DeckStatus } from './decks.ts';
 import { checkEvidence, checkVin, evidencePath, type EvidenceData } from './evidence.ts';
+import { checkVan, diffVan, trimVan, vanStatus, type VanSlot } from './vans.ts';
 import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
 import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, type HourEntry } from './production.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
@@ -19,6 +20,7 @@ export * from './production.ts';
 export * from './ledger.ts';
 export * from './eta.ts';
 export * from './evidence.ts';
+export * from './vans.ts';
 
 // A ship-specific note (Plan tab). The current text, plus every earlier version.
 export type PlanNote = {
@@ -93,6 +95,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const clerks: { remaining: number; time: string; seq: number }[] = [];
   const noteList: PlanNote[] = [];
   const evidenceList: EvidenceItem[] = [];
+  const vanList: VanSlot[] = [];
   const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
   let recStart = 0; // sequence of the latest break/shift-end start
   const lastDeckEvent: Record<string, string> = {}; // for naming the event in whole-sheet errors
@@ -322,6 +325,30 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         });
         continue;
       }
+      case 'van': {
+        // The ship's shuttle van list: its own ledger. A van row never changes a count, ledger or forecast.
+        const T = e.event_type;
+        if (sc.workstream !== 'operation') return fail(`Event ${id}: a van row belongs to the operation, not to ${sc.workstream}.`, id);
+        if (T !== 'van.added' && T !== 'van.corrected' && T !== 'van.removed') return fail(`Event ${id}: a van row must be added, corrected or removed.`, id);
+        if (root.event_type !== 'van.added') return fail(`Event ${id}: a van row chain must start with van.added.`, id);
+        if (p.count_kind !== 'not_applicable') return fail(`Event ${id}: a van row must not be a count kind (count_kind not_applicable).`, id);
+        if (T === 'van.corrected' && byId.get(e.supersedes_event_id!)?.event_type === 'van.removed') return fail(`Event ${id}: that van row was removed. Add a new slot instead.`, id);
+        if (T === 'van.removed') {
+          if (p.value !== null || p.van) return fail(`Event ${id}: a van removal carries no van details.`, id);
+          if (!p.reason?.trim()) return fail(`Event ${id}: removing a van row needs a reason. It stays in the log, marked removed.`, id);
+        } else {
+          const bad = checkVan(p.van);
+          if (bad) return fail(`Event ${id}: ${bad}`, id);
+        }
+        const label = (x: VsaEvent) => { const o = at(x.occurred_at); return when(o && !('error' in o) ? o : null, x.recorded_at); };
+        const chain = historyOf(log, id), versions = chain.filter((x) => x.event_type !== 'van.removed'), d = trimVan(versions.at(-1)!.payload.van!);
+        vanList.push({
+          ...d, id: root.event_id, headId: id, slot: vanList.length + 1, status: vanStatus(d), createdAt: label(root),
+          removed: T === 'van.removed', removedReason: T === 'van.removed' ? p.reason : null, removedAt: T === 'van.removed' ? label(e) : null,
+          changes: versions.flatMap((x, i) => (i === 0 ? [] : diffVan(trimVan(versions[i - 1].payload.van!), trimVan(x.payload.van!), label(x), x.payload.reason?.trim() || null))),
+        });
+        continue;
+      }
       case 'discrepancy':
         if (e.event_type !== 'discrepancy_opened' && e.event_type !== 'discrepancy_resolved') return fail(`Event ${id}: discrepancy must be opened or resolved.`, id);
         if (e.event_type === 'discrepancy_opened' && !(p.reason ?? (typeof p.value === 'string' ? p.value : '')).trim()) return fail(`Event ${id}: a discrepancy needs a description.`, id);
@@ -337,6 +364,15 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       default:
         return fail(`Event ${id}: metric "${p.metric}" is not tracked by this engine.`, id);
     }
+  }
+
+  // A van number sits on one current row only (a swapped-out number is free again; the history keeps it).
+  const heldNumbers = new Map<string, VanSlot>();
+  for (const v of vanList) {
+    if (v.removed || v.number == null) continue;
+    const key = v.number.toLowerCase(), first = heldNumbers.get(key);
+    if (first) return fail(`Van ${v.number} is already on Van slot ${first.slot}. A van number can be on one row only; change one of them first.`, v.headId);
+    heldNumbers.set(key, v);
   }
 
   // Break log: an edited break must still end after it starts. Overlaps are checked when a
@@ -424,6 +460,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     issues: [...issues.values()],
     notes: noteList, // creation order; removed ones stay, flagged
     evidence: evidenceList, // creation order; removed ones stay, flagged
+    vans: vanList, // slot order; removed ones stay, flagged
     breakLog,
     // Per operation day: planned start and the actual start if one was recorded (null = the planned start applies).
     dayStarts: Object.fromEntries(Array.from({ length: Math.max(2, ops.day, ...dayActual.keys()) }, (_, i) => {

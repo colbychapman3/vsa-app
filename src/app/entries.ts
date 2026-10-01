@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, checkEvidence, needsReason, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, backNotMarked, BLANK_VAN, checkEvidence, checkVan, MAX_VANS, needsReason, numberHeldBy, trimVan, type VanData, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -53,7 +53,7 @@ function builder(ctx: Ctx) {
     workstream?: 'auto_discharge' | 'operation'; deck?: string | null; hatch?: string | null; commodity?: string | null;
     at?: OpTime | null; period?: [string, string] | null; reason?: string | null; supersedes?: string | null; inputs?: string[];
     provenance?: VsaEvent['provenance']; cause?: string | null;
-    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData }; // plan_note / evidence fields
+    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData; van?: VanData }; // plan_note / evidence / van fields
   }) => {
     const id = `${ctx.operationId}-${seq}`;
     out.push({
@@ -499,5 +499,75 @@ export function removeEvidenceEvents(ctx: Ctx, id: string, reason: string | null
   if (!reason?.trim()) return reject('Pick a reason for removing this photo. It stays in the log, marked removed.');
   const { add, out } = builder(ctx);
   add({ type: 'evidence.removed', metric: 'evidence', value: null, workstream: 'operation', supersedes: x.headId, reason: reason.trim() });
+  return out;
+}
+
+
+// ---------- Van list ----------
+
+const blank = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);
+
+// Plan › Vans: "How many vans?" creates that many empty slots in one save; raising the count later adds more at the end.
+export function addVanSlotsEvents(ctx: Ctx, count: number): VsaEvent[] | Reject {
+  if (!Number.isInteger(count) || count < 1) return reject(`Choose how many vans, 1 to ${MAX_VANS}.`);
+  const live = ctx.state.vans.filter((v) => !v.removed).length;
+  if (live + count > MAX_VANS) return reject(`The list holds up to ${MAX_VANS} vans. It has ${live}, so you can add ${MAX_VANS - live} more.`);
+  const { add, out } = builder(ctx);
+  for (let i = 0; i < count; i++) add({ type: 'van.added', metric: 'van', value: null, workstream: 'operation', extra: { van: { ...BLANK_VAN } } });
+  return out;
+}
+
+function currentVan(ctx: Ctx, id: string) {
+  const v = ctx.state.vans.find((x) => x.id === id);
+  if (!v) return reject('That van row is not on this vessel.');
+  if (v.removed) return reject('That van row was removed. Add a new slot instead.');
+  return v;
+}
+const dataOf = (v: VanData): VanData => ({ number: v.number, driver: v.driver, lasher: v.lasher, out: v.out, in: v.in, gas: v.gas, gassed: v.gassed, gassedAt: v.gassedAt, gassedNote: v.gassedNote, remarks: v.remarks });
+
+// A change to a van row supersedes the current version and keeps it in the history. The note is optional: Colby's own words on why.
+export function editVanEvents(ctx: Ctx, id: string, patch: Partial<VanData>, note: string | null): VsaEvent[] | Reject {
+  const v = currentVan(ctx, id);
+  if ('ok' in v) return v;
+  const cleaned = Object.fromEntries(Object.entries(patch).map(([k, x]) => [k, blank(x)])) as Partial<VanData>;
+  const next = trimVan({ ...dataOf(v), ...cleaned });
+  // Changing the status away from Gassed clears its time; a time typed with any other status is refused by checkVan.
+  if ('gassed' in cleaned && cleaned.gassed !== 'gassed' && !('gassedAt' in cleaned)) next.gassedAt = null;
+  const bad = checkVan(next);
+  if (bad) return reject(bad);
+  if (next.number) {
+    const held = numberHeldBy(ctx.state.vans, next.number, v.id);
+    if (held) return reject(`Van ${next.number} is already on Van slot ${held.slot}. A van number can be on one row only; change that row first.`);
+  }
+  const bt = [next.out, next.in, next.gassedAt].map((t) => (t ? badTimes(t) : null)).find(Boolean);
+  if (bt) return bt;
+  if (JSON.stringify(next) === JSON.stringify(dataOf(v))) return reject('Nothing to save: the van row is unchanged.');
+  const { add, out } = builder(ctx);
+  add({ type: 'van.corrected', metric: 'van', value: null, workstream: 'operation', supersedes: v.headId, reason: note?.trim() || null, extra: { van: next } });
+  return out;
+}
+
+// Removal is an entry, never a delete: the row stays in the log, marked removed, with the reason.
+export function removeVanEvents(ctx: Ctx, id: string, reason: string | null): VsaEvent[] | Reject {
+  const v = currentVan(ctx, id);
+  if ('ok' in v) return v;
+  if (!reason?.trim()) return reject('Say why this van row is removed. It stays in the log, marked removed.');
+  const { add, out } = builder(ctx);
+  add({ type: 'van.removed', metric: 'van', value: null, workstream: 'operation', supersedes: v.headId, reason: reason.trim() });
+  return out;
+}
+
+// The shortcut: mark these Back vans Gassed (optional time). Only vans that are Back and not yet marked either way qualify.
+export function markGassedEvents(ctx: Ctx, ids: string[], time: OpTime | null): VsaEvent[] | Reject {
+  const ok = new Set(backNotMarked(ctx.state.vans).map((v) => v.id));
+  const wrong = ids.find((i) => !ok.has(i));
+  if (wrong) return reject('Only vans that are checked in and not yet marked can be marked gassed this way.');
+  if (!ids.length) return reject('No vans to mark: none are checked in and unmarked.');
+  if (time) { const bt = badTimes(time); if (bt) return bt; }
+  const { add, out } = builder(ctx);
+  for (const id of ids) {
+    const v = ctx.state.vans.find((x) => x.id === id)!;
+    add({ type: 'van.corrected', metric: 'van', value: null, workstream: 'operation', supersedes: v.headId, extra: { van: { ...dataOf(v), gassed: 'gassed', gassedAt: time } } });
+  }
   return out;
 }
