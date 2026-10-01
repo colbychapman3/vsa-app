@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status:** Phase 6 (6a-6d) approved. 6d phone-checked 2026-10-01 (build dd533217). Next: Phase 7, TestFlight / App Store.
+**Current status:** Phase 6 (6a-6d) approved, plus the van list, Snapshot/Hourly/Plan wording changes and the polish pass, phone-checked 2026-10-01 (build 6f1bde1a). Next: Phase 7, TestFlight (spec written, waiting on Colby's App Store Connect Apple ID).
 
 ## Phase 0: Setup
 - Create the Expo project (TypeScript) in this folder; initialize git; push to a private GitHub repo.
