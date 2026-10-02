@@ -238,3 +238,30 @@ export function noteLines(text: string): string[] {
   }
   return out;
 }
+
+// Tap a paperwork line to use it for a Setup field (no AI needed). Only strips a leading label ("VESSEL:") or keeps the
+// date inside the line; nothing is guessed. Returns null when the line has nothing usable for that field.
+export function fieldFromLine(field: 'vessel' | 'port' | 'date', line: string): string | null {
+  const t = line.replace(/\s+/g, ' ').trim();
+  if (field === 'date') {
+    const m = t.match(/\b(\d{1,2})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{4}|\d{2})\b/);
+    return m ? `${Number(m[1])}/${Number(m[2])}/${m[3].length === 2 ? `20${m[3]}` : m[3]}` : null;
+  }
+  const label = field === 'vessel' ? /^(?:vessel|ship|m\/?v|mv)\b\s*[:\-]?\s*/i : /^port\b\s*[:\-]?\s*/i;
+  const v = t.replace(label, '').trim();
+  return v.length >= 2 && v.length <= 60 ? v : null;
+}
+
+// Header values that carry their own label on the same line ("VESSEL: Glovis Challenge", "DATE 9/21/2026", "BERTH 2"). The
+// label is what proves the meaning, so this needs no AI. Only the first such line per field; a berth must be 1, 2 or 3.
+export function labeledHeader(text: string): { vessel?: string; date?: string; port?: string; berth?: string } {
+  const out: { vessel?: string; date?: string; port?: string; berth?: string } = {};
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/\s+/g, ' ').trim();
+    if (!out.vessel && /^(?:vessel|ship|m\/?v)\b\s*[:\-]/i.test(line)) { const v = fieldFromLine('vessel', line); if (v) out.vessel = v; }
+    if (!out.port && /^port\b\s*[:\-]/i.test(line)) { const v = fieldFromLine('port', line); if (v) out.port = v; }
+    if (!out.date && /^(?:date|op(?:eration)? date)\b\s*[:\-]?/i.test(line)) { const v = fieldFromLine('date', line); if (v) out.date = v; }
+    if (!out.berth) { const m = line.match(/^berth\b\s*[:#-]?\s*([123])\b/i); if (m) out.berth = m[1]; }
+  }
+  return out;
+}

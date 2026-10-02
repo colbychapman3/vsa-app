@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Reject } from '../../engine/index.ts';
 import { TERMINAL, terminalInfo } from '../../engine/terminal.ts';
-import { buildBaseline, deckFromDraft, emptyDeck, groupAllocations, importBaseline, mergeProposal, noteLines, type Allocation, type Built, type DeckDraft, type SetupForm } from '../setup.ts';
+import { buildBaseline, deckFromDraft, emptyDeck, groupAllocations, importBaseline, fieldFromLine, labeledHeader, mergeProposal, noteLines, type Allocation, type Built, type DeckDraft, type SetupForm } from '../setup.ts';
 import { aiStatus, proposeSetup, readPhotos } from '../ai.ts';
 import { color, TAP, useType } from '../theme.ts';
 import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, u } from './ui.tsx';
@@ -37,6 +37,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
   const [photo, setPhoto] = useState<{ text: string; pages: number; filled: string[]; msgs: string[] } | null>(null);
   const [confirmed, setConfirmed] = useState<number[]>([]);
   const [showText, setShowText] = useState(false);
+  const [pickLine, setPickLine] = useState<string | null>(null); // a paperwork line waiting for "use as …"
   const [keep, setKeep] = useState<string[]>([]);
 
   useEffect(() => { setAck(false); setOpenDrop(null); onKey(`${step}${imported ? 'i' : ''}${pasteOpen}`); }, [step, imported, pasteOpen]);
@@ -91,7 +92,16 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
           msgs.push(...m.unplaced, ...p.dropped.map((d) => `Not used: ${d}`));
           if (!filled.length) msgs.push('Nothing could be filled from this text. Copy values from the text below.');
         }
-      } else msgs.push('On-device AI is not available, so nothing is prefilled. The text is shown on every step to copy from.');
+      } else msgs.push('On-device AI is not available, so only labeled lines (VESSEL:, DATE:, PORT:, BERTH) are filled. Tap lines in the paperwork text to use them.');
+      // Labeled header lines fill any field still empty (with or without AI); they are tagged "from photo: check" like the rest.
+      const lab = labeledHeader(text);
+      const cur = { vessel: v.vessel, date: v.date, port: v.port, berth: v.berth };
+      const add: Partial<typeof cur> = {};
+      for (const k of ['vessel', 'date', 'port', 'berth'] as const) {
+        const got = lab[k];
+        if (got && !cur[k].trim() && !(k in add)) { add[k] = got; if (!filled.includes(k)) filled = [...filled, k]; }
+      }
+      if (Object.keys(add).length) setV((p) => ({ ...p, ...Object.fromEntries(Object.entries(add).filter(([k]) => !p[k as keyof typeof p].trim())) }));
       setPhoto({ text, pages: r.pages.length, filled, msgs }); setConfirmed([]); setKeep([]);
     } catch (e) {
       setError(`Could not read the photos: ${(e as Error).message}`);
@@ -103,7 +113,38 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
     <View style={{ gap: 8 }}>
       {tagged.length > 0 && <Chip tone="orange" text={`From photo: check ${tagged.join(', ')}`} />}
       <Go ghost label={showText ? 'Hide paperwork text' : 'Show paperwork text'} onPress={() => setShowText(!showText)} />
-      {showText && <Card style={[u.pad]}><Body>{photo.text}</Body></Card>}
+      {showText && step === 0 && (
+        <Card style={[u.pad, { gap: 4 }]}>
+          <Note>Tap a line to use it as the vessel name, port or date. Nothing changes until you choose.</Note>
+          {photo.text.split('\n').map((l) => l.trim()).filter(Boolean).map((line, i) => (
+            <View key={`${i}${line}`}>
+              <Pressable onPress={() => setPickLine(pickLine === line ? null : line)} accessibilityRole="button" accessibilityLabel={`Paperwork line: ${line}. Use it for a field`}
+                style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: color.row }, pressed && u.pressed]}>
+                <Body style={pickLine === line ? { color: color.blue } : undefined}>{line}</Body>
+              </Pressable>
+              {pickLine === line && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 8 }}>
+                  {([['vessel', 'Vessel name'], ['port', 'Port'], ['date', 'Date']] as const).map(([k, label]) => {
+                    const val = fieldFromLine(k, line);
+                    return (
+                      <Pressable key={k} disabled={val == null} onPress={() => { if (val != null) { setV({ ...v, [k]: val }); setPickLine(null); } }} accessibilityRole="button" accessibilityLabel={`Use as ${label}`}
+                        style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: color.ink, backgroundColor: color.card, opacity: val == null ? 0.35 : 1 }, pressed && u.pressed]}>
+                        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          ))}
+        </Card>
+      )}
+      {showText && step !== 0 && (
+        <Card style={[u.pad, { gap: 6 }]}>
+          <Note>Press and hold a word, drag to select, then Copy. Paste into a field.</Note>
+          <Text selectable style={{ fontFamily: f.body, fontSize: 16, lineHeight: 23, color: color.ink }}>{photo.text}</Text>
+        </Card>
+      )}
     </View>
   );
 

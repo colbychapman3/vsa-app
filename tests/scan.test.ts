@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { vinCandidates } from '../src/engine/scan.ts';
 import { checkNoteTidy, checkSetupProposal, type SetupProposal } from '../src/engine/proposal.ts';
-import { buildBaseline, deckFromDraft, groupAllocations, mergeProposal, noteLines, type Drafts } from '../src/app/setup.ts';
+import { buildBaseline, deckFromDraft, fieldFromLine, groupAllocations, labeledHeader, mergeProposal, noteLines, type Drafts } from '../src/app/setup.ts';
 import { glovis } from './scenarios.ts';
 
 const VIN = '1M8GDM9AXKP042788';
@@ -112,4 +112,23 @@ test('Glovis Condor 101: a proposal read from its own paperwork round-trips to t
 test('note lines: sentences offered once, cargo rows and short labels skipped', () => {
   assert.deepEqual(noteLines('Upper H4 Kia 58 H3 Kia 106\nDo not stack  trucks on D6 ramp\nBERTH 2\nDo not stack trucks on D6 ramp\nGang starts at Zone 3 first'),
     ['Do not stack trucks on D6 ramp', 'Gang starts at Zone 3 first']);
+});
+
+test('tap a paperwork line: vessel and port lose their label, the date is found inside the line and written M/D/YYYY, nothing is guessed', () => {
+  assert.equal(fieldFromLine('vessel', 'VESSEL: Glovis Challenge'), 'Glovis Challenge');
+  assert.equal(fieldFromLine('vessel', 'Glovis Challenge'), 'Glovis Challenge');
+  assert.equal(fieldFromLine('port', 'PORT - Brunswick'), 'Brunswick');
+  assert.equal(fieldFromLine('date', 'DATE: 10-1-2026'), '10/1/2026');
+  assert.equal(fieldFromLine('date', '9/21/26'), '9/21/2026');
+  assert.equal(fieldFromLine('date', 'TICO SHUTTLE VAN CHECK IN/OUT SHEET'), null);
+  assert.equal(fieldFromLine('vessel', 'x'), null);
+  assert.equal(fieldFromLine('vessel', 'A'.repeat(70)), null);
+});
+
+test('labeled header lines fill vessel, port, date and berth without AI; unlabeled lines and a bad berth are left alone', () => {
+  const text = ['STEVEDORING', 'VESSEL: Glovis Challenge', 'DATE: 10-1-2026', 'Port: Brunswick', 'BERTH 2', 'Zone 3 Kia 1,234'].join('\n');
+  assert.deepEqual(labeledHeader(text), { vessel: 'Glovis Challenge', date: '10/1/2026', port: 'Brunswick', berth: '2' });
+  assert.deepEqual(labeledHeader('Glovis Challenge\n10-1-2026\nBERTH 7'), {}, 'no label = no value; berth must be 1, 2 or 3');
+  assert.deepEqual(labeledHeader('VESSEL:\nGlovis Challenge'), {}, 'a value on the next line is not guessed');
+  assert.deepEqual(labeledHeader('VESSEL: A\nVESSEL: Second Ship'), { vessel: 'Second Ship' }, 'a too-short value is skipped; the first valid labeled line wins');
 });
