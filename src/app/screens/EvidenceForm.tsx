@@ -171,7 +171,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
               <Body semi>{v}</Body>
               {c.ok && c.warning && <Note style={{ color: color.oInk }}>Does not pass the check digit; confirm it.</Note>}
             </View>
-            <Pressable onPress={() => setVins(vins.filter((x) => x !== v))} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`Remove VIN ${v}`}><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
+            <Pressable onPress={() => setVins(vins.filter((x) => x !== v))} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`Remove VIN ${v}`}><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
           </View>
         );
       })}

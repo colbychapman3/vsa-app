@@ -1,7 +1,7 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
 import { color, TAP, useType } from '../theme.ts';
 
@@ -107,7 +107,7 @@ export function SectionHead({ title, right }: { title: string; right?: string })
 }
 
 const TONES = {
-  break: { bg: color.accent, border: color.accent, ink: color.ink },
+  break: { bg: color.accent, border: color.accent, ink: color.onAccent },
   orange: { bg: color.oBg, border: color.orange, ink: color.oInk },
   red: { bg: color.rBg, border: color.red, ink: color.rInk },
   green: { bg: color.gBg, border: color.green, ink: color.gInk },
@@ -255,7 +255,7 @@ export function ErrorBox({ text }: { text: string }) {
 }
 
 // Deck status pill (tracker .pill p-active / p-paused / p-not / p-done / p-unk).
-const PILL: Record<string, { bg: string; ink: string; border: string; dashed?: boolean }> = {
+const PILL: Record<string, { bg: ColorValue; ink: ColorValue; border: ColorValue; dashed?: boolean }> = {
   Active: { bg: color.blue, ink: color.onBlue, border: color.blue },
   Paused: { bg: color.oBg, ink: color.oInk, border: color.orange },
   Skipped: { bg: color.oBg, ink: color.oInk, border: color.orange },
@@ -296,10 +296,10 @@ export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn
         keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
           <View style={u.secH}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
-              {isTest && <Text style={{ fontFamily: f.bodySemi, fontSize: 12, backgroundColor: color.accent, color: color.ink, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' }}>TEST</Text>}
+              {isTest && <Text style={{ fontFamily: f.bodySemi, fontSize: 12, backgroundColor: color.accent, color: color.onAccent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' }}>TEST</Text>}
               <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }}>{title}</Text>
             </View>
-            <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
+            <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
           </View>
           {children}
       </ScrollView>

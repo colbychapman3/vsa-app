@@ -190,9 +190,30 @@ export function parseAction(text: string): Action | null {
 export const REMINDER_MIN = 25;
 export type ReminderPlan = { text: string; atMin: number[] }; // minutes from now, one notification each
 
+// Quiet hours (Settings): no reminder while the clock is inside the window, which may wrap midnight (22:00 to 06:00).
+export type Quiet = { from: string; to: string };
+export const quietToText = (q: Quiet) => `${q.from}-${q.to}`;
+export function quietFromText(t: string | null): Quiet | null {
+  const m = /^(\d{2}:\d{2})-(\d{2}:\d{2})$/.exec(t ?? '');
+  return m && parseHM(m[1]) != null && parseHM(m[2]) != null && m[1] !== m[2] ? { from: m[1], to: m[2] } : null;
+}
+// Validates two typed times and stores them as HH:MM; equal times (by minutes, so 6:00 equals 06:00) would mean no window.
+export function makeQuiet(from: string, to: string): { ok: true; quiet: Quiet } | { ok: false; error: string } {
+  const a = parseHM(from), b = parseHM(to);
+  if (a == null || b == null) return { ok: false, error: 'Enter both times as HH:MM, for example 22:00 and 06:00.' };
+  if (a === b) return { ok: false, error: 'The two times are the same, so there would be no quiet window.' };
+  return { ok: true, quiet: { from: formatHM(a), to: formatHM(b) } };
+}
+const inQuiet = (t: number, q: Quiet | null) => {
+  if (!q) return false;
+  const a = parseHM(q.from)!, b = parseHM(q.to)!;
+  if (a === b) return false;
+  return a < b ? t >= a && t < b : t >= a || t < b;
+};
+
 // Reminders resume when work resumes: skipped inside the scheduled breaks, none after shift end or on a break now.
 // Only the rest of today is planned (re-planned whenever the app opens or the vessel changes).
-export function reminderPlan(s: State, b: Baseline, nowMin: number, isTest: boolean, max = 20): ReminderPlan | null {
+export function reminderPlan(s: State, b: Baseline, nowMin: number, isTest: boolean, max = 20, quiet: Quiet | null = null): ReminderPlan | null {
   const a = alerts(s, b);
   if (!a.length || s.ops.onBreak || s.ops.shiftEnded) return null;
   const end = s.plan.shiftEnd ? parseHM(s.plan.shiftEnd) : null;
@@ -201,7 +222,7 @@ export function reminderPlan(s: State, b: Baseline, nowMin: number, isTest: bool
   for (let k = 1; k <= max; k++) {
     const t = nowMin + k * REMINDER_MIN;
     if (t >= 1440 || (end != null && t >= end)) break;
-    if (breaks.some((x) => t >= x && t < x + 60)) continue;
+    if (breaks.some((x) => t >= x && t < x + 60) || inQuiet(t, quiet)) continue;
     atMin.push(k * REMINDER_MIN);
   }
   if (!atMin.length) return null;

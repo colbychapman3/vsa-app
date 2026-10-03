@@ -525,3 +525,32 @@ export function vanView(s: State) {
     rows: [...rows.filter((r) => !r.removed), ...rows.filter((r) => r.removed)],
   };
 }
+
+// ---------- Sidebar vessel list ----------
+// LIVE and TEST are listed apart (a TEST vessel never sits among live ones). The open vessel leads its group,
+// the rest newest date first; an unreadable date sorts last. Archived vessels stay hidden unless shown or open.
+type RowLike = { operationId: string; name: string; isTest: boolean; date: string; archived: boolean };
+const dateKey = (d: string): number => {
+  const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(d.trim());
+  const t = us ? Date.UTC(+us[3], +us[1] - 1, +us[2]) : /^\d{4}-\d{2}-\d{2}$/.test(d.trim()) ? Date.parse(`${d.trim()}T00:00:00Z`) : NaN;
+  return Number.isNaN(t) ? -Infinity : t;
+};
+export function sidebarVessels<R extends RowLike>(rows: R[], currentId: string, showArchived = false): { live: R[]; test: R[] } {
+  const rank = (a: R, b: R) => (a.operationId === currentId ? -1 : b.operationId === currentId ? 1
+    : dateKey(a.date) === dateKey(b.date) ? a.name.localeCompare(b.name) : dateKey(b.date) > dateKey(a.date) ? 1 : -1);
+  const shown = rows.filter((r) => showArchived || !r.archived || r.operationId === currentId).sort(rank);
+  return { live: shown.filter((r) => !r.isTest), test: shown.filter((r) => r.isTest) };
+}
+
+// Startup: try the last-opened vessel first, then the others in list order, so one vessel that cannot open never locks the app.
+export const startOrder = (ids: string[], last: string | null): string[] => (last && ids.includes(last) ? [last, ...ids.filter((i) => i !== last)] : ids);
+
+// Opens the first vessel that works, in startOrder; returns which vessels failed and why, so the app can say so.
+export async function openFirst(ids: string[], last: string | null, open: (id: string) => Promise<void>): Promise<{ opened: string | null; failed: { id: string; error: string }[] }> {
+  const failed: { id: string; error: string }[] = [];
+  for (const id of startOrder(ids, last)) {
+    try { await open(id); return { opened: id, failed }; }
+    catch (e) { failed.push({ id, error: (e as Error).message }); }
+  }
+  return { opened: null, failed };
+}

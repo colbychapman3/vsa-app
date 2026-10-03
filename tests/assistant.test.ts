@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { project } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
 import type { KnowledgeIndex } from '../src/app/knowledge/search.ts';
-import { alerts, answer, checkIntent, documentsFile, findZone, handoffPrompt, parseAction, reminderPlan, routeQuestion } from '../src/app/assistant.ts';
+import { alerts, answer, checkIntent, documentsFile, findZone, handoffPrompt, makeQuiet, parseAction, quietFromText, quietToText, reminderPlan, routeQuestion } from '../src/app/assistant.ts';
 import { snapshot } from '../src/app/view.ts';
 import { glovis, toEvents, SCENARIOS, OP } from './scenarios.ts';
 
@@ -211,4 +211,29 @@ test('documents file: every passage, grouped by document with its citation, plus
   for (const d of new Set(INDEX.chunks.map((c) => c.doc))) assert.ok(md.includes(`## ${d}`), d);
   assert.match(md, /protocol wins on any difference/);
   assert.match(md, /Do not use these for lashing or any other math/);
+});
+
+test('quiet hours: no reminder inside the window (also across midnight); other reminders stay', () => {
+  const s = working();
+  const at = (q: { from: string; to: string } | null) => reminderPlan(s, glovis, 8 * 60, false, 20, q)!.atMin.map((m) => 8 * 60 + m);
+  const base = at(null);
+  const quiet = at({ from: '09:00', to: '10:00' });
+  assert.ok(base.some((t) => t >= 540 && t < 600));
+  assert.ok(!quiet.some((t) => t >= 540 && t < 600));
+  assert.ok(quiet.length < base.length && quiet.some((t) => t >= 600));
+  const wrap = at({ from: '22:00', to: '09:30' }); // wraps midnight: 08:00-09:30 is quiet
+  assert.ok(!wrap.some((t) => t < 570));
+});
+
+test('quiet hours text round-trips and rejects bad values', () => {
+  assert.deepEqual(quietFromText(quietToText({ from: '22:00', to: '06:00' })), { from: '22:00', to: '06:00' });
+  for (const bad of [null, '', '22:00', '25:00-06:00', '22:00-22:00', 'a-b']) assert.equal(quietFromText(bad), null);
+});
+
+test('quiet hours input is normalised (6:00 becomes 06:00) and equal times are refused by minute value', () => {
+  assert.deepEqual(makeQuiet('6:00', '22:00'), { ok: true, quiet: { from: '06:00', to: '22:00' } });
+  assert.deepEqual(quietFromText(quietToText((makeQuiet('6:00', '22:00') as { quiet: { from: string; to: string } }).quiet)), { from: '06:00', to: '22:00' });
+  assert.equal(makeQuiet('6:00', '06:00').ok, false);
+  assert.equal(makeQuiet('25:00', '06:00').ok, false);
+  assert.equal(makeQuiet('', '06:00').ok, false);
 });

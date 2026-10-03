@@ -61,6 +61,7 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 
 **Ledgers**
 - Autos, High & Heavy, load-back, and lashing are separate ledgers. Never combine them.
+- High & Heavy is awareness only: Colby counts autos; another stevedore counts H&H at the same time. Show H&H as read-only context; never add it to auto counts or compare auto counts with a total that includes it.
 - Load list quantity beats game plan unless Colby overrides; keep the discrepancy visible.
 - Corrections supersede the old value and keep history. They never add to it.
 - Impossible values (hatch count above its quantity, field above starting cargo) are rejected with the exact overage. Never clamp.

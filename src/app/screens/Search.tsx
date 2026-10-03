@@ -14,7 +14,7 @@ function Marked({ text, toks, style }: { text: string; toks: string[]; style: ob
   const f = useType();
   return (
     <Text style={style}>
-      {segments(text, toks).map((s, i) => <Text key={i} style={s.hit ? { fontFamily: f.bodySemi, backgroundColor: color.accent } : undefined}>{s.t}</Text>)}
+      {segments(text, toks).map((s, i) => <Text key={i} style={s.hit ? { fontFamily: f.bodySemi, backgroundColor: color.accent, color: color.onAccent } : undefined}>{s.t}</Text>)}
     </Text>
   );
 }

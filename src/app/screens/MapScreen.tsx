@@ -144,7 +144,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
           <Pressable onPress={() => { setSel(null); setPts([]); setReady((x) => !x); }} style={({ pressed }) => [s.btn, ready && s.btnOn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityState={{ selected: ready }} accessibilityLabel="Measure a rough distance on the map">
             <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: ready ? color.bg : color.ink }} numberOfLines={1}>Measure</Text>
           </Pressable>
-          <Pressable onPress={onClose} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close map"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
+          <Pressable onPress={onClose} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close map"><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.strip} contentContainerStyle={s.stripIn}>
@@ -231,7 +231,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={{ width: 22, height: 22, borderRadius: 6, backgroundColor: KIND_COLOR[sel.kind], borderWidth: 1, borderColor: color.ink }} />
                 <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flex: 1 }} numberOfLines={1} adjustsFontSizeToFit>{c.title}</Text>
-                <Pressable onPress={() => setSel(null)} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close card"><Text style={{ fontSize: 18 }}>✕</Text></Pressable>
+                <Pressable onPress={() => setSel(null)} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close card"><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
               </View>
               {c.flags.map((t) => <Text key={t} style={[s.flag, { fontFamily: f.bodyMedium }]}>{t}</Text>)}
               {c.rows.map((r) => (
@@ -280,7 +280,7 @@ const s = StyleSheet.create({
   pillSmall: { fontSize: 9, paddingHorizontal: 3, paddingVertical: 0, borderRadius: 4 },
   pill: { maxWidth: 180, textAlign: 'center', fontSize: 12, color: color.ink, backgroundColor: color.card, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden', borderWidth: 1, borderColor: color.line },
   pillLm: { backgroundColor: color.head, color: color.headInk, borderColor: color.head },
-  pillSel: { backgroundColor: color.accent },
+  pillSel: { backgroundColor: color.accent, color: color.onAccent },
   panel: { backgroundColor: color.card, borderTopWidth: 1, borderTopColor: color.line, paddingHorizontal: 16, paddingTop: 12, gap: 8 },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: color.soft },
   flag: { fontSize: 14, color: color.oInk, backgroundColor: color.oBg, borderWidth: 1.5, borderColor: color.orange, borderRadius: 10, padding: 10, overflow: 'hidden' },

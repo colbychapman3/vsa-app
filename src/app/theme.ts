@@ -1,6 +1,8 @@
-// Look of the VSA Live tracker (docs/reference/vsa-live.html :root): light hi-vis
+// Look of the VSA Live tracker (docs/reference/vsa-live.html :root): light hi-vis (plus a Night palette)
 // theme, Barlow Condensed for big numbers and headings, IBM Plex Sans for text.
 import { createContext, useContext } from 'react';
+import { Appearance, DynamicColorIOS, Platform, type ColorValue } from 'react-native';
+import { light, night, type Token } from './palette.ts';
 import {
   BarlowCondensed_600SemiBold,
   BarlowCondensed_700Bold,
@@ -11,40 +13,18 @@ import {
   IBMPlexSans_600SemiBold,
 } from '@expo-google-fonts/ibm-plex-sans';
 
-export const color = {
-  bg: '#F4F1EA',
-  card: '#FFFFFF',
-  ink: '#15171A',
-  muted: '#4A4F57',
-  line: '#D9D3C7',
-  soft: '#E6E0D4',
-  row: '#EFEAE0',
-  blue: '#1D4ED8',
-  onBlue: '#FFFFFF',
-  orange: '#B45309',
-  onOrange: '#FFFFFF',
-  onRed: '#FFFFFF',
-  oBg: '#FFF7ED',
-  oInk: '#7C2D12',
-  red: '#B91C1C',
-  rBg: '#FEE2E2',
-  rInk: '#7F1D1D',
-  green: '#15803D',
-  gBg: '#DCFCE7',
-  gInk: '#14532D',
-  head: '#15171A',
-  headInk: '#F4F1EA',
-  headMuted: '#D6D1C6',
-  accent: '#FDBA74',
-  done: '#5A5F66',
-  // Terminal map data colors (same as the Terminal & Yard Map artifact); only for shapes, never for text.
-  mapZone: '#2F8BFF',
-  mapSite: '#22C47F',
-  mapYard: '#FFB020',
-  mapOem: '#A45CF2',
-  mapRail: '#27C95A',
-  mapMeasure: '#FF4FA3',
-} as const;
+// Every token is a DynamicColorIOS pair (Light / Night, values in palette.ts), so screens keep reading color.ink etc.
+// and iOS swaps them when the appearance changes. react-native-svg accepts these (its extractBrush handles dynamic colors).
+const make = (k: Token): ColorValue => (Platform.OS === 'ios' ? DynamicColorIOS({ light: light[k], dark: night[k] }) : light[k]);
+export const color = Object.fromEntries((Object.keys(light) as Token[]).map((k) => [k, make(k)])) as Record<Token, ColorValue>;
+
+// Settings > Appearance. Light is the default; Auto follows the iPhone. Applied at startup, before the first screen.
+export type AppearanceMode = 'light' | 'night' | 'auto';
+export const APPEARANCES: AppearanceMode[] = ['light', 'night', 'auto'];
+export const asAppearance = (v: string | null): AppearanceMode => (v === 'night' || v === 'auto' ? v : 'light');
+export function applyAppearance(m: AppearanceMode) {
+  Appearance.setColorScheme(m === 'night' ? 'dark' : m === 'auto' ? 'unspecified' : 'light');
+}
 
 // Loaded once in App.tsx. Bundled with the app, so they work offline.
 export const fontFiles = {
@@ -56,6 +36,9 @@ export const fontFiles = {
 };
 
 // H.A. is blue. Pace is blue too while it equals H.A.; when it differs it turns dark orange so the difference is seen at a glance.
+// Dim layer behind the sidebar; the same in Light and Night.
+export const SCRIM = 'rgba(0,0,0,0.5)';
+
 export const HA_COLOR = color.blue;
 export const PACE_COLOR = color.oInk;
 

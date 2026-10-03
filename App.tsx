@@ -1,5 +1,5 @@
 // App root: opens on-phone storage, opens the last vessel (the TEST Glovis demo on first run),
-// keeps the latest engine state, and shows the four tabs. The header opens the vessel list.
+// keeps the latest engine state, and shows the four tabs. The header menu opens the sidebar (vessels, settings).
 // Every save goes through save(): entries → store.append (engine-checked) → new state.
 import { StatusBar } from 'expo-status-bar';
 import * as Print from 'expo-print';
@@ -13,18 +13,19 @@ import { openExpoDb, type Db } from './src/storage/db.ts';
 import { exportLog, importLog, markExported, backupStatus } from './src/storage/backup.ts';
 import { openStore, type State, type Store } from './src/storage/store.ts';
 import { getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, type VesselRow } from './src/storage/vessels.ts';
+import { getPref, setPref } from './src/storage/prefs.ts';
 import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
 import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceReportKind } from './src/app/evidenceReport.ts';
 import { reducedPhotoData } from './src/app/evidencePhotos.ts';
 import type { Built } from './src/app/setup.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
-import { badges, type Banner } from './src/app/view.ts';
-import { color, fontFiles, fonts, FontContext } from './src/app/theme.ts';
+import { badges, openFirst, type Banner } from './src/app/view.ts';
+import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, type AppearanceMode } from './src/app/theme.ts';
 import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
 import { Ask } from './src/app/screens/Ask.tsx';
-import { reminderPlan } from './src/app/assistant.ts';
+import { quietFromText, quietToText, reminderPlan, type Quiet } from './src/app/assistant.ts';
 import { enableReminders, installHandlers, reminderStatus, syncReminders, type ReminderStatus } from './src/app/reminders.ts';
 import { Decks } from './src/app/screens/Decks.tsx';
 import { DeckSheet } from './src/app/screens/DeckSheet.tsx';
@@ -33,6 +34,8 @@ import { MapScreen } from './src/app/screens/MapScreen.tsx';
 import { Search } from './src/app/screens/Search.tsx';
 import { Plan, type Backup, type Reports } from './src/app/screens/Plan.tsx';
 import { Vessels } from './src/app/screens/Vessels.tsx';
+import { Sidebar } from './src/app/screens/Sidebar.tsx';
+import { Settings } from './src/app/screens/Settings.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
 
 const DEMO = 'TEST-GLOVIS-101';
@@ -62,11 +65,14 @@ export default function App() {
   const [nowMin, setNowMin] = useState(minutesNow);
   const [logOpen, setLogOpen] = useState(false);
   const [prefill, setPrefill] = useState<HourPrefill | undefined>(undefined); // an hourly count typed in Ask, shown in the Log form
-  const [vesselsNew, setVesselsNew] = useState(false);
+  const [drawer, setDrawer] = useState(false); // the left-side menu (an overlay, not a modal)
+  const [appearance, setAppearance] = useState<AppearanceMode>('light');
+  const [remindersPaused, setRemindersPaused] = useState(false);
+  const [quiet, setQuiet] = useState<Quiet | null>(null);
   const [remind, setRemind] = useState<ReminderStatus>('ask');
   const [fg, setFg] = useState(0); // bumps when the app returns to the foreground, to re-plan reminders
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'vessels' | 'map' | 'search' | 'ask' | null>(null); // one modal at a time
+  const [sheet, setSheet] = useState<'new' | 'settings' | 'map' | 'search' | 'ask' | null>(null); // one modal at a time
   const [rows, setRows] = useState<VesselRow[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
@@ -84,12 +90,12 @@ export default function App() {
 
   // Plan reminders: notifications tapped open Plan; the schedule is replaced whenever the vessel's state changes or the app returns.
   const openPlan = useRef<() => void>(() => {});
-  useEffect(() => { openPlan.current = () => { setSheet(null); setLogOpen(false); setDeckOpen(null); setTab('plan'); }; });
+  useEffect(() => { openPlan.current = () => { setDrawer(false); setSheet(null); setLogOpen(false); setDeckOpen(null); setTab('plan'); }; });
   useEffect(() => { reminderStatus().then(setRemind); return installHandlers(() => openPlan.current()); }, []);
   useEffect(() => {
     if (!vessel) { void syncReminders(null); return; } // no open vessel: no reminders
-    void syncReminders(remind === 'on' ? reminderPlan(vessel.state, vessel.baseline, minutesNow(), vessel.isTest) : null);
-  }, [vessel, remind, fg]);
+    void syncReminders(remind === 'on' && !remindersPaused ? reminderPlan(vessel.state, vessel.baseline, minutesNow(), vessel.isTest, 20, quiet) : null);
+  }, [vessel, remind, fg, remindersPaused, quiet]);
 
   // Load a vessel from its stored log and make it the open one. Nothing from another vessel stays in memory.
   const openVessel = useCallback(async (id: string) => {
@@ -111,16 +117,24 @@ export default function App() {
     (async () => {
       try {
         dbRef.current = await openExpoDb();
-        store.current = await openStore(dbRef.current);
+        store.current = await openStore(dbRef.current); // creates the settings table on a new install
+        // Preferences before the vessel opens, so a Night user never sees a light flash; a bad pref falls back to defaults.
+        try {
+          const mode = asAppearance(await getPref(dbRef.current, 'appearance'));
+          applyAppearance(mode); setAppearance(mode);
+          setRemindersPaused((await getPref(dbRef.current, 'remindersPaused')) === '1');
+          setQuiet(quietFromText(await getPref(dbRef.current, 'quiet')));
+        } catch { applyAppearance('light'); /* defaults: Light, reminders on, no quiet hours */ }
         const all = await store.current.listVessels();
         if (!all.length) {
           const c = await store.current.createVessel({ operationId: DEMO, baseline: glovis, isTest: true });
           if (!c.ok) throw new Error(c.error);
         }
-        const last = await lastOpened(dbRef.current);
-        const id = (last && (await store.current.listVessels()).some((v) => v.operationId === last)) ? last : (await store.current.listVessels())[0].operationId;
-        latestId.current = id;
-        await openVessel(id);
+        // One vessel that cannot open never locks the app: try the last one, then the others, and say which failed.
+        const ids = (await store.current.listVessels()).map((v) => v.operationId);
+        const r = await openFirst(ids, await lastOpened(dbRef.current), openVessel);
+        if (!r.opened) throw new Error(r.failed.map((x) => `${x.id}: ${x.error}`).join(' | ') || 'No vessel could be opened.');
+        if (r.failed.length) setNotice({ ok: false, text: `${r.failed.map((x) => `${x.id} could not open (${x.error})`).join('; ')}. Opened ${r.opened} instead; the menu lists the problem.` });
       } catch (e) {
         setError((e as Error).message);
       }
@@ -168,24 +182,27 @@ export default function App() {
     setNotice(r.ok ? { ok: true, text: 'Added to open discrepancies.' } : { ok: false, text: `Not saved: ${r.error}` });
   }, [save]);
 
+  // One vessel's log to the iOS share sheet; it counts as backed up only if the sheet was used.
+  const exportVessel = async (id: string): Promise<{ ok: boolean; text: string }> => {
+    const at = recordedNow();
+    const r = await exportLog(store.current!, id, at);
+    if (!r.ok) return { ok: false, text: `Not exported: ${r.error}` };
+    try {
+      const res = await Share.share({ title: r.fileName, message: r.text });
+      if (res.action === Share.dismissedAction) return { ok: true, text: 'Export cancelled. Nothing marked as backed up.' };
+    } catch (e) {
+      return { ok: false, text: `Not exported: ${(e as Error).message}` };
+    }
+    await markExported(dbRef.current!, id, at, r.count);
+    if (id === vessel?.id) setBk(await backupStatus(dbRef.current!, id, r.count));
+    return { ok: true, text: `Shared ${r.count} entries.` };
+  };
+
   // Backup: the phone's log is the only official record. Export hands the JSON text to the iOS share
   // sheet (Save to Files, Messages, Notes...). It counts as exported only if the sheet reports it was used.
   const backup: Backup = {
     ...bk,
-    onExport: async () => {
-      const at = recordedNow();
-      const r = await exportLog(store.current!, vessel!.id, at);
-      if (!r.ok) return setNotice({ ok: false, text: `Not exported: ${r.error}` });
-      try {
-        const res = await Share.share({ title: r.fileName, message: r.text });
-        if (res.action === Share.dismissedAction) return setNotice({ ok: true, text: 'Export cancelled. Nothing marked as backed up.' });
-      } catch (e) {
-        return setNotice({ ok: false, text: `Not exported: ${(e as Error).message}` });
-      }
-      await markExported(dbRef.current!, vessel!.id, at, r.count);
-      setBk(await backupStatus(dbRef.current!, vessel!.id, r.count));
-      setNotice({ ok: true, text: `Shared ${r.count} entries.` });
-    },
+    onExport: async () => setNotice(await exportVessel(vessel!.id)),
     onImport: async (text) => {
       const r = await importLog(store.current!, text);
       if (!r.ok) return r;
@@ -230,16 +247,17 @@ export default function App() {
     },
   };
 
-  const openVessels = async (startNew = false) => {
+  const openMenu = async () => {
     setNotice(null);
-    setVesselsNew(startNew);
-    try { setRows(await listRows(dbRef.current!, store.current!)); setSheet('vessels'); }
+    try { setRows(await listRows(dbRef.current!, store.current!)); setDrawer(true); }
     catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); }
   };
+  const refreshRows = async () => { try { setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); } };
+  const setPrefSafe = async (k: string, v: string) => { try { await setPref(dbRef.current!, k, v); } catch (e) { setNotice({ ok: false, text: `Setting not saved: ${(e as Error).message}` }); } };
   const switchTo = async (id: string) => {
     if (saving.current) return setNotice({ ok: false, text: 'Still saving the last entry. Try again.' });
-    try { await openVessel(id); setSheet(null); setTab('snap'); setNotice(null); }
-    catch (e) { setNotice({ ok: false, text: `Could not open the vessel: ${(e as Error).message}` }); setSheet(null); }
+    try { await openVessel(id); setDrawer(false); setSheet(null); setTab('snap'); setNotice(null); }
+    catch (e) { setNotice({ ok: false, text: `Could not open the vessel: ${(e as Error).message}` }); setDrawer(false); setSheet(null); }
   };
   // Paperwork lines Colby ticked at Review become Plan notes (source photo-read), written before the vessel opens.
   // If a note fails, the vessel is still created and the message says how many notes did not save.
@@ -276,7 +294,7 @@ export default function App() {
         <View style={s.page}>
           {vessel ? (
             <>
-              <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onVessels={() => openVessels()} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
+              <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onMenu={openMenu} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
               {notice && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>
@@ -306,19 +324,26 @@ export default function App() {
                 <DeckSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} deckId={deckOpen} save={save}
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
-              {sheet === 'vessels' && (
-                <Vessels startNew={vesselsNew} rows={rows} currentId={vessel.id} isTest={vessel.isTest} onClose={() => setSheet(null)} onOpen={switchTo} onCreate={create}
-                  onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }} />
+              {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} />}
+              {sheet === 'settings' && (
+                <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)}
+                  appearance={appearance} onAppearance={(m) => { setAppearance(m); applyAppearance(m); void setPrefSafe('appearance', m); }}
+                  reminders={remind} remindersPaused={remindersPaused} onPauseReminders={(p) => { setRemindersPaused(p); void setPrefSafe('remindersPaused', p ? '1' : '0'); }}
+                  onEnableReminders={async () => setRemind(await enableReminders())}
+                  quiet={quiet} onQuiet={(q) => { setQuiet(q); void setPrefSafe('quiet', q ? quietToText(q) : ''); }}
+                  onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); await refreshRows(); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }}
+                  onExportVessel={exportVessel} />
               )}
               {sheet === 'ask' && (
                 <Ask state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} reminders={remind}
                   onEnableReminders={async () => setRemind(await enableReminders())}
-                  onShow={(w) => openTab(w)} onLog={(p) => { setPrefill(p); setTimeout(() => setLogOpen(true), 450); }} onNewVessel={() => setTimeout(() => openVessels(true), 450)}
+                  onShow={(w) => openTab(w)} onLog={(p) => { setPrefill(p); setTimeout(() => setLogOpen(true), 450); }} onNewVessel={() => setTimeout(() => { setNotice(null); setSheet('new'); }, 450)}
                   onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
               {sheet === 'search' && <Search isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
+              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} />}
             </>
           ) : (
             <View style={s.pad}>

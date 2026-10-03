@@ -1,6 +1,6 @@
 // The frame around every tab: header, bottom tab bar with badges, floating Log
 // button, and the tracker's icons. Layout only.
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { color, TAP, useType } from '../theme.ts';
@@ -17,10 +17,11 @@ const ICONS = {
   plus: <Path d="M12 5v14M5 12h14" />,
   check: <Path d="M5 12.5l4.5 4.5L19 7.5" />,
   chev: <Path d="M9 5l7 7-7 7" />,
+  menu: <Path d="M4 7h16M4 12h16M4 17h16" />,
 };
 export type IconName = keyof typeof ICONS;
 
-export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName; color?: string; size?: number }) {
+export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName; color?: ColorValue; size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       {ICONS[name]}
@@ -28,7 +29,7 @@ export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName
   );
 }
 
-export function Header({ isTest, berth, date, vessel, onVessels, onMap, onSearch }: { isTest: boolean; berth: string; date: string; vessel: string; onVessels: () => void; onMap: () => void; onSearch: () => void }) {
+export function Header({ isTest, berth, date, vessel, onMenu, onMap, onSearch }: { isTest: boolean; berth: string; date: string; vessel: string; onMenu: () => void; onMap: () => void; onSearch: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   return (
@@ -38,7 +39,10 @@ export function Header({ isTest, berth, date, vessel, onVessels, onMap, onSearch
         <Text style={[s.sub, { fontFamily: f.body, flex: 1, textAlign: 'right' }]} numberOfLines={1}>{date}</Text>
       </View>
       <View style={s.vesselRow}>
-        <Pressable onPress={onVessels} style={({ pressed }) => [s.vesselBtn, { flex: 1 }, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${vessel}. Switch or start a vessel`}>
+        <Pressable onPress={onMenu} style={({ pressed }) => [s.menuBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Menu: vessels and settings">
+          <Icon name="menu" color={color.headInk} size={26} />
+        </Pressable>
+        <Pressable onPress={onMenu} style={({ pressed }) => [s.vesselBtn, { flex: 1 }, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${vessel}. Open the menu to switch or start a vessel`}>
           <Text style={[s.h1, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit>{vessel}</Text>
         </Pressable>
       </View>
@@ -104,10 +108,11 @@ const s = StyleSheet.create({
   header: { backgroundColor: color.head, paddingHorizontal: 20, paddingBottom: 16, gap: 6 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   chip: { fontSize: 12, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' },
-  chipTest: { backgroundColor: color.accent, color: color.ink },
+  chipTest: { backgroundColor: color.accent, color: color.onAccent },
   chipLive: { backgroundColor: color.green, color: color.card },
   sub: { fontSize: 14, color: color.headMuted, flexShrink: 1 },
   vesselBtn: { minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  menuBtn: { width: TAP, height: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
   vesselRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   mapBtn: { minHeight: 44, minWidth: 52, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
   mapText: { fontSize: 14, color: color.headInk },
