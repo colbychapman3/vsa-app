@@ -1,6 +1,6 @@
 # Spec: game plan reader (Phase 6e, replaces the 6c setup photo import)
 
-Status: **DRAFT**, waiting on Colby's approval. Open questions answered 2026-10-04 (all recommended defaults).
+Status: **APPROVED** by Colby 2026-10-04. Built as Phase 7 checkpoint 1 (replaces `phase-7-game-plan-import.md`). Shipped as a TestFlight store build, like checkpoint 2, instead of a dev build.
 
 ## Why
 The 6c photo import did not reach its goal. Apple's text reader gave flat lines with no positions, so table rows could not be rebuilt. The on-device model could not read a table from that text, and the proposal check then dropped most of what it did read. The deck/hatch grid, which is the real work, was still typed by hand. None of it was ever tested on a real photo. It is removed, not repaired.
@@ -14,7 +14,7 @@ Colby photographs the **APS "Working Plan / Game Plan" cover page** and Setup co
 - **Schematic:** the layout changes by shipping line. It is the only place deck heights appear. **Not read in 6e**: heights are typed.
 - **Discharge summary (load list):** its layout may change by line. **Not read in 6e**: Colby types the brand totals.
 
-Expected result for `tests/fixtures/paperwork/hector-highway-10a/1-game-plan.jpg`:
+Expected result for the cover page photo `docs/reference/game-plan-example-hector-highway-10a/7-working-plan-game-plan-form.jpg` (its word-position fixture: `tests/fixtures/gameplan/7-working-plan-game-plan-form.json`, read by the Windows text reader; the phone's own Vision output is added after the phone check):
 
 | Deck | Amount | Split | Hatches | Yards (paired by order) |
 |---|---|---|---|---|
@@ -35,7 +35,7 @@ Brand totals: MB 920, BMW 566, MAS 58, LR 24, POV 10. Note: "2 Porsche POVs disc
 2. **Yards pair with brands by order** on each row (475 BMW → BMW, 24 LR → Zone 1, …), marked "from game plan: check" until the Destinations step is confirmed. If a row has a different number of brands than yards, nothing is paired for that row and it says so.
 3. **H/H goes to its own ledger** (`baseline.hh`), never added to autos.
 4. **The load list is typed** (brand totals and the H/H total) in a new Load list step. It is optional; if skipped, Review says "Load list not checked".
-5. **Photo fixtures: pending Colby's explicit OK** (they contain VINs and booking numbers). Until then, tests use a typed copy of what the reader sees on the cover page, and no image files are committed.
+5. **Photo fixtures: allowed** (Colby, 2026-10-04: the repo is private). The Hector Highway 10A photos are in `docs/reference/game-plan-example-hector-highway-10a/`; word-position fixtures read from them are in `tests/fixtures/gameplan/`.
 
 ## Flow
 1. Setup step 0: **Read the game plan** with two buttons, take a picture or choose a photo. Below them: **Type it in** (the manual path, unchanged) and **Import a baseline** (unchanged). One page per read. The cover page is one page.
@@ -98,9 +98,9 @@ Input: the recognized lines with their positions (normalized page coordinates, t
 3. VIN scan, van sheet and Plan Notes photo reading still work. All tests pass. Phone check on the new dev build.
 
 ## Plan (one approval)
-1. Fixtures: the photos go into `tests/fixtures/paperwork/hector-highway-10a/`, plus the OCR line fixture.
+1. Fixtures: photos in `docs/reference/game-plan-example-hector-highway-10a/`, word-position fixtures in `tests/fixtures/gameplan/` (done 2026-10-04).
 2. Engine: deck-level `cargo`, with tests first (rules-engine skill).
 3. `src/app/gamePlan.ts`: the reader with all tests above.
 4. Setup: the new step 0, the Load list step, tags and the notes area. Remove the old import (field-UI skill).
 5. `modules/vsa-text` native reader; switch `readPhotos` over; remove `expo-text-extractor`.
-6. Polish pass, then the EAS dev build, then Colby's phone check: this game plan, VIN, van sheet, notes.
+6. Review loop until zero required findings, then a TestFlight store build, then Colby's phone check: this game plan, VIN, van sheet, notes.

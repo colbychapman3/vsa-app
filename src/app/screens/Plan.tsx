@@ -218,6 +218,8 @@ export function VesselCards({ state, baseline, isTest, save, onNotice }: { state
             <Chip text={v.baseline.discrepancies} />
             <Chip text={v.baseline.missing} tone={v.baseline.missing === 'Nothing missing' ? 'plain' : 'orange'} />
           </View>
+          {v.baseline.status && <Body semi>{v.baseline.status}</Body>}
+          {v.baseline.discrepancyLines.map((d) => <ErrorBox key={d} text={d} />)}
           {v.baseline.checks.map((c) => <Note key={c}>• {c}</Note>)}
           {v.baseline.sources !== 'Sources: ' && <Note>{v.baseline.sources}</Note>}
         </Card>

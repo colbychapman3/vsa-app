@@ -1,3 +1,5 @@
+> **Superseded 2026-10-04** by `phase-6e-game-plan-reader.md` (approved). Kept for history only.
+
 # Spec: game-plan-import (Phase 7)
 
 Single capability, so no capability map. Builds on `phase-6-setup-import.md` (photo import, `mergeProposal`, `buildBaseline`).

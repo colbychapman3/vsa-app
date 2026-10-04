@@ -5,7 +5,9 @@ import { parseHM } from './time.ts';
 export type Item = { brand: string; qty: number };
 export type Hatch = { h: string; items: Item[] };
 export type Height = { m: number; current: boolean };
-export type Deck = { id: string; label: string; heights?: Height[]; hatches: Hatch[] };
+// cargo: the deck's brand split when the paperwork gives no count per hatch (game plan). Its hatches then list
+// names only (items: []) and a hatch's starting count is unknown, never 0.
+export type Deck = { id: string; label: string; heights?: Height[]; hatches: Hatch[]; cargo?: Item[] };
 export type Destination = { name: string; side: 'N' | 'S'; clearBy: number; mi?: number; ref?: string; brands?: string[]; autos?: number };
 export type Baseline = {
   vessel: string;
@@ -37,6 +39,13 @@ export function validateBaseline(b: Baseline): BaselineCheck {
     if (ids.has(d.id)) errors.push(`Deck id ${d.id} is used twice.`);
     ids.add(d.id);
     const hs = new Set<string>();
+    if (d.cargo && d.hatches.some((h) => h.items.length)) errors.push(`${d.label} has a deck brand split and hatch counts. Keep one of them.`);
+    if (d.cargo && !d.hatches.length) errors.push(`${d.label} has a brand split but no hatches. Choose its hatches.`);
+    for (const i of d.cargo ?? []) {
+      if (!isCount(i.qty)) { errors.push(`${d.label} ${i.brand} quantity must be a whole number (got ${i.qty}).`); continue; }
+      start += i.qty;
+      brandStart[i.brand] = (brandStart[i.brand] ?? 0) + i.qty;
+    }
     for (const h of d.hatches) {
       if (hs.has(h.h)) errors.push(`${d.label} has hatch ${h.h} twice.`);
       hs.add(h.h);

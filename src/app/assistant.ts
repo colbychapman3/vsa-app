@@ -131,7 +131,7 @@ export function answer(i: Intent, s: State, b: Baseline, nowMin: number, index: 
     }
     case 'deck': {
       const r = decksView(s).rows.find((x) => x.id === i.deck)!;
-      return { title: r.label, where: 'decks', tags: [], lines: [`${r.pill} · ${r.remaining === '—' ? 'remaining count needed' : `${r.remaining} of ${r.start} remaining`}`, ...r.hatches.map((h) => `${h.h}: ${h.text}`), r.height.text, ...(r.cleared ? [r.cleared] : [])] };
+      return { title: r.label, where: 'decks', tags: [], lines: [`${r.pill} · ${r.remaining === '—' ? 'remaining count needed' : `${r.remaining} of ${r.start} remaining`}`, ...(r.split ? [`Deck split: ${r.split} (counts per hatch not on paperwork)`] : r.hatches.map((h) => `${h.h}: ${h.text}`)), r.height.text, ...(r.cleared ? [r.cleared] : [])] };
     }
     case 'alerts': {
       const a = alerts(s, b);

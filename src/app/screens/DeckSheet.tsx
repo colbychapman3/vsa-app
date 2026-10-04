@@ -92,11 +92,12 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
 
           {counted ? (
             <>
+              {v.split && <Note>Deck split: {v.split}. Counts per hatch are not on the paperwork.</Note>}
               <Label wrap>REMAINING BY HATCH (H4 → H1) · CLEAR A BOX IF UNKNOWN</Label>
               <View style={s.grid}>
                 {d.hatches.map((h, i) => (
                   <View key={h.h} style={s.cell}>
-                    <Field label={`${h.h} · of ${h.qty}`} note={v.hatches[i].brands} value={hatches[h.h] ?? ''} onChange={(x) => setHatches((m) => ({ ...m, [h.h]: x }))} />
+                    <Field label={`${h.h} · of ${h.qty ?? '—'}`} note={v.hatches[i].brands} value={hatches[h.h] ?? ''} onChange={(x) => setHatches((m) => ({ ...m, [h.h]: x }))} />
                   </View>
                 ))}
               </View>

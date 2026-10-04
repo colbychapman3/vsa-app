@@ -2,7 +2,7 @@
 // baseline JSON into a Baseline, and refuses anything the engine would refuse, with exact messages.
 // Nothing is adjusted to make totals balance; mismatches come back as discrepancies to acknowledge.
 import { TERMINAL, terminalInfo } from '../engine/terminal.ts';
-import type { SetupProposal } from '../engine/proposal.ts';
+import { yardName, type GamePlan } from './gamePlan.ts';
 import { CLEAR_BY_MIN, destination, operationDate, parseHM, validateBaseline, type Baseline, type Deck, type Destination } from '../engine/index.ts';
 
 export const BREAKS = ['12:00', '18:00']; // fixed, always 1 hour
@@ -18,8 +18,14 @@ export type SetupForm = {
   start: string; // HH:MM
   drivers: number | null; // Day 1; null = unknown
   destinations: { name: string; side?: 'N' | 'S'; clearBy?: number; mi?: number; ref?: string; brands?: string[]; autos?: number }[];
-  decks: { label: string; heights: { m: number; current: boolean }[]; hatches: { h: string; items: { brand: string; qty: number }[] }[] }[];
+  // cargo: the deck's brand split when hatch counts are not on the paperwork (game plan); its hatches are names only.
+  decks: { label: string; heights: { m: number; current: boolean }[]; hatches: { h: string; items: { brand: string; qty: number }[] }[]; cargo?: { brand: string; qty: number }[] }[];
+  hh?: HhEntry[];            // High & Heavy: its own ledger, never added to autos
+  hhTotal?: number | null;   // the printed H/H TOTAL from the game plan; null = not read
+  verification?: Verification; // load list check, kept on the vessel and shown on Plan
 };
+export type HhEntry = { deck: string | null; qty: number | null; cargo: string; yard: string };
+export type Verification = { status: string; discrepancies: string[]; missing: string[]; checks: string[] };
 
 export type Built = { ok: true; baseline: Baseline; operationId: string; total: number; brandStart: Record<string, number>; discrepancies: string[]; warnings: string[] } | { ok: false; errors: string[] };
 
@@ -64,6 +70,7 @@ export function buildBaseline(f: SetupForm): Built {
     const cur = d.heights.find((h) => h.current);
     if (cur && cur.m < LOW_DECK_M) warnings.push(`${label} is set to ${cur.m.toFixed(2)} m, below ${LOW_DECK_M.toFixed(2)} m: shuttle vans cannot use it (low deck).`);
     const deck: Deck = { id, label, hatches: d.hatches.map((h) => ({ h: h.h.trim(), items: h.items.map((x) => ({ brand: x.brand.trim(), qty: x.qty })) })) };
+    if (d.cargo) deck.cargo = d.cargo.map((x) => ({ brand: x.brand.trim(), qty: x.qty }));
     if (d.heights.length) deck.heights = d.heights.map((h) => ({ m: h.m, current: h.current }));
     return deck;
   });
@@ -71,19 +78,23 @@ export function buildBaseline(f: SetupForm): Built {
     if (!h.h) errors.push(`${d.label}: a hatch needs a name (H4, H3, H2, H1).`);
     for (const it of h.items) if (!it.brand) errors.push(`${d.label} ${h.h}: a cargo line needs a brand.`);
   }
+  for (const d of decks) for (const it of d.cargo ?? []) if (!it.brand) errors.push(`${d.label}: a brand split line needs a brand.`);
   if (f.drivers != null && !(Number.isInteger(f.drivers) && f.drivers >= 0)) errors.push(`Drivers must be a whole number (got ${f.drivers}).`);
 
   // One spelling per brand (first typed wins), so "kia" and "Kia" never become two brands.
   const spell = new Map<string, string>();
   const canon = (b: string) => { const k = b.trim().toLowerCase(); if (!spell.has(k)) spell.set(k, b.trim()); return spell.get(k)!; };
   for (const d of destinations) if (d.brands) d.brands = d.brands.map(canon);
-  for (const d of decks) for (const h of d.hatches) for (const i of h.items) i.brand = canon(i.brand);
+  for (const d of decks) for (const i of [...(d.cargo ?? []), ...d.hatches.flatMap((h) => h.items)]) i.brand = canon(i.brand);
 
   const baseline: Baseline = {
     vessel, date: f.date.trim(), port: f.port.trim(), berth: f.berth.trim(), start: f.start.trim(), breaks: [...BREAKS],
     sources: f.sources.map((s) => s.trim()).filter(Boolean),
     ...(f.drivers != null ? { labor: { autoDrivers: f.drivers } } : {}),
     destinations, decks,
+    ...(f.hh ? { hh: f.hh } : {}),
+    ...(f.hhTotal !== undefined ? { hhTotal: f.hhTotal } : {}),
+    ...(f.verification ? { verification: f.verification } : {}),
   };
   return finish(baseline, f.isTest, errors, warnings);
 }
@@ -109,6 +120,7 @@ export function importBaseline(text: string, isTest: boolean): Built {
   if (Array.isArray(b.decks)) b.decks.forEach((d: any, i: number) => {
     if (!d || typeof d.id !== 'string' || typeof d.label !== 'string' || !Array.isArray(d.hatches)) e.push(`Deck ${i + 1} needs an id, a label and a hatch list.`);
     else if (d.heights !== undefined && (!Array.isArray(d.heights) || d.heights.some((h: any) => !(h?.m > 0 && Number.isFinite(h.m))) || (d.heights.length && d.heights.filter((h: any) => h.current === true).length !== 1))) e.push(`${d.label}: heights must be positive metres with exactly one marked current.`);
+    else if (d.cargo !== undefined && (!Array.isArray(d.cargo) || !d.cargo.length || d.cargo.some((it: any) => !it || typeof it.brand !== 'string' || !it.brand.trim() || !Number.isInteger(it.qty) || it.qty < 0))) e.push(`${d.label}: the brand split (cargo) must be a list of brands with whole-number quantities.`);
     else for (const h of d.hatches) if (!h || typeof h.h !== 'string' || !Array.isArray(h.items)) e.push(`${d.label}: every hatch needs a name and an items list.`);
       else for (const it of h.items) if (!it || typeof it.brand !== 'string' || typeof it.qty !== 'number') e.push(`${d.label} ${h.h}: every cargo line needs a brand and a number quantity.`);
   });
@@ -138,8 +150,10 @@ function finish(baseline: Baseline, isTest: boolean, errors: string[], warnings:
 
 // ---------- typed drafts (what the setup screen holds as text) ----------
 
-export type DeckDraft = { label: string; total: string; current: string; hatches: { h: string; items: { brand: string; qty: string }[] }[] };
-export const emptyDeck = (): DeckDraft => ({ label: '', total: '', current: '', hatches: ['H4', 'H3', 'H2', 'H1'].map((h) => ({ h, items: [{ brand: '', qty: '' }] })) });
+// split: the deck's brand split (game plan); its hatches are then names only. null = counts typed per hatch.
+export type DeckDraft = { label: string; total: string; current: string; hatches: { h: string; items: { brand: string; qty: string }[] }[]; split: { brand: string; qty: string }[] | null };
+export const emptyDeck = (): DeckDraft => ({ label: '', total: '', current: '', split: null, hatches: ['H4', 'H3', 'H2', 'H1'].map((h) => ({ h, items: [{ brand: '', qty: '' }] })) });
+export const HATCHES = ['H4', 'H3', 'H2', 'H1'];
 
 const num = (t: string) => (t.trim() === '' ? NaN : Number(t.trim()));
 
@@ -150,6 +164,20 @@ export function deckFromDraft(d: DeckDraft): { deck: SetupForm['decks'][number];
   const label = d.label.trim() || 'Deck';
   const cur = Number(d.current);
   if (d.current.trim() !== '' && !(cur > 0)) errors.push(`${label}: the height must be a number in metres, like 2.00.`);
+  if (d.split) {
+    const cargo = d.split.filter((i) => i.brand.trim() || i.qty.trim()).map((i) => {
+      if (!i.brand.trim()) errors.push(`${label}: a quantity in the brand split needs a brand.`);
+      const q = num(i.qty);
+      if (i.qty.trim() === '') errors.push(`${label}: ${i.brand.trim()} needs a quantity.`);
+      else if (!Number.isInteger(q) || q < 0) errors.push(`${label}: ${i.brand.trim()} must be a whole number (got ${i.qty.trim()}).`);
+      return { brand: i.brand, qty: q };
+    });
+    if (!cargo.length) errors.push(`${label}: type the brand split (brand and autos).`);
+    if (!d.hatches.length) errors.push(`${label}: choose its hatches (H4 → H1).`);
+    const sum = cargo.reduce((s, i) => s + (Number.isFinite(i.qty) ? i.qty : 0), 0);
+    if (d.total.trim() !== '' && Number(d.total) !== sum) errors.push(`${label}: deck total ${d.total.trim()} but the brand split adds to ${sum.toLocaleString('en-US')}.`);
+    return { deck: { label: d.label, heights: d.current.trim() !== '' && cur > 0 ? [{ m: cur, current: true }] : [], hatches: d.hatches.map((h) => ({ h: h.h, items: [] })), cargo }, errors };
+  }
   const hatches = d.hatches.filter((h) => h.h.trim() || h.items.some((i) => i.brand.trim() || i.qty.trim())).map((h) => ({
     h: h.h,
     items: h.items.filter((i) => i.brand.trim() || i.qty.trim()).map((i) => {
@@ -184,84 +212,87 @@ export function groupAllocations(lines: Allocation[]): { destinations: SetupForm
   return { destinations: [...by.values()], errors };
 }
 
-// ---------- Photo import (Phase 6c) ----------
-// A checked proposal (src/engine/proposal.ts) → the Setup screen's typed fields. Fills only what is empty and
-// names every field it filled so Setup can tag it "from photo: check". Destinations resolve through the
-// protocol aliases ("MB Field" alone = MBZ); a name the terminal doesn't know is left for Colby to choose.
-export type Drafts = { v: { vessel: string; date: string; port: string; berth: string }; allocs: Allocation[]; decks: DeckDraft[] };
-
-export function mergeProposal(d: Drafts, p: SetupProposal): { drafts: Drafts; filled: string[]; unplaced: string[] } {
+// ---------- Game plan reader → Setup (spec phase-6e) ----------
+// Fills only what is empty and names every field it filled, so Setup can tag it "From game plan: check".
+export type GameDrafts = { v: { vessel: string; date: string; port: string; drivers: string }; allocs: Allocation[]; decks: DeckDraft[] };
+export function mergeGamePlan(d: GameDrafts, g: GamePlan): { drafts: GameDrafts; filled: string[]; problems: string[]; hh: HhEntry[]; hhTotal: number | null } {
   const filled: string[] = [];
-  const unplaced: string[] = [];
+  const problems: string[] = [];
   const v = { ...d.v };
-  for (const k of ['vessel', 'date', 'port', 'berth'] as const) {
-    if (p[k] && !v[k].trim()) {
-      if (k === 'berth' && !['1', '2', '3'].includes(p[k]!.replace(/\D/g, ''))) { unplaced.push(`Berth "${p[k]}" is not Berth 1, 2 or 3.`); continue; }
-      v[k] = k === 'berth' ? p[k]!.replace(/\D/g, '') : p[k]!;
-      filled.push(k);
-    }
-  }
-  const emptyAllocs = d.allocs.every((a) => !a.brand.trim() && !a.autos.trim() && !a.destination);
+  const fill = (k: 'vessel' | 'date' | 'port' | 'drivers', x: string | null) => { if (x && !v[k].trim()) { v[k] = x; filled.push(k); } };
+  fill('vessel', g.vessel); fill('date', g.date); fill('port', g.port); fill('drivers', g.drivers == null ? null : String(g.drivers));
+
+  // Brand → destination lines: paired yards by order; a row that could not be paired keeps its brands with no destination.
   let allocs = d.allocs;
-  if (emptyAllocs && p.destinations?.length) {
-    allocs = p.destinations.map((x) => {
-      const hit = destination(x.name);
-      const known = hit && TERMINAL.some((t) => t.name === hit.name) ? hit.name : '';
-      if (!known) unplaced.push(`Destination "${x.name}" is not in the terminal list: choose it.`);
-      return { brand: x.brand ?? '', autos: x.autos == null ? '' : String(x.autos), destination: known };
-    });
-    filled.push('destinations');
+  if (d.allocs.every((a) => !a.brand.trim() && !a.autos.trim() && !a.destination)) {
+    const by = new Map<string, Allocation>();
+    const add = (brand: string, qty: number, dest: string) => {
+      const k = `${brand}|${dest}`;
+      const a = by.get(k) ?? { brand, autos: '0', destination: dest };
+      a.autos = String(Number(a.autos) + qty);
+      by.set(k, a);
+    };
+    for (const r of g.autos) {
+      if (!r.split || !r.deck) continue; // a row with no deck number is reported by the reader and typed by hand
+      r.split.forEach((i, k) => {
+        const raw = r.pairs?.[k]?.yard ?? null;
+        const dest = raw ? yardName(raw) : null;
+        if (raw && !dest) problems.push(`Yard "${raw}" for ${i.brand} on deck ${r.deck} is not in the terminal list: choose its destination.`);
+        add(i.brand, i.qty, dest ?? '');
+      });
+    }
+    if (by.size) { allocs = [...by.values()]; filled.push('destinations'); }
   }
+
+  // Decks in printed (discharge) order, with the brand split at deck level and the hatch names from the HATCH column.
   let decks = d.decks;
-  if (!d.decks.length && p.decks?.length) {
-    decks = p.decks.map((x) => {
-      const base = emptyDeck();
-      const itemsOf = (h: string) => x.hatches.filter((y) => y.h === h).flatMap((y) => y.items).map((i) => ({ brand: i.brand, qty: String(i.qty) }));
-      const named = [...new Set(x.hatches.map((y) => y.h).filter((h) => !base.hatches.some((b) => b.h === h)))]; // Ramp etc., after H1
-      return { ...base, label: x.label, hatches: [...base.hatches.map((h) => (itemsOf(h.h).length ? { h: h.h, items: itemsOf(h.h) } : h)), ...named.map((h) => ({ h, items: itemsOf(h) }))] };
-    });
-    filled.push('decks');
+  if (!d.decks.length) {
+    decks = g.autos.filter((r) => r.deck).map((r) => ({
+      label: `D${r.deck}`, total: r.amount == null ? '' : String(r.amount), current: '',
+      split: r.split ? r.split.map((i) => ({ brand: i.brand, qty: String(i.qty) })) : [{ brand: '', qty: '' }],
+      hatches: (r.hatches ?? []).map((h) => ({ h, items: [] })),
+    }));
+    if (decks.length) filled.push('decks');
   }
-  return { drafts: { v, allocs, decks }, filled, unplaced };
+  // H/H rows need a deck: a row without one (for example a TOTAL whose label was missed) is never kept as H/H.
+  for (const r of g.hh) if (!r.deck) problems.push(`An H/H row with no deck (${[r.amount, r.cargo].filter((x) => x != null && x !== '').join(', ') || 'nothing readable'}) was not kept.`);
+  const hh = g.hh.filter((r) => r.deck).map((r) => ({ deck: r.deck, qty: r.amount, cargo: r.cargo, yard: r.yards.join(' / ') }));
+  return { drafts: { v, allocs, decks }, filled, problems, hh, hhTotal: g.hhTotal };
 }
 
-// Paperwork lines offered as Plan notes at Review: sentences (4+ words, at most a third of them with digits), not cargo rows.
-// Nothing is ticked for Colby; at most 30 are offered, in the order they appear.
-export function noteLines(text: string): string[] {
-  const out: string[] = [];
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.replace(/\s+/g, ' ').trim();
-    const words = line.split(' ');
-    const numeric = words.filter((w) => /\d/.test(w)).length;
-    if (words.length >= 4 && numeric * 3 <= words.length && !out.includes(line)) out.push(line);
-    if (out.length === 30) break;
-  }
-  return out;
+// Load list step: brand totals typed from the discharge summary (blank = not entered) against the decks.
+export type LoadRow = { brand: string; typed: number | null; decks: number; diff: number | null };
+// hhExists: the vessel has H/H rows even when the game plan's H/H TOTAL was not read.
+export function loadListCheck(typed: Record<string, string>, brandStart: Record<string, number>, hhTyped: string, hhGamePlan: number | null, hhExists = hhGamePlan != null) {
+  const errors: string[] = [];
+  const val = (s: string, what: string) => {
+    if (s.trim() === '') return null;
+    const x = Number(s.trim().replace(/,/g, ''));
+    if (!Number.isInteger(x) || x < 0) { errors.push(`${what}: type a whole number (got ${s.trim()}).`); return null; }
+    return x;
+  };
+  const brands = [...new Set([...Object.keys(brandStart), ...Object.keys(typed).filter((b) => typed[b].trim())])];
+  const rows: LoadRow[] = brands.map((b) => { const x = val(typed[b] ?? '', b); const dk = brandStart[b] ?? 0; return { brand: b, typed: x, decks: dk, diff: x == null ? null : x - dk }; });
+  const hh = val(hhTyped, 'H/H total');
+  const entered = rows.some((r) => r.typed != null) || hh != null;
+  const n = (x: number) => x.toLocaleString('en-US');
+  const discrepancies = [
+    ...rows.filter((r) => r.diff).map((r) => `${r.brand}: load list ${n(r.typed!)}, decks ${n(r.decks)} (difference ${n(Math.abs(r.diff!))}).`),
+    ...(hh != null && hhGamePlan != null && hh !== hhGamePlan ? [`H/H: load list ${n(hh)}, game plan ${n(hhGamePlan)} (difference ${n(Math.abs(hh - hhGamePlan))}).`] : []),
+  ];
+  const missing = entered ? [...rows.filter((r) => r.typed == null).map((r) => `${r.brand} not entered from the load list.`), ...(hh == null && (hhGamePlan != null || hhExists) ? ['H/H total not entered from the load list.'] : [])] : [];
+  return { rows, hh, hhGamePlan, entered, errors, discrepancies, missing, mismatch: discrepancies.length > 0 };
 }
 
-// Tap a paperwork line to use it for a Setup field (no AI needed). Only strips a leading label ("VESSEL:") or keeps the
-// date inside the line; nothing is guessed. Returns null when the line has nothing usable for that field.
-export function fieldFromLine(field: 'vessel' | 'port' | 'date', line: string): string | null {
-  const t = line.replace(/\s+/g, ' ').trim();
-  if (field === 'date') {
-    const m = t.match(/\b(\d{1,2})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{4}|\d{2})\b/);
-    return m ? `${Number(m[1])}/${Number(m[2])}/${m[3].length === 2 ? `20${m[3]}` : m[3]}` : null;
-  }
-  const label = field === 'vessel' ? /^(?:vessel|ship|m\/?v|mv)\b\s*[:\-]?\s*/i : /^port\b\s*[:\-]?\s*/i;
-  const v = t.replace(label, '').trim();
-  return v.length >= 2 && v.length <= 60 ? v : null;
-}
-
-// Header values that carry their own label on the same line ("VESSEL: Glovis Challenge", "DATE 9/21/2026", "BERTH 2"). The
-// label is what proves the meaning, so this needs no AI. Only the first such line per field; a berth must be 1, 2 or 3.
-export function labeledHeader(text: string): { vessel?: string; date?: string; port?: string; berth?: string } {
-  const out: { vessel?: string; date?: string; port?: string; berth?: string } = {};
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.replace(/\s+/g, ' ').trim();
-    if (!out.vessel && /^(?:vessel|ship|m\/?v)\b\s*[:\-]/i.test(line)) { const v = fieldFromLine('vessel', line); if (v) out.vessel = v; }
-    if (!out.port && /^port\b\s*[:\-]/i.test(line)) { const v = fieldFromLine('port', line); if (v) out.port = v; }
-    if (!out.date && /^(?:date|op(?:eration)? date)\b\s*[:\-]?/i.test(line)) { const v = fieldFromLine('date', line); if (v) out.date = v; }
-    if (!out.berth) { const m = line.match(/^berth\b\s*[:#-]?\s*([123])\b/i); if (m) out.berth = m[1]; }
-  }
-  return out;
+// What is stored on the vessel (baseline.verification) and shown on Plan.
+export function verificationFor(c: ReturnType<typeof loadListCheck>, override: boolean): Verification {
+  if (!c.entered) return { status: 'Load list not checked', discrepancies: [], missing: [], checks: [] };
+  const n = (x: number) => x.toLocaleString('en-US');
+  const checks = c.rows.filter((r) => r.typed != null && r.diff === 0).map((r) => `${r.brand}: load list ${n(r.typed!)} = decks`);
+  if (c.hh != null && c.hhGamePlan == null) checks.push(`H/H: load list ${n(c.hh)} (game plan count not read)`);
+  else if (c.hh != null && c.hh === c.hhGamePlan) checks.push(`H/H: load list ${n(c.hh)} = game plan ${n(c.hhGamePlan!)}`);
+  return {
+    status: c.mismatch ? (override ? 'Game plan controls (Colby override)' : 'Load list differs from the decks') : c.missing.length ? 'Load list partly checked' : 'Load list matches the decks',
+    discrepancies: c.discrepancies, missing: c.missing, checks,
+  };
 }

@@ -16,7 +16,7 @@ export type DeckResult = {
   label: string;
   status: DeckStatus;
   skipped: boolean;
-  hatches: { h: string; items: Item[]; qty: number; rem: number | null }[];
+  hatches: { h: string; items: Item[]; qty: number | null; rem: number | null }[]; // qty null = not on the paperwork
   start: number;
   rem: number | null; // null = unknown
   brandStart: Record<string, number>;
@@ -25,13 +25,14 @@ export type DeckResult = {
 
 export function deckCalc(d: Deck, st: DeckState = { status: 'notStarted' }): DeckResult {
   const status = st.status;
+  const split = d.cargo ?? null;
   const hatches = d.hatches.map((h) => {
-    const qty = h.items.reduce((s, i) => s + i.qty, 0);
+    const qty = split ? null : h.items.reduce((s, i) => s + i.qty, 0);
     const v = st.hatchRemaining?.[h.h];
     const rem = status === 'complete' ? 0 : status === 'notStarted' ? qty : typeof v === 'number' ? v : null;
     return { h: h.h, items: h.items, qty, rem };
   });
-  const start = hatches.reduce((s, h) => s + h.qty, 0);
+  const start = split ? split.reduce((s, i) => s + i.qty, 0) : hatches.reduce((s, h) => s + h.qty!, 0);
   let rem: number | null;
   if (status === 'complete') rem = 0;
   else if (status === 'notStarted') rem = start;
@@ -41,13 +42,14 @@ export function deckCalc(d: Deck, st: DeckState = { status: 'notStarted' }): Dec
   else rem = null;
 
   const brandStart: Record<string, number> = {};
-  for (const h of hatches) for (const i of h.items) brandStart[i.brand] = (brandStart[i.brand] ?? 0) + i.qty;
+  for (const i of split ?? hatches.flatMap((h) => h.items)) brandStart[i.brand] = (brandStart[i.brand] ?? 0) + i.qty;
   const brands = Object.keys(brandStart);
   const brandRem: Record<string, number | null> = {};
   if (rem === 0) brands.forEach((b) => (brandRem[b] = 0));
   else if (rem === start) brands.forEach((b) => (brandRem[b] = brandStart[b]));
   else if (rem == null) brands.forEach((b) => (brandRem[b] = null));
   else if (brands.length === 1) brandRem[brands[0]] = rem;
+  else if (split) brands.forEach((b) => (brandRem[b] = null)); // no hatch counts on paper: never split mid-deck by guess
   else {
     // Split by brand only where each hatch is single-brand, empty, or untouched.
     let ok = true;
@@ -67,15 +69,21 @@ export function deckCalc(d: Deck, st: DeckState = { status: 'notStarted' }): Dec
 // checkTotal: compare hatch sum with deck total. The engine runs that once per deck on
 // the final state (the tracker checks the whole sheet), not after every single entry.
 export function deckUpdate(d: Deck, input: DeckState, checkTotal = true): DeckState | Reject {
-  const qty = new Map(d.hatches.map((h) => [h.h, h.items.reduce((s, i) => s + i.qty, 0)]));
-  const start = [...qty.values()].reduce((s, x) => s + x, 0);
+  const split = d.cargo ?? null;
+  const qty = new Map<string, number | null>(d.hatches.map((h) => [h.h, split ? null : h.items.reduce((s, i) => s + i.qty, 0)]));
+  const start = split ? split.reduce((s, i) => s + i.qty, 0) : [...qty.values()].reduce((s: number, x) => s + x!, 0);
   if (input.skipped && input.status !== 'notStarted') return { ok: false, error: 'Only a Not started deck can be marked Skipped.' };
   const hr = input.hatchRemaining ?? {};
   for (const [h, v] of Object.entries(hr)) {
+    if (!qty.has(h)) return { ok: false, error: `${d.label} has no hatch ${h}.` };
     const max = qty.get(h);
-    if (max == null) return { ok: false, error: `${d.label} has no hatch ${h}.` };
     if (!Number.isInteger(v) || v < 0) return { ok: false, error: `${h} must be a whole number.` };
-    if (v > max) return { ok: false, error: `${h} exceeds its ${max} autos by ${v - max}. Check the count.` };
+    if (max == null) { if (v > start) return { ok: false, error: `${h} exceeds ${d.label}’s ${start} autos by ${v - start}. Check the count.` }; }
+    else if (v > max) return { ok: false, error: `${h} exceeds its ${max} autos by ${v - max}. Check the count.` };
+  }
+  if (split) { // counts entered so far can never add up past the deck's start
+    const sum = Object.values(hr).reduce((s, x) => s + x, 0);
+    if (sum > start) return { ok: false, error: `Hatch counts add to ${sum}, more than ${d.label}’s ${start} autos by ${sum - start}. Check the counts.` };
   }
   const dr = input.deckRemaining ?? null;
   if (dr != null) {

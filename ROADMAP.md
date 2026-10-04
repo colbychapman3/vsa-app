@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status (2026-10-03):** Phases 0-6 are done and phone-checked. TestFlight is live (store builds 3 and 4, internal group "Colby"). Phase 7 plan approved 2026-10-03. Checkpoint 2 (7c sidebar, Settings, Night) is built and tests pass (332); review and store build pending. Checkpoint 1 (7b import) waits on Step 0, Colby's phone screenshots.
+**Current status (2026-10-04):** Phases 0-6 done and phone-checked. TestFlight live; build 5 (checkpoint 2: sidebar, Settings, Night) submitted 2026-10-03. Checkpoint 1, the game plan reader (spec phase-6e), is built (378 tests; 5 review rounds, 16 required findings fixed; round 5 still had 2, both fixed; loop stopped by Colby to ship). Shipped as build 6 for the phone check. Keep import photos moved to next. Checkpoint 3 (smarter Ask) after.
 
 ## Done (details in git history and `docs/specs/`)
 - **0 Setup:** Expo (TypeScript) project, private GitHub repo, kit files in `docs/`, app spec (`app-spec.md`).
@@ -22,18 +22,18 @@ Update the status line when a phase changes.
 ## Phase 7: TestFlight, paperwork import, sidebar, smarter Ask
 **7a TestFlight: live.** Store builds ship headless: `eas build --platform ios --profile production --non-interactive`, then `eas submit --platform ios --profile production --latest --non-interactive`. Colby's phone check happens on the TestFlight build, so there is no separate dev build for this phase (nothing here needs the dev client). Each checkpoint below is one store build; EAS counts builds against the plan's monthly quota.
 
-Specs: `phase-7-game-plan-import.md` (7b, approved 2026-10-03), `phase-7-sidebar.md` (7c, drafted). 7d has no spec file; its plan is below. Example paperwork: `docs/reference/game-plan-example-hector-highway-10a/`.
+Specs: `phase-6e-game-plan-reader.md` (7b, approved 2026-10-04; replaces `phase-7-game-plan-import.md`), `phase-7-sidebar.md` (7c, built). 7d has no spec file; its plan is below. Example paperwork: `docs/reference/game-plan-example-hector-highway-10a/`.
 
-**Phase 7 plan (awaiting Colby's approval; approval covers all three checkpoints):**
+**Phase 7 plan (approved 2026-10-03; checkpoint 1 replaced by the 6e spec, approved 2026-10-04):**
 
-**Step 0 (Colby, about 5 minutes, blocks the parser).** In the TestFlight app: New vessel → Upload photos → the game plan page and both discharge-summary pages → Show paperwork text → send screenshots of that text. The phone's reader returns text lines without positions, so only this shows what the parser will really receive.
-
-**Checkpoint 1: 7b Paperwork import (Colby's top priority)**
-1. Fixtures from Step 0, then `src/app/gamePlan.ts` (pure) with tests: page classification, AUTO'S and H/H tables, port filter (SSI rows only), hatch notations, load list from the Discharge Summary, cross-checks, unparsed lines.
-2. `mergeGamePlan` in `setup.ts` and wiring in `Setup.tsx` (source line shown on every filled box; AI off still prefills; warning lines to the Notes step).
-3. H&H awareness as an optional `hh` baseline field (no new event type; old logs replay unchanged; test), Review block, shared-deck marker.
-3b. Keep import photos switch (Settings) with its storage: copy the picked photos under the vessel when on, list them in Plan as Paperwork photos; ships later rather than half-built.
-4. Gate: `npm test`, `npm run typecheck`, `npm run check:ios`, one reviewer pass, store build, phone check with the real photos.
+**Checkpoint 1: 7b Game plan reader** (spec `phase-6e-game-plan-reader.md`; Colby's top priority). Step 0 is done: Colby's photos and "Show paperwork text" screenshots (2026-10-03) showed the old reader loses table rows.
+1. Fixtures: photos and word-position fixtures (done 2026-10-04); row rebuilding `src/app/layout.ts` with tests (done).
+2. Engine: deck-level brand split `Deck.cargo` (hatch counts may be unknown), tests first.
+3. `src/app/gamePlan.ts`: the cover-page reader with every check in the spec.
+4. Setup: Read the game plan as step 0, Load list step, tags, notes area, H/H ledger; old 6c import removed.
+5. `modules/vsa-text`: Vision reader with positions; `readPhotos` switched over; `expo-text-extractor` removed.
+6. Keep import photos (Settings switch and storage), if it fits; otherwise next.
+7. Gate: tests, typecheck, check:ios, review loop to zero required, TestFlight build, phone check (this game plan, VIN scan, van sheet, notes).
 
 **Checkpoint 2: 7c Sidebar, Settings, Night**
 5. First, a short spike: do the tab and map SVG icons accept dynamic colors? If not, a small `useColors()` hook for SVG components only.

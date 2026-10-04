@@ -11,6 +11,7 @@ export type Banner = { tone: Tone; title: string; sub: string; trackable: boolea
 const fmt = (n: number | null | undefined) => (n == null || Number.isNaN(n) ? '—' : n.toLocaleString('en-US'));
 const m2 = (m: number) => `${m.toFixed(2)} m`;
 type Deck = State['decks'][number];
+const h0 = (d: Deck) => d.hatches.every((h) => h.qty != null); // true: counts per hatch are on the paperwork
 const isLow = (d: Deck) => d.height.level === 'hard' && d.status !== 'complete';
 const isUnconfirmed = (d: Deck) => d.height.level === 'soft' && d.status !== 'complete';
 
@@ -283,9 +284,21 @@ export function decksView(s: State) {
       : null,
     height: heightChip(d),
     photos: livePhotos(s).filter((x) => x.deck === d.id).length,
-    hatches: d.hatches.map((h) => ({ h: h.h, text: h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), photos: livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h).length })),
+    // Deck-level split (game plan): one line for the deck; hatch chips show the hatch name only.
+    split: h0(d) ? null : Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + '),
+    hatches: d.hatches.map((h) => ({ h: h.h, text: h.qty == null ? '' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), photos: livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h).length })),
   }));
   return { low, unconfirmed, rows };
+}
+
+// High & Heavy count for Plan (its own ledger). Unknown when a row was not read, or when the rows don't add to the
+// printed game plan TOTAL (stored as hhTotal; null = not read). Reference baselines without hhTotal show their rows' sum.
+export function hhText(b: Record<string, unknown>): string {
+  const hh = b.hh as { qty: number | null }[] | undefined;
+  if (!hh || hh.some((x) => x.qty == null)) return '—';
+  const sum = hh.reduce((t, x) => t + x.qty!, 0);
+  if ('hhTotal' in b && b.hhTotal !== sum) return '—';
+  return fmt(sum);
 }
 
 export function deckSheet(d: Deck, b: Baseline) {
@@ -296,7 +309,9 @@ export function deckSheet(d: Deck, b: Baseline) {
     remaining: fmt(d.rem),
     height: heightChip(d),
     possible: heights.length ? `Possible: ${heights.map((h) => h.m.toFixed(2)).join(' / ')} m` : 'Possible heights not on the stow plan',
-    hatches: d.hatches.map((h) => ({ h: h.h, qty: h.qty, rem: h.rem, brands: h.items.map((i) => `${i.brand} ${i.qty}`).join(' + ') })),
+    hatches: d.hatches.map((h) => ({ h: h.h, qty: h.qty, rem: h.rem, brands: h.qty == null ? 'count not on paperwork' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + ') })),
+    // Deck-level split (game plan): the brands are known for the deck, not per hatch.
+    split: h0(d) ? null : Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + '),
     history: d.history.slice(-3).map((x) => `${x.time} ${STATUS_PILL[x.status]}`),
     // The sheet opens with what was last entered (Active/Paused only); clearing a box saves "unknown".
     prefill: d.status === 'active' || d.status === 'paused' ? d.entered : { hatches: {}, deck: null },
@@ -405,7 +420,6 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
   const open = s.issues.filter((i) => i.status === 'open');
   const resolved = s.issues.filter((i) => i.status === 'resolved').slice(-5);
   const v = (b.verification ?? {}) as { status?: string; discrepancies?: string[]; missing?: string[]; checks?: string[] };
-  const hh = b.hh as { qty: number }[] | undefined; // undefined = not on the baseline = unknown
   const labor = (b.labor ?? {}) as { autoDrivers?: number; gangs?: number[]; vanDrivers?: number; heavyGang?: number };
   return {
     heights,
@@ -421,8 +435,11 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
     baseline: {
       start: fmt(s.start),
       brands: s.brands.map((x) => `${fmt(x.start)} ${x.name}`).join(' + '),
-      hh: hh ? fmt(hh.reduce((t, x) => t + x.qty, 0)) : '—',
-      verified: v.status === 'verified',
+      hh: hhText(b),
+      // 'verified' comes with reference baselines; a new vessel's load list check says it in words (Setup › Load list).
+      verified: v.status === 'verified' || v.status === 'Load list matches the decks',
+      status: v.status && v.status !== 'verified' ? v.status : null,
+      discrepancyLines: v.discrepancies ?? [],
       discrepancies: `${(v.discrepancies ?? []).length} discrepancies`,
       missing: (v.missing ?? []).length ? `Missing: ${v.missing!.join(', ')}` : 'Nothing missing',
       checks: v.checks ?? [],

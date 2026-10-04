@@ -42,10 +42,11 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
               <Icon name="chev" color={color.muted} />
             </View>
             {r.cleared && <Note style={s.indent}>{r.cleared}</Note>}
+            {!r.cleared && r.split && <Note style={s.indent}>Deck split: {r.split} · counts per hatch not on paperwork</Note>}
             <View style={[s.chips, s.indent]}>
               <Chip text={r.height.text} tone={r.height.tone} />
               {r.photos > 0 && <Chip text={`${r.photos} photo${r.photos === 1 ? '' : 's'}`} tone="orange" />}
-              {r.hatches.map((h) => <Chip key={h.h} text={`${h.h} ${h.text}${h.photos ? ` · ${h.photos} photo${h.photos === 1 ? '' : 's'}` : ''}`} />)}
+              {r.hatches.map((h) => <Chip key={h.h} text={`${h.h}${h.text ? ` ${h.text}` : ''}${h.photos ? ` · ${h.photos} photo${h.photos === 1 ? '' : 's'}` : ''}`} />)}
             </View>
           </Pressable>
         ))}
