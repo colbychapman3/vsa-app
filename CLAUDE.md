@@ -40,6 +40,7 @@ Authority order: current user correction > project instructions > protocol > cur
 3. Keep it minimal (Ponytail is installed), but never cut validation, error handling, or data integrity.
 4. On failure: state the error, the impact, and recovery options. Don't guess past it.
 5. **Decide, don't ask.** Answer questions from this file, `docs/`, the skills, and `docs/reference/vsa-live.html`; record the decision in the commit or report. Ask Colby only when (a) the answer changes a protocol/data rule or what a number means on the terminal, (b) the docs conflict with each other or the tracker, (c) it costs money, publishes, or can't be undone. Batch questions: at most one message per phase gate, with a recommended default for each.
+6. **Real inputs before "done."** Any feature that reads paperwork or photos is tested on Colby's real paperwork (or a faithful transcription of it), not hand-written sample text. Why: the 6c setup photo import passed its synthetic tests but did nothing useful on real game plans (scrapped 2026-10-04). How to apply: get a real sample before the spec is approved; make it the pass/fail fixture. Paperwork photos contain VINs and booking numbers, so commit them only with Colby's explicit OK.
 
 ## Long-term memory: Colby's AI Brain (NotebookLM)
 
