@@ -1,5 +1,5 @@
 # Stevedoring & VSA Glossary: Colonels Island, Brunswick GA
-Version 1.1 · Compiled 2026-09-24 (v1.1: operator names confirmed) · Owner: Colby
+Version 1.2 · Compiled 2026-09-24 (v1.1: operator names confirmed; v1.2 2026-10-05: Appendix D zone correction, Yard 3 wording) · Owner: Colby
 
 **How to read the Status column** (it follows the VSA fact-classification rule):
 - **Confirmed**: stated by Colby, or part of the VSA Operating Protocol. Authoritative.
@@ -23,8 +23,8 @@ Colby's current direct instruction and the official SOPs outrank this glossary.
 | Zone T | Southside field, 30-min cutoff | Confirmed |
 | Zone V | Southside field, 30-min cutoff | Confirmed |
 | Zone / Yard / Site | The three lot categories on the terminal master map, each color-coded | Confirmed |
-| Zone renumbering | Old Zone 7 → **Zone 9**; old Zone 8 → **Zone 7**; old Zone 9 → **Zone 8** | Confirmed |
-| Yard 3 | Formerly "Site 4", recategorized as a yard | Confirmed |
+| Zone renumbering | Old Zone 7 → **Zone 9**; old Zone 8 → **Zone 7**; old Zone 9 → **Zone 8**. The original Protocol v1.1 Appendices C and D print Zones 7-9 under the **old** numbers; use the corrected distances in the Project Instructions (rev 3) | Confirmed |
+| Yard 3 | Split off the Berth 3 end of old Site 4 and recategorized as a yard. Site 4 is still its own lot; Appendix D lists both correctly | Confirmed |
 | Markers 1–7 | Red numbered markers carried over from the IAP (International Auto Processing) wall map | Confirmed |
 | Berth | Vessel docking position; one of the reference points for distances | Industry |
 | Discharge yard / Load-back yard | Lots where discharged units are staged, or where units wait to be loaded; reference points for distances | Confirmed |

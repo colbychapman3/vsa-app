@@ -1,6 +1,6 @@
 # Spec: game plan reader (Phase 6e, replaces the 6c setup photo import)
 
-Status: **APPROVED** by Colby 2026-10-04. Built as Phase 7 checkpoint 1 (replaces `phase-7-game-plan-import.md`). Shipped as a TestFlight store build, like checkpoint 2, instead of a dev build.
+Status: **APPROVED** by Colby 2026-10-04. Built as Phase 7 checkpoint 1 (replaces `superseded/phase-7-game-plan-import.md`). Shipped as a TestFlight store build, like checkpoint 2, instead of a dev build.
 
 ## Why
 The 6c photo import did not reach its goal. Apple's text reader gave flat lines with no positions, so table rows could not be rebuilt. The on-device model could not read a table from that text, and the proposal check then dropped most of what it did read. The deck/hatch grid, which is the real work, was still typed by hand. None of it was ever tested on a real photo. It is removed, not repaired.

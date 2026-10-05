@@ -36,5 +36,5 @@ The record is an append-only log of kit-06 events (`docs/06_event_log_schema.jso
 - Schema changes bump `SCHEMA_VERSION` and add a migration step; never rewrite V1. The app refuses a database newer than itself.
 - Tests run the same store on `node:sqlite` (`tests/nodeDb.ts`). Every new entry type gets a test that saves through `store.append` and reads back through `project()`.
 
-## Later (Phase 5)
-Export the raw database file through the iOS share sheet as an audit backup.
+## Backup (built in Phase 5)
+One vessel's log exports and imports as a checksummed JSON file (`src/storage/backup.ts`). Import only ever appends; it never overwrites or deletes.

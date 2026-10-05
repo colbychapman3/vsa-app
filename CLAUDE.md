@@ -8,16 +8,36 @@ The working prototype is the **VSA Live tracker** (Claude artifact). Treat its b
 ## Source of truth (read before building anything)
 
 In `docs/` (from the VSA Migration Kit v1.0):
-- `Virtual_Stevedore_Assistant_Operating_Protocol_v1.1.pdf`: operating protocol; `14_Operating_Protocol_v1.1_TEXT.md` is its searchable text copy (the PDF wins if they differ)
+- `Virtual_Stevedore_Assistant_Operating_Protocol_v1.1.pdf`: operating protocol; `14_Operating_Protocol_v1.1_TEXT.md` is its searchable text copy (the PDF wins if they differ; corrected 2026-10-05 for Appendix D Zones 7-9)
 - `VSA_Project_Instructions_v2.1.md`: controlling rules (ranks above the protocol)
 - `05` state schema, `06` event schema, `07` calculation guide, `15` integration/replay
 - `11_validation_tests.json` and `12` acceptance test: turn these into automated tests
 
 In `docs/reference/`:
-- `vsa-live.html`: source of the VSA Live tracker, the working prototype. Its screens and math are the reference behavior; port the logic, don't copy the web code as-is.
+- `vsa-live.html`: source of the VSA Live tracker, the working prototype. Its screens and math are the reference behavior; port the logic, don't copy the web code as-is. It is 75 KB: grep it for the function you need instead of reading it whole.
 - `glovis-condor-101-baseline.json`: a real, verified vessel baseline (1,969 autos). Use it as a test fixture only.
 
-Plan: `ROADMAP.md` (phases and current status). Specs from `/spec` go in `docs/specs/`.
+Terms (Zone 1 vs MBZ, short hours, lot names): `docs/knowledge-src/VSA-Glossary.md`, the same glossary as the Project's.
+
+Plan: `ROADMAP.md` (its **Now** block is the current status; this file does not repeat it). Specs from `/spec` go in `docs/specs/`; replaced specs move to `docs/specs/superseded/` with a banner naming their replacement.
+
+## Where things are
+
+- `src/engine/` pure rules engine (no UI, storage or AI). `src/engine/terminal.ts` is the terminal directory: Appendix C sides/cutoffs and Appendix D berth miles.
+- `src/storage/` SQLite store, schema, migrations, backup. `src/app/` view model (`view.ts`), entry builders, AI glue, screens (`src/app/screens/`).
+- `modules/vsa-text/` local Expo module: Apple Vision text with word positions (Swift in `modules/vsa-text/ios/`). `plugins/withoutPush.js` config plugin.
+- `tests/` node:test suite; `tests/fixtures/` real-paperwork fixtures (Hector Highway 10A) and the event replay.
+- Generated files, never hand-edited: `assets/knowledge/index.json` (run `node scripts/build-knowledge.mjs` after changing `docs/knowledge-src/`), `src/app/map/data.ts` and `assets/terminal-map.jpg` (run `node scripts/export-map.mjs` after updating `docs/reference/terminal-map.html` or `terminal-map-edits.json`).
+
+## Commands (PowerShell on Windows 11; Node 22 per `.nvmrc`)
+
+```
+npm test                 # node:test suite (must stay green; CI runs it with typecheck on every push)
+npm run typecheck        # tsc --noEmit
+npm run check:ios        # iOS bundle builds (writes dist/, gitignored)
+eas build --platform ios --profile production --non-interactive          # TestFlight store build (counts against the EAS quota)
+eas submit --platform ios --profile production --latest --non-interactive
+```
 
 ## Installed tools (Claude Code plugins)
 
@@ -30,6 +50,9 @@ Load the matching skill before changing that layer. They apply the rules below; 
 - **vsa-field-ui**: screens and sheets (tap size, sun contrast, no mid-word wrapping, one modal at a time).
 - **vsa-event-ledger**: events, corrections, storage and migrations.
 - **vsa-rules-engine**: engine and view-model math, validation, and the `node:test` discipline.
+- **polish**: final quality pass on a feature or screen before a phone check.
+
+`AGENTS.md` only points other agents here. Never copy these rules or skills elsewhere: copies drift (the old `.agents/` copy did).
 
 Authority order: current user correction > project instructions > protocol > current-vessel paperwork > historical references > inference.
 
@@ -75,8 +98,9 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 - At breaks and end of shift: ship must equal field (overall and by brand). Match = green; ship ahead = warning; field ahead = red.
 
 **Time and production**
-- Breaks are 12:00 and 18:00, always 1 hour.
-- Clear-by before breaks: Northside 15 min, Southside 30 min. Southside = Zone 1, MBZ, Zone T, Zone V. "MB Field" alone means MBZ; Zone 1 is separate. Apply a cutoff once; never double-subtract when a stop time is given.
+- Scheduled breaks are 12:00 and 18:00, always 1 hour. Clear-by applies before any scheduled break (the engine takes a list), never to a stop time Colby gives.
+- Zone 7-9 correction (Colby, 2026-10-05; Project Instructions rev 3): the first issue of protocol v1.1 printed Appendix D Zones 7-9 under old numbers; the PDF in `docs/` and the Project is the corrected issue. Current Zone 7 = 1.50/1.50/1.50 mi, Zone 8 = 1.50/1.50/1.70, Zone 9 = 1.50/1.40/1.20 (Berths 1/2/3); all Northside. `terminal.ts` and `tests/map.test.ts` hold this. Site 4 and Yard 3 are both current lots, correct as printed.
+- Clear-by before breaks: Northside 15 min, Southside 30 min. Southside (Protocol Appendix C) = Zone 1, MBZ, Zone T, Zone V, Zone X, Zone B, Site 5, Site 6, Gate 2; everything else is Northside. `src/engine/terminal.ts` holds the list; change it there, with a test, never in a screen. "MB Field" alone means MBZ; Zone 1 is separate. Apply a cutoff once; never double-subtract when a stop time is given.
 - The pre-break hour is short: record when production stopped (:30 or :45). Pace uses productive minutes.
 - H.A. = field count ÷ counted hours (denominator shown). Pace = field count ÷ productive hours. Show both.
 - ETA is always labeled FORECAST, is break-aware, and is never marked complete automatically.
@@ -91,9 +115,17 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 ## Tech (decided)
 
 - **Expo (React Native, TypeScript), iOS-first.** Chosen over a PWA because official records need app-owned offline storage, and because the goals include the App Store and Apple's on-device model.
-- **Storage:** `expo-sqlite` on the device is the source of truth. The app must work fully with no signal, queue changes, and sync when back online.
+- **Storage:** `expo-sqlite` on the device is the source of truth: an append-only event log, state rebuilt from events. The app works fully with no signal. Sync is not built (backlog); export and import of a vessel log is the substitute. Never delete the app from a phone before exporting.
 - **Rules engine:** all protocol math and validation live in plain, tested TypeScript with no UI or AI dependencies.
-- **Apple on-device model (optional layer, later):** used only to interpret input into structured entries; never does math or decides facts. The app must work fully without it (availability check, quick-entry buttons as fallback).
-- **Builds:** EAS Build in the cloud (dev machine is Windows 11, PowerShell, no Mac). Test on device with a development build, not Expo Go, once native modules are added.
+- **Apple on-device model (built in 6c, optional):** `@react-native-ai/apple`. Only proposes structured entries; `src/engine/proposal.ts` checks every proposal and Colby confirms. It never does math or decides facts. The app works fully without it.
+- **Text reading:** `modules/vsa-text` (Apple Vision, offline, word positions). Language correction stays off for paperwork so numbers and codes come back as printed.
+- **Builds:** EAS Build in the cloud (no Mac). Phone checks happen on TestFlight store builds; the `development` profile exists for native debugging. EAS is a paid plan with a monthly build quota, so batch changes into one build per checkpoint.
+- **No paid online AI.** Ask my AI hands questions to Colby's own AI app through the share sheet; no API, no recurring cost (declined 2026-10-01).
 - **Web output:** optional later, for view-only sharing with supervisors.
-- **Field conditions:** readable in direct sun with gloves: large tap targets, high contrast, light hi-vis theme matching the VSA Live tracker.
+- **Field conditions:** readable in direct sun with gloves: large tap targets, high contrast, light hi-vis theme matching the VSA Live tracker, plus Night mode at 7:1 contrast.
+
+## Gotchas
+
+- **Native source must be committed.** EAS uploads skip anything `.gitignore` excludes. Only the root `/ios/` and `/android/` folders are generated; `modules/*/ios/` is source. A bare `ios/` rule hid the Swift reader, so build #7 shipped without it (2026-10-05). `tests/native.test.ts` now fails if that happens again. After each store build, confirm the module names (e.g. `VsaText`) appear in the build log before the phone check.
+- **Large generated files** (`package-lock.json`, `docs/reference/terminal-map.html`, `assets/knowledge/index.json`, `dist/`) are blocked from reading in `.claude/settings.json`; change them only through their scripts.
+- **Paperwork photos and fixtures** contain VINs and booking numbers: commit new ones only with Colby's OK (rule 6).

@@ -33,6 +33,16 @@ test('each directory card shows the directory side, cutoff and berth miles, matc
   }
 });
 
+// Colby's correction 2026-10-05: Appendix D lists Zones 7-9 under their old numbers (old 7 = Zone 9,
+// old 8 = Zone 7, old 9 = Zone 8). The directory carries the current names, so each row moved with its lot.
+test('Zones 7-9 carry the distances of their current lots, not the old Appendix D numbers', () => {
+  const mi = (n: string) => [1, 2, 3].map((b) => terminalInfo(n, b)!.mi);
+  assert.deepEqual(mi('Zone 7'), [1.50, 1.50, 1.50]); // Appendix D "Zone 8"
+  assert.deepEqual(mi('Zone 8'), [1.50, 1.50, 1.70]); // Appendix D "Zone 9"
+  assert.deepEqual(mi('Zone 9'), [1.50, 1.40, 1.20]); // Appendix D "Zone 7"
+  for (const n of ['Zone 7', 'Zone 8', 'Zone 9']) assert.equal(terminalInfo(n, 1)!.clearBy, 15, n);
+});
+
 test('the map file agrees with the directory on every cutoff', () => assert.deepEqual(cutoffDisagreements().map((f) => f.name), []));
 
 test('a feature with no directory entry is listed with unknown side and cutoff, never dropped', () => {

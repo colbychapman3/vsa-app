@@ -1,6 +1,8 @@
-# Operating Protocol v1.1 - searchable extraction
+# Operating Protocol v1.1 (corrected 2026-10-05) - searchable extraction
 
 Extracted from the included original PDF supplied by the user. The PDF controls layout, tables and any extraction ambiguity. This is not a reconstructed protocol. PDF page numbers follow.
+
+> **Corrected PDF, 2026-10-05:** the first issue of v1.1 printed Zones 7-9 in Appendix D under their old numbers. The corrected PDF (and this copy) give each current lot its own distances: Zone 7 = 1.50 / 1.50 / 1.50 mi, Zone 8 = 1.50 / 1.50 / 1.70 mi, Zone 9 = 1.50 / 1.40 / 1.20 mi (rows marked *). Confirmed by Colby; see Project Instructions v2.1 rev 3.
 
 PAGE 1
 Virtual Stevedore Assistant Operating Protocol - v1.1
@@ -360,6 +362,7 @@ PAGE 10
 Virtual Stevedore Assistant Operating Protocol - v1.1
 Page 10
 Appendix D - Authoritative Berth-to-Destination Distances
+
 Measured route mileage supplied/verified during the September 2026 terminal-reference update. Rail Yard is intentionally excluded from distance tracking.
 Use these distances instead of estimating from map scale.
  Destination
@@ -406,18 +409,18 @@ Zone 6
  1.30 mi
  1.25 mi
  1.50 mi
-Zone 7
- 1.50 mi
- 1.40 mi
- 1.20 mi
-Zone 8
+Zone 7 *
  1.50 mi
  1.50 mi
  1.50 mi
-Zone 9
+Zone 8 *
  1.50 mi
  1.50 mi
  1.70 mi
+Zone 9 *
+ 1.50 mi
+ 1.40 mi
+ 1.20 mi
 Zone T
  2.10 mi
  1.90 mi

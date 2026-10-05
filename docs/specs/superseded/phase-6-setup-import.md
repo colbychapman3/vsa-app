@@ -1,3 +1,5 @@
+> **Superseded 2026-10-04** by `../phase-6e-game-plan-reader.md`. The 6c photo import was removed in Phase 7b (commit 2df3eba). Kept for history only.
+
 # Spec: setup-import (Phase 6c)
 
 ## Objective

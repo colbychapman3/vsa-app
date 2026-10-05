@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(/package-lock.json)",
+      "Read(/docs/reference/terminal-map.html)",
+      "Read(/assets/knowledge/index.json)",
+      "Read(/dist/**)"
+    ]
+  }
+}
