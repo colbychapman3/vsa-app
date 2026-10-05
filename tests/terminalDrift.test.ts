@@ -24,7 +24,7 @@ function pdfText(): { c: C; d: D } {
 }
 // Knowledge copy (what the in-app search reads): markdown tables.
 function knowledgeTables(): { c: C; d: D; text: string } {
-  const text = read('knowledge-src/VSA-Operating-Protocol-v1.1.md'), md = text.split('\n');
+  const text = read('knowledge-src/VSA-Operating-Protocol-v1.1.md'), md = text.split(/\r?\n/);
   const rows = (from: RegExp, to: RegExp) => {
     const a = md.findIndex((l) => from.test(l)), b = md.findIndex((l, i) => i > a && to.test(l));
     return md.slice(a, b < 0 ? undefined : b).filter((l) => l.startsWith('|') && !/^\|[-| ]+\|$/.test(l)).slice(1).map((l) => l.split('|').slice(1, -1).map((x) => x.trim()));
