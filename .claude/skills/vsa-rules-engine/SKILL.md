@@ -24,9 +24,10 @@ All protocol math and validation live in `src/engine/` (plain TypeScript). `src/
 - **ETA** is labeled FORECAST, break-aware, can roll into Day 2, and is never marked complete by itself.
 
 ## Breaks and clear-by
-- Breaks 12:00 and 18:00, one hour each.
-- Clear-by is a fixed offset before the break: Northside 15 min, Southside 30 min (`CLEAR_BY_MIN`). Southside = Zone 1, MBZ, Zone T, Zone V (and the other Appendix C Southside names in `time.ts`). "MB Field" alone = MBZ. Apply once; when Colby gives a stop time, use it and don't subtract again.
+- Scheduled breaks are 12:00 and 18:00 (`BREAKS` in `src/app/setup.ts`), one hour each. The engine takes a list of breaks, so clear-by applies before any scheduled break, never only those two.
+- Clear-by is a fixed offset before the break: Northside 15 min, Southside 30 min (`CLEAR_BY_MIN`). Southside = Zone 1, MBZ, Zone T, Zone V, Zone X, Zone B, Site 5, Site 6, Gate 2 (Appendix C; `time.ts` and `terminal.ts`). "MB Field" alone = MBZ. Apply once; when Colby gives a stop time, use it and don't subtract again.
 - Don't compute clear-by from travel times: reference times don't say one-way or round trip.
+- Berth miles come from `terminal.ts` (Appendix D with current zone names; Zones 7-9 corrected 2026-10-05). Never re-key them from the first-issue PDF.
 
 ## Validation
 - Impossible values are refused with the exact overage (e.g. "exceeds starting cargo (1,969) by 12"). Never clamp.

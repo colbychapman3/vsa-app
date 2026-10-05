@@ -37,4 +37,4 @@ Field feedback 2026-09-27: "COMPLETIO/N", "CALCULATE/D", "Brea/ks" at large text
 - TEST vessels always show the TEST chip, including inside sheets.
 
 ## Done means
-`npm test`, `npm run typecheck`, `npm run check:ios` pass, and the screen was looked at on the phone (dev build) at normal and large text sizes.
+`npm test`, `npm run typecheck`, `npm run check:ios` pass, and the screen was looked at on the phone (TestFlight build) at normal and large text sizes.

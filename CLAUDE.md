@@ -14,10 +14,12 @@ In `docs/` (from the VSA Migration Kit v1.0):
 - `11_validation_tests.json` and `12` acceptance test: turn these into automated tests
 
 In `docs/reference/`:
-- `vsa-live.html`: source of the VSA Live tracker, the working prototype. Its screens and math are the reference behavior; port the logic, don't copy the web code as-is.
+- `vsa-live.html`: source of the VSA Live tracker, the working prototype. Its screens and math are the reference behavior; port the logic, don't copy the web code as-is. It is 75 KB: grep it for the function you need instead of reading it whole.
 - `glovis-condor-101-baseline.json`: a real, verified vessel baseline (1,969 autos). Use it as a test fixture only.
 
-Plan: `ROADMAP.md` (phases and current status; this file does not repeat status). Specs from `/spec` go in `docs/specs/`; replaced specs move to `docs/specs/superseded/` with a banner naming their replacement.
+Terms (Zone 1 vs MBZ, short hours, lot names): `docs/knowledge-src/VSA-Glossary.md`, the same glossary as the Project's.
+
+Plan: `ROADMAP.md` (its **Now** block is the current status; this file does not repeat it). Specs from `/spec` go in `docs/specs/`; replaced specs move to `docs/specs/superseded/` with a banner naming their replacement.
 
 ## Where things are
 
@@ -96,7 +98,7 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 - At breaks and end of shift: ship must equal field (overall and by brand). Match = green; ship ahead = warning; field ahead = red.
 
 **Time and production**
-- Breaks are 12:00 and 18:00, always 1 hour.
+- Scheduled breaks are 12:00 and 18:00, always 1 hour. Clear-by applies before any scheduled break (the engine takes a list), never to a stop time Colby gives.
 - Zone 7-9 correction (Colby, 2026-10-05; Project Instructions rev 3): the first issue of protocol v1.1 printed Appendix D Zones 7-9 under old numbers; the PDF in `docs/` and the Project is the corrected issue. Current Zone 7 = 1.50/1.50/1.50 mi, Zone 8 = 1.50/1.50/1.70, Zone 9 = 1.50/1.40/1.20 (Berths 1/2/3); all Northside. `terminal.ts` and `tests/map.test.ts` hold this. Site 4 and Yard 3 are both current lots, correct as printed.
 - Clear-by before breaks: Northside 15 min, Southside 30 min. Southside (Protocol Appendix C) = Zone 1, MBZ, Zone T, Zone V, Zone X, Zone B, Site 5, Site 6, Gate 2; everything else is Northside. `src/engine/terminal.ts` holds the list; change it there, with a test, never in a screen. "MB Field" alone means MBZ; Zone 1 is separate. Apply a cutoff once; never double-subtract when a stop time is given.
 - The pre-break hour is short: record when production stopped (:30 or :45). Pace uses productive minutes.
@@ -124,5 +126,6 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 
 ## Gotchas
 
-- **Native source must be committed.** EAS uploads skip anything `.gitignore` excludes. Only the root `/ios/` and `/android/` folders are generated; `modules/*/ios/` is source. Until 2026-10-05 a bare `ios/` rule hid the Swift reader from git and from EAS builds. After adding native files, run `git status` and confirm they show up.
+- **Native source must be committed.** EAS uploads skip anything `.gitignore` excludes. Only the root `/ios/` and `/android/` folders are generated; `modules/*/ios/` is source. A bare `ios/` rule hid the Swift reader, so build #7 shipped without it (2026-10-05). `tests/native.test.ts` now fails if that happens again. After each store build, confirm the module names (e.g. `VsaText`) appear in the build log before the phone check.
+- **Large generated files** (`package-lock.json`, `docs/reference/terminal-map.html`, `assets/knowledge/index.json`, `dist/`) are blocked from reading in `.claude/settings.json`; change them only through their scripts.
 - **Paperwork photos and fixtures** contain VINs and booking numbers: commit new ones only with Colby's OK (rule 6).
