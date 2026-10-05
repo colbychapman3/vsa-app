@@ -38,4 +38,4 @@ All protocol math and validation live in `src/engine/` (plain TypeScript). `src/
 - `npm test` runs `node --test --experimental-strip-types "tests/**/*.test.ts"`. Tests live in `tests/<module>.test.ts`; fixtures in `tests/fixtures/` and `tests/scenarios.ts`.
 - Every rule change gets a test first (or with it), including the refusal message.
 - The screen-number tests in `tests/view.test.ts` (screens 01–03) and the Glovis Condor 101 replay must keep passing; if a change moves one of those numbers, stop and ask Colby.
-- Before committing: `npm test`, `npm run typecheck`, `npm run check:ios`.
+- Before committing: `npm test`, `npm run typecheck`, `npm run lint`, `npm run check:ios`. Replay stays linear: never add a scan or copy of the whole log per event (`tests/replayScaling.test.ts` fails if you do).

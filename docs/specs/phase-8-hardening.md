@@ -1,6 +1,6 @@
 # Spec: Phase 8, Harden the shell around the core
 
-Status: **DRAFT**, waiting on Colby's approval. Source: ChatGPT's "Final Repository Review" and ChatLLM's "Final Review Conclusion" (both 2026-10-05), checked against `main` @ `d403e78`. Anything marked *verified* was run or read in the repo on 2026-10-05.
+Status: **APPROVED by Colby 2026-10-05** with the recommended default for every open question. 8a and 8b are built (see "Built" at the end). Source: ChatGPT's "Final Repository Review" and ChatLLM's "Final Review Conclusion" (both 2026-10-05), checked against `main` @ `d403e78`. Anything marked *verified* was run or read in the repo on 2026-10-05.
 
 ## Objective
 Keep the engine and the append-only ledger exactly as they are. Make a bad release harder to ship, make the architecture rules fail a test when broken, keep saves fast on long vessels, and make a lost phone cost less. Success:
@@ -17,7 +17,7 @@ Keep the engine and the append-only ledger exactly as they are. Make a bad relea
 - `expo prebuild --platform ios --no-install` runs on Linux. Its `VSA.entitlements` came out an empty `<dict/>` (no `aps-environment`), so `plugins/withoutPush.js` loads and works under `"type": "module"`; builds #3-#8 also succeeded. `expo-modules-autolinking resolve --platform apple` lists the `VsaText` pod on Linux.
 - The UI already shows "N entries not backed up" (Snapshot, `App.tsx:308`) and "Last exported" (`Plan.tsx:179-181`). `exportLog` carries a SHA-256 over operation id, test flag, baseline and events plus `event_count`; `importLog` re-runs the engine.
 - Recovery tests already exist: crash partway through an append, transaction rollback, rejected batch writes nothing, re-delivery stores once, newer-schema database refused, stepwise migration, backup round trip per scenario, bad JSON / checksum / event-count / different-history imports.
-- `tests/rules.test.ts` exempts 2 of 24 rules as `deferred` to Phase 3 and Phase 5/6, both long done.
+- `tests/rules.test.ts` exempted 2 of 23 rules as `deferred` to Phase 3 and Phase 5/6, both long done.
 - 266 source lines are over 150 characters.
 - `typescript-eslint` 8.71 supports TypeScript `>=4.8.4 <6.1.0`; the repo has `~6.0.3`.
 
@@ -86,3 +86,16 @@ Gate: tests, then one phone check inside the 7e build.
 
 ## Order
 8a and 8b first (no build, no phone, can run while build #8 is phone-checked). 8c rides the 7e + step 6 build so no extra EAS build is used. 8d after 7e. 8e is the first half of 7d. 8f whenever.
+
+## Built (2026-10-05)
+**8b done.** `tests/replayEquivalence.test.ts` (77 hashes taken from the original replay, committed first), then the linear replay in `src/engine/events.ts` (+62/−16): every hash unchanged. `tests/replayScaling.test.ts` failed on the old code (13.3x and 13.6x the reads for 4x the events) and passes now. `project()` at 3,000 events went from 1,098 ms to 15 ms on desktop; at 10,000 events it takes 58 ms (`npm run bench:replay`). Not yet measured on an iPhone (the optional About line rides the 7e build). ChatLLM's patch was not available, so this is a fresh implementation checked against the original behavior.
+
+**8a done** except where noted:
+- `tests/architecture.test.ts`: ENGINE-, AI-, AI-WRITE-, STORAGE- and DOMAIN-BOUNDARY, each with made-up violations it must catch. DOMAIN-BOUNDARY's allowlist was derived from today's screens and may only shrink.
+- `scripts/verify-native.mjs` (`npm run verify:native`) and `verify:release`. Proven to fail when the push plugin is removed (the `aps-environment` entitlement appears), when the Swift source is missing, and when a generated file is stale. Writing it hit the same trap as the build #7 `.gitignore` bug (its first copy filter dropped `modules/vsa-text/ios`), so it now excludes only root-level folders.
+- CI: `lint` and `check:ios` added to the existing job; new `native` job runs `verify:native` (about 25 s locally).
+- ESLint 10 with `typescript-eslint` and `react-hooks`, correctness rules only. First run found 13 problems, all fixed. One was a real bug: `File.copy()` returns a promise in this Expo SDK and `keepPhoto()` ignored it, so a failed photo copy would have gone unnoticed and the event would point at a file that was never saved. `keepPhoto` now awaits it. **This path needs a phone check in the next build** (take a photo from Log › Photo and confirm it saves and shows; a photo that can't be copied should now say so and save nothing).
+- `tests/rules.test.ts`: the two stale deferrals now have real tests (a new test that instruction-shaped text cannot become an action or add a number), the `deferred` escape hatch is removed, and every rule has an id.
+- CLAUDE.md has the "Architecture guardrails" section and the new commands. `tests/kit.test.ts` still lists kit B12 and B23 as deferred to old phases; left as is, they are now covered by the rules above.
+
+Not started: 8c, 8d, 8e, 8f.

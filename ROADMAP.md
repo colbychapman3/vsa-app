@@ -8,6 +8,7 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 - **Build #8** (EAS `0a53a6a0`, from `b484819`, 2026-10-05): text reader and Zone 7-9 distance correction. Its build log has `VsaText` (#7 had none); submitted to TestFlight.
 - **Next:** phone-check #8: 7b (this game plan, VIN scan, van sheet, notes) and 7c (Night, large text, a TEST vessel).
 - **Waiting on Colby:** approve the 07:00 safety meeting spec (`docs/specs/phase-7-safety-meeting.md`, draft).
+- **Phase 8 hardening approved 2026-10-05** (`docs/specs/phase-8-hardening.md`): 8a (guardrail tests, CI native job, ESLint) and 8b (linear replay) are built and tested; 8c save-a-copy prompts ride the 7e build; 8d, 8e (= 7d step 2), 8f later. **Phone-check the Log › Photo save in the next build** (a photo-copy bug was fixed).
 - **After that:** keep import photos (7b step 6) and the safety meeting rule in one build, then 7d Smarter Ask.
 
 ## Timeline
@@ -27,6 +28,7 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 | Zone 7-9 distance correction | 10-05 (Colby) | 10-05 | with #8 | #8 |
 | 7e 07:00 safety meeting | draft | | | |
 | 7d Smarter Ask | 10-03 (plan) | | | |
+| 8 Hardening (8a, 8b) | 10-05 | 10-05 | with next build | none |
 
 ## Phase 7: TestFlight, paperwork import, sidebar, smarter Ask
 **7a TestFlight: live.** Store builds ship headless: `eas build --platform ios --profile production --non-interactive`, then `eas submit --platform ios --profile production --latest --non-interactive`. Phone checks happen on the TestFlight build; nothing in this phase needs the dev client. Each checkpoint is one store build, and EAS counts builds against the paid plan's monthly quota.

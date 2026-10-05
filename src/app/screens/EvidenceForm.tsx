@@ -108,7 +108,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
       const rel = evidencePath(state.operationId, E.nextEventId(state));
       const bad = E.evidenceProblem(state, form(shot ? rel : null), shot ? rel : null);
       if (bad) return setError(bad);
-      try { keepPhoto(shot!, rel); } catch (e) { return setError(`The photo could not be kept on this phone: ${(e as Error).message} Nothing was saved.`); }
+      try { await keepPhoto(shot!, rel); } catch (e) { return setError(`The photo could not be kept on this phone: ${(e as Error).message} Nothing was saved.`); }
       const r = await save((c) => E.addEvidenceEvents(c, form(rel)));
       if (r.ok) onClose('Photo saved on this phone.');
       else { dropUnsavedPhoto(rel); setError(r.error); }
@@ -137,7 +137,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
       ) : shot ? (
         <View style={{ gap: 10 }}>
           <Image source={{ uri: shot }} style={s.cam} resizeMode="cover" accessibilityLabel="Photo just taken" />
-          <Go ghost label="Retake photo" onPress={() => { setShot(null); open(); }} />
+          <Go ghost label="Retake photo" onPress={() => { setShot(null); void open(); }} />
         </View>
       ) : (
         <Go label="Open camera" onPress={open} />

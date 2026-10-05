@@ -23,7 +23,7 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings }:
     AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
       if (!live) return;
       if (reduce) x.setValue(0); else Animated.timing(x, { toValue: 0, duration: 180, useNativeDriver: true }).start();
-    });
+    }).catch(() => { if (live) x.setValue(0); }); // setting unreadable: show the menu without the slide
     return () => { live = false; };
   }, [x]);
   const { live, test } = sidebarVessels(rows, currentId);

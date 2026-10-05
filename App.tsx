@@ -91,7 +91,7 @@ export default function App() {
   // Plan reminders: notifications tapped open Plan; the schedule is replaced whenever the vessel's state changes or the app returns.
   const openPlan = useRef<() => void>(() => {});
   useEffect(() => { openPlan.current = () => { setDrawer(false); setSheet(null); setLogOpen(false); setDeckOpen(null); setTab('plan'); }; });
-  useEffect(() => { reminderStatus().then(setRemind); return installHandlers(() => openPlan.current()); }, []);
+  useEffect(() => { void reminderStatus().then(setRemind); return installHandlers(() => openPlan.current()); }, []);
   useEffect(() => {
     if (!vessel) { void syncReminders(null); return; } // no open vessel: no reminders
     void syncReminders(remind === 'on' && !remindersPaused ? reminderPlan(vessel.state, vessel.baseline, minutesNow(), vessel.isTest, 20, quiet) : null);
@@ -114,7 +114,7 @@ export default function App() {
   useEffect(() => { latestId.current = vessel?.id ?? null; }, [vessel]);
 
   useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         dbRef.current = await openExpoDb();
         store.current = await openStore(dbRef.current); // creates the settings table on a new install

@@ -32,9 +32,13 @@ Plan: `ROADMAP.md` (its **Now** block is the current status; this file does not 
 ## Commands (PowerShell on Windows 11; Node 22 per `.nvmrc`)
 
 ```
-npm test                 # node:test suite (must stay green; CI runs it with typecheck on every push)
+npm test                 # node:test suite (must stay green; CI runs it with typecheck and lint on every push)
 npm run typecheck        # tsc --noEmit
-npm run check:ios        # iOS bundle builds (writes dist/, gitignored)
+npm run lint             # ESLint, correctness rules only (no Prettier, on purpose: the code uses long dense lines)
+npm run check:ios        # iOS JS bundle builds (writes dist/, gitignored); does not compile Swift
+npm run verify:native    # on a temp copy: iOS project generates, no push entitlement, VsaText autolinked, generated files current (CI job `native`)
+npm run verify:release   # typecheck + lint + tests + check:ios + verify:native: run before every eas build
+npm run bench:replay     # replay timings at 100 to 10,000 events (prints only; tests/replayScaling.test.ts guards the growth)
 eas build --platform ios --profile production --non-interactive          # TestFlight store build (counts against the EAS quota)
 eas submit --platform ios --profile production --latest --non-interactive
 ```
@@ -73,6 +77,18 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 - **End of session:** run `/wrapup` to log what was done, decided, and left open.
 - The Brain is history, not rules. If it conflicts with this file or `docs/`, this file and `docs/` win; flag the conflict to Colby.
 - Never put passwords, keys, tokens, or account numbers into anything sent to the Brain.
+
+## Architecture guardrails (a test fails if one breaks)
+
+`tests/architecture.test.ts` checks the first five against the source; each also has made-up violations it must catch. Change a boundary only with Colby's approval and its test in the same commit. The allowlist in DOMAIN-BOUNDARY may only shrink.
+- **EVENTS-ARE-TRUTH:** history is append-only; corrections supersede, never rewrite. SQLite triggers (`tests/store.test.ts`).
+- **ENGINE-BOUNDARY:** `src/engine/` imports only its own files: no React, Expo, storage, app code or AI. Also an ESLint rule.
+- **AI-BOUNDARY:** only `src/app/ai.ts` touches `@react-native-ai/apple`.
+- **AI-WRITE-BOUNDARY:** `ai.ts`, `assistant.ts` and `engine/proposal.ts` never import storage at runtime and never append events.
+- **STORAGE-BOUNDARY:** only `src/storage/store.ts` writes the events and vessels tables; events are appended only through `store.append` (`App.tsx`, backup import); only `db.ts` imports `expo-sqlite`; `src/app` imports only types from storage.
+- **DOMAIN-BOUNDARY:** screens take only formatting, parsing and lookup helpers from the engine, never protocol math.
+- **LINEAR-REPLAY:** `project()` and `replay()` do work proportional to the log (`tests/replayScaling.test.ts` counts reads, not milliseconds); output is pinned byte-for-byte by `tests/replayEquivalence.test.ts` (refresh only with `UPDATE_REPLAY_HASHES=1`, and say why).
+- **Targets, not yet true:** derived numbers explain themselves (Phase 7d traces); a lost phone doesn't lose the vessel (Phase 8c).
 
 ## Non-negotiable domain rules
 

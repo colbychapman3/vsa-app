@@ -50,7 +50,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
   const [confirmed, setConfirmed] = useState<number[]>([]);
   const [keep, setKeep] = useState<string[]>([]);
 
-  useEffect(() => { setAck(false); setOpenDrop(null); onKey(`${step}${imported ? 'i' : ''}${mode}`); }, [step, imported, mode]);
+  useEffect(() => { setAck(false); setOpenDrop(null); onKey(`${step}${imported ? 'i' : ''}${mode}`); }, [step, imported, mode, onKey]);
 
   // Typed answers → SetupForm → checked baseline. withCheck adds the load list verification (Review only).
   const typed = (withCheck = false): Built => {

@@ -14,4 +14,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
+      - run: npm run check:ios
+  # What a store build needs that the tests can't see: the iOS project generates with no push entitlement,
+  # the Swift text reader is committed and autolinked, generated files are current. Compiling Swift still
+  # needs the EAS build (check for VsaText in its log).
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:native
