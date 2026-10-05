@@ -3,7 +3,7 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Update the status line when a phase changes.
 
-**Current status (2026-10-04):** Phases 0-6 done and phone-checked. TestFlight live; build 5 (checkpoint 2: sidebar, Settings, Night) submitted 2026-10-03. Checkpoint 1, the game plan reader (spec phase-6e), is built (378 tests; 5 review rounds, 16 required findings fixed; round 5 still had 2, both fixed; loop stopped by Colby to ship). Shipped as build 6 for the phone check. Keep import photos moved to next. Checkpoint 3 (smarter Ask) after.
+**Current status (2026-10-04):** Phases 0-6 done and phone-checked. TestFlight live; build 5 (checkpoint 2: sidebar, Settings, Night) submitted 2026-10-03. Checkpoint 1, the game plan reader (spec phase-6e), is built (378 tests; 5 review rounds, 16 required findings fixed; round 5 still had 2, both fixed; loop stopped by Colby to ship). The EAS Free plan ran out of iOS builds on 2026-10-04; Colby upgraded to a paid EAS plan 2026-10-05; build 6 started then. Keep import photos moved to next. Checkpoint 3 (smarter Ask) after.
 
 ## Done (details in git history and `docs/specs/`)
 - **0 Setup:** Expo (TypeScript) project, private GitHub repo, kit files in `docs/`, app spec (`app-spec.md`).
