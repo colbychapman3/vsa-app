@@ -81,7 +81,7 @@ Gate: tests, then one phone check inside the 7e build.
 1. **Approve Phase 8 as written?** (the once-per-phase gate)
 2. **CI release job**: about 3 minutes per run on GitHub-hosted Linux; default yes, if it fits the repo's free Actions minutes.
 3. **Patch**: if Colby still has `0001-engine-index-replay-lookups-so-project-is-linear-in-.patch` from the ChatLLM chat, attach it and I review and apply it behind the equivalence tests; default: I re-implement from the description.
-4. **Off-device automatic copy**: spike now, decide after (default), or skip.
+4. **Off-device automatic copy**: spiked; **decided 2026-10-05: not now** (Colby agreed with the recommendation). In the ROADMAP backlog.
 5. **Where the guardrail rules live**: a CLAUDE.md section (default) or a new `docs/ARCHITECTURE.md` with CLAUDE.md pointing to it.
 
 ## Order
