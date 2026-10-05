@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { migrate, SCHEMA_VERSION } from '../src/storage/schema.ts';
 import { openStore } from '../src/storage/store.ts';
+import { markExported } from '../src/storage/backup.ts';
+import { deleteVessel } from '../src/storage/vessels.ts';
 import type { Db } from '../src/storage/db.ts';
 import { project, replay, activeEvents, type VsaEvent } from '../src/engine/index.ts';
 import { openNodeDb } from './nodeDb.ts';
@@ -38,6 +40,59 @@ test('schema: a database newer than the app is refused, not touched', async (t) 
   const db = openNodeDb(tempFile(t));
   await db.exec('PRAGMA user_version = 99');
   await assert.rejects(migrate(db), /schema v99, newer than this app/);
+  await db.close();
+});
+
+test('delete vessel (prototype phase): removes the vessel, its events and its local marks, and nothing of another vessel', async (t) => {
+  const db = openNodeDb(tempFile(t));
+  const store = await openStore(db);
+  for (const id of ['TEST-A', 'TEST-B']) assert.ok((await store.createVessel({ operationId: id, baseline: { ...glovis, vessel: id }, isTest: true })).ok);
+  const sc = SCENARIOS.find((s) => s.hourly?.length)!;
+  const evs = (id: string) => toEvents(sc).map((e) => ({ ...e, operation_id: id }));
+  assert.ok((await store.append('TEST-A', evs('TEST-A'))).ok);
+  assert.ok((await store.append('TEST-B', evs('TEST-B'))).ok);
+  const marks = ['archived:TEST-A', 'last_export:TEST-A', 'report_note:TEST-A:facts', 'last_vessel', 'archived:TEST-B'];
+  for (const k of marks) await db.run('INSERT INTO settings VALUES (?, ?)', [k, k === 'last_vessel' ? 'TEST-A' : '1']);
+  const before = (await store.load('TEST-B') as { events: unknown[] }).events.length;
+
+  const r = await store.deleteVessel('TEST-A');
+  assert.ok(r.ok && r.events > 0);
+  assert.equal((await store.load('TEST-A')).ok, false);
+  assert.deepEqual((await store.listVessels()).map((v) => v.operationId), ['TEST-B']);
+  assert.equal((await store.load('TEST-B') as { events: unknown[] }).events.length, before); // the other vessel is untouched
+  assert.deepEqual((await db.all<{ key: string }>('SELECT key FROM settings ORDER BY key')).map((x) => x.key), ['archived:TEST-B']); // no 'deleting:' marker is left behind
+  assert.equal((await store.deleteVessel('TEST-A')).ok, false); // already gone: refused, not an error
+  await assert.rejects(db.run('DELETE FROM events'), /append-only/); // the guard is back: a stray delete is still refused
+  await assert.rejects(db.run('DELETE FROM vessels'), /cannot be deleted/);
+  await db.close();
+});
+
+test('delete vessel: a failure part-way leaves the vessel and its events exactly as they were', async (t) => {
+  const db = openNodeDb(tempFile(t));
+  const store = await openStore(db);
+  assert.ok((await store.createVessel({ operationId: 'TEST-A', baseline: glovis, isTest: true })).ok);
+  await db.run(`CREATE TRIGGER block_settings BEFORE DELETE ON settings BEGIN SELECT RAISE(ABORT, 'blocked'); END`);
+  await db.run(`INSERT INTO settings VALUES ('archived:TEST-A', '1')`);
+  const r = await store.deleteVessel('TEST-A');
+  assert.equal(r.ok, false);
+  assert.equal((await store.load('TEST-A')).ok, true);
+  assert.equal((await db.all('SELECT key FROM settings WHERE key LIKE ?', ['deleting:%'])).length, 0); // the marker rolled back too
+  await db.close();
+});
+
+test('delete vessel: a LIVE vessel with events not saved to a copy is refused; a current copy lets it go', async (t) => {
+  const db = openNodeDb(tempFile(t));
+  const store = await openStore(db);
+  assert.ok((await store.createVessel({ operationId: 'LIVE-1', baseline: { ...glovis, vessel: 'Live Test Vessel' }, isTest: false })).ok); // glovis itself can only be TEST
+  const sc = SCENARIOS.find((s) => s.hourly?.length)!;
+  assert.ok((await store.append('LIVE-1', toEvents(sc).map((e) => ({ ...e, operation_id: 'LIVE-1' })))).ok);
+  const refused = await deleteVessel(db, store, 'LIVE-1');
+  assert.ok(!refused.ok && /not saved to a copy/.test(refused.error));
+  assert.equal((await store.load('LIVE-1')).ok, true);
+  const n = (await store.load('LIVE-1') as { events: unknown[] }).events.length;
+  await markExported(db, 'LIVE-1', '2026-10-05T12:00:00-04:00', n);
+  assert.ok((await deleteVessel(db, store, 'LIVE-1')).ok);
+  assert.equal((await store.load('LIVE-1')).ok, false);
   await db.close();
 });
 

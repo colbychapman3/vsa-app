@@ -12,7 +12,8 @@ import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/
 import { openExpoDb, type Db } from './src/storage/db.ts';
 import { exportLog, importLog, markExported, backupStatus } from './src/storage/backup.ts';
 import { openStore, type State, type Store } from './src/storage/store.ts';
-import { getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, type VesselRow } from './src/storage/vessels.ts';
+import { dropVesselPhotos } from './src/app/evidenceFiles.ts';
+import { deleteVessel, getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, type VesselRow } from './src/storage/vessels.ts';
 import { getPref, setPref } from './src/storage/prefs.ts';
 import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
 import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceReportKind } from './src/app/evidenceReport.ts';
@@ -270,6 +271,18 @@ export default function App() {
         [{ text: 'Not now', style: 'cancel' }, { text: 'Save a copy', onPress: () => { void exportVessel(id).then(setNotice); } }]);
     } catch { /* a failed lookup never blocks archiving */ }
   };
+  // Delete a vessel for good (prototype phase). Never the open vessel; a LIVE vessel needs a current copy first.
+  const deleteOne = async (id: string) => {
+    if (id === vessel?.id) { setNotice({ ok: false, text: 'The open vessel cannot be deleted. Open another vessel first.' }); return; }
+    try {
+      const name = rows.find((r) => r.operationId === id)?.name ?? id;
+      const r = await deleteVessel(dbRef.current!, store.current!, id);
+      if (!r.ok) { setNotice({ ok: false, text: r.error }); return; }
+      dropVesselPhotos(id);
+      await refreshRows();
+      setNotice({ ok: true, text: `Deleted ${name} (${r.events} event${r.events === 1 ? '' : 's'}) and its photos.` });
+    } catch (e) { setNotice({ ok: false, text: `Not deleted: ${(e as Error).message}` }); }
+  };
   const refreshRows = async () => { try { setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); } };
   const setPrefSafe = async (k: string, v: string) => { try { await setPref(dbRef.current!, k, v); } catch (e) { setNotice({ ok: false, text: `Setting not saved: ${(e as Error).message}` }); } };
   const switchTo = async (id: string) => {
@@ -360,6 +373,7 @@ export default function App() {
                   onEnableReminders={async () => setRemind(await enableReminders())}
                   quiet={quiet} onQuiet={(q) => { setQuiet(q); void setPrefSafe('quiet', q ? quietToText(q) : ''); }}
                   onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); await refreshRows(); if (a) void offerCopyOnArchive(id); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }}
+                  onDelete={deleteOne}
                   onExportVessel={exportVessel} />
               )}
               {sheet === 'ask' && (

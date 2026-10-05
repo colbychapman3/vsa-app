@@ -12,6 +12,9 @@ type Row = { operation_id: string; name: string; is_test: number; baseline_json:
 // Reference baselines that may only ever be loaded as TEST. Names are compared with case,
 // spaces and punctuation removed, so "GLOVIS  Condor-101" is still caught.
 const TEST_ONLY = ['gloviscondor101'];
+// Vessel delete is allowed while the app is in its prototype phase and every vessel is TEST (Colby, 2026-10-05). Set this to
+// false before go-live: vessels are then permanent again, as the append-only rule says (see ROADMAP backlog).
+export const VESSEL_DELETE_ALLOWED = true;
 const squash = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 const reject = (error: string): Reject => ({ ok: false, error });
 // A stored row that is not readable JSON (cut-off write, bad restore). Reported, never repaired or removed; other vessels are untouched.
@@ -90,6 +93,30 @@ export async function openStore(db: Db) {
         return reject(`Nothing was saved (database error: ${(e as Error).message}).`); // includes an unreadable stored event: the log is left exactly as it was
       }
       return result;
+    },
+
+    // Remove one vessel, its events and its local marks, in one transaction. The 'deleting:' marker is what lets the
+    // database's delete triggers through (schema V4); it is written and removed inside the same transaction.
+    async deleteVessel(id: string): Promise<{ ok: true; events: number } | Reject> {
+      if (!VESSEL_DELETE_ALLOWED) return reject('Deleting vessels is turned off in this app.');
+      const r = await row(id);
+      if (!r) return reject(`No vessel ${id} on this phone. Nothing was deleted.`);
+      let events = 0;
+      try {
+        await db.transaction(async (tx) => {
+          events = (await tx.all<{ n: number }>('SELECT COUNT(*) AS n FROM events WHERE operation_id = ?', [id]))[0].n;
+          await tx.run('INSERT INTO settings VALUES (?, ?)', [`deleting:${id}`, '1']);
+          await tx.run('DELETE FROM events WHERE operation_id = ?', [id]);
+          await tx.run('DELETE FROM vessels WHERE operation_id = ?', [id]);
+          // This vessel's local marks: archived, last export, report notes, and "last opened" if it was the one.
+          await tx.run('DELETE FROM settings WHERE key IN (?, ?, ?)', [`deleting:${id}`, `archived:${id}`, `last_export:${id}`]);
+          await tx.run('DELETE FROM settings WHERE key LIKE ?', [`report_note:${id}:%`]);
+          await tx.run("DELETE FROM settings WHERE key = 'last_vessel' AND value = ?", [id]);
+        });
+      } catch (e) {
+        return reject(`Not deleted (database error: ${(e as Error).message}). Nothing was changed.`);
+      }
+      return { ok: true, events };
     },
 
     close: () => db.close(),

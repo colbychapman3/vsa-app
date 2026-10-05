@@ -1,6 +1,8 @@
-// Which vessels are on the phone and which is open. Archive hides a vessel from the list; nothing is
-// ever deleted. Both marks live in the local settings table, not the official record.
+// Which vessels are on the phone and which is open. Archive hides a vessel from the list; delete (prototype phase only,
+// store.VESSEL_DELETE_ALLOWED) removes it for good. Both marks live in the local settings table, not the official record.
+import { backupStatus } from './backup.ts';
 import type { Db } from './db.ts';
+import type { Reject } from '../engine/index.ts';
 import type { Store } from './store.ts';
 
 const ARCHIVED = (id: string) => `archived:${id}`;
@@ -13,6 +15,17 @@ export async function setArchived(db: Db, id: string, archived: boolean): Promis
 }
 export const setLastOpened = (db: Db, id: string) => db.run('INSERT OR REPLACE INTO settings VALUES (?, ?)', [LAST, id]);
 export const lastOpened = (db: Db) => get(db, LAST);
+
+// Delete a vessel for good. A LIVE vessel with events not yet saved to a copy is refused (its record would exist nowhere
+// else); a TEST vessel goes straight away. The caller removes the vessel's photo files after a true result.
+export async function deleteVessel(db: Db, store: Store, id: string): Promise<{ ok: true; events: number } | Reject> {
+  const r = await store.load(id);
+  if (r.ok && !r.vessel.isTest) {
+    const b = await backupStatus(db, id, r.events.length);
+    if (b.unsaved > 0) return { ok: false, error: `${r.vessel.name} is a LIVE vessel with ${b.unsaved} event${b.unsaved === 1 ? '' : 's'} not saved to a copy. Back it up in Settings first. Nothing was deleted.` };
+  }
+  return store.deleteVessel(id);
+}
 
 export type VesselRow = {
   operationId: string; name: string; isTest: boolean; date: string; archived: boolean;

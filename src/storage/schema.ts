@@ -2,7 +2,7 @@
 // can migrate without losing data. The database itself enforces append-only.
 import type { Db } from './db.ts';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 const V1 = `
 CREATE TABLE vessels (
@@ -47,6 +47,20 @@ CREATE TRIGGER vessels_no_replace BEFORE INSERT ON vessels
 // V3: small local settings (last export of each vessel's log). Not part of the official record.
 const V3 = `CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);`;
 
+// V4: vessel delete, allowed during the prototype phase only (Colby, 2026-10-05; VESSEL_DELETE_ALLOWED in store.ts).
+// The delete triggers stay: a delete is refused unless the same transaction first wrote that vessel's 'deleting:' marker
+// (store.deleteVessel does, and removes it). So no stray statement or bug can delete history; only the one guarded path can.
+const V4 = `
+DROP TRIGGER events_no_delete;
+DROP TRIGGER vessels_no_delete;
+CREATE TRIGGER events_no_delete BEFORE DELETE ON events
+  WHEN NOT EXISTS (SELECT 1 FROM settings WHERE key = 'deleting:' || OLD.operation_id)
+  BEGIN SELECT RAISE(ABORT, 'Events are append-only. Corrections are new events.'); END;
+CREATE TRIGGER vessels_no_delete BEFORE DELETE ON vessels
+  WHEN NOT EXISTS (SELECT 1 FROM settings WHERE key = 'deleting:' || OLD.operation_id)
+  BEGIN SELECT RAISE(ABORT, 'Vessels cannot be deleted.'); END;
+`;
+
 // Run on every open. Each step runs once, in order: a new file gets all of them, an older file only the newer ones.
 export async function migrate(db: Db): Promise<void> {
   await db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
@@ -57,6 +71,7 @@ export async function migrate(db: Db): Promise<void> {
     if (user_version < 1) await tx.exec(V1);
     if (user_version < 2) await tx.exec(V2);
     if (user_version < 3) await tx.exec(V3);
+    if (user_version < 4) await tx.exec(V4);
     await tx.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   });
 }

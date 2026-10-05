@@ -14,7 +14,8 @@ The record is an append-only log of kit-06 events (`docs/06_event_log_schema.jso
 
 ## Append-only
 - The `events` table has triggers that abort any `UPDATE` or `DELETE` (`src/storage/schema.ts`). Don't remove them, don't work around them.
-- Vessels can't be deleted, and a vessel's TEST/LIVE mark and baseline can't change. TEST ids start with `TEST-`; a TEST event can never land in a LIVE vessel.
+- **Prototype-phase exception (Colby, 2026-10-05):** while the app is in prototype and every vessel is TEST, Settings can delete a vessel (swipe left, tap the trash). It goes only through `store.deleteVessel` (schema V4: the delete triggers let a delete through only inside the transaction that wrote that vessel's `deleting:` marker), is refused for the open vessel, and a LIVE vessel needs a current saved copy. `VESSEL_DELETE_ALLOWED` in `store.ts` switches it off: **set it to false before go-live.** Nothing else may delete events or vessels.
+- A vessel's TEST/LIVE mark and baseline can't change. TEST ids start with `TEST-`; a TEST event can never land in a LIVE vessel.
 
 ## Corrections supersede; they never add
 - A correction is a new event with `event_type: 'correction'`, `supersedes_event_id` = the **current head** of the chain, and a non-empty `payload.reason`. The engine refuses a correction without a reason, one that targets an already-replaced event, or one that changes scope, metric, count kind or period.
