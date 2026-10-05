@@ -62,8 +62,8 @@ export function build(date, srcDir = SRC) {
   const chunks = [], sources = [], hash = createHash('sha256');
   for (const src of SOURCES) {
     const bytes = readFileSync(`${srcDir}/${src.file}`);
-    hash.update(src.file).update(bytes);
-    const text = bytes.toString('utf8').replace(/\r\n/g, '\n');
+    const text = bytes.toString('utf8').replace(/\r\n/g, '\n'); // a Windows checkout (CRLF) must build the same pack as Linux (LF)
+    hash.update(src.file).update(text);
     // Split into sections at ## and ### headings.
     const secs = []; let h2 = null, h3 = null, cur = { h2, h3, body: [] };
     for (const l of text.split('\n')) {

@@ -3,11 +3,12 @@
 // when the app is updated. Full size is kept; nothing is ever deleted except a copy that failed to save.
 import { Directory, File, Paths } from 'expo-file-system';
 
-// Copy the camera's temporary file into the app folder. Throws with a plain message if it can't.
-export function keepPhoto(tmpUri: string, relPath: string): void {
+// Copy the camera's temporary file into the app folder. Rejects with a plain message if it can't. File.copy returns
+// a promise, so wait for it: the event that points at this file is saved only after the copy has finished.
+export async function keepPhoto(tmpUri: string, relPath: string): Promise<void> {
   const parts = relPath.split('/');
   new Directory(Paths.document, ...parts.slice(0, -1)).create({ intermediates: true, idempotent: true });
-  new File(tmpUri).copy(new File(Paths.document, ...parts));
+  await new File(tmpUri).copy(new File(Paths.document, ...parts));
 }
 
 export const photoUri = (relPath: string) => new File(Paths.document, ...relPath.split('/')).uri;

@@ -571,3 +571,13 @@ export async function openFirst(ids: string[], last: string | null, open: (id: s
   }
   return { opened: null, failed };
 }
+
+// ---------- Backup nudges ----------
+// The phone's log is the only official record. When entries are not in a saved copy, the app says so and offers
+// one tap to save one. TEST vessels are practice data, so they are never nagged.
+export const offerCopy = (unsaved: number, isTest: boolean): boolean => unsaved > 0 && !isTest;
+export function unsavedNote(unsaved: number, lastAt: string | null): string | null {
+  if (unsaved <= 0) return null;
+  const n = `${unsaved.toLocaleString('en-US')} ${unsaved === 1 ? 'entry' : 'entries'} not backed up.`;
+  return lastAt ? `${n} Last copy: ${lastAt.replace('T', ' ').slice(0, 16)} (phone clock).` : `${n} No copy saved yet.`;
+}

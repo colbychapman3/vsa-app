@@ -130,7 +130,7 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
       return setError('Clearing a logged value isn’t supported yet. Enter the corrected number instead.');
     }
     const why = reason === 'Other' ? other.trim() : reason;
-    run((ctx) => E.hourEvents(ctx, { day, start: hour, count: c, drivers: dr, brands: Object.keys(split).length ? split : null, stopMin: short ? stop : null, reason: why }),
+    void run((ctx) => E.hourEvents(ctx, { day, start: hour, count: c, drivers: dr, brands: Object.keys(split).length ? split : null, stopMin: short ? stop : null, reason: why }),
       `Saved ${hour}–${endHM}: ${c.toLocaleString('en-US')} autos.`);
   };
 
@@ -198,7 +198,7 @@ function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: R
     const at = timeOf(value, d);
     if (at === 'bad') return setError('Enter the time as HH:MM.');
     if (at === null) return setError('Enter the time, or tap Now.'); // breaks and shift changes always need their time
-    run((c) => build(c, at), done(at));
+    void run((c) => build(c, at), done(at));
   };
 
   if (phase === 'shift_end') {
@@ -247,7 +247,7 @@ function ClerkForm({ phase, run, now, timeOf, setError }: { phase: string; run: 
         const n = num(rem), at = timeOf(t);
         if (n == null || Number.isNaN(n)) return setError('Enter the clerk’s remaining count as a whole number.');
         if (at === 'bad') return setError('Enter the time as HH:MM.');
-        run((c) => E.clerkEvents(c, n, at), `Clerk count saved: ${n.toLocaleString('en-US')}.`);
+        void run((c) => E.clerkEvents(c, n, at), `Clerk count saved: ${n.toLocaleString('en-US')}.`);
       }} />
     </View>
   );
@@ -266,7 +266,7 @@ function IssueForm({ run, now, timeOf, setError }: { run: Run; now: () => string
       <Go label="Add to open discrepancies" onPress={() => {
         const at = timeOf(t);
         if (at === 'bad') return setError('Enter the time as HH:MM.');
-        run((c) => E.openDiscrepancyEvents(c, text, at), 'Added to open discrepancies.');
+        void run((c) => E.openDiscrepancyEvents(c, text, at), 'Added to open discrepancies.');
       }} />
     </View>
   );

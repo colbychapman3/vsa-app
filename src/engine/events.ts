@@ -108,31 +108,63 @@ export function activeEvents(log: EventLog): VsaEvent[] {
   return log.events.filter((e) => !log.supersededBy[e.event_id]);
 }
 
-// Oldest → newest values for the chain ending at eventId.
+// Oldest → newest values for the chain ending at eventId. The id map is built once per finished
+// events array (logs are never edited after replay), not on every call.
+const idMaps = new WeakMap<readonly VsaEvent[], Map<string, VsaEvent>>();
 export function historyOf(log: EventLog, eventId: string): VsaEvent[] {
-  const byId = new Map(log.events.map((e) => [e.event_id, e]));
+  let byId = idMaps.get(log.events);
+  if (!byId) { byId = new Map(log.events.map((e) => [e.event_id, e])); idMaps.set(log.events, byId); }
   const chain: VsaEvent[] = [];
   for (let e = byId.get(eventId); e; e = e.supersedes_event_id ? byId.get(e.supersedes_event_id) : undefined) chain.unshift(e);
   return chain;
 }
 
-export function appendEvent(log: EventLog, e: VsaEvent): { log: EventLog; change: Change | null; duplicate: boolean } | Reject {
+// Replay works on an accumulator that owns its log and keeps lookup indexes, so each event costs the
+// same however long the log is. appendEvent() builds one from an existing log and stays immutable.
+type Acc = {
+  log: EventLog;
+  idAt: Map<string, number>;      // event_id → position in log.events
+  keyAt: Map<string, number>;     // idempotency_key → position in log.events
+  live: Map<string, VsaEvent[]>;  // metric + scope → interval events not yet replaced, in log order
+};
+const bucketOf = (e: VsaEvent) => JSON.stringify([e.payload.metric, canon(e.scope)]);
+
+function index(acc: Acc, e: VsaEvent, at: number) {
+  if (!acc.idAt.has(e.event_id)) acc.idAt.set(e.event_id, at);
+  if (!acc.keyAt.has(e.idempotency_key)) acc.keyAt.set(e.idempotency_key, at);
+  if (isInterval(e) && !acc.log.supersededBy[e.event_id]) {
+    const k = bucketOf(e), b = acc.live.get(k);
+    if (b) b.push(e); else acc.live.set(k, [e]);
+  }
+}
+
+function accOf(log: EventLog): Acc {
+  const acc: Acc = { log: { operationId: log.operationId, events: [...log.events], supersededBy: { ...log.supersededBy } }, idAt: new Map(), keyAt: new Map(), live: new Map() };
+  acc.log.events.forEach((e, i) => index(acc, e, i));
+  return acc;
+}
+
+// Adds e to acc (changing it) only if every check passes; otherwise acc is untouched.
+function accAppend(acc: Acc, e: VsaEvent): { change: Change | null; duplicate: boolean } | Reject {
+  const log = acc.log;
   if (e?.operation_id !== log.operationId) return reject(`Event ${e?.event_id} belongs to operation ${e?.operation_id}, not ${log.operationId}. Not applied.`);
   const bad = checkEnvelope(e);
   if (bad) return reject(bad);
 
-  const same = log.events.find((x) => x.idempotency_key === e.idempotency_key || x.event_id === e.event_id);
-  if (same) {
-    if (canon(same) === canon(e)) return { log, change: null, duplicate: true }; // re-delivery: no-op
+  const hits = [acc.keyAt.get(e.idempotency_key), acc.idAt.get(e.event_id)].filter((i): i is number => i !== undefined);
+  if (hits.length) {
+    const same = log.events[Math.min(...hits)]; // the earliest event sharing the key or the id
+    if (canon(same) === canon(e)) return { change: null, duplicate: true }; // re-delivery: no-op
     return reject(`${e.idempotency_key} was already used with different content. Not applied.`);
   }
   const last = log.events.at(-1);
   if (last && e.sequence <= last.sequence) return reject(`Event ${e.event_id}: sequence ${e.sequence} is not after ${last.sequence}.`);
 
   let change: Change | null = null;
-  const supersededBy = { ...log.supersededBy };
+  let target: VsaEvent | undefined;
   if (e.supersedes_event_id) {
-    const target = log.events.find((x) => x.event_id === e.supersedes_event_id);
+    const at = acc.idAt.get(e.supersedes_event_id);
+    target = at === undefined ? undefined : log.events[at];
     if (!target) return reject(`Correction ${e.event_id}: ${e.supersedes_event_id} is not in this operation's log.`);
     const by = log.supersededBy[target.event_id];
     if (by) return reject(`Correction ${e.event_id}: ${target.event_id} was already replaced by ${by}; correct ${by} instead.`);
@@ -142,28 +174,42 @@ export function appendEvent(log: EventLog, e: VsaEvent): { log: EventLog; change
     }
     // A van's change note is Colby's to fill in or leave blank; every other correction needs a reason.
     if ((!p.reason || !p.reason.trim()) && e.event_type !== 'van.corrected') return reject(`Correction ${e.event_id} needs a reason.`);
-    supersededBy[target.event_id] = e.event_id;
     change = { target: target.event_id, from: tp.value, to: p.value, net: typeof tp.value === 'number' && typeof p.value === 'number' ? p.value - tp.value : null };
   }
 
   if (isInterval(e)) {
     const s = Date.parse(e.payload.period_start!), t = Date.parse(e.payload.period_end!);
-    const clash = log.events.find((x) => !supersededBy[x.event_id] && x.event_id !== e.supersedes_event_id && isInterval(x)
-      && x.payload.metric === e.payload.metric && sameScope(x.scope, e.scope)
+    // Only unreplaced intervals of the same metric and scope can clash; the event being corrected is not one.
+    const clash = acc.live.get(bucketOf(e))?.find((x) => x.event_id !== e.supersedes_event_id
       && Date.parse(x.payload.period_start!) < t && s < Date.parse(x.payload.period_end!));
     if (clash) return reject(`Event ${e.event_id}: ${e.payload.metric} ${e.payload.period_start}–${e.payload.period_end} overlaps ${clash.event_id}. Correct ${clash.event_id} instead.`);
   }
 
-  return { log: { operationId: log.operationId, events: [...log.events, e], supersededBy }, change, duplicate: false };
+  if (target) { // accepted: the target is replaced for good, so it can no longer clash
+    log.supersededBy[target.event_id] = e.event_id;
+    if (isInterval(target)) {
+      const k = bucketOf(target), b = acc.live.get(k)?.filter((x) => x !== target);
+      if (b) acc.live.set(k, b);
+    }
+  }
+  log.events.push(e);
+  index(acc, e, log.events.length - 1);
+  return { change, duplicate: false };
+}
+
+export function appendEvent(log: EventLog, e: VsaEvent): { log: EventLog; change: Change | null; duplicate: boolean } | Reject {
+  const acc = accOf(log);
+  const r = accAppend(acc, e);
+  if ('error' in r) return r;
+  return r.duplicate ? { log, change: null, duplicate: true } : { log: acc.log, change: r.change, duplicate: false };
 }
 
 // Rebuild the log from events in sequence order. Stops at the first rejection.
 export function replay(events: VsaEvent[], operationId: string): EventLog | (Reject & { event_id?: string }) {
-  let log = emptyLog(operationId);
+  const acc = accOf(emptyLog(operationId));
   for (const e of [...events].sort((a, b) => a.sequence - b.sequence)) {
-    const r = appendEvent(log, e);
+    const r = accAppend(acc, e);
     if ('error' in r) return { ...r, event_id: e?.event_id };
-    log = r.log;
   }
-  return log;
+  return acc.log;
 }

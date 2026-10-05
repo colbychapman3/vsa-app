@@ -8,6 +8,8 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 - **Build #8** (EAS `0a53a6a0`, from `b484819`, 2026-10-05): text reader and Zone 7-9 distance correction. Its build log has `VsaText` (#7 had none); submitted to TestFlight.
 - **Next:** phone-check #8: 7b (this game plan, VIN scan, van sheet, notes) and 7c (Night, large text, a TEST vessel).
 - **Waiting on Colby:** approve the 07:00 safety meeting spec (`docs/specs/phase-7-safety-meeting.md`, draft).
+- **Phase 8 hardening approved 2026-10-05** (`docs/specs/phase-8-hardening.md`): 8a (guardrail tests, CI native job, ESLint), 8b (linear replay), 8f (terminal drift tests) and 8c (save-a-copy prompts, damaged-row handling) are built and tested; 8d and 8e (= 7d step 2) come after 7e. **Phone-check in the next build:** Log › Photo save (a photo-copy bug was fixed) and the save-a-copy prompts after a break report, the completion report and an archive.
+- **Waiting on Colby:** mirror the corrected Southside line (nine lots) from `docs/knowledge-src/02-Stevedoring-Operations-Reference.md` into the Project's copy. iCloud Backup is on (confirmed 2026-10-05). Automatic off-phone backup: decided not now (Colby, 2026-10-05); see Backlog.
 - **After that:** keep import photos (7b step 6) and the safety meeting rule in one build, then 7d Smarter Ask.
 
 ## Timeline
@@ -27,6 +29,7 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 | Zone 7-9 distance correction | 10-05 (Colby) | 10-05 | with #8 | #8 |
 | 7e 07:00 safety meeting | draft | | | |
 | 7d Smarter Ask | 10-03 (plan) | | | |
+| 8 Hardening (8a, 8b) | 10-05 | 10-05 | with next build | none |
 
 ## Phase 7: TestFlight, paperwork import, sidebar, smarter Ask
 **7a TestFlight: live.** Store builds ship headless: `eas build --platform ios --profile production --non-interactive`, then `eas submit --platform ios --profile production --latest --non-interactive`. Phone checks happen on the TestFlight build; nothing in this phase needs the dev client. Each checkpoint is one store build, and EAS counts builds against the paid plan's monthly quota.
@@ -69,6 +72,7 @@ Specs: `phase-6e-game-plan-reader.md` (7b, approved 2026-10-04; replaces `supers
 - **Public App Store release:** privacy policy URL (the app sends nothing off the phone unless Colby taps Ask my AI), screenshots, age rating, review notes. Never submitted without Colby's explicit go.
 - **Per-hatch quantities** from stow-plan callouts like `112MB,28BMW` (needs position-aware text reading and flat full-page photos).
 - **Sync / sharing when online:** the original Phase 5 item was never built; vessel log export and import are the substitute today. Web view-only output for supervisors sits with it.
+- **Automatic off-phone backup:** deferred by Colby 2026-10-05. Today: save-a-copy prompts at reports and archive, plus iCloud Backup on the phone. Building it needs a small Swift module that keeps a security-scoped bookmark to a Files/iCloud Drive folder (the installed folder picker only grants access for one app session; findings in `docs/specs/phase-8-hardening.md`) and a store build. Reopen if a vessel record is ever lost.
 - **Answer checker:** paste an AI reply back and flag numbers that are not in the facts. Deferred until the brief proves useful (an AI's own sums would cause false flags).
 - **Keep screen on, haptic tick on save:** each needs a new library.
 - **Cloud AI reasoning:** needs a server and recurring cost. Colby declined paid online reasoning on 2026-10-01; reopen only if he asks.

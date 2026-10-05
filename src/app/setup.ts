@@ -1,7 +1,7 @@
 // New-vessel setup (protocol §11.1) and baseline import. Pure: turns typed answers or a pasted
 // baseline JSON into a Baseline, and refuses anything the engine would refuse, with exact messages.
 // Nothing is adjusted to make totals balance; mismatches come back as discrepancies to acknowledge.
-import { TERMINAL, terminalInfo } from '../engine/terminal.ts';
+import { terminalInfo } from '../engine/terminal.ts';
 import { yardName, type GamePlan } from './gamePlan.ts';
 import { CLEAR_BY_MIN, destination, operationDate, parseHM, validateBaseline, type Baseline, type Deck, type Destination } from '../engine/index.ts';
 

@@ -8,7 +8,6 @@ import type { Page } from '../src/app/layout.ts';
 import { complete, form, load } from './gamePlanFixture.ts';
 import { NOT_A_GAME_PLAN, parseHatches, parseSplit, readGamePlan, readGamePlanPages, yardName, type GamePlan } from '../src/app/gamePlan.ts';
 
-const clone = (p: Page): Page => JSON.parse(JSON.stringify(p));
 const ok = (p: Page): GamePlan => { const r = readGamePlan(p); assert.ok(r.ok, r.ok ? '' : r.error); return (r as { plan: GamePlan }).plan; };
 const row = (g: GamePlan, deck: string) => g.autos.find((r) => r.deck === deck)!;
 const splitText = (g: GamePlan, deck: string) => row(g, deck).split?.map((i) => `${i.qty} ${i.brand}`).join(', ') ?? null;

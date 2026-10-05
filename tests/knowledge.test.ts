@@ -114,7 +114,7 @@ test('the search tokenizer matches the one that built the keyword index', () => 
     for (const t of [...tokens(c.text), ...tokens(c.heading), ...tokens(c.heading)]) tf[t] = (tf[t] ?? 0) + 1;
     for (const [t, k] of Object.entries(tf)) assert.ok(index.terms[t]?.some(([cn, ck]) => cn === n && ck === k), `${c.id}: ${t}`);
   });
-  assert.equal(Object.values(index.terms).reduce((s, p) => s + p.length, 0), index.chunks.reduce((s, c, n) => { const set = new Set([...tokens(c.text), ...tokens(c.heading)]); return s + set.size; }, 0));
+  assert.equal(Object.values(index.terms).reduce((s, p) => s + p.length, 0), index.chunks.reduce((s, c) => { const set = new Set([...tokens(c.text), ...tokens(c.heading)]); return s + set.size; }, 0));
 });
 
 test('highlight and snippet use whole words only and keep the passage text', () => {
