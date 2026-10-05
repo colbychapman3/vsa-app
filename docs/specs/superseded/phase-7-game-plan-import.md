@@ -1,4 +1,4 @@
-> **Superseded 2026-10-04** by `phase-6e-game-plan-reader.md` (approved). Kept for history only.
+> **Superseded 2026-10-04** by `../phase-6e-game-plan-reader.md` (approved). Kept for history only.
 
 # Spec: game-plan-import (Phase 7)
 

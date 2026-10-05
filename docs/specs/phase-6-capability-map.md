@@ -13,7 +13,7 @@ Principle: every module works with AI off. AI (Apple on-device model, on-device 
 | knowledge | Offline knowledge pack built from the Brain (SOP Ver. 2024, protocol, glossary, operations reference): chunked, searchable, every answer cited, "not found" when absent. Plain keyword search screen first. | none |
 | ai-runtime | Availability check for Apple's on-device model, one wrapper, graceful fallback (search box / quick entry). Native module: new dev build. | none |
 | scan | On-device text recognition: VIN (17 chars, no I/O/Q, check digit = warning only, never auto-corrected) and document photos to candidate values. Every value confirmed. | ai-runtime |
-| setup-import | New vessel: Manual or Upload photos (prefills), Next through every step to check; last step uploads important notes into plan-notes. | scan, plan-notes, Setup (exists) |
+| setup-import (removed 2026-10-04; replaced by the game plan reader, `phase-6e-game-plan-reader.md`) | New vessel: Manual or Upload photos (prefills), Next through every step to check; last step uploads important notes into plan-notes. | scan, plan-notes, Setup (exists) |
 | assistant | Floating head on every screen. Reads via engine tools (remaining, hourly, deck), answers from knowledge with citations, berth-to-zone distances by lookup (never one-way/round-trip assumed). Then actions with a confirm card (log count, new vessel) and local-notification reminders for Plan items. | knowledge, ai-runtime, terminal-map, evidence, setup-import |
 
 Build order (each stage phone-checked, one approval per stage):

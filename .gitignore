@@ -2,8 +2,9 @@ node_modules/
 .expo/
 dist/
 web-build/
-ios/
-android/
+# generated native folders at the root only; modules/*/ios holds our Swift source
+/ios/
+/android/
 *.log
 .env*
 !.env.example
@@ -21,3 +22,5 @@ expo-env.d.ts
 npm-debug.*
 *.pem
 *.tsbuildinfo
+# per-machine Claude Code permissions
+.claude/settings.local.json
