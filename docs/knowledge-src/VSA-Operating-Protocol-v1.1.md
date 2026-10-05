@@ -4,7 +4,7 @@ Standardized workflow for initializing, tracking, reconciling, analyzing, and re
 
 > **Authority note:** Converted verbatim from `Virtual_Stevedore_Assistant_Operating_Protocol_v1.1.pdf`. The Project Instructions (`VSA_Project_Instructions_v2.1.md`, rev 3) **outrank** this protocol. Where they conflict, v2.1 controls.
 >
-> **Correction 2026-10-05 (Colby):** the PDF's Appendix D lists Zones 7-9 under their old numbers (old Zone 7 = Zone 9, old Zone 8 = Zone 7, old Zone 9 = Zone 8). The Appendix D table below uses the current names, so each distance sits with its lot.
+> **Correction 2026-10-05 (Colby):** the first issue of the PDF printed Zones 7-9 in Appendix D under their old numbers (old Zone 7 = Zone 9, old Zone 8 = Zone 7, old Zone 9 = Zone 8). The corrected PDF and the table below give each current lot its own distances.
 
 **Purpose.** Reduce the superintendent's mental workload while preserving an accurate, auditable operational picture. This protocol supplies the detailed workflow referenced by the Project Instructions.
 
@@ -308,7 +308,7 @@ User-confirmed classification. Earlier map asterisks indicating inferred side as
 
 Measured route mileage supplied/verified during the September 2026 terminal-reference update. Rail Yard is intentionally excluded from distance tracking. Use these distances instead of estimating from map scale.
 
-Zones 7-9 are listed under their current names (corrected 2026-10-05; the PDF prints them under the old numbers).
+Zones 7-9 are listed under their current names (corrected 2026-10-05; the first issue printed them under the old numbers).
 
 | Destination | Berth 1 | Berth 2 | Berth 3 |
 |---|---|---|---|
@@ -322,9 +322,9 @@ Zones 7-9 are listed under their current names (corrected 2026-10-05; the PDF pr
 | Zone 4 | .50 mi | .50 mi | .65 mi |
 | Zone 5 | .70 mi | .90 mi | 1.00 mi |
 | Zone 6 | 1.30 mi | 1.25 mi | 1.50 mi |
-| Zone 7 (PDF row "Zone 8") | 1.50 mi | 1.50 mi | 1.50 mi |
-| Zone 8 (PDF row "Zone 9") | 1.50 mi | 1.50 mi | 1.70 mi |
-| Zone 9 (PDF row "Zone 7") | 1.50 mi | 1.40 mi | 1.20 mi |
+| Zone 7 (first-issue row "Zone 8") | 1.50 mi | 1.50 mi | 1.50 mi |
+| Zone 8 (first-issue row "Zone 9") | 1.50 mi | 1.50 mi | 1.70 mi |
+| Zone 9 (first-issue row "Zone 7") | 1.50 mi | 1.40 mi | 1.20 mi |
 | Zone T | 2.10 mi | 1.90 mi | 1.80 mi |
 | Zone V | 2.50 mi | 2.40 mi | 2.25 mi |
 | Zone X | 2.80 mi | 2.50 mi | 2.70 mi |
