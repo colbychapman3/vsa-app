@@ -5,7 +5,8 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 
 ## Now (2026-10-05)
 - **Do not phone-check build #7** (EAS `dd5051bd`, 2026-10-05). It was built without the text reader: `.gitignore` hid `modules/vsa-text/ios/`, and its build log has no `VsaText`. Fixed in PR #1.
-- **Next:** build #8 from `main` after PR #1 (text reader, Zone 7-9 distance correction). Before the phone check, confirm `VsaText` appears in its build log. Then phone-check 7b (this game plan, VIN scan, van sheet, notes) and 7c (Night, large text, a TEST vessel).
+- **Build #8** (EAS `0a53a6a0`, from `b484819`, 2026-10-05): text reader and Zone 7-9 distance correction. Its build log has `VsaText` (#7 had none); submitted to TestFlight.
+- **Next:** phone-check #8: 7b (this game plan, VIN scan, van sheet, notes) and 7c (Night, large text, a TEST vessel).
 - **Waiting on Colby:** approve the 07:00 safety meeting spec (`docs/specs/phase-7-safety-meeting.md`, draft).
 - **After that:** keep import photos (7b step 6) and the safety meeting rule in one build, then 7d Smarter Ask.
 
@@ -22,7 +23,7 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 | 6d Ask; van list, polish | 10-01 | 10-01 | 10-01 | EAS `6f1bde1a` |
 | 7a TestFlight | 10-01 | 10-02 | live on TestFlight | #3, #4 |
 | 7c Sidebar, Settings, Night | 10-03 | 10-03 | pending | #5 |
-| 7b Game plan reader | 10-04 | 10-04 | pending | #7 (no reader), #8 next |
+| 7b Game plan reader | 10-04 | 10-04 | pending | #7 (no reader), #8 |
 | Zone 7-9 distance correction | 10-05 (Colby) | 10-05 | with #8 | #8 |
 | 7e 07:00 safety meeting | draft | | | |
 | 7d Smarter Ask | 10-03 (plan) | | | |
