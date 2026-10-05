@@ -146,6 +146,7 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
         <Field label="Autos counted this hour" value={count} onChange={setCount} />
         <Field label={dayDrivers != null ? 'Drivers this hour' : 'Drivers'} note={dayDrivers != null ? `(only if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} />
       </View>
+      {state.hh.passes.some((p) => p.end && p.end.abs >= (day - 1) * 1440 + parseHM(hour)! - 60 && p.end.abs < (day - 1) * 1440 + parseHM(hour)! + 60) && <Note>H/H completed near this hour. Drivers changed? If some moved to cars, enter this hour’s driver count; leave it empty if nothing changed.</Note>}
       {dayDrivers == null && <Note>Tip: set the day’s drivers once in Plan › Labor instead of every hour.</Note>}
       <Label>SPLIT BY BRAND (OPTIONAL)</Label>
       <View style={s.row2}>
