@@ -9,7 +9,7 @@ const base = html.match(/EDIT_BASE='([^']+)'/)?.[1];
 const line = html.split('\n').find((l) => l.startsWith('var D={'));
 const b64 = html.match(/<image id="sat" href="data:image\/jpeg;base64,([A-Za-z0-9+/=]+)"/)?.[1];
 if (!base || !line || !b64) throw new Error('terminal-map.html: base, geometry or satellite image not found; the artifact layout changed.');
-const D = JSON.parse(line.slice('var D='.length).replace(/;$/, ''));
+const D = JSON.parse(line.slice('var D='.length).replace(/;\s*$/, '')); // \s: Windows checkouts end lines with CRLF
 
 // Saved edits (the artifact's database doc map/edits). Refused if they were made on another base version.
 const file = JSON.parse(readFileSync('docs/reference/terminal-map-edits.json', 'utf8'));

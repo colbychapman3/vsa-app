@@ -276,11 +276,9 @@ test('review R5/R6: a clerk count stays with its break after an hour correction;
       payload: { ...head.payload, value: 100 + (i % 7), reason: 'Recount' } };
     evs.push(c); head = c;
   }
-  // Replay (the log integrity check) dominates; ordering corrections by their original adds little on top.
-  const time = (fn: () => unknown) => { const t0 = performance.now(); fn(); return performance.now() - t0; };
-  const r = time(() => replay(evs, OP));
-  let p: ReturnType<typeof project> | null = null;
-  const q = time(() => { p = project(glovis, evs, OP); });
-  assert.ok(p!.ok, JSON.stringify(p));
-  assert.ok(q < r * 1.5 + 50, `project ${Math.round(q)} ms vs replay ${Math.round(r)} ms`);
+  // Deterministic: a long chain projects, replays, and keeps its whole history. Growth is guarded by replayScaling.test.ts (counts reads, not milliseconds).
+  assert.ok(!('error' in replay(evs, OP)), 'replay accepts the chain');
+  const p = project(glovis, evs, OP);
+  assert.ok(p.ok, JSON.stringify(p));
+  assert.equal(Math.max(...p.corrections.map((c) => c.history.length)), 2001);
 });

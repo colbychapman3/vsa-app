@@ -42,15 +42,18 @@ try {
   }
 
   // The iOS project, generated without installing pods.
-  run(tmp, 'npx', ['expo', 'prebuild', '--platform', 'ios', '--no-install']);
-  const files = walk(join(tmp, 'ios'));
-  const entitlements = files.filter((f) => f.endsWith('.entitlements'));
-  check(entitlements.length > 0, 'iOS project has an entitlements file');
-  check(entitlements.every((f) => !readFileSync(f, 'utf8').includes('aps-environment')), 'no push (aps-environment) entitlement');
-  const plist = files.find((f) => /[\\/]Info\.plist$/.test(f));
-  const info = plist ? readFileSync(plist, 'utf8') : '';
-  check(info.includes('NSCameraUsageDescription') && info.includes('NSPhotoLibraryUsageDescription'), 'camera and photo permission texts are present');
-  check(!info.includes('NSMicrophoneUsageDescription'), 'no microphone permission text');
+  if (win) console.log('skip iOS project checks (entitlements, permission texts): expo prebuild for iOS cannot run on Windows. CI runs them on Linux; push before building.');
+  else {
+    run(tmp, 'npx', ['expo', 'prebuild', '--platform', 'ios', '--no-install']);
+    const files = walk(join(tmp, 'ios'));
+    const entitlements = files.filter((f) => f.endsWith('.entitlements'));
+    check(entitlements.length > 0, 'iOS project has an entitlements file');
+    check(entitlements.every((f) => !readFileSync(f, 'utf8').includes('aps-environment')), 'no push (aps-environment) entitlement');
+    const plist = files.find((f) => /[\\/]Info\.plist$/.test(f));
+    const info = plist ? readFileSync(plist, 'utf8') : '';
+    check(info.includes('NSCameraUsageDescription') && info.includes('NSPhotoLibraryUsageDescription'), 'camera and photo permission texts are present');
+    check(!info.includes('NSMicrophoneUsageDescription'), 'no microphone permission text');
+  }
 
   // Native source: committed, and discovered by Expo's autolinking.
   const swift = ['modules/vsa-text/ios/VsaText.podspec', 'modules/vsa-text/ios/VsaTextModule.swift'];
