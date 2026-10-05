@@ -1,5 +1,16 @@
 {
   "permissions": {
+    "allow": [
+      "mcp__Desktop_Commander__read_file",
+      "mcp__Desktop_Commander__list_directory",
+      "mcp__Desktop_Commander__start_search",
+      "mcp__Desktop_Commander__get_more_search_results",
+      "mcp__notebooklm__notebooklm_source_list",
+      "mcp__claude_ai_Expo__build_logs",
+      "Bash(npm test)",
+      "Bash(npm run typecheck)",
+      "Bash(npx tsc --noEmit)"
+    ],
     "deny": [
       "Read(/package-lock.json)",
       "Read(/docs/reference/terminal-map.html)",
