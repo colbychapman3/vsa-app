@@ -60,16 +60,13 @@ test('protocol prose: the Southside list names exactly the Southside destination
   assert.deepEqual(expand(names).sort(), [...SOUTH].sort());
 });
 
-// KNOWN GAP, reported to Colby 2026-10-05, not fixed here (a protocol/knowledge text, his to change; the Project has its own copy):
-// the operations reference lists only four Southside lots. Protocol Appendix C also makes these Southside.
-// This list may only shrink: when the reference is corrected, this test fails until the entry is removed.
-const OPS_REFERENCE_MISSING = ['Zone X', 'Zone B', 'Site 5', 'Site 6', 'Gate 2'];
-test('operations reference: its Southside list matches terminal.ts except for the known gap', () => {
+// The operations reference (also read by the in-app search) lists the Southside lots in prose. It once named only four;
+// Colby confirmed 2026-10-05 that Appendix C's nine are right and the reference was corrected.
+test('operations reference: its Southside list names exactly the Southside destinations', () => {
   const m = /\*\*Southside — 30 min before break:\*\*\s*([^\n]+?)\.\s*Stop at/.exec(read('knowledge-src/02-Stevedoring-Operations-Reference.md'));
   assert.ok(m, 'the Southside line was found');
   const listed = m[1].split(/,(?![^(]*\))/).map((x) => x.trim());
-  assert.deepEqual(listed.filter((n) => !SOUTH.includes(n)), [], 'it names a lot that terminal.ts does not call Southside');
-  assert.deepEqual(SOUTH.filter((n) => !listed.includes(n)), OPS_REFERENCE_MISSING);
+  assert.deepEqual([...listed].sort(), [...SOUTH].sort());
 });
 
 test('the drift tests would catch a changed copy (made-up)', () => {

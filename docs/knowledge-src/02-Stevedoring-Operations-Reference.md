@@ -31,7 +31,7 @@ Compiled: 2026-09-24 (rev. 2: cutoff fields confirmed). This is a summary only. 
 * Breaks at **12:00** and **18:00**. The hours before them (11:00–12:00, 17:00–18:00) are **short hours** with expected production dips.  
 * A 07:00 start includes a 10-minute safety meeting.  
 * Pre-break stop cutoffs (confirmed by Colby 2026-09-24):  
-  * **Southside — 30 min before break:** Zone 1 (MB Field), MBZ (Mercedes), Zone T, Zone V. Stop at 11:30 and 17:30.  
+  * **Southside — 30 min before break:** Zone 1 (MB Field), MBZ (Mercedes), Zone T, Zone V, Zone X, Zone B, Site 5, Site 6, Gate 2. Stop at 11:30 and 17:30.  
   * **Northside — 15 min before break:** all other fields. Stop at 11:45 and 17:45.
 
 ## **Terminology**

@@ -87,7 +87,7 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 - **AI-WRITE-BOUNDARY:** `ai.ts`, `assistant.ts` and `engine/proposal.ts` never import storage at runtime and never append events.
 - **STORAGE-BOUNDARY:** only `src/storage/store.ts` writes the events and vessels tables; events are appended only through `store.append` (`App.tsx`, backup import); only `db.ts` imports `expo-sqlite`; `src/app` imports only types from storage.
 - **DOMAIN-BOUNDARY:** screens take only formatting, parsing and lookup helpers from the engine, never protocol math.
-- **TERMINAL-DRIFT:** `src/engine/terminal.ts` is the one code source for sides, cutoffs and berth miles; `tests/terminalDrift.test.ts` fails when the protocol text, the knowledge copy or the protocol's Southside list disagree. One known gap is pinned there (the operations reference lists four Southside lots, Appendix C has nine).
+- **TERMINAL-DRIFT:** `src/engine/terminal.ts` is the one code source for sides, cutoffs and berth miles; `tests/terminalDrift.test.ts` fails when the protocol text, the knowledge copy or the protocol's Southside list disagree. The Southside lots are Appendix C's nine (Colby confirmed 2026-10-05).
 - **LINEAR-REPLAY:** `project()` and `replay()` do work proportional to the log (`tests/replayScaling.test.ts` counts reads, not milliseconds); output is pinned byte-for-byte by `tests/replayEquivalence.test.ts` (refresh only with `UPDATE_REPLAY_HASHES=1`, and say why).
 - **Targets, not yet true:** derived numbers explain themselves (Phase 7d traces); a lost phone doesn't lose the vessel (Phase 8c).
 
