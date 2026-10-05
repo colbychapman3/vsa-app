@@ -345,6 +345,8 @@ export function hourlyView(s: State, b?: Baseline) {
       barPct: (x.count / max) * 100,
       short: x.short ? (x.min != null ? `Stopped ${formatHM(start + x.min)} · ${x.min} min worked · pace ${Math.round(x.pace!)}/hr` : 'Stoppage time not set') : null,
       shortUnset: x.short && x.min == null,
+      // An hour with fewer minutes for a stated reason (the 07:00 safety meeting), not a break.
+      minNote: !x.short && x.reason && x.min != null ? `${x.min} min worked (${x.reason.toLowerCase()}) · pace ${Math.round(x.pace!)}/hr` : null,
       // Why a pre-break hour runs lower: each destination side stops clear-by minutes before the break (protocol App. C).
       cutoff: x.short && b ? cutoffNote(b, preBreak(x.start, s.breaks)) : null,
       corrected: x.was?.length ? `Was ${x.was.map(fmt).join(' → ')} · original kept` : null,
@@ -359,7 +361,7 @@ export function hourlyView(s: State, b?: Baseline) {
   });
   return {
     stats: { ha: p.ha == null ? '—' : String(Math.round(p.ha)), haNote: `${fmt(s.field)} ÷ ${p.countedHours} hr`, pace: p.pace == null ? '—' : String(Math.round(p.pace)), paceNote: p.pace == null ? 'no productive time' : 'per productive hr', total: fmt(s.field) },
-    paceLine: p.pace != null ? `Pace = ${fmt(p.prodCount)} ÷ ${(p.prodMin / 60).toFixed(2)} productive hr. Pre-break hours count only the minutes worked before stoppage.` : null,
+    paceLine: p.pace != null ? `Pace = ${fmt(p.prodCount)} ÷ ${(p.prodMin / 60).toFixed(2)} productive hr. Pre-break hours count only the minutes worked before stoppage.${s.periods.some((x) => x.reason) ? ' A day that starts at 07:00 counts its first hour as 50 minutes (safety meeting 07:00-07:10).' : ''}` : null,
     unsetShort: p.unsetShort.length ? `Stoppage time not set for ${p.unsetShort.map((x) => `${x}–${formatHM(preBreak(x, s.breaks) ?? parseHM(x)! + 60)}`).join(', ')}` : null,
     brandTable,
     unsplitNote: s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,

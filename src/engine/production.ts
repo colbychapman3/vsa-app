@@ -13,7 +13,8 @@ export type HourEntry = {
   brands?: Record<string, number> | null;
   stopMin?: number | null;             // productive minutes in a short pre-break hour (30 or 45)
   lateMin?: number;                    // minutes of this hour before the day's actual (late) start; absent = 0
-  was?: number[];                      // earlier values of this hour's total, oldest first (corrections)
+  safetyMin?: number;                  // minutes of this hour in the 07:00 safety meeting; absent = 0
+  was?: number[];                     // earlier values of this hour's total, oldest first (corrections)
 };
 
 export type Period = HourEntry & {
@@ -23,9 +24,13 @@ export type Period = HourEntry & {
   delta: number | null;                // pace change vs the previous hour (same day)
   deltaPct: number | null;
   deltaPaced: boolean;                 // true when either hour was short, so the change is pace, not count
+  reason?: string;                     // why this hour has fewer minutes, when the screen should say so
 };
 
 const STOP_CHOICES = [30, 45];
+
+// A workday that starts at 07:00 opens with a 10-minute safety meeting (Colby, 2026-10-05; spec phase-7-safety-meeting).
+export const SAFETY_MEETING = { start: '07:00', min: 10, reason: 'Safety meeting 07:00-07:10' } as const;
 
 // The break (minutes) that ends this hour, or null. A break at start+60 is the usual case; a break
 // inside the hour (a 07:30 day gives 11:30) cuts the hour short: it runs [start, break).
@@ -46,11 +51,14 @@ export function buildPeriods(entries: HourEntry[], breaks: string[]): Period[] {
     if (h.day !== prevD) { prevP = null; prevS = false; prevD = h.day; }
     const short = isShort(h.start, breaks);
     const worked = short ? (typeof h.stopMin === 'number' ? h.stopMin : null) : 60;
-    const min = worked == null ? null : Math.max(0, worked - (h.lateMin ?? 0)); // only minutes from the actual start count
+    // Production starts at the later of the actual start and the meeting's end: the two overlap, never add.
+    const late = h.lateMin ?? 0, safety = h.safetyMin ?? 0;
+    const min = worked == null ? null : Math.max(0, worked - Math.max(late, safety));
     const pace = min ? h.count / (min / 60) : null;
     const delta = prevP == null || pace == null ? null : pace - prevP;
     const deltaPct = prevP && pace != null ? ((pace - prevP) / prevP) * 100 : null;
     const p: Period = { ...h, short, min, pace, delta, deltaPct, deltaPaced: short || prevS };
+    if (safety > late) p.reason = SAFETY_MEETING.reason;
     prevP = pace; prevS = short;
     return p;
   });

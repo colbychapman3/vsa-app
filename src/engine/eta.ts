@@ -3,7 +3,7 @@
 // the last two hours with a known pace; skips clear-by + 1-hour breaks; Day 1 ends at
 // shift end minus clear-by; later days start at the next-day start time.
 import type { Destination } from './baseline.ts';
-import { preBreak, type Period } from './production.ts';
+import { preBreak, SAFETY_MEETING, type Period } from './production.ts';
 import { parseHM, toAbs, fromAbs, type OpTime, type Reject } from './time.ts';
 
 const DAY = 1440, BREAK_MIN = 60;
@@ -22,8 +22,14 @@ export function vesselClearBy(destinations: Pick<Destination, 'clearBy'>[]): num
   return destinations.reduce((m, d) => Math.max(m, d.clearBy || 0), 0);
 }
 
-// Minutes after midnight when a given day (1-based) starts.
-const dayStartMin = (s: Schedule, day: number) => parseHM(s.actualStarts?.[day] ?? (day > 1 ? s.nextStart || s.dayStart || '08:00' : s.dayStart || '08:00'))!;
+// Minutes after midnight when a given day (1-based) starts producing. A 07:00 day opens with the
+// safety meeting, so production starts at the later of 07:10 and a recorded actual start.
+const dayStartMin = (s: Schedule, day: number) => {
+  const planned = day > 1 ? s.nextStart || s.dayStart || '08:00' : s.dayStart || '08:00';
+  const actual = s.actualStarts?.[day];
+  const meetingEnd = planned === SAFETY_MEETING.start ? parseHM(planned)! + SAFETY_MEETING.min : 0;
+  return Math.max(parseHM(actual ?? planned)!, meetingEnd);
+};
 
 // Working windows for one day (0-based index d), in absolute minutes.
 function windows(s: Schedule, d: number): [number, number][] {

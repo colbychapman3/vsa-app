@@ -81,6 +81,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
                     {r.cutoff && <Note>{r.cutoff}</Note>}
                   </View>
                 )}
+                {r.minNote && <Note>{r.minNote}</Note>}
                 {r.corrected && (
                   <View style={s.tagRow}>
                     <Text style={[s.tag, { borderColor: color.blue, color: color.blue, fontFamily: f.bodySemi }]}>CORRECTED</Text>

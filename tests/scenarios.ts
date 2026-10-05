@@ -96,10 +96,12 @@ export const SCENARIOS: Scenario[] = [
   { name: 'end of shift: field ahead (alarm)', decks: { ...LUNCH_DECKS, D4: { status: 'paused', hatchRemaining: { H3: 118, H2: 105, H1: 7 } } }, hourly: MORNING,
     plan: { shiftEnd: '17:00', nextStart: '08:00' }, ops: { day: 1, shiftEnded: true, shiftEnd: '17:00' },
     expect: (s) => { assert.equal(s.reconciliation.status, 'alarm'); assert.equal(s.variance, -2); } },
+  // Day 2 starts 07:30, not 07:00: the tracker has no 07:00 safety meeting (7e), so parity can't hold on a
+  // 07:00 day. tests/safety.test.ts covers 07:00.
   { name: 'Day 2 ETA after shift end', decks: DEMO_DECKS, hourly: [...MORNING, ...AFTERNOON],
-    plan: { shiftEnd: '15:00', nextStart: '07:00' }, ops: { day: 1, shiftEnded: true, shiftEnd: '15:00' },
+    plan: { shiftEnd: '15:00', nextStart: '07:30' }, ops: { day: 1, shiftEnded: true, shiftEnd: '15:00' },
     expect: (s) => { assert.equal(s.eta.eta.day, 2); assert.equal(s.eta.label, 'FORECAST'); } },
-  { name: 'Day 2 production', decks: DEMO_DECKS, hourly: [...MORNING, ...AFTERNOON, { day: 2, start: '07:00', count: 120, drivers: 50 }],
-    plan: { shiftEnd: '15:00', nextStart: '07:00' },
+  { name: 'Day 2 production', decks: DEMO_DECKS, hourly: [...MORNING, ...AFTERNOON, { day: 2, start: '07:30', count: 120, drivers: 50 }],
+    plan: { shiftEnd: '15:00', nextStart: '07:30' },
     expect: (s) => { assert.equal(s.periods.at(-1).day, 2); } },
 ];

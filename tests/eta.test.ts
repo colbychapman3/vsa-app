@@ -22,7 +22,8 @@ type Case = { name: string; rem: number; hours: HourEntry[]; plan?: { shiftEnd?:
 const CASES: Case[] = [
   { name: 'demo shift, mid-afternoon', rem: 550, hours: DEMO },
   { name: 'rolls past 18:00 break', rem: 1500, hours: DEMO },
-  { name: 'Day 1 shift end 17:00 → Day 2 07:00', rem: 1200, hours: DEMO, plan: { shiftEnd: '17:00', nextStart: '07:00' } },
+  // 07:30, not 07:00: the tracker has no 07:00 safety meeting (7e); tests/safety.test.ts covers 07:00.
+  { name: 'Day 1 shift end 17:00 → Day 2 07:30', rem: 1200, hours: DEMO, plan: { shiftEnd: '17:00', nextStart: '07:30' } },
   { name: 'on lunch break', rem: 1039, hours: DEMO.slice(0, 4), ops: { day: 1, onBreak: true, breakStart: '12:00' } },
   { name: 'shift ended, Day 2 not started', rem: 300, hours: DEMO, plan: { shiftEnd: '15:00', nextStart: '08:00' }, ops: { day: 1, shiftEnded: true } },
   { name: 'Day 2 production', rem: 400, hours: [...DEMO, { day: 2, start: '08:00', count: 230 }, { day: 2, start: '09:00', count: 250 }], plan: { shiftEnd: '17:00', nextStart: '08:00' }, ops: { day: 2 } },

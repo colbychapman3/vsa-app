@@ -7,7 +7,7 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 - **Do not phone-check build #7** (EAS `dd5051bd`, 2026-10-05). It was built without the text reader: `.gitignore` hid `modules/vsa-text/ios/`, and its build log has no `VsaText`. Fixed in PR #1.
 - **Build #8** (EAS `0a53a6a0`, from `b484819`, 2026-10-05): text reader and Zone 7-9 distance correction. Its build log has `VsaText` (#7 had none); submitted to TestFlight.
 - **Next:** phone-check #8: 7b (this game plan, VIN scan, van sheet, notes) and 7c (Night, large text, a TEST vessel).
-- **Waiting on Colby:** approve the 07:00 safety meeting spec (`docs/specs/phase-7-safety-meeting.md`, draft).
+- **7e 07:00 safety meeting built 2026-10-05** (Colby: "build the 7e rule"; spec defaults taken). Phone-check in the next build: a 07:00 day's first hour shows "50 min worked (safety meeting 07:00-07:10)". **Colby:** add the rule to the Project's copy of the Project Instructions (ANALYTICS).
 - **Phase 8 hardening approved 2026-10-05** (`docs/specs/phase-8-hardening.md`): 8a (guardrail tests, CI native job, ESLint), 8b (linear replay), 8f (terminal drift tests) and 8c (save-a-copy prompts, damaged-row handling) are built and tested; 8d and 8e (= 7d step 2) come after 7e. **Phone-check in the next build:** Log › Photo save (a photo-copy bug was fixed) and the save-a-copy prompts after a break report, the completion report and an archive.
 - **Waiting on Colby:** mirror the corrected Southside line (nine lots) from `docs/knowledge-src/02-Stevedoring-Operations-Reference.md` into the Project's copy. iCloud Backup is on (confirmed 2026-10-05). Automatic off-phone backup: decided not now (Colby, 2026-10-05); see Backlog.
 - **After that:** keep import photos (7b step 6) and the safety meeting rule in one build, then 7d Smarter Ask.
@@ -27,14 +27,14 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 | 7c Sidebar, Settings, Night | 10-03 | 10-03 | pending | #5 |
 | 7b Game plan reader | 10-04 | 10-04 | pending | #7 (no reader), #8 |
 | Zone 7-9 distance correction | 10-05 (Colby) | 10-05 | with #8 | #8 |
-| 7e 07:00 safety meeting | draft | | | |
+| 7e 07:00 safety meeting | 10-05 | 10-05 | next build | |
 | 7d Smarter Ask | 10-03 (plan) | | | |
 | 8 Hardening (8a, 8b) | 10-05 | 10-05 | with next build | none |
 
 ## Phase 7: TestFlight, paperwork import, sidebar, smarter Ask
 **7a TestFlight: live.** Store builds ship headless: `eas build --platform ios --profile production --non-interactive`, then `eas submit --platform ios --profile production --latest --non-interactive`. Phone checks happen on the TestFlight build; nothing in this phase needs the dev client. Each checkpoint is one store build, and EAS counts builds against the paid plan's monthly quota.
 
-Specs: `phase-6e-game-plan-reader.md` (7b, approved 2026-10-04; replaces `superseded/phase-7-game-plan-import.md`), `phase-7-sidebar.md` (7c), `phase-7-safety-meeting.md` (7e, draft). 7d has no spec file; its plan is below. Example paperwork: `docs/reference/game-plan-example-hector-highway-10a/`.
+Specs: `phase-6e-game-plan-reader.md` (7b, approved 2026-10-04; replaces `superseded/phase-7-game-plan-import.md`), `phase-7-sidebar.md` (7c), `phase-7-safety-meeting.md` (7e, approved 2026-10-05). 7d has no spec file; its plan is below. Example paperwork: `docs/reference/game-plan-example-hector-highway-10a/`.
 
 **Checkpoint 1: 7b Game plan reader: built** (spec `phase-6e-game-plan-reader.md`; plan approved 2026-10-03, spec 2026-10-04). Steps 1-5 done 2026-10-04: word-position fixtures and row rebuilding (`src/app/layout.ts`), deck-level brand split (`Deck.cargo`), cover-page reader (`src/app/gamePlan.ts`), Setup step 0 / Load list / H&H ledger (old 6c import removed), `modules/vsa-text` replacing `expo-text-extractor`. 378 tests; 5 review rounds, all required findings fixed; loop stopped by Colby to ship.
 - Step 6, keep import photos (Settings switch and storage): not built yet; next build after #8. The photo permission text in `app.json` ("The photos are not stored") must change with it.

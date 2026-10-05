@@ -1,6 +1,8 @@
 # Spec: 07:00 safety meeting (Phase 7e)
 
-Status: **DRAFT**, waiting on Colby's approval. Colby asked for this rule on 2026-10-05. The glossary records it ("07:00 start: includes a 10-minute safety meeting", Confirmed); Protocol v1.1 and the app do not have it yet.
+Status: **APPROVED and built 2026-10-05** (Colby: "build the 7e rule"). The open questions took their recommended defaults: 07:00 starts only, a fixed 10 minutes, driver rate uses 50 minutes, and the rule goes into the Project Instructions (Colby mirrors it into the Project). The glossary records the rule ("07:00 start: includes a 10-minute safety meeting", Confirmed); Protocol v1.1 does not have it.
+
+Built as: `SAFETY_MEETING` and `Period.reason` in `src/engine/production.ts`; `safetyMin` set in `src/engine/index.ts`; the ETA's day start in `src/engine/eta.ts`; the hour note and Pace text in `src/app/view.ts` and `src/app/report.ts`. The tracker has no meeting, so the parity cases that started Day 2 at 07:00 now start it at 07:30, and `tests/safety.test.ts` covers 07:00.
 
 ## Objective
 A workday that starts at 07:00 begins with a 10-minute safety meeting, so production can't start before 07:10. Pace and the ETA forecast should count that hour as 50 productive minutes, not 60, so the first hour doesn't read as a false production drop and the forecast doesn't assume 10 minutes of work that can't happen. Success: on a 07:00 day the first hour's Pace uses 50 minutes and says why; H.A. is unchanged; nothing else moves.

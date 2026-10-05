@@ -83,6 +83,7 @@ function hours(s: State): Section {
         const start = parseHM(x.start)!;
         const notes = [
           x.short ? (x.min != null ? `Production stopped ${formatHM(start + x.min)} (${x.min} min worked)` : 'Stoppage time not set') : '',
+          !x.short && x.reason && x.min != null ? `${x.min} min worked (${x.reason.toLowerCase()})` : '',
           x.was?.length ? `Corrected: was ${x.was.map(n).join(' → ')}` : '',
         ].filter(Boolean).join('; ');
         return [`${x.day > 1 ? `Day ${x.day} ` : ''}${x.start}–${formatHM(preBreak(x.start, s.breaks) ?? start + 60)}`, n(x.count), notes];

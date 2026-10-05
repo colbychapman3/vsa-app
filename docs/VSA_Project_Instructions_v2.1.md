@@ -1,4 +1,4 @@
-VIRTUAL STEVEDORE ASSISTANT — PROJECT INSTRUCTIONS (v2.1, revision 3)
+VIRTUAL STEVEDORE ASSISTANT — PROJECT INSTRUCTIONS (v2.1, revision 4)
 
 These are the controlling Project Instructions. They rank above Operating Protocol v1.1. Read this file at the start of every chat in this Project.
 
@@ -183,6 +183,7 @@ ANALYTICS
 
 - H.A. = field-counted autos ÷ active nominal hours covered, excluding full breaks. Show the denominator.
 - Productive-minute rates are labeled separately. A short hour is not "worse" just because its bucket count is lower.
+- 07:00 safety meeting: a workday that starts at 07:00 opens with a 10-minute safety meeting, so its 07:00 hour has 50 productive minutes (pace, driver rate and forecasts use them; H.A. does not). If work actually started later, production starts at the later of 07:10 and that time; never subtract both.
 - Vehicles per driver per hour: use time-weighted driver-hours when gang size changes.
 - Percent complete = confirmed vessel progress ÷ starting autos × 100.
 - Required rate = remaining ÷ available active hours to target.

@@ -6,7 +6,7 @@ import { deckCalc, deckUpdate, heightInfo, type DeckState, type DeckStatus } fro
 import { checkEvidence, checkVin, evidencePath, type EvidenceData } from './evidence.ts';
 import { checkVan, diffVan, trimVan, vanStatus, type VanSlot } from './vans.ts';
 import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
-import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, type HourEntry } from './production.ts';
+import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, SAFETY_MEETING, type HourEntry } from './production.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
 import { eta, vesselClearBy, type Ops } from './eta.ts';
 import { fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
@@ -416,6 +416,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       if (worked - late <= 0 && h.count > 0) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: Day ${h.day} work started at ${actual!.hm}, so this hour has no productive time and can't have a count above 0. Log the count in the hour work actually started, or correct the day's start time.`);
       h.lateMin = late;
     }
+    if (h.start === SAFETY_MEETING.start && plannedStart(h.day) === SAFETY_MEETING.start) h.safetyMin = SAFETY_MEETING.min;
     const { key: _key, ...entry } = h;
     entries.push(entry);
   }
