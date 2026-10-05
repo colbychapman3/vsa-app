@@ -92,6 +92,21 @@ function hours(s: State): Section {
   };
 }
 
+// H/H timeline (awareness only): each pass as logged, and what was observed on the car hours. Never a cause.
+function hhSection(s: State): Section {
+  const h = s.hh;
+  if (!h.passes.length) return { title: 'H/H timeline', lines: ['No H/H start or complete was logged.'] };
+  return {
+    title: 'H/H timeline',
+    lines: [
+      h.text,
+      ...h.passes.map((p, i) => `Pass ${i + 1}: started ${p.start.label}; ${p.end ? `complete ${p.end.label}` : p.endedWithShift ? 'ended with the shift (no closing time entered)' : 'still active'}`),
+      ...(h.analysis?.lines ?? []),
+      'H/H counts are awareness only and are not part of the auto counts above.',
+    ],
+  };
+}
+
 function eta(s: State, b: Baseline): Section {
   const e = snapshot(s, b, 0).eta;
   return {
@@ -201,7 +216,7 @@ function completionSections(s: State, b: Baseline, phase: string, notes: Record<
     named('Lessons learned'),
     named('Recommendations'),
   ];
-  const out: Section[] = [...numbered.map((x, i) => ({ ...x, title: `${i + 1}. ${x.title}` })), eta(s, b), notesSection(s)];
+  const out: Section[] = [...numbered.map((x, i) => ({ ...x, title: `${i + 1}. ${x.title}` })), eta(s, b), hhSection(s), notesSection(s)]; // protocol 9.3's 15 sections stay as they are; H/H follows them
   return out;
 }
 

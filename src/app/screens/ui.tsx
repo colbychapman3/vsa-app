@@ -238,6 +238,17 @@ export function Seg<T extends string | number>({ options, value, onChange, colum
   );
 }
 
+// Reason picker: quick picks plus "Other…" with a text box.
+export function Reasons({ options, value, onChange, other, onOther }: { options: readonly string[]; value: string | null; onChange: (r: string) => void; other: string; onOther: (v: string) => void }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Label>REASON</Label>
+      <Seg columns={2} value={value} onChange={onChange} options={[...options, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
+      {value === 'Other' && <Field label="Reason" value={other} onChange={onOther} keyboard="default" maxLength={120} />}
+    </View>
+  );
+}
+
 export function Go({ label, onPress, ghost, disabled }: { label: string; onPress: () => void; ghost?: boolean; disabled?: boolean }) {
   const f = useType();
   return (

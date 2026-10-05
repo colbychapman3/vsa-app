@@ -7,6 +7,7 @@ import { checkEvidence, checkVin, evidencePath, type EvidenceData } from './evid
 import { checkVan, diffVan, trimVan, vanStatus, type VanSlot } from './vans.ts';
 import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
 import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, SAFETY_MEETING, type HourEntry } from './production.ts';
+import { buildPasses, hhAnalysis, hhStatus, type HhMarker } from './hh.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
 import { eta, vesselClearBy, type Ops } from './eta.ts';
 import { fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
@@ -17,6 +18,7 @@ export * from './decks.ts';
 export * from './fit.ts';
 export * from './events.ts';
 export * from './production.ts';
+export * from './hh.ts';
 export * from './ledger.ts';
 export * from './eta.ts';
 export * from './evidence.ts';
@@ -92,6 +94,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const dayDrivers = new Map<number, { n: number; id: string }>(); // workday driver setting per operation day
   const dayActual = new Map<number, { hm: string; id: string; cause: string | null }>(); // actual (late) start per operation day
   const plan: { shiftEnd: string | null; nextStart: string | null } = { shiftEnd: null, nextStart: null };
+  const hhMarkers: HhMarker[] = []; // H/H start / complete markers, in log order
   const clerks: { remaining: number; time: string; seq: number }[] = [];
   const noteList: PlanNote[] = [];
   const evidenceList: EvidenceItem[] = [];
@@ -263,6 +266,21 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         }
         else return fail(`Event ${id}: shift value must be "ended" or "started".`, id);
         continue;
+      case 'hh_phase': {
+        // H/H start / complete marker (spec 7g): a time and nothing else; awareness only, no count, no ledger.
+        const edited = e.event_type === 'correction';
+        if (edited && p.value === 'void') continue; // removed with a reason; the log keeps it
+        if ((edited ? root.event_type : e.event_type) !== 'status_change') return fail(`Event ${id}: an H/H marker must be a status change.`, id);
+        const kind = edited ? root.payload.value : p.value;
+        if (kind !== 'started' && kind !== 'completed') return fail(`Event ${id}: an H/H marker must be "started" or "completed".`, id);
+        if (edited && p.value !== kind) return fail(`Event ${id}: a correction can change the time of an H/H ${kind === 'started' ? 'start' : 'complete'}, not which one it is.`, id);
+        if (p.count_kind !== 'not_applicable') return fail(`Event ${id}: an H/H marker must not be a count kind (count_kind not_applicable).`, id);
+        // The exact time when given; otherwise the phone's processing time, labeled as such.
+        const t = occurred ?? at(e.recorded_at);
+        if (!t || 'error' in t) return fail(`Event ${id}: H/H ${kind === 'started' ? 'start' : 'complete'} needs a time.`, id);
+        hhMarkers.push({ id, kind, abs: toAbs(t)!, label: occurred ? when(occurred, e.recorded_at) : `${eventTimeLabel(t)} (processing time)`, processing: !occurred });
+        continue;
+      }
       case 'plan_shift_end':
       case 'plan_next_start':
         // A null Day 1 shift end means "works until finished".
@@ -426,6 +444,11 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     return fail(`This makes the field total ${summary.field.toLocaleString('en-US')}, which exceeds starting cargo (${base.start.toLocaleString('en-US')}) by ${(summary.field - base.start).toLocaleString('en-US')}. Check the count.`);
   }
 
+  // H/H passes from the markers; a pass with no entered complete ends with the next recorded shift end.
+  const hhBuilt = buildPasses(hhMarkers, breakLog.filter((b) => b.kind === 'shift').map((b) => b.startAbs));
+  if ('error' in hhBuilt) return fail(hhBuilt.error, hhBuilt.id);
+  const hh = { passes: hhBuilt.passes, ...hhStatus(hhBuilt.passes), analysis: hhAnalysis(periods, hhBuilt.passes, baseline.breaks) };
+
   const deckResults = baseline.decks.map((d) => {
     const st = decks[d.id];
     return { ...deckCalc(d, st), height: heightInfo(d, st?.heightConfirmed ?? null), time: st?.time ?? null, history: st?.history ?? [],
@@ -470,6 +493,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       const day = i + 1, a = dayActual.get(day), planned = plannedStart(day);
       return [day, { planned, firstBreak, actual: a?.hm ?? null, lateMin: a ? parseHM(a.hm)! - parseHM(planned)! : 0, cause: a?.cause ?? null, id: a?.id ?? null }];
     })) as Record<number, { planned: string; firstBreak: string | null; actual: string | null; lateMin: number; cause: string | null; id: string | null }>,
+    hh, // H/H timeline: awareness only, never part of an auto count
     workdayDrivers: Object.fromEntries([...dayDrivers].map(([d, v]) => [d, v.n])) as Record<number, number>,
     corrections,
     log,

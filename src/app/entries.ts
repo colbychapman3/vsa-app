@@ -184,6 +184,43 @@ export function endShiftEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reje
   return out;
 }
 
+// ---------- H/H timeline (spec 7g): awareness only, a time and nothing else ----------
+
+export const HH_REASONS = ['Wrong time', 'Logged by mistake'] as const; // plus "Other…" (free text)
+
+// "H/H started" / "H/H complete". An empty time is saved as null: the engine then uses the phone's processing time, labeled.
+export function hhMarkerEvents(ctx: Ctx, kind: 'started' | 'completed', time: OpTime | null): VsaEvent[] | Reject {
+  const bt = badTimes(time);
+  if (bt) return bt;
+  const { add, out } = builder(ctx);
+  add({ type: 'status_change', metric: 'hh_phase', value: kind, workstream: 'operation', at: time });
+  return out;
+}
+
+// Change the time of a saved marker (the old time stays in the log) or remove it (it stays, marked removed). A reason is required.
+export function editHhMarkerEvents(ctx: Ctx, markerId: string, time: OpTime | null, reason: string | null): VsaEvent[] | Reject {
+  const target = eventById(ctx, markerId);
+  if (!target || target.payload.metric !== 'hh_phase') return reject('That H/H marker is not in the log.');
+  if (!time) return reject('Enter the corrected time.');
+  const bt = badTimes(time);
+  if (bt) return bt;
+  const why = reason?.trim();
+  if (!why) return reject('Pick a reason for changing this H/H time. The old time is kept.');
+  const { add, out } = builder(ctx);
+  correctionOf(add, target, target.payload.value, time, why);
+  return out;
+}
+
+export function removeHhMarkerEvents(ctx: Ctx, markerId: string, reason: string | null): VsaEvent[] | Reject {
+  const target = eventById(ctx, markerId);
+  if (!target || target.payload.metric !== 'hh_phase') return reject('That H/H marker is not in the log.');
+  const why = reason?.trim();
+  if (!why) return reject('Pick a reason for removing this H/H marker. It stays in the log, marked removed.');
+  const { add, out } = builder(ctx);
+  correctionOf(add, target, 'void', null, why);
+  return out;
+}
+
 export function nextDayEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reject {
   const bt = badTimes(time);
   if (bt) return bt;

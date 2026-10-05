@@ -10,9 +10,9 @@ import { deckSheet, decksView, hourOptions } from '../view.ts';
 import { DeckForm } from './DeckSheet.tsx';
 import { EvidenceForm } from './EvidenceForm.tsx';
 import { color, useType } from '../theme.ts';
-import { Body, ErrorBox, Field, Go, Label, Note, Seg, Sheet, TimeField, u } from './ui.tsx';
+import { Body, ErrorBox, Field, Go, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
 
-export type Mode = 'hour' | 'deck' | 'break' | 'clerk' | 'issue' | 'photo';
+export type Mode = 'hour' | 'deck' | 'break' | 'hh' | 'clerk' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode; prefill?: HourPrefill };
 // From the assistant: a count and hour that were typed. Shown in the form; nothing is saved until Save is tapped.
@@ -48,6 +48,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
     { value: 'hour', label: 'Hourly count' },
     { value: 'deck', label: 'Deck' },
     { value: 'break', label: phase === 'break' ? 'End break' : phase === 'shift_end' ? 'Next day' : 'Break / shift' },
+    { value: 'hh', label: 'H/H' },
     { value: 'clerk', label: 'Clerk count' },
     { value: 'issue', label: 'Discrepancy' },
     { value: 'photo', label: 'Photo' },
@@ -68,6 +69,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
           {mode === 'hour' && <HourForm state={state} baseline={baseline} run={run} setError={setError} prefill={prefill} />}
           {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
           {mode === 'break' && <BreakForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
+          {mode === 'hh' && <HhForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'clerk' && <ClerkForm phase={phase} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'photo' && <EvidenceForm state={state} baseline={baseline} save={save} onClose={(done) => onClose(done)} />}
@@ -229,6 +231,72 @@ function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: R
         <Go ghost label="Log end of shift" onPress={() => go(end, day, E.endShiftEvents, () => 'End of shift logged. Reconcile ship and field.')} />
         <Note>Starts end-of-shift reconciliation. No cars should be in transit.</Note>
       </View>
+    </View>
+  );
+}
+
+// ---------- H/H start / complete (spec 7g): awareness only, a time and nothing else ----------
+
+function HhForm({ state, run, now, timeOf, setError }: { state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
+  const f = useType();
+  const [t, setT] = useState('');
+  const [edit, setEdit] = useState<{ id: string; what: string } | null>(null);
+  const [fix, setFix] = useState('');
+  const [reason, setReason] = useState<string | null>(null);
+  const [other, setOther] = useState('');
+  const hh = state.hh, day = state.ops.day;
+  const fill = (set: (v: string) => void) => () => { const n = now(); if (n) set(n); };
+  const active = hh.status === 'active'; // a pass is on and no shift end has closed it: no second start
+  const needsEnd = hh.passes.length > 0 && hh.passes.at(-1)!.end == null; // no complete entered yet (a real one may still be back-timed)
+  const why = () => (reason === 'Other' ? other.trim() : reason);
+  const log = (kind: 'started' | 'completed') => {
+    setError(null);
+    const at = timeOf(t, day);
+    if (at === 'bad') return setError('Enter the time as HH:MM, or leave it empty to use the phone’s time (marked as processing time).');
+    void run((c) => E.hhMarkerEvents(c, kind, at), kind === 'started' ? 'H/H start logged.' : 'H/H complete logged.');
+  };
+  const change = (remove: boolean) => {
+    if (!edit) return;
+    setError(null);
+    if (remove) return void run((c) => E.removeHhMarkerEvents(c, edit.id, why()), 'H/H marker removed. It stays in the log, marked removed.');
+    const at = timeOf(fix, day);
+    if (at === 'bad') return setError('Enter the time as HH:MM.');
+    void run((c) => E.editHhMarkerEvents(c, edit.id, at, why()), 'H/H time changed. The old time is kept in the log.');
+  };
+
+  if (edit) {
+    return (
+      <View style={{ gap: 14 }}>
+        <Body semi>{edit.what}</Body>
+        <TimeField required label="Corrected time" value={fix} onChange={setFix} onNow={fill(setFix)} />
+        <Reasons options={E.HH_REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />
+        <Go label="Save the new time" onPress={() => change(false)} />
+        <Go ghost label="Remove this marker" onPress={() => change(true)} />
+        <Go ghost label="Back" onPress={() => { setEdit(null); setError(null); }} />
+        <Note>Nothing is overwritten: the original time stays in the log.</Note>
+      </View>
+    );
+  }
+  return (
+    <View style={{ gap: 14 }}>
+      <Body semi>{hh.text}</Body>
+      <TimeField label="Time (empty = the phone’s time, marked as processing time)" value={t} onChange={setT} onNow={fill(setT)} />
+      <Go label="Start H/H" disabled={active} onPress={() => log('started')} />
+      <Go label="H/H complete" disabled={!needsEnd} onPress={() => log('completed')} />
+      {hh.passes.map((p, i) => (
+        <View key={p.start.id} style={s.hr}>
+          <Body semi>Pass {i + 1}</Body>
+          <Pressable onPress={() => { setEdit({ id: p.start.id, what: `Pass ${i + 1} start, ${p.start.label}` }); setFix(''); setReason(null); setOther(''); setError(null); }} style={({ pressed }) => [u.ghostBtn, pressed && u.pressed]} accessibilityRole="button">
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>Started {p.start.label} · change</Text>
+          </Pressable>
+          {p.end
+            ? <Pressable onPress={() => { setEdit({ id: p.end!.id, what: `Pass ${i + 1} complete, ${p.end!.label}` }); setFix(''); setReason(null); setOther(''); setError(null); }} style={({ pressed }) => [u.ghostBtn, pressed && u.pressed]} accessibilityRole="button">
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>Complete {p.end.label} · change</Text>
+            </Pressable>
+            : <Note>{p.endedWithShift ? 'No closing time entered: ended with the shift.' : 'Still active.'}</Note>}
+        </View>
+      ))}
+      <Note>H/H is awareness only. Its counts stay with the other stevedore and are never added to the auto counts. If you don’t log a complete, the pass ends with the shift.</Note>
     </View>
   );
 }

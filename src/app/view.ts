@@ -320,6 +320,17 @@ export function deckSheet(d: Deck, b: Baseline) {
 
 // ---------- Hourly ----------
 
+// "H/H started 08:30" / "H/H complete 10:00" / "H/H ended with the shift" for the markers inside an hour.
+export function hhTagsFor(s: State, x: { day: number; start: string }): string[] {
+  const a = (x.day - 1) * 1440 + parseHM(x.start)!;
+  const z = (x.day - 1) * 1440 + (preBreak(x.start, s.breaks) ?? parseHM(x.start)! + 60);
+  const within = (abs: number | null) => abs != null && abs >= a && abs < z;
+  return s.hh.passes.flatMap((p) => [
+    ...(within(p.start.abs) ? [`H/H started ${p.start.label}`] : []),
+    ...(p.end ? (within(p.end.abs) ? [`H/H complete ${p.end.label}`] : []) : p.endedWithShift && within(p.endAbs) ? ['H/H ended with the shift'] : []),
+  ]);
+}
+
 export function hourlyView(s: State, b?: Baseline) {
   const p = s.production;
   // Field over ship is red only when the ship must equal the field (a break or shift end); mid-work it's just the gap to watch.
@@ -353,6 +364,8 @@ export function hourlyView(s: State, b?: Baseline) {
       delta: x.delta == null ? null
         : `${x.delta >= 0 ? '+' : '−'}${fmt(Math.round(Math.abs(x.delta)))}${x.deltaPaced ? '/hr pace' : ''}${x.deltaPct == null ? '' : ` (${x.deltaPct >= 0 ? '+' : '−'}${Math.abs(x.deltaPct).toFixed(1)}%)`} vs prior hour`,
       photos: ph.forHour(x.day, x.start),
+      // H/H markers that fall inside this hour (awareness only: no count, never added to the auto count).
+      hhTags: hhTagsFor(s, x),
       brands: x.brands ? Object.entries(x.brands).map(([b, v]) => ({ b, v: fmt(v) })) : [],
       drivers: typeof x.drivers === 'number' && x.drivers > 0
         ? `${x.drivers} drivers${x.driversFrom === 'day' ? ` (Day ${x.day} setting)` : ''} · ${x.driverRate.rate != null ? `${x.driverRate.rate.toFixed(2)} per driver per productive hr` : 'per-driver rate needs the stoppage time'}`
@@ -446,6 +459,13 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
       missing: (v.missing ?? []).length ? `Missing: ${v.missing!.join(', ')}` : 'Nothing missing',
       checks: v.checks ?? [],
       sources: `Sources: ${((b.sources as string[] | undefined) ?? []).join('; ')}`,
+    },
+    // H/H timeline (awareness only, spec 7g): state, each pass, and what was observed on the car hours. Never a cause.
+    hh: {
+      text: s.hh.text,
+      units: hhText(b as unknown as Record<string, unknown>),
+      passes: s.hh.passes.map((p, i) => `Pass ${i + 1}: started ${p.start.label}; ${p.end ? `complete ${p.end.label}` : p.endedWithShift ? 'ended with the shift (no closing time entered)' : 'still active'}`),
+      lines: s.hh.analysis?.lines ?? [],
     },
     labor: {
       start: b.start,

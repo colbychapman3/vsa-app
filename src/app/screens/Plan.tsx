@@ -11,7 +11,7 @@ import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts'
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
 import { color, useType } from '../theme.ts';
 import { Vans } from './Vans.tsx';
-import { Big, Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Label, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
+import { Big, Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Backup = {
   lastAt: string | null; unsaved: number;
@@ -134,6 +134,15 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Note>Labor order figures are ordered, not a confirmed shape-up.</Note>
         {v.workday.map((d) => kv(d.label, d.value))}
         <Go ghost label="Set the day’s drivers" onPress={() => setDriversOpen(true)} />
+      </Card>
+
+      <Card style={[u.pad, { gap: 10 }]}>
+        <SectionHead title="H/H timeline" right="Awareness only" />
+        <Body semi>{v.hh.text}</Body>
+        {kv('H/H units (read-only)', v.hh.units)}
+        {v.hh.passes.map((p) => <Note key={p}>{p}</Note>)}
+        {v.hh.lines.map((l) => <Note key={l}>{l}</Note>)}
+        <Note>Log H/H start and complete from the Log sheet (H/H). H/H counts stay with the other stevedore and are never added to the auto counts.</Note>
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
@@ -281,17 +290,6 @@ function ShiftSheet({ state, baseline, isTest, save, onClose }: { isTest: boolea
 
 // '' → null; digits → number; anything else → NaN (refused with a message).
 const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN);
-
-// Reason picker: quick picks plus "Other…" with a text box.
-function Reasons({ options, value, onChange, other, onOther }: { options: readonly string[]; value: string | null; onChange: (r: string) => void; other: string; onOther: (v: string) => void }) {
-  return (
-    <View style={{ gap: 8 }}>
-      <Label>REASON</Label>
-      <Seg columns={2} value={value} onChange={onChange} options={[...options, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
-      {value === 'Other' && <Field label="Reason" value={other} onChange={onOther} keyboard="default" maxLength={120} />}
-    </View>
-  );
-}
 
 // Workday drivers: set once per operation day; every hour of that day without its own count uses it.
 function DriversSheet({ state, baseline, isTest, save, onClose }: { isTest: boolean; state: State; baseline: Baseline; save: Save; onClose: (done?: string) => void }) {

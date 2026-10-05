@@ -9,7 +9,7 @@ import { decksView, hourlyView, planView, snapshot } from './view.ts';
 
 export type Where = 'snap' | 'decks' | 'hourly' | 'plan';
 export type Intent =
-  | { k: 'remaining' } | { k: 'pace' } | { k: 'eta' } | { k: 'decks' } | { k: 'alerts' }
+  | { k: 'remaining' } | { k: 'pace' } | { k: 'eta' } | { k: 'decks' } | { k: 'alerts' } | { k: 'hh' }
   | { k: 'deck'; deck: string }
   | { k: 'distance'; zone: string | null }
   | { k: 'clearby'; zone: string | null }
@@ -70,6 +70,7 @@ export function routeQuestion(text: string, s: State): Intent {
   }
   if (/\b(clear by|clear-by|cutoff|cut off|clearby)\b/.test(t) || /clear.?by/.test(t)) return { k: 'clearby', zone };
   if (/\b(alert|alerts|discrepanc\w*|open issues?)\b/.test(t)) return { k: 'alerts' };
+  if (/\b(h h|hh|heavy|high heavy)\b/.test(t) && /\b(when|start|started|finish|finished|complete|completed|done|end|ended|status|active|timeline|pass|passes|over)\b/.test(t)) return { k: 'hh' }; // before the ETA words: "when did H/H finish" is about H/H
   if (/\b(eta|finish|finished|complete by|done by|when (will|do) we)\b/.test(t)) return { k: 'eta' };
   if (/\b(pace|h\.?a\.?|hourly average|this hour|per hour|rate)\b/.test(t)) return { k: 'pace' };
   if (/\b(decks? left|which decks|decks remaining|decks)\b/.test(t)) return { k: 'decks' };
@@ -81,7 +82,7 @@ export function routeQuestion(text: string, s: State): Intent {
 export const INTENT_SCHEMA = {
   type: 'object', title: 'Intent', required: ['kind'],
   properties: {
-    kind: { type: 'string', description: 'One of: remaining, pace, eta, decks, alerts, deck, distance, clearby, knowledge' },
+    kind: { type: 'string', description: 'One of: remaining, pace, eta, decks, alerts, hh, deck, distance, clearby, knowledge' },
     deck: { type: 'string', description: 'Deck label as the person wrote it, only for kind=deck' },
     zone: { type: 'string', description: 'Zone, site or yard name as the person wrote it, only for kind=distance or clearby' },
   },
@@ -93,7 +94,7 @@ export function checkIntent(raw: unknown, s: State, question: string): Intent | 
   if (!o || typeof o !== 'object') return null;
   const { kind, deck, zone } = o as Record<string, unknown>;
   switch (kind) {
-    case 'remaining': case 'pace': case 'eta': case 'decks': case 'alerts': return { k: kind };
+    case 'remaining': case 'pace': case 'eta': case 'decks': case 'alerts': case 'hh': return { k: kind };
     case 'knowledge': return { k: 'knowledge', q: question };
     case 'deck': { const r = typeof deck === 'string' ? deckIn(`deck ${deck.replace(/^\s*deck\s*/i, '')}`, s) : null; return r && r !== 'missing' ? { k: 'deck', deck: r } : null; }
     case 'distance': case 'clearby': { const z = typeof zone === 'string' ? findZone(zone) : null; return z ? { k: kind, zone: z } : null; }
@@ -119,6 +120,12 @@ export function answer(i: Intent, s: State, b: Baseline, nowMin: number, index: 
           hv.stats.pace === '—' ? `Pace: unknown · ${hv.stats.paceNote}` : `Pace ${hv.stats.pace}/hr · ${ha.notes[1]?.replace(/^Pace \d+\/hr /, '') ?? hv.stats.paceNote}`,
         ],
       };
+    }
+    case 'hh': {
+      // H/H timeline: the markers as logged; unknown stays unknown. Awareness only, never a cause.
+      const h = s.hh;
+      if (!h.passes.length) return { title: 'H/H', where: 'plan', tags: [], lines: ['No H/H start or complete has been logged.'] };
+      return { title: 'H/H', where: 'plan', tags: [], lines: [h.text, ...h.passes.map((p, i) => `Pass ${i + 1}: started ${p.start.label}; ${p.end ? `complete ${p.end.label}` : p.endedWithShift ? 'ended with the shift (no closing time entered)' : 'still active'}`), ...(h.analysis?.lines ?? [])] };
     }
     case 'eta': {
       const e = snap().eta;
