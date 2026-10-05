@@ -44,6 +44,6 @@ Compiled: 2026-09-24 (rev. 2: cutoff fields confirmed). This is a summary only. 
 
 * Built from four images: the IAP wall map, a vector map with hand-drawn red boundaries, a satellite screenshot (base layer), and an older aerial with parcel/operator labels (WWS, TICO, SSA, G\&W).  
 * Where sources disagree, the vector map wins on Zone 6/7 placement. Keep the red numbered markers 1–7.  
-* Renumbering: old Zone 7 → Zone 9, old Zone 8 → Zone 7, old Zone 9 → Zone 8\. Site 4 → Yard 3\.  
+* Renumbering: old Zone 7 → Zone 9, old Zone 8 → Zone 7, old Zone 9 → Zone 8\. Protocol v1.1 Appendix D prints Zones 7-9 under the old numbers; the corrected distances are in the Project Instructions (rev 3)\. Yard 3 was split off old Site 4; Site 4 is still its own lot\.  
 * Goal: an interactive map with selectable zones/yards/sites, hard borders, and a legend.
 

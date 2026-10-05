@@ -2,6 +2,8 @@
 
 Extracted from the included original PDF supplied by the user. The PDF controls layout, tables and any extraction ambiguity. This is not a reconstructed protocol. PDF page numbers follow.
 
+> **Correction 2026-10-05 (Colby; Project Instructions v2.1 rev 3):** Appendix D lists Zones 7-9 under their old numbers. Current lots: Zone 7 = the row printed "Zone 8" (1.50 / 1.50 / 1.50 mi), Zone 8 = the row printed "Zone 9" (1.50 / 1.50 / 1.70 mi), Zone 9 = the row printed "Zone 7" (1.50 / 1.40 / 1.20 mi). This copy keeps the PDF's printed values; the app uses `src/engine/terminal.ts`.
+
 PAGE 1
 Virtual Stevedore Assistant Operating Protocol - v1.1
 Page 1
@@ -360,6 +362,9 @@ PAGE 10
 Virtual Stevedore Assistant Operating Protocol - v1.1
 Page 10
 Appendix D - Authoritative Berth-to-Destination Distances
+
+> **Correction 2026-10-05 (Colby; Project Instructions v2.1 rev 3):** Appendix D lists Zones 7-9 under their old numbers. Current lots: Zone 7 = the row printed "Zone 8" (1.50 / 1.50 / 1.50 mi), Zone 8 = the row printed "Zone 9" (1.50 / 1.50 / 1.70 mi), Zone 9 = the row printed "Zone 7" (1.50 / 1.40 / 1.20 mi). This copy keeps the PDF's printed values; the app uses `src/engine/terminal.ts`.
+
 Measured route mileage supplied/verified during the September 2026 terminal-reference update. Rail Yard is intentionally excluded from distance tracking.
 Use these distances instead of estimating from map scale.
  Destination

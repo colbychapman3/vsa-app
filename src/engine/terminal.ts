@@ -1,5 +1,5 @@
 // Terminal directory: protocol v1.1 Appendix C (side and pre-break cutoff) and Appendix D
-// (measured berth-to-destination miles, Berths 1-3). Rail Yard is intentionally excluded.
+// (measured berth-to-destination miles, Berths 1-3), with current zone names (see Zones 7-9 below). Rail Yard is intentionally excluded.
 // Sides and cutoffs are the same facts destination() and CLEAR_BY_MIN hold; tests keep them in step.
 import { CLEAR_BY_MIN } from './time.ts';
 
@@ -7,7 +7,9 @@ type Row = [name: string, side: 'N' | 'S', miles: [number, number, number]];
 const ROWS: Row[] = [
   ['Zone 1 (MB Field)', 'S', [2.10, 1.70, 1.75]], ['Zone 2', 'N', [0.80, 0.80, 1.15]], ['Zone 3', 'N', [1.50, 1.00, 1.70]],
   ['Zone 4', 'N', [0.50, 0.50, 0.65]], ['Zone 5', 'N', [0.70, 0.90, 1.00]], ['Zone 6', 'N', [1.30, 1.25, 1.50]],
-  ['Zone 7', 'N', [1.50, 1.40, 1.20]], ['Zone 8', 'N', [1.50, 1.50, 1.50]], ['Zone 9', 'N', [1.50, 1.50, 1.70]],
+  // Zones 7-9: Appendix D uses the old numbers (old 7 = Zone 9, old 8 = Zone 7, old 9 = Zone 8); rows moved to the
+  // current names per Colby's correction 2026-10-05 (Project Instructions v2.1 rev 3).
+  ['Zone 7', 'N', [1.50, 1.50, 1.50]], ['Zone 8', 'N', [1.50, 1.50, 1.70]], ['Zone 9', 'N', [1.50, 1.40, 1.20]],
   ['Zone T', 'S', [2.10, 1.90, 1.80]], ['Zone V', 'S', [2.50, 2.40, 2.25]], ['Zone X', 'S', [2.80, 2.50, 2.70]],
   ['Zone B', 'S', [3.00, 3.00, 3.00]], ['BMW Field', 'N', [0.80, 1.20, 1.30]], ['MBZ (Mercedes)', 'S', [2.30, 2.60, 2.40]],
   ['Site 2', 'N', [0.70, 0.60, 0.60]], ['Site 3', 'N', [0.80, 0.50, 0.63]], ['Site 4', 'N', [0.60, 0.30, 0.32]],

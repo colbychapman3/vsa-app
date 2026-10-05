@@ -8,7 +8,7 @@ The working prototype is the **VSA Live tracker** (Claude artifact). Treat its b
 ## Source of truth (read before building anything)
 
 In `docs/` (from the VSA Migration Kit v1.0):
-- `Virtual_Stevedore_Assistant_Operating_Protocol_v1.1.pdf`: operating protocol; `14_Operating_Protocol_v1.1_TEXT.md` is its searchable text copy (the PDF wins if they differ)
+- `Virtual_Stevedore_Assistant_Operating_Protocol_v1.1.pdf`: operating protocol; `14_Operating_Protocol_v1.1_TEXT.md` is its searchable text copy (the PDF wins if they differ, except the Zone 7-9 correction below)
 - `VSA_Project_Instructions_v2.1.md`: controlling rules (ranks above the protocol)
 - `05` state schema, `06` event schema, `07` calculation guide, `15` integration/replay
 - `11_validation_tests.json` and `12` acceptance test: turn these into automated tests
@@ -97,6 +97,7 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 
 **Time and production**
 - Breaks are 12:00 and 18:00, always 1 hour.
+- Zone 7-9 correction (Colby, 2026-10-05; Project Instructions rev 3): the original protocol Appendix D prints Zones 7-9 under old numbers. Current Zone 7 = 1.50/1.50/1.50 mi, Zone 8 = 1.50/1.50/1.70, Zone 9 = 1.50/1.40/1.20 (Berths 1/2/3); all Northside. `terminal.ts` and `tests/map.test.ts` hold this. Site 4 and Yard 3 are both current lots, correct as printed.
 - Clear-by before breaks: Northside 15 min, Southside 30 min. Southside (Protocol Appendix C) = Zone 1, MBZ, Zone T, Zone V, Zone X, Zone B, Site 5, Site 6, Gate 2; everything else is Northside. `src/engine/terminal.ts` holds the list; change it there, with a test, never in a screen. "MB Field" alone means MBZ; Zone 1 is separate. Apply a cutoff once; never double-subtract when a stop time is given.
 - The pre-break hour is short: record when production stopped (:30 or :45). Pace uses productive minutes.
 - H.A. = field count ÷ counted hours (denominator shown). Pace = field count ÷ productive hours. Show both.
@@ -125,5 +126,3 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 
 - **Native source must be committed.** EAS uploads skip anything `.gitignore` excludes. Only the root `/ios/` and `/android/` folders are generated; `modules/*/ios/` is source. Until 2026-10-05 a bare `ios/` rule hid the Swift reader from git and from EAS builds. After adding native files, run `git status` and confirm they show up.
 - **Paperwork photos and fixtures** contain VINs and booking numbers: commit new ones only with Colby's OK (rule 6).
-- **Zone names:** the map uses the renumbered master-map names (old Zone 7 is now Zone 9, old 8 is 7, old 9 is 8) and looks up miles by name in `terminal.ts`. Whether the protocol's Appendix D uses old or new numbers is not confirmed; ask before changing Zone 7-9 miles.
-- **Site 4 and Yard 3 are both real:** Yard 3 was split off the part of old Site 4 nearest Berth 3; Site 4 remains (POVs).
