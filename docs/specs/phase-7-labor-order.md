@@ -1,6 +1,6 @@
 # Spec: Labor order reader (Phase 7f)
 
-Status: **DRAFT**, waiting on Colby's answers to the open questions. Colby asked on 2026-10-05 after phone-checking build #8: "The labor order shows the number of auto drivers, but it even gives a full description of the labor. That is useful to creating a new vessel."
+Status: **DRAFT**: the drivers question is answered (below); two small questions remain, with defaults. The number pass in `modules/vsa-text` is built (same day) and ships in the next build; the reader itself waits for a real phone read of the labor order. Colby asked on 2026-10-05 after phone-checking build #8: "The labor order shows the number of auto drivers, but it even gives a full description of the labor. That is useful to creating a new vessel."
 
 ## Objective
 Colby photographs the APS **Labor Order** page and Setup fills what it states: the start time, the drivers, and the labor description, each checked against the cover page. Free, offline, no AI. Success: on the Pontus Highway V.15 labor order, Day 1 drivers and the start time are filled and the labor lines are kept as a Plan note, with every number tagged "From labor order: check".
@@ -22,10 +22,13 @@ Colby photographs the APS **Labor Order** page and Setup fills what it states: t
 ## The reading problem (found on the phone, 2026-10-05)
 Apple's reader returned the labor order's labels but **none of the gang-column numbers** (42, 35, 6, 5, 56, 48, 23 ...) and dropped other isolated numbers in table cells (deck digits 8, 1 and 3 and the H/H amounts on the cover page). Reading these needs a second recognition pass over the number columns at higher zoom, in `modules/vsa-text` (Swift), which means a store build. Until a real phone read returns the numbers, nothing here can be pass/fail tested (CLAUDE.md rule 6). First task: add the second pass, take one phone read of this labor order, make it the fixture.
 
+## Decided (Colby, 2026-10-05)
+1. **"Drivers, Day 1" = the Auto Driver rows added across the auto gangs** (42 + 35 = 77 on this page). Van drivers, flagmen, spotters, lashers and the H/H gang are not in it.
+2. **H/H is awareness only:** its numbers and when it completes are shown, never tracked like autos and never added to auto counts. The H/H amounts (17 and 7 on this cover page, 24 in all) are read for that; they were among the numerals the phone dropped.
+
 ## Open questions (recommended default first)
-1. **Which number is "Drivers, Day 1"?** The page has gang totals 56 / 48 / 23, Auto Driver rows 42 / 35, and Van Drivers 6 / 5 / 1. Default: Colby tells us once; recommended is the Auto Driver rows added across the two auto gangs (42 + 35 = 77) because that is who drives the autos, but this is Colby's to define.
-2. **Should gang or role counts live anywhere besides a note?** Default: no, a note only.
-3. **Day 2 drivers:** a second labor order for Day 2 sets Day 2 drivers the same way (default: yes, one page per read).
+1. **Should gang or role counts live anywhere besides a note?** Default: no, a note only.
+2. **Day 2 drivers:** a second labor order for Day 2 sets Day 2 drivers the same way (default: yes, one page per read).
 
 ## Tests (written first, after the real phone read exists)
 - The real phone read of this page: start time, gang rows, totals and the three checks.

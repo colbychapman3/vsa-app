@@ -4,7 +4,7 @@
 // those cells (as printed on the paper) to check the full result, and damaged copies check every refusal.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { Page } from '../src/app/layout.ts';
+import { addMissedNumerals, type Page } from '../src/app/layout.ts';
 import { complete, form, load } from './gamePlanFixture.ts';
 import { NOT_A_GAME_PLAN, parseHatches, parseSplit, readGamePlan, readGamePlanPages, solveSplits, yardName, type GamePlan } from '../src/app/gamePlan.ts';
 
@@ -145,6 +145,35 @@ test('phone read, damaged: totals that do not add up settle nothing; the brands 
   const q = load('pontus-highway-cover-phone');
   q.words = q.words.filter((w) => !(w.t === '1041' || w.t === 'POV' && w.x === 1666)); // brand line unreadable
   assert.ok(ok(q).problems.some((x) => x.includes("the page's brand totals line was not read")));
+});
+
+// The second pass (enlarged tiles) finds the numerals the full-page read dropped. These are the numerals that are on the
+// paper at the places the phone left empty (deck 8, deck 1, the H/H deck 3, the H/H amount 17 and the red H/H subtotal 24),
+// plus every kind of noise the merge must refuse. The real second pass is checked on the phone (Share what was read).
+test('second pass merged: the dropped deck digits and H/H amounts come back, noise does not', () => {
+  const p = load('pontus-highway-cover-phone');
+  const extra = [
+    { t: '8', x: 2016, y: 1283, w: 35, h: 47, c: 0.9 }, { t: '8', x: 2019, y: 1285, w: 35, h: 47, c: 0.8 }, // same numeral from an overlapping tile
+    { t: '1', x: 2016, y: 1489, w: 24, h: 47, c: 0.9 }, { t: '3', x: 2010, y: 2250, w: 41, h: 47, c: 0.9 },
+    { t: '17', x: 276, y: 2100, w: 60, h: 47, c: 0.9 }, { t: '24', x: 285, y: 2380, w: 60, h: 50, c: 0.9 },
+    { t: '557', x: 275, y: 1160, w: 88, h: 47, c: 0.99 }, // already read
+    { t: '1', x: 1100, y: 1500, w: 8, h: 47, c: 0.9 },     // a ruled line read as "1"
+    { t: '4', x: 1900, y: 1700, w: 30, h: 45, c: 0.2 },    // low confidence
+    { t: 'O8', x: 2300, y: 1900, w: 60, h: 45, c: 0.9 },   // not a numeral
+  ];
+  p.words = addMissedNumerals(p.words, extra);
+  assert.equal(p.words.length, load('pontus-highway-cover-phone').words.length + 5);
+  const g = ok(p);
+  assert.deepEqual(g.autos.map((r) => r.deck), ['11', '8', '2', '1', '3']);
+  assert.deepEqual(g.hh.map((h) => [h.deck, h.amount]), [['5', 17], ['3', 7]]);
+  assert.equal(g.hhTotal, 24);
+  assert.equal(g.grandTotal, 1191); // 1,167 + 24: no mismatch is reported
+  assert.ok(!g.problems.some((x) => /deck number was not read|TOTAL (was not read|says)|amount was not read/.test(x)), g.problems.join('\n'));
+});
+
+test('a build without the second pass still reads: no extra words, the page is unchanged', () => {
+  const p = load('pontus-highway-cover-phone');
+  assert.deepEqual(addMissedNumerals(p.words, []), p.words);
 });
 
 test('solveSplits: a brand on one open row goes wholly there; ambiguous or non-fitting totals settle nothing', () => {

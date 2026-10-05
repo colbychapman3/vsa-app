@@ -82,7 +82,7 @@ export async function readPhotos(from: 'camera' | 'library', paperwork = false):
     const upright = await (await ImageManipulator.manipulate(a.uri).renderAsync()).saveAsync({ compress: 1, format: SaveFormat.JPEG });
     const read = await readText(upright.uri, !paperwork);
     pages.push(read.lines.join('\n'));
-    scans.push({ width: read.width, height: read.height, words: read.words });
+    scans.push({ width: read.width, height: read.height, words: read.words, extra: read.extra });
   }
   return { pages, scans };
 }
