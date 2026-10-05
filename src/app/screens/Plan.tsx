@@ -182,6 +182,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />
         <InfoNote label="About backups">
           <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
+          <Note>If iCloud Backup is on for this iPhone, the app’s data may also be in that backup. iOS runs it on its own schedule, not after each entry, so Export is the copy you control.</Note>
           <Note>Photos are not in the export. They stay in the app on this phone ({state.evidence.filter((x) => !x.removed).length} saved for this vessel); the export keeps each photo’s record only.</Note>
           <Note>{AI_STATUS_TEXT[aiStatus()]}</Note>
         </InfoNote>
