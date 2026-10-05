@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Page } from '../src/app/layout.ts';
 import { complete, form, load } from './gamePlanFixture.ts';
-import { NOT_A_GAME_PLAN, parseHatches, parseSplit, readGamePlan, readGamePlanPages, yardName, type GamePlan } from '../src/app/gamePlan.ts';
+import { NOT_A_GAME_PLAN, parseHatches, parseSplit, readGamePlan, readGamePlanPages, solveSplits, yardName, type GamePlan } from '../src/app/gamePlan.ts';
 
 const ok = (p: Page): GamePlan => { const r = readGamePlan(p); assert.ok(r.ok, r.ok ? '' : r.error); return (r as { plan: GamePlan }).plan; };
 const row = (g: GamePlan, deck: string) => g.autos.find((r) => r.deck === deck)!;
@@ -97,7 +97,76 @@ test('yards ≠ brands on a row: nothing paired for that row, and it says so', (
   p.words = p.words.filter((w) => !(w.t === 'AVP' && w.x === 1384)); // deck 11 yard list loses "AVP"
   const g = ok(p);
   assert.equal(row(g, '11').pairs, null);
-  assert.ok(g.problems.includes('Deck 11: 3 brands but 2 yards; destinations not paired. Choose them.'));
+  assert.ok(g.problems.includes('Deck 11: 3 brands but 2 yards (BMW, SITE 3); destinations not paired. Choose them.'));
+});
+
+// Colby's Pontus Highway V.13 cover page, as the phone's own text reader returned it (Share what was read, 2026-10-05).
+// The phone dropped the deck digits of two rows (8 and 1); everything else on the page came back.
+const phone = () => ok(load('pontus-highway-cover-phone'));
+const splitOf = (r: GamePlan['autos'][number]) => r.split?.map((i) => `${i.qty} ${i.brand}`).join(', ') ?? null;
+
+test('phone read of the Pontus Highway page: every row is kept, the autos TOTAL is the red subtotal, the brand line is read', () => {
+  const g = phone();
+  assert.equal(g.vessel, 'Pontus Highway V.13');
+  assert.equal(g.date, '10/5/2026');
+  assert.deepEqual(g.autos.map((r) => [r.deck, r.amount]), [['11', 557], [null, 438], ['2', 65], [null, 103], ['3', 4]]);
+  assert.equal(g.autosTotal, 1167);
+  assert.equal(g.grandTotal, 1191);
+  assert.deepEqual(g.brandTotals?.map((i) => `${i.qty} ${i.brand}`), ['1041 BMW', '13 RR', '4 MASE', '96 MB', '13 POV']);
+  assert.ok(!g.problems.some((p) => /autos TOTAL was not read|Line not placed in a row: "1041/.test(p)), g.problems.join('\n'));
+});
+
+test('phone read: rows that name brands without counts are settled from the brand totals, and say so', () => {
+  const g = phone();
+  assert.deepEqual(g.autos.map(splitOf), ['544 BMW, 13 RR', '438 BMW', '52 BMW, 9 POV, 4 MASE', '96 MB, 7 BMW', '4 POV']);
+  assert.deepEqual(g.autos.map((r) => r.derived), [true, false, true, true, false]);
+  const brands: Record<string, number> = {};
+  for (const r of g.autos) for (const i of r.split!) brands[i.brand] = (brands[i.brand] ?? 0) + i.qty;
+  assert.deepEqual(brands, { BMW: 1041, RR: 13, MASE: 4, MB: 96, POV: 13 }); // equals the page's brand line exactly
+  assert.ok(g.problems.includes('Deck 11: brand counts worked out from the page\'s brand totals (544 BMW, 13 RR). Check them.'));
+});
+
+test('phone read: hatches with a lookalike letter or a * are read; "ALL" stays a choice; yards pair when the page allows it', () => {
+  const g = phone();
+  assert.deepEqual(g.autos.map((r) => r.hatches), [null, null, ['H4', 'H3', 'H2'], ['H3'], ['H1']]);
+  assert.ok(g.problems.some((p) => p.includes('hatch "З*" read as H3; the page puts a * on it')));
+  assert.deepEqual(g.autos[0].pairs?.map((p) => p.yard), ['BMW', 'BMW']); // one yard on the row: every brand goes there
+  assert.equal(g.autos[1].pairs, null); // 1 brand, 3 yards: left to Colby
+  assert.ok(g.problems.some((p) => p.includes('1 brand but 3 yards (BMW, MB, SITE 3)')));
+  assert.deepEqual(g.autos[4].pairs, [{ brand: 'POV', yard: 'AVP' }]);
+});
+
+test('phone read, damaged: totals that do not add up settle nothing; the brands stay named and are typed by hand', () => {
+  const p = load('pontus-highway-cover-phone');
+  p.words.find((w) => w.t === '96')!.t = '95'; // brand line no longer adds to the TOTAL
+  const g = ok(p);
+  assert.deepEqual(g.autos.map((r) => r.split == null), [true, false, true, true, false]);
+  assert.ok(g.problems.some((x) => x.includes('the brand totals (1,166) and the rows do not match the TOTAL')), g.problems.join('\n'));
+  const q = load('pontus-highway-cover-phone');
+  q.words = q.words.filter((w) => !(w.t === '1041' || w.t === 'POV' && w.x === 1666)); // brand line unreadable
+  assert.ok(ok(q).problems.some((x) => x.includes("the page's brand totals line was not read")));
+});
+
+test('solveSplits: a brand on one open row goes wholly there; ambiguous or non-fitting totals settle nothing', () => {
+  const row = (amount: number, brands: string[]) => ({ amount, split: null, brands });
+  const a = row(10, ['X', 'Y']), b = row(6, ['Y', 'Z']);
+  const r = solveSplits([a, b], [{ brand: 'X', qty: 7 }, { brand: 'Y', qty: 5 }, { brand: 'Z', qty: 4 }]);
+  assert.ok(r instanceof Map);
+  assert.deepEqual(r.get(a)?.map((i) => i.qty), [7, 3]);
+  assert.deepEqual(r.get(b)?.map((i) => i.qty), [2, 4]);
+  // X and Y both on both rows: many answers fit, so none is given
+  const c = row(10, ['X', 'Y']), d = row(10, ['X', 'Y']);
+  assert.equal(typeof solveSplits([c, d], [{ brand: 'X', qty: 10 }, { brand: 'Y', qty: 10 }]), 'string');
+  // totals larger than the rows hold
+  assert.equal(typeof solveSplits([row(10, ['X', 'Y'])], [{ brand: 'X', qty: 9 }, { brand: 'Y', qty: 9 }]), 'string');
+});
+
+test('parseHatches: lookalike letters and a trailing * ("3*"); ALL and nonsense are still refused', () => {
+  assert.deepEqual(parseHatches('З*'), { hatches: ['H3'], starred: true });
+  assert.deepEqual(parseHatches('1*'), { hatches: ['H1'], starred: true });
+  assert.deepEqual(parseHatches('1*2*3*4').hatches, ['H4', 'H3', 'H2', 'H1']);
+  assert.equal(parseHatches('ALL').hatches, null);
+  assert.equal(parseHatches('5*').hatches, null);
 });
 
 test('not the cover page (no AMOUNT / DECK / HATCH header): nothing is read', () => {

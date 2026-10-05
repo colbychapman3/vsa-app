@@ -233,11 +233,11 @@ export function mergeGamePlan(d: GameDrafts, g: GamePlan): { drafts: GameDrafts;
       by.set(k, a);
     };
     for (const r of g.autos) {
-      if (!r.split || !r.deck) continue; // a row with no deck number is reported by the reader and typed by hand
+      if (!r.split) continue;
       r.split.forEach((i, k) => {
         const raw = r.pairs?.[k]?.yard ?? null;
         const dest = raw ? yardName(raw) : null;
-        if (raw && !dest) problems.push(`Yard "${raw}" for ${i.brand} on deck ${r.deck} is not in the terminal list: choose its destination.`);
+        if (raw && !dest) problems.push(`Yard "${raw}" for ${i.brand} on ${r.deck ? `deck ${r.deck}` : `the ${r.amount} ${r.cargo} row`} is not in the terminal list: choose its destination.`);
         add(i.brand, i.qty, dest ?? '');
       });
     }
@@ -247,8 +247,9 @@ export function mergeGamePlan(d: GameDrafts, g: GamePlan): { drafts: GameDrafts;
   // Decks in printed (discharge) order, with the brand split at deck level and the hatch names from the HATCH column.
   let decks = d.decks;
   if (!d.decks.length) {
-    decks = g.autos.filter((r) => r.deck).map((r) => ({
-      label: `D${r.deck}`, total: r.amount == null ? '' : String(r.amount), current: '',
+    // A row whose deck number was not read still gets its card (label "D", number typed by Colby) with everything else filled.
+    decks = g.autos.filter((r) => r.deck || r.amount != null || r.split).map((r) => ({
+      label: `D${r.deck ?? ''}`, total: r.amount == null ? '' : String(r.amount), current: '',
       split: r.split ? r.split.map((i) => ({ brand: i.brand, qty: String(i.qty) })) : [{ brand: '', qty: '' }],
       hatches: (r.hatches ?? []).map((h) => ({ h, items: [] })),
     }));

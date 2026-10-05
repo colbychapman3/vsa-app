@@ -146,12 +146,15 @@ test('review 2: with some brands not typed, the status says partly checked (neve
   assert.deepEqual(v.missing, ['BMW not entered from the load list.']);
 });
 
-test('review 2: a row whose deck was not read adds nothing to the destination lines', () => {
+test('a row whose deck was not read keeps its destinations and gets its own deck card, only the deck number left to type', () => {
   const p = complete();
   p.words = p.words.filter((w) => !(w.t === '11' && w.x === 949));
   const m = mergeGamePlan(empty(), plan(p));
-  assert.ok(!m.drafts.allocs.some((a) => a.brand === 'MAS'));
-  assert.equal(m.drafts.allocs.find((a) => a.brand === 'BMW')!.autos, '531');
+  assert.equal(m.drafts.allocs.find((a) => a.brand === 'MAS')!.autos, '58');
+  assert.equal(m.drafts.allocs.find((a) => a.brand === 'BMW')!.autos, '566');
+  const card = m.drafts.decks.find((d) => d.label === 'D')!;
+  assert.deepEqual([card.total, (card.split ?? []).map((s) => `${s.qty} ${s.brand}`)], ['94', ['35 BMW', '58 MAS', '1 POV']]);
+  assert.equal(m.drafts.decks.length, 7);
 });
 
 test('review 4: H/H rows with no deck are not kept; the printed H/H TOTAL is stored; no row sum stands in for it', () => {
