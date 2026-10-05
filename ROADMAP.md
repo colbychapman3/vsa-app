@@ -8,7 +8,8 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 - **Build #8** (EAS `0a53a6a0`, from `b484819`, 2026-10-05): text reader and Zone 7-9 distance correction. Its build log has `VsaText` (#7 had none); submitted to TestFlight.
 - **Next:** phone-check #8: 7b (this game plan, VIN scan, van sheet, notes) and 7c (Night, large text, a TEST vessel).
 - **Waiting on Colby:** approve the 07:00 safety meeting spec (`docs/specs/phase-7-safety-meeting.md`, draft).
-- **Phase 8 hardening approved 2026-10-05** (`docs/specs/phase-8-hardening.md`): 8a (guardrail tests, CI native job, ESLint) and 8b (linear replay) are built and tested; 8c save-a-copy prompts ride the 7e build; 8d, 8e (= 7d step 2), 8f later. **Phone-check the Log › Photo save in the next build** (a photo-copy bug was fixed).
+- **Phase 8 hardening approved 2026-10-05** (`docs/specs/phase-8-hardening.md`): 8a (guardrail tests, CI native job, ESLint), 8b (linear replay), 8f (terminal drift tests) and 8c (save-a-copy prompts, damaged-row handling) are built and tested; 8d and 8e (= 7d step 2) come after 7e. **Phone-check in the next build:** Log › Photo save (a photo-copy bug was fixed) and the save-a-copy prompts after a break report, the completion report and an archive.
+- **Waiting on Colby:** the knowledge copy of the operations reference lists only four Southside lots (Appendix C has nine); decision on an automatic off-phone backup (needs a native module and a build; recommended: not now); check iOS Settings › iCloud › Backup on the phone.
 - **After that:** keep import photos (7b step 6) and the safety meeting rule in one build, then 7d Smarter Ask.
 
 ## Timeline

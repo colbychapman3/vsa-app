@@ -6,7 +6,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useFonts as loadFonts } from 'expo-font';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, AppState, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Alert, AppState, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/engine/index.ts';
 import { openExpoDb, type Db } from './src/storage/db.ts';
@@ -19,10 +19,11 @@ import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceRep
 import { reducedPhotoData } from './src/app/evidencePhotos.ts';
 import type { Built } from './src/app/setup.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
-import { badges, openFirst, type Banner } from './src/app/view.ts';
+import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/app/view.ts';
 import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, type AppearanceMode } from './src/app/theme.ts';
 import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
+import { Go } from './src/app/screens/ui.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
 import { Ask } from './src/app/screens/Ask.tsx';
 import { quietFromText, quietToText, reminderPlan, type Quiet } from './src/app/assistant.ts';
@@ -43,6 +44,7 @@ const glovis = glovisJson as Baseline;
 
 type Loaded = { id: string; baseline: Baseline; isTest: boolean; state: State };
 export type SaveResult = { ok: true } | Reject;
+type Notice = { ok: boolean; text: string; action?: { label: string; onPress: () => void } }; // action: one tap to do what the message offers
 
 const minutesNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
 
@@ -60,7 +62,7 @@ export default function App() {
   const saving = useRef(false);
   const [vessel, setVessel] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [tab, setTab] = useState<Tab>('snap');
   const [nowMin, setNowMin] = useState(minutesNow);
   const [logOpen, setLogOpen] = useState(false);
@@ -240,7 +242,12 @@ export default function App() {
         const { uri } = await Print.printToFileAsync({ html: reportHtml(rep) });
         if (!(await Sharing.isAvailableAsync())) return setNotice({ ok: false, text: 'Sharing is not available on this device. The report was not sent.' });
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: `${vessel!.baseline.vessel} ${rep.title}` });
-        setNotice({ ok: true, text: `${rep.title} ready${rep.interim ? ' (INTERIM)' : ''}.` });
+        const ready = `${rep.title} ready${rep.interim ? ' (INTERIM)' : ''}.`;
+        // A report is a natural checkpoint: if entries are not in a saved copy, offer one (never blocks, dismiss to skip).
+        const id = vessel!.id;
+        setNotice(offerCopy(bk.unsaved, vessel!.isTest)
+          ? { ok: true, text: `${ready} ${unsavedNote(bk.unsaved, bk.lastAt) ?? ''}`.trim(), action: { label: 'Save a copy', onPress: () => { void exportVessel(id).then(setNotice); } } }
+          : { ok: true, text: ready });
       } catch (e) {
         setNotice({ ok: false, text: `Report not created: ${(e as Error).message}` });
       }
@@ -251,6 +258,17 @@ export default function App() {
     setNotice(null);
     try { setRows(await listRows(dbRef.current!, store.current!)); setDrawer(true); }
     catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); }
+  };
+  // Archiving hides a vessel but keeps its record on this phone; a copy is what survives a lost phone.
+  const offerCopyOnArchive = async (id: string) => {
+    try {
+      const r = await store.current!.load(id);
+      if (!r.ok) return;
+      const b = await backupStatus(dbRef.current!, id, r.events.length);
+      if (!offerCopy(b.unsaved, r.vessel.isTest)) return;
+      Alert.alert('Save a copy?', `${unsavedNote(b.unsaved, b.lastAt)} A copy keeps this record if the phone is lost.`,
+        [{ text: 'Not now', style: 'cancel' }, { text: 'Save a copy', onPress: () => { void exportVessel(id).then(setNotice); } }]);
+    } catch { /* a failed lookup never blocks archiving */ }
   };
   const refreshRows = async () => { try { setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); } };
   const setPrefSafe = async (k: string, v: string) => { try { await setPref(dbRef.current!, k, v); } catch (e) { setNotice({ ok: false, text: `Setting not saved: ${(e as Error).message}` }); } };
@@ -299,13 +317,23 @@ export default function App() {
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>
                   <Text style={[s.noticeText, { color: notice.ok ? color.gInk : color.rInk }]}>{notice.text}</Text>
+                  {notice.action && (
+                    <Pressable onPress={() => { const a = notice.action!; setNotice(null); a.onPress(); }} style={({ pressed }) => [s.noticeAction, pressed && { opacity: 0.6 }]} accessibilityRole="button">
+                      <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 15, fontWeight: '700', color: color.ink }}>{notice.action.label}</Text>
+                    </Pressable>
+                  )}
                   <Pressable onPress={() => setNotice(null)} style={s.dismiss} accessibilityRole="button" accessibilityLabel="Dismiss message">
                     <Text style={{ fontSize: 18, color: color.ink }}>✕</Text>
                   </Pressable>
                 </View>
               )}
               <ScrollView key={tab} contentContainerStyle={s.scroll}>{/* new tab starts at the top */}
-                {tab === 'snap' && bk.unsaved > 0 && <Text style={[s.note, { paddingHorizontal: 20, paddingTop: 12 }]}>{bk.unsaved} {bk.unsaved === 1 ? 'entry' : 'entries'} not backed up. Export from Plan, Backup.</Text>}
+                {tab === 'snap' && bk.unsaved > 0 && (
+                  <View style={{ paddingHorizontal: 20, paddingTop: 12, gap: 8 }}>
+                    <Text style={s.note}>{unsavedNote(bk.unsaved, bk.lastAt)}</Text>
+                    <Go ghost label="Save a copy now" onPress={() => { void backup.onExport(); }} />
+                  </View>
+                )}
                 {tab === 'snap'
                   ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice} />
                   : tab === 'decks'
@@ -331,7 +359,7 @@ export default function App() {
                   reminders={remind} remindersPaused={remindersPaused} onPauseReminders={(p) => { setRemindersPaused(p); void setPrefSafe('remindersPaused', p ? '1' : '0'); }}
                   onEnableReminders={async () => setRemind(await enableReminders())}
                   quiet={quiet} onQuiet={(q) => { setQuiet(q); void setPrefSafe('quiet', q ? quietToText(q) : ''); }}
-                  onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); await refreshRows(); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }}
+                  onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); await refreshRows(); if (a) void offerCopyOnArchive(id); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }}
                   onExportVessel={exportVessel} />
               )}
               {sheet === 'ask' && (
@@ -364,6 +392,7 @@ const s = StyleSheet.create({
   note: { fontSize: 15, color: color.muted },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, borderBottomWidth: 1, borderBottomColor: color.line },
   noticeText: { flex: 1, fontSize: 15, paddingVertical: 10 },
+  noticeAction: { minHeight: 56, minWidth: 88, maxWidth: 130, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: color.ink, borderRadius: 10 },
   dismiss: { minWidth: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   ok: { backgroundColor: color.gBg },
   errBar: { backgroundColor: color.rBg },

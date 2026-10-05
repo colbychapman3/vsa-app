@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { project, type VsaEvent, type HourEntry } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
-import { badges, subtitles, snapshot, decksView, deckSheet, hourlyView, planView, hourOptions } from '../src/app/view.ts';
+import { badges, subtitles, snapshot, decksView, deckSheet, hourlyView, planView, hourOptions, offerCopy, unsavedNote } from '../src/app/view.ts';
 import { glovis, toEvents, DEMO_DECKS, LUNCH_DECKS, MORNING, SCENARIOS } from './scenarios.ts';
 
 const OP = 'TEST-VIEW';
@@ -352,4 +352,13 @@ test('hero: no "field-counted" wording; bar labels say how many are done and how
   assert.equal(sc('lunch: ship ahead (warning)').find((x) => /ahead of field/.test(x.title))!.go, 'decks');
   assert.equal(sc('end of shift: field ahead (alarm)').find((x) => /field exceeds ship/.test(x.title))!.go, 'decks');
   assert.equal(sc('lunch: ship = field (green)').find((x) => /match/.test(x.title))!.go, undefined, 'a matching banner has nothing to fix');
+});
+
+test('backup nudge: offered only for LIVE vessels with entries not in a saved copy; the note says how stale the copy is', () => {
+  assert.equal(offerCopy(0, false), false);
+  assert.equal(offerCopy(3, false), true);
+  assert.equal(offerCopy(3, true), false);
+  assert.equal(unsavedNote(0, null), null);
+  assert.equal(unsavedNote(1, null), '1 entry not backed up. No copy saved yet.');
+  assert.equal(unsavedNote(1234, '2026-09-21T14:42:10-04:00'), '1,234 entries not backed up. Last copy: 2026-09-21 14:42 (phone clock).');
 });

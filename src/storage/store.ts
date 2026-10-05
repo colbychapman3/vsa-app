@@ -14,6 +14,8 @@ type Row = { operation_id: string; name: string; is_test: number; baseline_json:
 const TEST_ONLY = ['gloviscondor101'];
 const squash = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 const reject = (error: string): Reject => ({ ok: false, error });
+// A stored row that is not readable JSON (cut-off write, bad restore). Reported, never repaired or removed; other vessels are untouched.
+const unreadable = (id: string, why: string) => reject(`Vessel ${id}: its stored log could not be read (${why}). Nothing was changed or deleted. The other vessels are not affected.`);
 const toVessel = (r: Row): Vessel => ({ operationId: r.operation_id, name: r.name, isTest: r.is_test === 1, createdAt: r.created_at });
 
 export async function openStore(db: Db) {
@@ -48,9 +50,13 @@ export async function openStore(db: Db) {
     async load(id: string) {
       const r = await row(id);
       if (!r) return reject(`No vessel ${id} on this phone.`);
-      const baseline = JSON.parse(r.baseline_json) as Baseline;
-      const events = await eventsOf(db, id);
-      return { ok: true as const, vessel: toVessel(r), baseline, events, state: project(baseline, events, id) };
+      try {
+        const baseline = JSON.parse(r.baseline_json) as Baseline;
+        const events = await eventsOf(db, id);
+        return { ok: true as const, vessel: toVessel(r), baseline, events, state: project(baseline, events, id) };
+      } catch (e) {
+        return unreadable(id, (e as Error).message);
+      }
     },
 
     // Validate stored + new with the engine, then insert only the new events, all
@@ -60,7 +66,8 @@ export async function openStore(db: Db) {
       if (!r) return reject(`No vessel ${id} on this phone. Nothing was saved.`);
       const other = events.find((e) => e?.operation_id !== id);
       if (other) return reject(`Event ${other?.event_id} belongs to operation ${other?.operation_id}, not ${id}. Nothing was saved.`);
-      const baseline = JSON.parse(r.baseline_json) as Baseline;
+      let baseline: Baseline;
+      try { baseline = JSON.parse(r.baseline_json) as Baseline; } catch (e) { return unreadable(id, (e as Error).message); }
       // The database keeps JSON text, so the engine must judge what will be read back (Infinity becomes null).
       const incoming = events.map((e) => JSON.parse(JSON.stringify(e)) as VsaEvent);
       let result: { ok: true; saved: number; state: State } | Reject = reject('Nothing was saved.');
@@ -80,7 +87,7 @@ export async function openStore(db: Db) {
           result = { ok: true, saved: fresh.length, state };
         });
       } catch (e) {
-        return reject(`Nothing was saved (database error: ${(e as Error).message}).`);
+        return reject(`Nothing was saved (database error: ${(e as Error).message}).`); // includes an unreadable stored event: the log is left exactly as it was
       }
       return result;
     },

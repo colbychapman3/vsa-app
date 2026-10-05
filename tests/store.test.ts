@@ -316,3 +316,36 @@ test('two vessels on one store: events never cross, archive hides, last-opened r
   assert.ok((await listRows(db, store)).every((r) => !r.archived));
   await db.close();
 });
+
+test('a damaged vessel row is reported, never deleted or hidden, and the valid vessel next to it keeps working', async (t) => {
+  const { listRows } = await import('../src/storage/vessels.ts');
+  const file = tempFile(t);
+  const db = openNodeDb(file);
+  const store = await openStore(db);
+  const good = 'SHIP-GOOD-20260921', bad = 'SHIP-BAD-20260930', badBase = 'SHIP-BADBASE-20260930';
+  for (const id of [good, bad]) assert.ok((await store.createVessel({ operationId: id, baseline: { ...plain(glovis), vessel: id }, isTest: false })).ok);
+  assert.ok((await store.append(good, toEvents(SCENARIOS[1], good))).ok);
+  assert.ok((await store.append(bad, toEvents(SCENARIOS[1], bad).slice(0, 3))).ok);
+  // Damage: an event row whose JSON is cut off (the triggers refuse UPDATE and DELETE, but not a bad INSERT), and a vessel whose baseline is not JSON.
+  await db.run('INSERT INTO events VALUES (?, ?, ?, ?, ?)', [bad, 99, `${bad}-99`, `${bad}-99`, '{"event_id": "cut off']);
+  await db.run('INSERT INTO vessels VALUES (?, ?, ?, ?, ?)', [badBase, 'Broken baseline', 0, '{not json', '2026-09-30T00:00:00Z']);
+
+  for (const id of [bad, badBase]) {
+    const r = await store.load(id);
+    assert.equal(r.ok, false, id);
+    assert.match((r as { error: string }).error, /could not be read.*Nothing was changed or deleted/s, id);
+  }
+  const refused = await store.append(bad, []);
+  assert.equal(refused.ok, false);
+  const ok = await store.load(good) as { ok: true; events: unknown[]; state: { ok: boolean } };
+  assert.ok(ok.ok && ok.state.ok);
+  assert.equal(ok.events.length, toEvents(SCENARIOS[1], good).length);
+
+  // The vessel list still opens: every vessel is listed, the damaged ones flagged, nothing removed.
+  const rows = await listRows(db, store);
+  assert.equal(rows.length, 3);
+  assert.deepEqual(rows.filter((r) => r.problem).map((r) => r.operationId).sort(), [badBase, bad].sort());
+  assert.ok(rows.filter((r) => r.problem).every((r) => /could not be read/.test(r.problem!)));
+  assert.equal((await db.all<{ n: number }>('SELECT COUNT(*) AS n FROM events WHERE operation_id = ?', [bad]))[0].n, 4);
+  await db.close();
+});

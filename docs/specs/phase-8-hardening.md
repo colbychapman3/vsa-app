@@ -1,6 +1,6 @@
 # Spec: Phase 8, Harden the shell around the core
 
-Status: **APPROVED by Colby 2026-10-05** with the recommended default for every open question. 8a and 8b are built (see "Built" at the end). Source: ChatGPT's "Final Repository Review" and ChatLLM's "Final Review Conclusion" (both 2026-10-05), checked against `main` @ `d403e78`. Anything marked *verified* was run or read in the repo on 2026-10-05.
+Status: **APPROVED by Colby 2026-10-05** with the recommended default for every open question. 8a, 8b, 8f and most of 8c are built (see "Built" at the end). Source: ChatGPT's "Final Repository Review" and ChatLLM's "Final Review Conclusion" (both 2026-10-05), checked against `main` @ `d403e78`. Anything marked *verified* was run or read in the repo on 2026-10-05.
 
 ## Objective
 Keep the engine and the append-only ledger exactly as they are. Make a bad release harder to ship, make the architecture rules fail a test when broken, keep saves fast on long vessels, and make a lost phone cost less. Success:
@@ -99,3 +99,18 @@ Gate: tests, then one phone check inside the 7e build.
 - CLAUDE.md has the "Architecture guardrails" section and the new commands. `tests/kit.test.ts` still lists kit B12 and B23 as deferred to old phases; left as is, they are now covered by the rules above.
 
 Not started: 8c, 8d, 8e, 8f.
+
+**8f done** (`tests/terminalDrift.test.ts`): the protocol text copy and the knowledge copy (Appendix C sides and cutoffs, Appendix D miles), and the protocol's Southside prose list, are compared with `terminal.ts`; each was tampered with to prove its test fails. All currently agree except one **known gap, reported to Colby, not fixed**: the Southside list in `docs/knowledge-src/02-Stevedoring-Operations-Reference.md` names four lots (Zone 1, MBZ, Zone T, Zone V) and omits Zone X, Zone B, Site 5, Site 6 and Gate 2, which Appendix C makes Southside (30 min, not 15). That file feeds the in-app search. The test pins the gap and fails when it is fixed, so the entry gets removed then.
+
+**8c built, except the spike's decision and one wording line:**
+- Damaged rows: a stored row with unreadable JSON made `store.load` throw, which would have broken the vessel list (`listRows`). `load` and `append` now return a plain refusal ("could not be read ... Nothing was changed or deleted"); the damaged vessel is flagged in the list, nothing is removed, the valid vessel next to it works (`tests/store.test.ts`).
+- Save-a-copy prompts: after the break/shift-end and completion reports, a notice with a one-tap "Save a copy" button when entries are not in a saved copy; when archiving a vessel, an alert offering the same; the Snapshot note now says how old the last copy is and has a "Save a copy now" button. TEST vessels are never nagged. Dismiss skips; a cancelled share sheet marks nothing backed up (unchanged). Wording and the when-to-offer rule are pure functions with a test (`offerCopy`, `unsavedNote` in `view.ts`). **Phone-check in the 7e build:** a break report, the completion report and an archive each offer a copy; the button opens the share sheet; large text sizes.
+- Not done: the line about iCloud device backup in the About-backups note, until Colby has checked iOS Settings › iCloud › Backup on the phone (it would be worded "may also", not a guarantee).
+
+**Spike: an automatic copy off the phone (findings, nothing built).**
+- `Directory.pickDirectoryAsync()` (a Files folder picker, installed `expo-file-system`) grants access only for the running session: it calls `startAccessingSecurityScopedResource` and stores no bookmark, and nothing in the library saves one. So the app could write into an iCloud Drive folder only after Colby re-picks the folder at every app launch.
+- A persistent automatic copy needs native code: a small Swift module that saves a security-scoped bookmark for the chosen folder (or uses an iCloud container, which also needs the iCloud capability and a new provisioning profile). Either is a new native module plus a store build (EAS quota), with a real risk of the same kind as build #7.
+- The SQLite file sits in the app's Documents area, which iOS normally includes in an iCloud or computer backup if the owner has that on. I did not find anything in `expo-sqlite` that excludes it, but I have not verified this on a phone.
+- Recommendation: do not build the native module now. The checkpoint prompts plus Colby's own iCloud Backup cover the common losses (phone lost, reset, app deleted) with no new native code. Revisit if a vessel is ever lost.
+
+Not started: 8d (after 7e), 8e (first half of 7d).
