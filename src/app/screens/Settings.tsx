@@ -1,6 +1,6 @@
 // Settings: app-wide items only. Per-vessel items (Backup of the open vessel, Reports, Labor, Break log) stay in Plan.
-import { useRef, useState, type ReactNode } from 'react';
-import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import type { VesselRow } from '../../storage/vessels.ts';
 import { aiStatus, AI_STATUS_TEXT } from '../ai.ts';
@@ -134,35 +134,10 @@ function BackupPicker({ rows, onExportVessel }: { rows: VesselRow[]; onExportVes
   );
 }
 
-const TRASH_W = 96;
-
-// Swipe the row left and a trash can appears behind it; tapping the trash deletes. Only a clear, mostly horizontal drag
-// moves the row (the sheet still scrolls up and down). Delete is a prototype-phase feature (store.VESSEL_DELETE_ALLOWED).
-function SwipeToDelete({ label, onDelete, children }: { label: string; onDelete: () => void; children: ReactNode }) {
-  const f = useType();
-  const x = useRef(new Animated.Value(0)).current;
-  const open = useRef(false);
-  const settle = (to: number) => { open.current = to !== 0; Animated.spring(x, { toValue: to, useNativeDriver: true, bounciness: 0 }).start(); };
-  const from = () => (open.current ? -TRASH_W : 0);
-  const pan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 && Math.abs(g.dx) > 2 * Math.abs(g.dy),
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderMove: (_, g) => x.setValue(Math.max(-TRASH_W, Math.min(0, from() + g.dx))),
-    onPanResponderRelease: (_, g) => settle(from() + g.dx < -TRASH_W / 2 ? -TRASH_W : 0),
-    onPanResponderTerminate: () => settle(from()),
-  })).current;
-  return (
-    <View>
-      <Animated.View style={[{ position: 'absolute', top: 0, right: 0, bottom: 0, width: TRASH_W + 12 }, { opacity: x.interpolate({ inputRange: [-TRASH_W, -8, 0], outputRange: [1, 1, 0] }) }]}>
-        <Pressable onPress={() => { settle(0); onDelete(); }} accessibilityRole="button" accessibilityLabel={`Delete ${label}. This cannot be undone.`}
-          style={({ pressed }) => [{ flex: 1, backgroundColor: color.red, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingLeft: 12, minHeight: 56 }, pressed && u.pressed]}>
-          <Text style={{ fontSize: 28 }}>🗑</Text>
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.onRed }} numberOfLines={1} adjustsFontSizeToFit>Delete</Text>
-        </Pressable>
-      </Animated.View>
-      <Animated.View style={{ transform: [{ translateX: x }] }} {...pan.panHandlers}>{children}</Animated.View>
-    </View>
-  );
+// Delete is two taps (the second says so), beside Archive. Prototype-phase only (store.VESSEL_DELETE_ALLOWED).
+function DeleteButton({ onDelete }: { onDelete: () => void }) {
+  const [sure, setSure] = useState(false);
+  return <Go ghost label={sure ? 'Tap again to delete' : 'Delete'} onPress={() => { if (sure) { setSure(false); onDelete(); } else setSure(true); }} />;
 }
 
 function ArchiveList({ rows, currentId, onArchive, onDelete }: { rows: VesselRow[]; currentId: string; onArchive: (id: string, archived: boolean) => void; onDelete: (id: string) => void }) {
@@ -172,20 +147,22 @@ function ArchiveList({ rows, currentId, onArchive, onDelete }: { rows: VesselRow
     <View style={{ gap: 8 }}>
       {others.length === 0 && <Note>Only the open vessel is on this phone.</Note>}
       {others.map((r) => (
-        <SwipeToDelete key={r.operationId} label={r.name} onDelete={() => onDelete(r.operationId)}>
+        <View key={r.operationId}>
           <Card style={[u.pad, { gap: 8 }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Chip text={r.isTest ? 'TEST' : 'LIVE'} tone={r.isTest ? 'orange' : 'plain'} />
               {r.archived && <Chip text="Archived" />}
             </View>
-            <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}
-              accessibilityActions={[{ name: 'delete', label: 'Delete this vessel' }]} onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'delete') onDelete(r.operationId); }}>{r.name}</Text>
-            <Go ghost label={r.archived ? 'Unarchive' : 'Archive'} onPress={() => onArchive(r.operationId, !r.archived)} />
+            <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.name}</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flex: 1 }}><Go ghost label={r.archived ? 'Unarchive' : 'Archive'} onPress={() => onArchive(r.operationId, !r.archived)} /></View>
+              <View style={{ flex: 1 }}><DeleteButton onDelete={() => onDelete(r.operationId)} /></View>
+            </View>
           </Card>
-        </SwipeToDelete>
+        </View>
       ))}
       <Note>Archive hides a vessel from the menu. Its record stays on the phone and can be unarchived here.</Note>
-      <Note>Swipe a vessel left and tap the trash can to delete it. A deleted vessel and its photos cannot be brought back, except from a saved copy. The open vessel can't be deleted. Deleting is on during the prototype phase only.</Note>
+      <Note>Tap Delete twice to delete a vessel. A deleted vessel and its photos cannot be brought back, except from a saved copy. The open vessel can't be deleted. Deleting is on during the prototype phase only.</Note>
     </View>
   );
 }
