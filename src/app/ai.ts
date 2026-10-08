@@ -6,8 +6,9 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { checkIntent, INTENT_SCHEMA, type Intent } from './assistant.ts';
 import type { State } from '../storage/store.ts';
 import { checkNoteTidy, type Checked } from '../engine/proposal.ts';
-import { readText, textReaderAvailable } from '../../modules/vsa-text/index.ts';
-import type { Page } from './layout.ts';
+import { readCells, readText, textReaderAvailable } from '../../modules/vsa-text/index.ts';
+import { addMissedNumerals, type Page } from './layout.ts';
+import { gapCells } from './gamePlan.ts';
 
 type Llm = typeof import('@react-native-ai/apple').AppleFoundationModels;
 type Picker = typeof import('expo-image-picker');
@@ -81,6 +82,9 @@ export async function readPhotos(from: 'camera' | 'library', paperwork = false):
     // Vision reads the raw pixels and ignores the photo's rotation tag, so save an upright copy first (temporary, not kept).
     const upright = await (await ImageManipulator.manipulate(a.uri).renderAsync()).saveAsync({ compress: 1, format: SaveFormat.JPEG });
     const read = await readText(upright.uri, !paperwork);
+    // Cells the reader skipped (a row with an amount but no deck): read each closely; same numeral rules as the tiles.
+    const more = paperwork ? await readCells(upright.uri, gapCells(read)) : [];
+    if (more.length) { read.words = addMissedNumerals(read.words, more); read.extra = [...(read.extra ?? []), ...more]; }
     pages.push(read.lines.join('\n'));
     scans.push({ width: read.width, height: read.height, words: read.words, extra: read.extra });
   }

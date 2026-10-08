@@ -145,6 +145,25 @@ export function yardName(raw: string): string | null {
 
 type Section = { kind: 'autos' | 'hh' | 'unknown'; head: number; cols: Partial<Record<Col, number>>; rows: Row[]; total: number | null; totalAt: number; grand: number | null };
 
+// Table cells the reader skipped: a row that has an AMOUNT but no DECK. Returns a box around where the deck number should
+// sit, for a closer targeted read (modules/vsa-text readCells). Boxes are in the deskewed frame, close enough for a level photo.
+export function gapCells(page: Page): { x: number; y: number; w: number; h: number }[] {
+  const rows = rowsOf(page);
+  const hi = rows.findIndex((r) => headerColumns(r));
+  if (hi < 0) return [];
+  const cols = headerColumns(rows[hi])!;
+  const headWord = rows[hi].cells.flatMap((c) => c.words).find((w) => HEAD.deck.test(up(w.t).replace(/[^A-Z]/g, '')));
+  const out: { x: number; y: number; w: number; h: number }[] = [];
+  for (const r of rows.slice(hi + 1)) {
+    const v = assign(r, cols);
+    if (v.deck || !v.amount || count(v.amount) == null || isFree(r, cols) || isTitle(r)) continue;
+    const h = Math.max(...r.cells.map((c) => c.h));
+    const hw = Math.max(headWord?.w ?? 0, 2 * h) / 2 + h;
+    out.push({ x: cols.deck! - hw, y: r.y - h * 1.3, w: 2 * hw, h: h * 2.6 });
+  }
+  return out;
+}
+
 export function readGamePlan(page: Page): { ok: true; plan: GamePlan } | { ok: false; error: string } {
   const rows = rowsOf(page);
   const heads = rows.map((r, i) => ({ i, cols: headerColumns(r) })).filter((h) => h.cols);

@@ -36,6 +36,67 @@ public class VsaTextModule: Module {
         }
       }
     }
+
+    // Closer read of single cells the full read skipped (a lone deck digit). Each box is read enlarged on a white margin, at two
+    // sizes and both recognition levels; the most confident words come first. The app keeps only numerals, and only where the
+    // page read found nothing. A cell that cannot be read adds nothing.
+    AsyncFunction("readCells") { (url: URL, rects: [[String: Double]], promise: Promise) in
+      DispatchQueue.global(qos: .userInitiated).async {
+        guard let data = try? Data(contentsOf: url), let cgImage = UIImage(data: data)?.cgImage else {
+          promise.resolve([[String: Any]]())
+          return
+        }
+        var out: [[String: Any]] = []
+        for r in rects {
+          guard let x = r["x"], let y = r["y"], let w = r["w"], let h = r["h"], w > 4, h > 4 else { continue }
+          let box = CGRect(x: max(0, x), y: max(0, y), width: w, height: h).intersection(CGRect(x: 0, y: 0, width: Double(cgImage.width), height: Double(cgImage.height)))
+          if box.isEmpty { continue }
+          var found: [[String: Any]] = []
+          for scale in [4.0, 6.0] {
+            for level in [VNRequestTextRecognitionLevel.accurate, VNRequestTextRecognitionLevel.fast] {
+              autoreleasepool {
+                found.append(contentsOf: VsaTextModule.readCell(cgImage, box: box, scale: scale, level: level))
+              }
+            }
+          }
+          found.sort { ($0["c"] as? Double ?? 0) > ($1["c"] as? Double ?? 0) }
+          out.append(contentsOf: found)
+        }
+        promise.resolve(out)
+      }
+    }
+  }
+
+  private static func readCell(_ cgImage: CGImage, box: CGRect, scale: Double, level: VNRequestTextRecognitionLevel) -> [[String: Any]] {
+    guard let crop = cgImage.cropping(to: box) else { return [] }
+    let margin = max(box.width, box.height) * scale * 0.5
+    let size = CGSize(width: box.width * scale + 2 * margin, height: box.height * scale + 2 * margin)
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    format.opaque = true
+    let big = UIGraphicsImageRenderer(size: size, format: format).image { context in
+      UIColor.white.setFill()
+      context.fill(CGRect(origin: .zero, size: size))
+      UIImage(cgImage: crop).draw(in: CGRect(x: margin, y: margin, width: box.width * scale, height: box.height * scale))
+    }
+    guard let bigImage = big.cgImage else { return [] }
+    let request = VNRecognizeTextRequest()
+    request.recognitionLevel = level
+    request.usesLanguageCorrection = false
+    request.minimumTextHeight = 0
+    do { try VNImageRequestHandler(cgImage: bigImage, options: [:]).perform([request]) } catch { return [] }
+    let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
+    // Boxes come back relative to the whole enlarged picture (margin included): map them back to page pixels.
+    var words = collect(observations, ox: 0, oy: 0, w: Double(size.width), h: Double(size.height), confidence: true).words
+    for i in words.indices {
+      if let wx = words[i]["x"] as? Double, let wy = words[i]["y"] as? Double, let ww = words[i]["w"] as? Double, let wh = words[i]["h"] as? Double {
+        words[i]["x"] = Double(box.minX) + (wx - Double(margin)) / scale
+        words[i]["y"] = Double(box.minY) + (wy - Double(margin)) / scale
+        words[i]["w"] = ww / scale
+        words[i]["h"] = wh / scale
+      }
+    }
+    return words
   }
 
   // Words with boxes. The box of each word is in the pixels of the area it was read from, moved by (ox, oy).

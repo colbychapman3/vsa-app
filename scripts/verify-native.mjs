@@ -35,7 +35,8 @@ try {
   symlinkSync(join(root, 'node_modules'), join(tmp, 'node_modules'), 'junction');
 
   // Generated files: rerun the generators in the copy and compare with the committed outputs.
-  run(tmp, 'node', ['scripts/build-knowledge.mjs']);
+  // builtAt is the build date: reuse the committed one, or this check would fail every day after the commit.
+  run(tmp, 'node', ['scripts/build-knowledge.mjs', '--date', json(join(root, 'assets/knowledge/index.json')).builtAt]);
   run(tmp, 'node', ['scripts/export-map.mjs']);
   for (const f of ['assets/knowledge/index.json', 'src/app/map/data.ts', 'assets/terminal-map.jpg']) {
     check(readFileSync(join(tmp, f)).equals(readFileSync(join(root, f))), `${f} is current`, 'regenerate it with its script and commit it');
