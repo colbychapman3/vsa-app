@@ -9,7 +9,7 @@ import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { deckPhotos } from '../view.ts';
 import { dropUnsavedPhoto, keepPhoto, photoExists, photoUri } from '../evidenceFiles.ts';
-import { aiStatus, ocrAvailable, readPhotos, tidyNote } from '../ai.ts';
+import { aiStatus, ocrAvailable, pickLibraryPhoto, readPhotos, tidyNote } from '../ai.ts';
 import { vinCandidates, type VinCandidate } from '../../engine/scan.ts';
 import { color, useType } from '../theme.ts';
 import { Body, ErrorBox, Go, Label, Note, Seg, TimeField, u } from './ui.tsx';
@@ -25,6 +25,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
   const [camOn, setCamOn] = useState(false);
   const [shot, setShot] = useState<string | null>(null); // the camera's temporary file, until Save copies it
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(0); // photos saved with Save and add another
   const [type, setType] = useState<EvidenceType | null>(item?.type ?? null);
   const [deck, setDeck] = useState(item?.deck ?? '');
   const [hatch, setHatch] = useState(item?.hatch ?? '');
@@ -61,6 +62,11 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
     } catch (e) { setError(`The photo could not be taken: ${(e as Error).message}`); }
     finally { setBusy(false); }
   };
+  const choose = async () => {
+    setError(null);
+    try { const uri = await pickLibraryPhoto(); if (uri) { setShot(uri); setCamOn(false); } }
+    catch (e) { setError(`The photo could not be chosen: ${(e as Error).message}`); }
+  };
   const addVin = () => {
     setError(null);
     const r = checkVin(vinText);
@@ -93,7 +99,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
 
   const form = (photo: string | null): E.EvidenceForm => ({ type, deck, hatch, reason: reasonText, vins, notes, time: parseHM(time.trim()) == null ? null : { day, hm: time.trim().padStart(5, '0') }, photo });
 
-  const submit = async () => {
+  const submit = async (another = false) => {
     setError(null);
     if (busy) return;
     if (vinText.trim()) return setError('Tap Add VIN to add the VIN you typed, or clear the box.');
@@ -110,7 +116,8 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
       if (bad) return setError(bad);
       try { await keepPhoto(shot!, rel); } catch (e) { return setError(`The photo could not be kept on this phone: ${(e as Error).message} Nothing was saved.`); }
       const r = await save((c) => E.addEvidenceEvents(c, form(rel)));
-      if (r.ok) onClose('Photo saved on this phone.');
+      if (r.ok && another) { setSaved((n) => n + 1); setShot(null); setVins([]); setVinText(''); setNotes(''); setTime(''); setFound(null); setTidy(null); }
+      else if (r.ok) onClose('Photo saved on this phone.');
       else { dropUnsavedPhoto(rel); setError(r.error); }
     } finally { setBusy(false); }
   };
@@ -138,9 +145,13 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
         <View style={{ gap: 10 }}>
           <Image source={{ uri: shot }} style={s.cam} resizeMode="cover" accessibilityLabel="Photo just taken" />
           <Go ghost label="Retake photo" onPress={() => { setShot(null); void open(); }} />
+          <Go ghost label="Choose a different photo" onPress={choose} />
         </View>
       ) : (
-        <Go label="Open camera" onPress={open} />
+        <View style={{ gap: 10 }}>
+          <Go label="Open camera" onPress={open} />
+          <Go ghost label="Choose from camera roll" onPress={choose} />
+        </View>
       )}
 
       <Label>DECK</Label>
@@ -217,7 +228,9 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
         </>
       )}
       {error && <ErrorBox text={error} />}
-      <Go label={item ? 'Save changes' : 'Save photo'} disabled={busy} onPress={submit} />
+      {saved > 0 && <Note>{`${saved} photo${saved === 1 ? '' : 's'} saved. The type, deck, hatch and reason stay for the next one.`}</Note>}
+      <Go label={item ? 'Save changes' : 'Save photo'} disabled={busy} onPress={() => submit()} />
+      {!item && <Go ghost label="Save and add another" disabled={busy} onPress={() => submit(true)} />}
       {item && (
         <>
           <Go ghost label="Remove this photo" onPress={remove} />
