@@ -15,7 +15,7 @@ export const EVIDENCE_REPORTS: Record<EvidenceType, { kind: EvidenceReportKind; 
   'pre-stow': { kind: 'stowage', title: 'Stowage report' },
 };
 
-export type EvidenceEntry = { photo: string | null; heading: string; lines: string[]; edited: boolean };
+export type EvidenceEntry = { photo: string | null; more: string[]; heading: string; lines: string[]; edited: boolean };
 export type EvidenceGroup = { title: string | null; entries: EvidenceEntry[] };
 export type EvidenceReport = { kind: EvidenceReportKind; title: string; meta: string[]; interim: boolean; intro: string[]; groups: EvidenceGroup[]; removed: string[] };
 
@@ -38,7 +38,7 @@ function entry(s: State, x: Item, type: EvidenceType): EvidenceEntry {
     lines.push(`Hourly count (no cause claimed): ${x.at == null ? 'time not provided, so no hour can be shown' : p ? `${p.count.toLocaleString('en-US')} autos in the hour starting ${p.start}` : 'this time is not inside a logged hour'}`);
   }
   if (x.edited) lines.push('Edited: earlier versions are kept in the log.');
-  return { photo: x.photo, heading: `${TYPE_LABEL[x.type]} · ${deck} ${x.hatch}`, lines, edited: x.edited };
+  return { photo: x.photo, more: x.more ?? [], heading: `${TYPE_LABEL[x.type]} · ${deck} ${x.hatch}`, lines, edited: x.edited };
 }
 
 // Sorted by time; no time goes last.
@@ -76,14 +76,14 @@ export function buildEvidenceReport(kind: EvidenceReportKind, s: State, b: Basel
 }
 
 // Paths of the photos the report will show (current ones only), for the caller to load in reduced size.
-export const reportPhotos = (r: EvidenceReport) => r.groups.flatMap((g) => g.entries.map((e) => e.photo)).filter((p): p is string => !!p);
+export const reportPhotos = (r: EvidenceReport) => r.groups.flatMap((g) => g.entries.flatMap((e) => [e.photo, ...e.more])).filter((p): p is string => !!p);
 
 // `src` gives a photo's (reduced) data URI, or null if the file is missing: the report then says so.
 export function evidenceReportHtml(r: EvidenceReport, src: (path: string) => string | null): string {
   const meta = r.meta.map((m, i) => `<p class="meta${r.interim && i === r.meta.length - 1 ? ' interim' : ''}">${esc(m)}</p>`).join('');
   const one = (e: EvidenceEntry) => {
     const uri = e.photo ? src(e.photo) : null;
-    return `<div class="entry"><h3>${esc(e.heading)}</h3>${uri ? `<img src="${uri}">` : '<p class="note">Photo file not available on this phone.</p>'}${e.lines.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
+    return `<div class="entry"><h3>${esc(e.heading)}</h3>${uri ? `<img src="${uri}">` : '<p class="note">Photo file not available on this phone.</p>'}${e.more.map((m) => { const u = src(m); return u ? `<img src="${u}">` : '<p class="note">An added photo file is not available on this phone.</p>'; }).join('')}${e.lines.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
   };
   const groups = r.groups.map((g) => `${g.title ? `<h2>${esc(g.title)}</h2>` : ''}${g.entries.map(one).join('')}`).join('');
   const removed = r.removed.length ? `<h2>Removed photos</h2>${r.removed.map((l) => `<p class="note">${esc(l)}</p>`).join('')}` : '';

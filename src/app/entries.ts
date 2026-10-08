@@ -481,12 +481,12 @@ export const EVIDENCE_REMOVE_REASONS = ['Taken by mistake', 'Duplicate', 'Wrong 
 // The id the next saved event will get; the photo file is named for it (evidence/<vesselId>/<eventId>.jpg).
 export const nextEventId = (s: State) => `${s.operationId}-${(s.log.events.at(-1)?.sequence ?? 0) + 1}`;
 
-export type EvidenceForm = { type: EvidenceType | null; deck: string; hatch: string; reason: string; vins: string[]; notes?: string | null; time: OpTime | null; photo?: string | null };
+export type EvidenceForm = { type: EvidenceType | null; deck: string; hatch: string; reason: string; vins: string[]; notes?: string | null; time: OpTime | null; photo?: string | null; more?: string[] };
 
 // Every field Colby must give, named when missing. Place and VINs are checked against the baseline by the engine's checkEvidence.
 // Used by the screen before it copies a photo, and by the builders below (one set of words).
 export function evidenceProblem(state: State, f: EvidenceForm, photo: string | null | undefined): string | null {
-  const bad = checkEvidence({ type: f.type ?? undefined, deck: f.deck, hatch: f.hatch, reason: f.reason.trim(), vins: f.vins.map((v) => v.trim()).filter(Boolean), notes: f.notes?.trim() || null, photo: photo ?? '' }, state.decks);
+  const bad = checkEvidence({ type: f.type ?? undefined, deck: f.deck, hatch: f.hatch, reason: f.reason.trim(), vins: f.vins.map((v) => v.trim()).filter(Boolean), notes: f.notes?.trim() || null, photo: photo ?? '', more: f.more }, state.decks);
   if (bad) return bad;
   if (f.type && !needsReason(f.type) && f.reason.trim()) return 'Poor stowage and pre-stow photos take no reason: the photo type is the reason.';
   if (!f.time) return 'Enter the time, or tap Now.';
@@ -496,7 +496,7 @@ export function evidenceProblem(state: State, f: EvidenceForm, photo: string | n
 function evidenceData(ctx: Ctx, f: EvidenceForm, photo: string | null | undefined): EvidenceData | Reject {
   const bad = evidenceProblem(ctx.state, f, photo);
   if (bad) return reject(bad);
-  return { type: f.type!, deck: f.deck, hatch: f.hatch, reason: f.reason.trim(), vins: f.vins.map((v) => v.trim().toUpperCase()).filter(Boolean), notes: f.notes?.trim() || null, photo: photo! };
+  return { type: f.type!, deck: f.deck, hatch: f.hatch, reason: f.reason.trim(), vins: f.vins.map((v) => v.trim().toUpperCase()).filter(Boolean), notes: f.notes?.trim() || null, photo: photo!, ...(f.more?.length ? { more: f.more } : {}) };
 }
 
 export function addEvidenceEvents(ctx: Ctx, f: EvidenceForm): VsaEvent[] | Reject {
@@ -521,7 +521,7 @@ export function editEvidenceEvents(ctx: Ctx, id: string, f: EvidenceForm, reason
   const d = evidenceData(ctx, f, x.photo);
   if ('ok' in d) return d;
   const same = d.type === x.type && d.deck === x.deck && d.hatch === x.hatch && d.reason === x.reason && d.notes === x.notes
-    && d.vins.join() === x.vins.join() && toAbs(f.time!) === (x.at ? toAbs(x.at) : null);
+    && d.vins.join() === x.vins.join() && (d.more ?? []).join() === (x.more ?? []).join() && toAbs(f.time!) === (x.at ? toAbs(x.at) : null);
   if (same) return reject('Nothing to save: the photo record is unchanged.');
   if (!reason?.trim()) return reject('Pick a reason for changing this photo record. The old values are kept.');
   const { add, out } = builder(ctx);

@@ -23,6 +23,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
   const [perm, askPerm] = useCameraPermissions();
   const [cam, setCam] = useState<CameraView | null>(null);
   const [camOn, setCamOn] = useState(false);
+  const [added, setAdded] = useState<string[]>([]); // editing: photos to add to this record
   const [queue, setQueue] = useState<string[]>([]); // more photos chosen together with the first; each becomes its own record
   const [shot, setShot] = useState<string | null>(null); // the camera's temporary file, until Save copies it
   const [busy, setBusy] = useState(false);
@@ -59,13 +60,14 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
     setBusy(true);
     try {
       const pic = await cam.takePictureAsync({ quality: 1, exif: false }); // full size
-      setShot(pic.uri); setCamOn(false);
+      if (item) setAdded((a) => [...a, pic.uri]); else setShot(pic.uri);
+      setCamOn(false);
     } catch (e) { setError(`The photo could not be taken: ${(e as Error).message}`); }
     finally { setBusy(false); }
   };
   const choose = async () => {
     setError(null);
-    try { const uris = await pickLibraryPhotos(); if (uris.length) { setShot(uris[0]); setQueue(uris.slice(1)); setCamOn(false); } }
+    try { const uris = await pickLibraryPhotos(); if (uris.length) { if (item) setAdded((a) => [...a, ...uris]); else { setShot(uris[0]); setQueue(uris.slice(1)); } setCamOn(false); } }
     catch (e) { setError(`The photo could not be chosen: ${(e as Error).message}`); }
   };
   const addVin = () => {
@@ -108,8 +110,16 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
     setBusy(true);
     try {
       if (item) {
-        const r = await save((c) => E.editEvidenceEvents(c, item.id, form(item.photo), change(why, whyOther)));
-        return r.ok ? onClose('Photo record changed. The old values are kept in the log.') : setError(r.error);
+        const base = E.nextEventId(state), rels = added.map((_, i) => evidencePath(state.operationId, `${base}-m${i}`));
+        const more = [...(item.more ?? []), ...rels];
+        const bad = rels.length ? E.evidenceProblem(state, { ...form(item.photo), more }, item.photo) : null;
+        if (bad) return setError(bad);
+        for (let i = 0; i < added.length; i++) {
+          try { await keepPhoto(added[i], rels[i]); } catch (e) { rels.slice(0, i).forEach(dropUnsavedPhoto); return setError(`A photo could not be kept on this phone: ${(e as Error).message} Nothing was saved.`); }
+        }
+        const r = await save((c) => E.editEvidenceEvents(c, item.id, { ...form(item.photo), more }, change(why, whyOther)));
+        if (!r.ok) rels.forEach(dropUnsavedPhoto);
+        return r.ok ? onClose(rels.length ? `${rels.length} photo${rels.length === 1 ? '' : 's'} added. The old values are kept in the log.` : 'Photo record changed. The old values are kept in the log.') : setError(r.error);
       }
       // Check everything first so a refused form never copies a file. Photos chosen together are saved one by one, each its
       // own record with the same type, deck, hatch, reason, time and notes; the VINs go on the first only.
@@ -142,8 +152,15 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
       <Seg columns={2} value={type} onChange={setType} options={EVIDENCE_TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] }))} />
 
       <Label>PHOTO</Label>
-      {item ? (
-        <Thumb path={item.photo} big />
+      {item && !camOn ? (
+        <View style={{ gap: 10 }}>
+          <Thumb path={item.photo} big />
+          {(item.more ?? []).map((m) => <Thumb key={m} path={m} big />)}
+          {added.map((a) => <Image key={a} source={{ uri: a }} style={s.cam} resizeMode="cover" accessibilityLabel="Photo to add" />)}
+          {added.length > 0 && <Note>{`${added.length} photo${added.length === 1 ? '' : 's'} will be added when you save. Pick a reason below (New information).`}</Note>}
+          {!item.removed && <Go ghost label="Add photos from camera roll" onPress={choose} />}
+          {!item.removed && <Go ghost label="Take another photo" onPress={open} />}
+        </View>
       ) : camOn ? (
         <View style={{ gap: 10 }}>
           <CameraView ref={setCam} style={s.cam} facing="back" />
@@ -279,6 +296,7 @@ export function DeckPhotos({ state, deckId, onEdit }: { state: State; deckId: st
       {v.current.map((x) => (
         <Pressable key={x.id} onPress={() => onEdit(x.id)} style={({ pressed }) => [s.card, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`${x.title}. Edit or remove`}>
           <Thumb path={x.path} />
+          {x.more.length > 0 && <Note>{`+ ${x.more.length} more photo${x.more.length === 1 ? '' : 's'}: tap Edit to see them`}</Note>}
           <Body semi>{x.title}</Body>
           <Note>{x.meta}</Note>
           {x.vins && <Note>{x.vins}</Note>}

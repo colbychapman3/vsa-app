@@ -329,13 +329,16 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           if (bad) return fail(`Event ${id}: ${bad}`, id);
           // The file is named for its first event, inside this vessel's own folder (a TEST photo can't sit in a LIVE vessel).
           if (p.evidence!.photo !== evidencePath(operationId, root.event_id)) return fail(`Event ${id}: the photo file must be ${evidencePath(operationId, root.event_id)}.`, id);
+          const folder = `evidence/${operationId}/`;
+          const stray = (p.evidence!.more ?? []).find((m) => !m.startsWith(folder) || !m.endsWith('.jpg'));
+          if (stray) return fail(`Event ${id}: an extra photo must be a .jpg in this vessel's own folder (${folder}).`, id);
         }
         const label = (x: VsaEvent) => { const o = at(x.occurred_at); return when(o && !('error' in o) ? o : null, x.recorded_at); };
         const chain = historyOf(log, id), versions = chain.filter((x) => x.event_type !== 'evidence.removed'), last = versions.at(-1)!;
         const d = last.payload.evidence!;
         const lastAt = at(last.occurred_at);
         evidenceList.push({
-          ...d, vins: [...d.vins], notes: d.notes?.trim() || null,
+          ...d, vins: [...d.vins], more: [...(d.more ?? [])], notes: d.notes?.trim() || null,
           id: root.event_id, headId: id, at: lastAt && !('error' in lastAt) ? lastAt : null, atLabel: label(last),
           vinWarnings: d.vins.map((v) => { const c = checkVin(v); return c.ok ? c.warning : null; }).filter((w): w is string => !!w),
           edited: versions.length > 1, removed: T === 'evidence.removed', removedReason: T === 'evidence.removed' ? p.reason : null, removedAt: T === 'evidence.removed' ? label(e) : null,

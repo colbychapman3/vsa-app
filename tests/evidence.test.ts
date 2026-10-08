@@ -243,3 +243,20 @@ test('vessel isolation: a photo record appears only on its own vessel; another v
   const r = await store2.append(OP2, a.state.log.events.filter((e) => e.payload.metric === 'evidence'));
   assert.equal(r.ok, false);
 });
+
+test('extra photos can be added to a saved record: replayed, reason required, kept in history, own-folder files only', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type: 'pre-stow-damage', reason: 'Slippery deck' })));
+  const x0 = s.state.evidence[0];
+  const more = [evidencePath(OP, `${E.nextEventId(s.state)}-m0`), evidencePath(OP, `${E.nextEventId(s.state)}-m1`)];
+  const withMore = s.form({ type: 'pre-stow-damage', reason: 'Slippery deck', photo: x0.photo, more });
+  assert.deepEqual(E.editEvidenceEvents(s.ctx(), x0.id, withMore, null), { ok: false, error: 'Pick a reason for changing this photo record. The old values are kept.' });
+  await s.ok(E.editEvidenceEvents(s.ctx(), x0.id, withMore, 'New information'));
+  const x = s.state.evidence[0];
+  assert.deepEqual([x.photo, x.more, x.edited], [x0.photo, more, true]);
+  assert.equal(deckPhotos(s.state, 'D9').current[0].more.length, 2);
+  // The same photo twice, or a file from another vessel's folder, is refused.
+  assert.match((E.editEvidenceEvents(s.ctx(), x0.id, { ...withMore, more: [...more, more[0]] }, 'Typo') as Reject).error, /different files/);
+  const stray = s.store.append(OP, E.editEvidenceEvents(s.ctx(), x0.id, { ...withMore, more: [...more, evidencePath(OP2, 'x')] }, 'Typo') as VsaEvent[]);
+  assert.equal((await stray).ok, false);
+});

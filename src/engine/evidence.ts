@@ -12,7 +12,7 @@ export const EVIDENCE_REASONS = [
 
 // What an evidence event carries (payload.evidence). `photo` is the app-folder path evidence/<vesselId>/<eventId>.jpg,
 // stored relative to the document folder because the folder's full path can change when the app is updated.
-export type EvidenceData = { type: EvidenceType; deck: string; hatch: string; reason: string; vins: string[]; notes: string | null; photo: string };
+export type EvidenceData = { type: EvidenceType; deck: string; hatch: string; reason: string; vins: string[]; notes: string | null; photo: string; more?: string[] }; // more: extra photos added to the same record (same folder, same rules)
 
 export const evidencePath = (vesselId: string, eventId: string) => `evidence/${vesselId}/${eventId}.jpg`;
 
@@ -68,6 +68,7 @@ export function checkEvidence(d: Partial<EvidenceData> | null | undefined, decks
   // "No reason on poor stowage / pre-stow" is an entry rule (entries.ts), not a log rule: photos saved before it
   // (2026-09-30) carry one and must still replay. History is never refused for a rule made later.
   if (d.notes != null && typeof d.notes !== 'string') return 'Notes must be text.';
+  if (d.more != null && (!Array.isArray(d.more) || d.more.some((m) => typeof m !== 'string' || !m.trim()) || new Set([d.photo, ...d.more]).size !== d.more.length + 1)) return 'The extra photos must be a list of different files.';
   if (!Array.isArray(d.vins)) return 'VINs must be a list.';
   if (d.type === 'accident' && d.vins.length === 0) return 'An accident photo needs at least one VIN.';
   const v = checkVins(d.vins);
