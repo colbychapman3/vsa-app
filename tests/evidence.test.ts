@@ -260,3 +260,16 @@ test('extra photos can be added to a saved record: replayed, reason required, ke
   const stray = s.store.append(OP, E.editEvidenceEvents(s.ctx(), x0.id, { ...withMore, more: [...more, evidencePath(OP2, 'x')] }, 'Typo') as VsaEvent[]);
   assert.equal((await stray).ok, false);
 });
+
+test('a multi-photo upload: records saved one after another each get the file named for their own event', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 100 })); // the log is not empty, so the sequence does not start at 1
+  const paths = E.nextEvidencePaths(s.state, 3);
+  assert.equal(new Set(paths).size, 3);
+  for (const photo of paths) await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ photo })));
+  assert.deepEqual(s.state.evidence.map((x) => x.photo), paths);
+  // A file that is not named for the record's own event is refused by the engine (the failure seen on the phone, build 13).
+  const bad = E.addEvidenceEvents(s.ctx(), s.form({ photo: `${paths[0]}.extra.jpg` }));
+  assert.ok(Array.isArray(bad));
+  assert.equal((await s.store.append(OP, bad as VsaEvent[])).ok, false);
+});

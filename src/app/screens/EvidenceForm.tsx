@@ -124,8 +124,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
       // Check everything first so a refused form never copies a file. Photos chosen together are saved one by one, each its
       // own record with the same type, deck, hatch, reason, time and notes; the VINs go on the first only.
       const files = shot ? [shot, ...queue] : [];
-      const base = E.nextEventId(state);
-      const rels = files.map((_, i) => evidencePath(state.operationId, i === 0 ? base : `${base}-p${i}`));
+      const rels = E.nextEvidencePaths(state, files.length);
       const bad = E.evidenceProblem(state, form(shot ? rels[0] : null), shot ? rels[0] : null);
       if (bad) return setError(bad);
       let done = 0;
@@ -256,6 +255,12 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
       )}
       {error && <ErrorBox text={error} />}
       {saved > 0 && <Note>{`${saved} photo${saved === 1 ? '' : 's'} saved. The type, deck, hatch and reason stay for the next one.`}</Note>}
+      {item && !item.removed && (
+        <View style={{ gap: 10 }}>
+          <Go ghost label={added.length ? `Add more photos (${added.length} waiting)` : 'Add photos to this record'} onPress={choose} />
+          {added.length > 0 && <Note>{`${added.length} photo${added.length === 1 ? '' : 's'} will be added to this record when you tap Save changes. Pick the reason New information.`}</Note>}
+        </View>
+      )}
       <Go label={item ? 'Save changes' : 'Save photo'} disabled={busy} onPress={() => submit()} />
       {!item && <Go ghost label="Save and add another" disabled={busy} onPress={() => submit(true)} />}
       {item && (

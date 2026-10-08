@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, backNotMarked, BLANK_VAN, checkEvidence, checkVan, MAX_VANS, needsReason, numberHeldBy, trimVan, type VanData, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, backNotMarked, BLANK_VAN, checkEvidence, checkVan, evidencePath, MAX_VANS, needsReason, numberHeldBy, trimVan, type VanData, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Ctx = {
@@ -498,6 +498,13 @@ export const EVIDENCE_REMOVE_REASONS = ['Taken by mistake', 'Duplicate', 'Wrong 
 
 // The id the next saved event will get; the photo file is named for it (evidence/<vesselId>/<eventId>.jpg).
 export const nextEventId = (s: State) => `${s.operationId}-${(s.log.events.at(-1)?.sequence ?? 0) + 1}`;
+
+// The photo files for `n` records saved one after another (a multi-photo upload): each record is one event and its file is named for
+// that event, so the i-th record's file is named for the sequence number i places after the next one. The engine enforces the name.
+export const nextEvidencePaths = (s: State, n: number): string[] => {
+  const first = (s.log.events.at(-1)?.sequence ?? 0) + 1;
+  return Array.from({ length: n }, (_, i) => evidencePath(s.operationId, `${s.operationId}-${first + i}`));
+};
 
 export type EvidenceForm = { type: EvidenceType | null; deck: string; hatch: string; reason: string; vins: string[]; notes?: string | null; time: OpTime | null; photo?: string | null; more?: string[] };
 
