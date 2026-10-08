@@ -284,9 +284,9 @@ function Input({ label, value, onChange, maxLength, caps }: { label: string; val
   );
 }
 
-function Thumb({ path, big }: { path: string; big?: boolean }) {
+function Thumb({ path, big, small }: { path: string; big?: boolean; small?: boolean }) {
   return photoExists(path)
-    ? <Image source={{ uri: photoUri(path) }} style={big ? s.cam : s.thumb} resizeMode="cover" accessibilityLabel="Saved photo" />
+    ? <Image source={{ uri: photoUri(path) }} style={big ? s.cam : small ? s.mini : s.thumb} resizeMode="cover" accessibilityLabel="Saved photo" />
     : <Note style={{ color: color.oInk }}>The photo file is missing on this phone. The record is kept.</Note>;
 }
 
@@ -297,12 +297,14 @@ export function DeckPhotos({ state, deckId, onEdit }: { state: State; deckId: st
   if (!v.current.length && !v.removed.length) return null;
   return (
     <View style={{ gap: 10 }}>
-      <Label>PHOTOS ({v.current.length})</Label>
+      <Label>{`PHOTOS (${v.current.reduce((n, x) => n + x.count, 0)})`}</Label>
       {v.current.map((x) => (
         <Pressable key={x.id} onPress={() => onEdit(x.id)} style={({ pressed }) => [s.card, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`${x.title}. Edit or remove`}>
           <Thumb path={x.path} />
-          {x.more.length > 0 && <Note>{`+ ${x.more.length} more photo${x.more.length === 1 ? '' : 's'}: tap Edit to see them`}</Note>}
-          <Body semi>{x.title}</Body>
+          {x.more.length > 0 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{x.more.map((m) => <Thumb key={m} path={m} small />)}</View>
+          )}
+          <Body semi>{x.title}{x.count > 1 ? ` · ${x.count} photos` : ''}</Body>
           <Note>{x.meta}</Note>
           {x.vins && <Note>{x.vins}</Note>}
           {x.warn.map((w) => <Note key={w} style={{ color: color.oInk }}>{w}</Note>)}
@@ -318,6 +320,7 @@ export function DeckPhotos({ state, deckId, onEdit }: { state: State; deckId: st
 const s = StyleSheet.create({
   cam: { width: '100%', aspectRatio: 3 / 4, maxHeight: 460, borderRadius: 12, backgroundColor: color.ink, overflow: 'hidden' },
   thumb: { width: '100%', height: 160, borderRadius: 10, backgroundColor: color.soft },
+  mini: { width: 72, height: 72, borderRadius: 8, backgroundColor: color.soft },
   vin: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   card: { gap: 4, padding: 12, borderWidth: 1, borderColor: color.line, borderRadius: 12, backgroundColor: color.card, minHeight: 56 },
   edit: { fontSize: 13, color: color.blue, alignSelf: 'flex-end' },

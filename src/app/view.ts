@@ -21,6 +21,9 @@ const isUnconfirmed = (d: Deck) => d.height.level === 'soft' && d.status !== 'co
 type Photo = State['evidence'][number];
 const plural = (n: number) => `${n} photo${n === 1 ? '' : 's'}`;
 const livePhotos = (s: State) => s.evidence.filter((x) => !x.removed);
+// One record can hold several photos (the first plus `more`): every count shown anywhere is of photos, not records.
+export const photoCount = (x: { more?: string[] }) => 1 + (x.more?.length ?? 0);
+const photosIn = (list: Photo[]) => list.reduce((n, x) => n + photoCount(x), 0);
 const deckName = (s: State, id: string) => s.decks.find((d) => d.id === id)?.label ?? id;
 const hatchLabel = (s: State, x: Photo) => `${deckName(s, x.deck)} ${x.hatch}`;
 
@@ -31,7 +34,7 @@ function photoLines(s: State, list: Photo[], withTime: boolean): string[] {
     const when = withTime && x.at ? `${x.at.day > 1 ? `Day ${x.at.day} ` : ''}${x.at.hm}` : '';
     const key = `${x.type}|${x.deck}|${x.hatch}|${when}`;
     const g = groups.get(key) ?? { text: `${TYPE_LABEL[x.type]}, ${hatchLabel(s, x)}${when ? `, ${when}` : ''}`, n: 0 };
-    g.n++;
+    g.n += photoCount(x);
     groups.set(key, g);
   }
   return [...groups.values()].map((g) => `${g.text}, ${plural(g.n)}`);
@@ -71,7 +74,7 @@ export function photoHourNotes(s: State) {
 // The photos of one deck for its sheet: current ones first, removed ones after with the reason.
 export function deckPhotos(s: State, deckId: string) {
   const row = (x: Photo) => ({
-    id: x.id, path: x.photo, more: x.more ?? [], type: x.type, title: `${TYPE_LABEL[x.type]} · ${x.hatch}`,
+    id: x.id, path: x.photo, more: x.more ?? [], count: photoCount(x), type: x.type, title: `${TYPE_LABEL[x.type]} · ${x.hatch}`,
     meta: `${x.at ? `${x.at.day > 1 ? `Day ${x.at.day} ` : ''}${x.at.hm}` : x.atLabel}${x.reason ? ` · ${x.reason}` : ''}${x.edited ? ' · edited' : ''}`,
     vins: x.vins.length ? `VIN${x.vins.length === 1 ? '' : 's'}: ${x.vins.join(', ')}` : null,
     warn: x.vinWarnings, notes: x.notes,
@@ -299,10 +302,10 @@ export function decksView(s: State) {
       ? `Cleared ${Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + ')} · ${d.time == null ? 'time not provided' : /^(Logged|time not)/.test(d.time) ? d.time : `at ${d.time}`}`
       : null,
     height: heightChip(d),
-    photos: livePhotos(s).filter((x) => x.deck === d.id).length,
+    photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id)),
     // Deck-level split (game plan): one line for the deck; hatch chips show the hatch name only.
     split: h0(d) ? null : Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + '),
-    hatches: d.hatches.map((h) => ({ h: h.h, text: h.qty == null ? '' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), photos: livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h).length })),
+    hatches: d.hatches.map((h) => ({ h: h.h, text: h.qty == null ? '' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h)) })),
   }));
   return { low, unconfirmed, rows };
 }

@@ -273,3 +273,18 @@ test('a multi-photo upload: records saved one after another each get the file na
   assert.ok(Array.isArray(bad));
   assert.equal((await s.store.append(OP, bad as VsaEvent[])).ok, false);
 });
+
+test('photo counts are of photos, not records: a record with added photos counts them everywhere', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type: 'pre-stow-damage', reason: 'Slippery deck' })));
+  const x0 = s.state.evidence[0];
+  const more = [0, 1, 2].map((i) => evidencePath(OP, `${E.nextEventId(s.state)}-m${i}`));
+  await s.ok(E.editEvidenceEvents(s.ctx(), x0.id, s.form({ type: 'pre-stow-damage', reason: 'Slippery deck', photo: x0.photo, more }), 'New information'));
+  await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ deck: 'D8', hatch: 'H3' })));
+  const d9 = decksView(s.state).rows.find((r) => r.id === 'D9')!;
+  assert.equal(d9.photos, 4);
+  assert.equal(d9.hatches.find((h) => h.h === 'H3')!.photos, 4);
+  assert.equal(deckPhotos(s.state, 'D9').current[0].count, 4);
+  assert.equal(decksView(s.state).rows.find((r) => r.id === 'D8')!.photos, 1);
+  assert.deepEqual(photoHourNotes(s.state).noTime.length >= 0, true);
+});
