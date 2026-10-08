@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { checkVin, checkVins, evidencePath, project, type Reject, type VsaEvent } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
-import { deckPhotos, decksView, hourlyView, photoHourNotes } from '../src/app/view.ts';
+import { deckPhotos, deckPhotoTypes, decksView, hourlyView, photoHourNotes, typePage } from '../src/app/view.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
 
@@ -287,4 +287,59 @@ test('photo counts are of photos, not records: a record with added photos counts
   assert.equal(deckPhotos(s.state, 'D9').current[0].count, 4);
   assert.equal(decksView(s.state).rows.find((r) => r.id === 'D8')!.photos, 1);
   assert.deepEqual(photoHourNotes(s.state).noTime.length >= 0, true);
+});
+
+test('7j: photos by deck and type: overview per type, type page, remove one / several / the first / all, move, outside files refused', async (tc) => {
+  const s = await setup(tc);
+  const withMore = async (type: 'pre-stow-damage' | 'pre-stow', deck: string, hatch: string, n: number) => {
+    await s.ok(E.addEvidenceEvents(s.ctx(), s.form({ type, deck, hatch, reason: type === 'pre-stow-damage' ? 'Slippery deck' : '' })));
+    const x = s.state.evidence.at(-1)!;
+    if (n > 0) {
+      const more = Array.from({ length: n }, (_, i) => evidencePath(OP, `${E.nextEventId(s.state)}-m${i}`));
+      await s.ok(E.editEvidenceEvents(s.ctx(), x.id, s.form({ type, deck, hatch, reason: type === 'pre-stow-damage' ? 'Slippery deck' : '', photo: x.photo, more }), 'New information'));
+    }
+    return x.id;
+  };
+  const a = await withMore('pre-stow-damage', 'D9', 'H3', 3); // 4 photos
+  await withMore('pre-stow', 'D9', 'H2', 1);                  // 2 photos
+  await withMore('pre-stow-damage', 'D8', 'H3', 0);           // another deck: not counted for D9
+  const types = deckPhotoTypes(s.state, 'D9');
+  assert.deepEqual(types.map((t) => [t.type, t.photos, t.incidents]), [['pre-stow-damage', 4, 1], ['pre-stow', 2, 1]]);
+  assert.deepEqual(decksView(s.state).rows.find((r) => r.id === 'D9')!.photoTypes.map((t) => t.label), ['Pre-stow damage', 'Pre-stow']);
+  assert.deepEqual(typePage(s.state, 'D9', 'pre-stow-damage').map((i) => [i.hatch, i.photos.length]), [['H3', 4]]);
+
+  // Remove one, then several; a reason is required and the photos must belong to the record.
+  const x = s.state.evidence.find((e) => e.id === a)!;
+  const files = [x.photo, ...(x.more ?? [])];
+  assert.deepEqual(E.removePhotosEvents(s.ctx(), a, [files[2]], null), { ok: false, error: 'Pick a reason for removing the photos. They stay in the log.' });
+  assert.deepEqual(E.removePhotosEvents(s.ctx(), a, [], 'Taken by mistake'), { ok: false, error: 'Select the photos to remove first.' });
+  assert.deepEqual(E.removePhotosEvents(s.ctx(), a, [evidencePath(OP, 'nope')], 'Taken by mistake'), { ok: false, error: 'A selected photo is not part of this record.' });
+  await s.ok(E.removePhotosEvents(s.ctx(), a, [files[2]], 'Taken by mistake'));
+  assert.deepEqual([s.state.evidence.find((e) => e.id === a)!.photo, ...(s.state.evidence.find((e) => e.id === a)!.more ?? [])], [files[0], files[1], files[3]]);
+  // Taking out the first photo promotes the next one.
+  await s.ok(E.removePhotosEvents(s.ctx(), a, [files[0], files[3]], 'Duplicate'));
+  const left = s.state.evidence.find((e) => e.id === a)!;
+  assert.deepEqual([left.photo, left.more], [files[1], []]);
+  assert.equal(deckPhotoTypes(s.state, 'D9')[0].photos, 1);
+  // Taking out the last photo removes the record.
+  await s.ok(E.removePhotosEvents(s.ctx(), a, [files[1]], 'Wrong vessel'));
+  assert.equal(s.state.evidence.find((e) => e.id === a)!.removed, true);
+  assert.deepEqual(deckPhotoTypes(s.state, 'D9').map((t) => t.type), ['pre-stow']);
+  // The log keeps every version (the original photo events are still there).
+  assert.ok(s.state.log.events.filter((e) => e.event_type.startsWith('evidence.')).length >= 8);
+
+  // Move a record to another deck and type by editing it (reason required; the new type's rules apply).
+  const b = s.state.evidence.find((e) => e.deck === 'D9' && e.type === 'pre-stow')!;
+  const toAccident = s.form({ type: 'accident', deck: 'D8', hatch: 'H3', vins: [], photo: b.photo, more: b.more });
+  assert.match((E.editEvidenceEvents(s.ctx(), b.id, toAccident, 'Wrong deck or hatch') as Reject).error, /needs at least one VIN/);
+  await s.ok(E.editEvidenceEvents(s.ctx(), b.id, s.form({ type: 'accident', deck: 'D8', hatch: 'H3', vins: [VIN], reason: 'Slippery deck', photo: b.photo, more: b.more }), 'Wrong deck or hatch'));
+  assert.deepEqual(deckPhotoTypes(s.state, 'D8').map((t) => [t.type, t.photos]), [['pre-stow-damage', 1], ['accident', 2]]);
+  assert.deepEqual(deckPhotoTypes(s.state, 'D9'), []);
+
+  // The engine refuses a first photo that is not one of the record's own files.
+  const c = s.state.evidence.find((e) => e.deck === 'D8' && e.type === 'pre-stow-damage')!;
+  const forged = E.editEvidenceEvents(s.ctx(), c.id, s.form({ type: 'pre-stow-damage', deck: 'D8', hatch: 'H3', reason: 'Slippery deck', notes: 'changed', photo: c.photo }), 'Typo') as VsaEvent[];
+  assert.ok(Array.isArray(forged));
+  forged[0].payload.evidence!.photo = evidencePath(OP, 'someone-else'); // what a damaged or tampered log would carry
+  assert.equal((await s.store.append(OP, forged as VsaEvent[])).ok, false);
 });

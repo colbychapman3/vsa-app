@@ -493,6 +493,7 @@ export function removeNoteEvents(ctx: Ctx, id: string, reason: string | null): V
 
 // ---------- Photo evidence ----------
 
+export const PHOTO_REMOVE_REASONS = ['Taken by mistake', 'Duplicate', 'Wrong vessel'] as const; // plus "Other…"
 export const EVIDENCE_CHANGE_REASONS = ['Wrong deck or hatch', 'Wrong time', 'Typo', 'New information'] as const; // plus "Other…"
 export const EVIDENCE_REMOVE_REASONS = ['Taken by mistake', 'Duplicate', 'Wrong vessel'] as const;
 
@@ -543,15 +544,31 @@ function currentEvidence(ctx: Ctx, id: string) {
 export function editEvidenceEvents(ctx: Ctx, id: string, f: EvidenceForm, reason: string | null): VsaEvent[] | Reject {
   const x = currentEvidence(ctx, id);
   if ('ok' in x) return x;
-  const d = evidenceData(ctx, f, x.photo);
+  // The first photo changes only to one of the record's own files (taking the first out promotes the next); anything else keeps it.
+  const own = [x.photo, ...(x.more ?? [])];
+  const d = evidenceData(ctx, f, f.photo && own.includes(f.photo) ? f.photo : x.photo);
   if ('ok' in d) return d;
-  const same = d.type === x.type && d.deck === x.deck && d.hatch === x.hatch && d.reason === x.reason && d.notes === x.notes
+  const same = d.photo === x.photo && d.type === x.type && d.deck === x.deck && d.hatch === x.hatch && d.reason === x.reason && d.notes === x.notes
     && d.vins.join() === x.vins.join() && (d.more ?? []).join() === (x.more ?? []).join() && toAbs(f.time!) === (x.at ? toAbs(x.at) : null);
   if (same) return reject('Nothing to save: the photo record is unchanged.');
   if (!reason?.trim()) return reject('Pick a reason for changing this photo record. The old values are kept.');
   const { add, out } = builder(ctx);
   add({ type: 'evidence.corrected', metric: 'evidence', value: d.type, workstream: 'operation', at: f.time, supersedes: x.headId, reason: reason.trim(), extra: { evidence: d } });
   return out;
+}
+
+// Taking one or several photos out of a record (Colby, 2026-10-09). The photos stay on the phone and in the log's earlier versions;
+// the record just stops listing them. Taking out the first promotes the next. Taking out all of them removes the record.
+export function removePhotosEvents(ctx: Ctx, id: string, paths: string[], reason: string | null): VsaEvent[] | Reject {
+  const x = currentEvidence(ctx, id);
+  if ('ok' in x) return x;
+  const files = [x.photo, ...(x.more ?? [])];
+  if (!paths.length) return reject('Select the photos to remove first.');
+  if (paths.some((p) => !files.includes(p))) return reject('A selected photo is not part of this record.');
+  if (!reason?.trim()) return reject('Pick a reason for removing the photos. They stay in the log.');
+  const left = files.filter((p) => !paths.includes(p));
+  if (!left.length) return removeEvidenceEvents(ctx, id, reason);
+  return editEvidenceEvents(ctx, id, { type: x.type, deck: x.deck, hatch: x.hatch, reason: x.reason, vins: x.vins, notes: x.notes, time: x.at, photo: left[0], more: left.slice(1) }, reason);
 }
 
 // Removal is an entry, never a delete: the record and the photo file stay, marked removed, with the reason.

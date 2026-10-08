@@ -6,7 +6,8 @@ import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type 
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { NOTE_SECTIONS } from '../report.ts';
-import { planView, photoHourNotes, photoTypesPresent } from '../view.ts';
+import { allPhotoFiles, planView, photoHourNotes, photoTypesPresent } from '../view.ts';
+import { saveToCameraRoll } from '../evidenceFiles.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
 import { color, useType } from '../theme.ts';
@@ -189,6 +190,15 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         {backup.unsaved > 0 && <Note>{backup.unsaved} {backup.unsaved === 1 ? 'entry' : 'entries'} not backed up.</Note>}
         <Go label="Export vessel log" disabled={busy} onPress={async () => { setBusy(true); try { await backup.onExport(); } finally { setBusy(false); } }} />
         <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />
+        <Go ghost label="Save all photos to camera roll" disabled={busy} onPress={async () => {
+          setBusy(true);
+          try {
+            const files = allPhotoFiles(state);
+            if (!files.length) return onNotice({ ok: false, text: 'This vessel has no photos to save.' });
+            const r = await saveToCameraRoll(files);
+            onNotice(r.ok ? { ok: true, text: `${r.saved} photo${r.saved === 1 ? '' : 's'} saved to your camera roll.${r.missing ? ` ${r.missing} file${r.missing === 1 ? '' : 's'} missing on this phone.` : ''}` } : { ok: false, text: r.error });
+          } finally { setBusy(false); }
+        }} />
         <InfoNote label="About backups">
           <Note>Export shares one file with the whole log, corrections included. Import only adds missing entries; it never overwrites.</Note>
           <Note>If iCloud Backup is on for this iPhone, the app’s data may also be in that backup. iOS runs it on its own schedule, not after each entry, so Export is the copy you control.</Note>

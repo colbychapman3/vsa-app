@@ -24,3 +24,18 @@ export function dropVesselPhotos(vesselId: string): void {
 export function dropUnsavedPhoto(relPath: string): void {
   try { const f = new File(Paths.document, ...relPath.split('/')); if (f.exists) f.delete(); } catch { /* an orphan file is harmless */ }
 }
+
+// Save photo files to the camera roll (Colby, 2026-10-09). Add-only permission: the app can put photos in the roll, never read it.
+// Copies; the app's own files stay. Returns what happened so the screen can say it plainly.
+export async function saveToCameraRoll(relPaths: string[]): Promise<{ ok: true; saved: number; missing: number } | { ok: false; error: string }> {
+  let lib: typeof import('expo-media-library');
+  try { lib = require('expo-media-library'); } catch { return { ok: false, error: 'Saving to the camera roll is not in this build.' }; }
+  const perm = await lib.requestPermissionsAsync(true);
+  if (!perm.granted) return { ok: false, error: perm.canAskAgain ? 'Saving to the camera roll was not allowed. Tap the button again and allow it.' : 'Camera roll saving is off for VSA. Turn it on in iPhone Settings › VSA › Photos.' };
+  let saved = 0, missing = 0;
+  for (const rel of relPaths) {
+    if (!photoExists(rel)) { missing++; continue; }
+    try { await lib.saveToLibraryAsync(photoUri(rel)); saved++; } catch (e) { return { ok: false, error: `Stopped after ${saved} photo${saved === 1 ? '' : 's'}: ${(e as Error).message}` }; }
+  }
+  return { ok: true, saved, missing };
+}

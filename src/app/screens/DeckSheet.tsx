@@ -8,7 +8,7 @@ import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { deckSheet, STATUS_PILL } from '../view.ts';
 import { color, useType } from '../theme.ts';
-import { DeckPhotos, EvidenceForm } from './EvidenceForm.tsx';
+import { DeckPhotoTypes, PhotoPages, type PhotoView } from './DeckPhotoTypes.tsx';
 import { Body, Chip, ErrorBox, Field, Go, Label, Note, Pill, Seg, Sheet, TimeField } from './ui.tsx';
 
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
@@ -38,7 +38,7 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
   const [total, setTotal] = useState(v.prefill.deck != null ? String(v.prefill.deck) : '');
   const [t, setT] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [editPhoto, setEditPhoto] = useState<string | null>(null); // a photo opened for edit/remove, in this same sheet
+  const [pv, setPv] = useState<PhotoView | null>(null); // a photo page (type page, add, edit, full size), in this same sheet
   const counted = status === 'active' || status === 'paused';
 
   const submit = async () => {
@@ -60,15 +60,7 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
     if (r.ok) onClose(`${d.label} saved.`); else setError(r.error);
   };
 
-  const photo = editPhoto ? state.evidence.find((x) => x.id === editPhoto && !x.removed) : undefined;
-  if (photo) {
-    return (
-      <View style={{ gap: 14 }}>
-        <Pressable onPress={() => setEditPhoto(null)} style={s.back} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>‹ {d.label}</Text></Pressable>
-        <EvidenceForm state={state} baseline={baseline} save={save} item={photo} onClose={(done) => (done ? onClose(done) : setEditPhoto(null))} />
-      </View>
-    );
-  }
+  if (pv) return <PhotoPages state={state} baseline={baseline} save={save} deckId={d.id} deckLabel={d.label} view={pv} setView={setPv} onClose={onClose} />;
   return (
         <View style={{ gap: 14 }}>
           <View style={s.line}>
@@ -112,7 +104,7 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
           {error && <ErrorBox text={error} />}
           <Go label="Save deck update" onPress={submit} />
           {v.history.length > 0 && <Note>Previous: {v.history.join(' · ')}</Note>}
-          <DeckPhotos state={state} deckId={d.id} onEdit={setEditPhoto} />
+          <DeckPhotoTypes state={state} deckId={d.id} onOpen={(t) => setPv({ kind: 'type', type: t })} onAdd={() => setPv({ kind: 'add', type: null })} />
         </View>
   );
 }

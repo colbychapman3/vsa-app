@@ -1,6 +1,6 @@
 # Spec: Photos by deck and type (Phase 7j)
 
-Status: **DRAFT**, Colby's answers of 2026-10-09 applied; waiting on approval of this write-up.
+Status: **APPROVED 2026-10-09 and built** (Colby: "Yeah"). Added the same day at his request: **save photos to the camera roll** (a type page's photos, or every photo of the vessel from Plan › Backup), through `expo-media-library` with add-only permission (copies; the app's files stay; never reads the roll). Move = the existing Edit form (change deck, hatch or type, reason asked); no separate move function was needed.
 
 ## Objective
 Photos are found the way Colby thinks about them: **deck → photo type → incidents → photos**. The deck overview shows which photo types a deck holds and how many photos each has, not a bare "3 photos". Success: on the Decks tab the GAR row shows "Pre-stow damage · 12 photos" and "Pre-stow · 4 photos"; tapping the deck, then Pre-stow damage, shows every pre-stow damage incident on GAR with all its photos; photos can be added there with deck and type already filled in, and one or several photos can be removed or an incident moved, each with a reason.

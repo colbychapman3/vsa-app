@@ -40,9 +40,17 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "VSA reads text from photos of vessel paperwork you choose. The photos are not stored.",
+          "photosPermission": "VSA reads text from photos of vessel paperwork you choose, and lets you pick photos to attach to a vessel. Nothing leaves this phone.",
           "cameraPermission": false,
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "VSA reads text from photos of vessel paperwork you choose, and lets you pick photos to attach to a vessel. Nothing leaves this phone.",
+          "savePhotosPermission": "VSA saves a vessel’s photos to your camera roll only when you tap Save to camera roll.",
+          "isAccessMediaLocationEnabled": false
         }
       ],
       "./plugins/withoutPush.js"

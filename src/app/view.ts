@@ -86,6 +86,28 @@ export function deckPhotos(s: State, deckId: string) {
   };
 }
 
+// Photo types a deck holds (Colby, 2026-10-09): one entry per type with its photo and incident counts, each type its own tone.
+export const TYPE_TONE: Record<keyof typeof TYPE_LABEL, 'red' | 'orange' | 'blue' | 'green'> = { accident: 'red', 'pre-stow-damage': 'orange', 'poor-stowage': 'blue', 'pre-stow': 'green' };
+export function deckPhotoTypes(s: State, deckId: string) {
+  const mine = livePhotos(s).filter((x) => x.deck === deckId);
+  return TYPES_ORDER.filter((t) => mine.some((x) => x.type === t)).map((t) => {
+    const of = mine.filter((x) => x.type === t);
+    return { type: t, label: TYPE_LABEL[t], tone: TYPE_TONE[t], photos: photosIn(of), incidents: of.length };
+  });
+}
+
+// One type's page on one deck: every incident (hatch, time, reason, VINs, notes) with all its photos.
+export function typePage(s: State, deckId: string, type: keyof typeof TYPE_LABEL) {
+  return livePhotos(s).filter((x) => x.deck === deckId && x.type === type).map((x) => ({
+    id: x.id, hatch: x.hatch, photos: [x.photo, ...(x.more ?? [])],
+    meta: `${x.at ? `${x.at.day > 1 ? `Day ${x.at.day} ` : ''}${x.at.hm}` : x.atLabel}${x.reason ? ` · ${x.reason}` : ''}${x.edited ? ' · edited' : ''}`,
+    vins: x.vins.length ? `VIN${x.vins.length === 1 ? '' : 's'}: ${x.vins.join(', ')}` : null, warn: x.vinWarnings, notes: x.notes,
+  }));
+}
+
+// Every photo file of the open vessel that is still listed (for Save to camera roll), in log order.
+export const allPhotoFiles = (s: State): string[] => livePhotos(s).flatMap((x) => [x.photo, ...(x.more ?? [])]);
+
 // Tab badges: low decks with cargo left (Decks); unconfirmed heights with cargo left (Plan).
 export function badges(s: State) {
   return { decks: s.decks.filter(isLow).length, plan: s.decks.filter(isUnconfirmed).length };
@@ -303,6 +325,7 @@ export function decksView(s: State) {
       : null,
     height: heightChip(d),
     photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id)),
+    photoTypes: deckPhotoTypes(s, d.id),
     // Deck-level split (game plan): one line for the deck; hatch chips show the hatch name only.
     split: h0(d) ? null : Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + '),
     hatches: d.hatches.map((h) => ({ h: h.h, text: h.qty == null ? '' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h)) })),

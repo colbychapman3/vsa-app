@@ -329,7 +329,12 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           const bad = checkEvidence(p.evidence, baseline.decks);
           if (bad) return fail(`Event ${id}: ${bad}`, id);
           // The file is named for its first event, inside this vessel's own folder (a TEST photo can't sit in a LIVE vessel).
-          if (p.evidence!.photo !== evidencePath(operationId, root.event_id)) return fail(`Event ${id}: the photo file must be ${evidencePath(operationId, root.event_id)}.`, id);
+          // The record's first file is named for its first event. A later version may change which file comes first only to one of
+          // the record's own earlier files (removing the first photo promotes the next); never a file from elsewhere.
+          const rootFile = evidencePath(operationId, root.event_id);
+          const own = new Set<string>([rootFile]);
+          for (const x of historyOf(log, id)) if (x.event_id !== id && x.payload.evidence) { own.add(x.payload.evidence.photo); for (const m of x.payload.evidence.more ?? []) own.add(m); }
+          if (!own.has(p.evidence!.photo) || (e.event_type === 'evidence.added' && p.evidence!.photo !== rootFile)) return fail(`Event ${id}: the photo file must be ${rootFile}${e.event_type === 'evidence.corrected' ? ' or one of this record’s own earlier photos' : ''}.`, id);
           const folder = `evidence/${operationId}/`;
           const stray = (p.evidence!.more ?? []).find((m) => !m.startsWith(folder) || !m.endsWith('.jpg'));
           if (stray) return fail(`Event ${id}: an extra photo must be a .jpg in this vessel's own folder (${folder}).`, id);

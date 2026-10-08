@@ -7,7 +7,6 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { EVIDENCE_REASONS, EVIDENCE_TYPES, needsReason, TYPE_LABEL, checkVin, evidencePath, operationDate, parseHM, type Baseline, type EvidenceType, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
-import { deckPhotos } from '../view.ts';
 import { dropUnsavedPhoto, keepPhoto, photoExists, photoUri } from '../evidenceFiles.ts';
 import { aiStatus, ocrAvailable, pickLibraryPhotos, readPhotos, tidyNote } from '../ai.ts';
 import { vinCandidates, type VinCandidate } from '../../engine/scan.ts';
@@ -18,7 +17,7 @@ type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } |
 type Item = State['evidence'][number];
 
 // Add a photo (item = null) or edit one already saved (item set: no camera, the file stays as taken).
-export function EvidenceForm({ state, baseline, save, item = null, onClose }: { state: State; baseline: Baseline; save: Save; item?: Item | null; onClose: (done?: string) => void }) {
+export function EvidenceForm({ state, baseline, save, item = null, start, onClose }: { state: State; baseline: Baseline; save: Save; item?: Item | null; start?: { deck: string; type: EvidenceType | null }; onClose: (done?: string) => void }) {
   const f = useType();
   const [perm, askPerm] = useCameraPermissions();
   const [cam, setCam] = useState<CameraView | null>(null);
@@ -28,8 +27,8 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
   const [shot, setShot] = useState<string | null>(null); // the camera's temporary file, until Save copies it
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(0); // photos saved with Save and add another
-  const [type, setType] = useState<EvidenceType | null>(item?.type ?? null);
-  const [deck, setDeck] = useState(item?.deck ?? '');
+  const [type, setType] = useState<EvidenceType | null>(item?.type ?? start?.type ?? null);
+  const [deck, setDeck] = useState(item?.deck ?? start?.deck ?? '');
   const [hatch, setHatch] = useState(item?.hatch ?? '');
   const [time, setTime] = useState(item?.at?.hm ?? '');
   const listed = (r: string | undefined) => (r == null ? null : (EVIDENCE_REASONS as readonly string[]).includes(r) ? r : 'Other');
@@ -288,33 +287,6 @@ function Thumb({ path, big, small }: { path: string; big?: boolean; small?: bool
   return photoExists(path)
     ? <Image source={{ uri: photoUri(path) }} style={big ? s.cam : small ? s.mini : s.thumb} resizeMode="cover" accessibilityLabel="Saved photo" />
     : <Note style={{ color: color.oInk }}>The photo file is missing on this phone. The record is kept.</Note>;
-}
-
-// The photos of one deck (Decks tab → deck sheet): thumbnails, meta, and Edit ›. Editing swaps the list for the form.
-export function DeckPhotos({ state, deckId, onEdit }: { state: State; deckId: string; onEdit: (id: string) => void }) {
-  const f = useType();
-  const v = deckPhotos(state, deckId);
-  if (!v.current.length && !v.removed.length) return null;
-  return (
-    <View style={{ gap: 10 }}>
-      <Label>{`PHOTOS (${v.current.reduce((n, x) => n + x.count, 0)})`}</Label>
-      {v.current.map((x) => (
-        <Pressable key={x.id} onPress={() => onEdit(x.id)} style={({ pressed }) => [s.card, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`${x.title}. Edit or remove`}>
-          <Thumb path={x.path} />
-          {x.more.length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>{x.more.map((m) => <Thumb key={m} path={m} small />)}</View>
-          )}
-          <Body semi>{x.title}{x.count > 1 ? ` · ${x.count} photos` : ''}</Body>
-          <Note>{x.meta}</Note>
-          {x.vins && <Note>{x.vins}</Note>}
-          {x.warn.map((w) => <Note key={w} style={{ color: color.oInk }}>{w}</Note>)}
-          {x.notes && <Note>{x.notes}</Note>}
-          <Text style={[s.edit, { fontFamily: f.bodySemi }]}>Edit ›</Text>
-        </Pressable>
-      ))}
-      {v.removed.map((x) => <Note key={x.id}>Removed: {x.text} ({x.meta})</Note>)}
-    </View>
-  );
 }
 
 const s = StyleSheet.create({
