@@ -305,3 +305,14 @@ test('a wrongly logged hour is taken back with a reason: it leaves the record an
   assert.equal(s.state.field, 210);
   assert.deepEqual(s.state.periods[0].was, [200]);
 });
+
+test('hatch chips: done green, untouched red, part-worked amber, unknown or no per-hatch quantity none', async () => {
+  const { hatchLeft, hatchChip } = await import('../src/app/view.ts');
+  assert.deepEqual(hatchLeft(81, 0), { text: '0 of 81', tone: 'green' });
+  assert.deepEqual(hatchLeft(134, 134), { text: '134 of 134', tone: 'red' });
+  assert.deepEqual(hatchLeft(134, 92), { text: '92 of 134', tone: 'orange' });
+  assert.equal(hatchLeft(134, null), null);
+  assert.equal(hatchLeft(null, 0), null);
+  assert.equal(hatchChip({ h: 'H3', qty: 134, rem: 92, items: [{ brand: 'HYND', qty: 134 }] }), 'H3 HYND · 92 of 134');
+  assert.equal(hatchChip({ h: 'H3', qty: 134, rem: null, items: [{ brand: 'HYND', qty: 134 }] }), 'H3 HYND 134');
+});

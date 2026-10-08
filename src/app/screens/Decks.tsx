@@ -53,7 +53,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
             <View style={[s.chips, s.indent]}>
               <Chip text={r.height.text} tone={r.height.tone} />
               {r.photoTypes.map((t) => <Chip key={t.type} text={`${t.label} · ${t.photos} photo${t.photos === 1 ? '' : 's'}`} tone={t.tone} />)}
-              {r.hatches.map((h) => <Chip key={h.h} text={`${h.h}${h.text ? ` ${h.text}` : ''}`} />)}
+              {r.hatches.map((h) => <Chip key={h.h} text={h.chip} tone={h.left?.tone} />)}
             </View>
           </Pressable>
         ))}

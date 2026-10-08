@@ -305,6 +305,19 @@ export function heightChip(d: Deck): { tone: 'red' | 'orange' | 'plain'; text: s
 export const STATUS_PILL = { active: 'Active', paused: 'Paused', notStarted: 'Not started', complete: 'Complete', unknown: 'Unknown' } as const;
 export const pill = (d: Deck) => (d.status === 'notStarted' && d.skipped ? 'Skipped' : STATUS_PILL[d.status]);
 
+// A hatch's progress chip (Colby, 2026-10-08): done = green "0 of N", untouched = red "N of N", part-worked = amber "R of N".
+// No chip when the paperwork has no per-hatch quantity or the count is unknown (never guess).
+export function hatchLeft(qty: number | null, rem: number | null): { text: string; tone: 'green' | 'red' | 'orange' } | null {
+  if (qty == null || rem == null) return null;
+  return { text: `${rem} of ${qty}`, tone: rem === 0 ? 'green' : rem === qty ? 'red' : 'orange' };
+}
+
+export function hatchChip(h: { h: string; qty: number | null; rem: number | null; items: { brand: string; qty: number }[] }): string {
+  const left = hatchLeft(h.qty, h.rem);
+  if (!left) return `${h.h}${h.qty == null ? '' : ` ${h.items.map((i) => `${i.brand} ${i.qty}`).join(' + ')}`}`;
+  return `${h.h} ${h.items.map((i) => i.brand).join(' + ')} · ${left.text}`;
+}
+
 export function decksView(s: State) {
   const low = s.decks.filter(isLow).map((d) => ({
     id: d.id,
@@ -328,7 +341,7 @@ export function decksView(s: State) {
     photoTypes: deckPhotoTypes(s, d.id),
     // Deck-level split (game plan): one line for the deck; hatch chips show the hatch name only.
     split: h0(d) ? null : Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + '),
-    hatches: d.hatches.map((h) => ({ h: h.h, text: h.qty == null ? '' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h)) })),
+    hatches: d.hatches.map((h) => ({ h: h.h, text: h.qty == null ? '' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), left: hatchLeft(h.qty, h.rem), chip: hatchChip(h), photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h)) })),
   }));
   return { low, unconfirmed, rows };
 }
