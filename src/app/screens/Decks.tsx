@@ -40,7 +40,10 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
           <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} accessibilityRole="button" accessibilityLabel={`${r.label}, ${r.pill}, ${r.remaining} of ${r.start} remaining`}
             style={({ pressed }) => [s.row, i > 0 && s.rowLine, r.low && { backgroundColor: color.rBg }, pressed && u.pressed]}>
             <View style={s.line}>
-              <Text style={[s.dn, { fontFamily: f.display }]} numberOfLines={1} adjustsFontSizeToFit>{r.label}</Text>
+              <View style={s.dnBox}>
+                <Text style={[s.dn, { fontFamily: f.display }]} numberOfLines={1} adjustsFontSizeToFit>{r.label}</Text>
+                <Text style={[s.hm, { fontFamily: f.display, color: r.height.tone === 'red' ? color.rInk : r.height.tone === 'orange' ? color.oInk : color.muted }]} numberOfLines={1} adjustsFontSizeToFit accessibilityLabel={r.height.text}>{r.heightShort}</Text>
+              </View>
               <Pill text={r.pill} />
               <Text style={s.rn} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                 <Text style={{ fontFamily: f.display, fontSize: 26, color: r.status === 'complete' ? color.done : color.ink }}>{r.remaining}</Text>
@@ -51,7 +54,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
             {r.cleared && <Note style={s.indent}>{r.cleared}</Note>}
             {!r.cleared && r.split && <Note style={s.indent}>Deck split: {r.split} · counts per hatch not on paperwork</Note>}
             <View style={[s.chips, s.indent]}>
-              <Chip text={r.height.text} tone={r.height.tone} />
+              {r.height.tone !== 'plain' && <Chip text={r.height.text} tone={r.height.tone} />}
               {r.photoTypes.map((t) => <Chip key={t.type} text={`${t.label} · ${t.photos} photo${t.photos === 1 ? '' : 's'}`} tone={t.tone} />)}
               {r.hatches.map((h) => <Chip key={h.h} text={h.chip} tone={h.left?.tone} />)}
             </View>
@@ -70,7 +73,9 @@ const s = StyleSheet.create({
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8, minHeight: 56 },
   rowLine: { borderTopWidth: 1, borderTopColor: color.row },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dn: { width: 56, fontSize: 26, color: color.ink },
+  dnBox: { width: 56 },
+  dn: { fontSize: 26, color: color.ink },
+  hm: { fontSize: 17 },
   rn: { marginLeft: 'auto', textAlign: 'right', flexShrink: 1 },
   indent: { paddingLeft: 68 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

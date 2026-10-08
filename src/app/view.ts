@@ -337,6 +337,7 @@ export function decksView(s: State) {
       ? `Cleared ${Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + ')} · ${d.time == null ? 'time not provided' : /^(Logged|time not)/.test(d.time) ? d.time : `at ${d.time}`}`
       : null,
     height: heightChip(d),
+    heightShort: d.height.current == null ? '— m' : m2(d.height.current), // shown under the deck number
     photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id)),
     photoTypes: deckPhotoTypes(s, d.id),
     // Deck-level split (game plan): one line for the deck; hatch chips show the hatch name only.
