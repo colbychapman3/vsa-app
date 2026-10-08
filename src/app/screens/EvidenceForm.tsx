@@ -9,7 +9,7 @@ import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { deckPhotos } from '../view.ts';
 import { dropUnsavedPhoto, keepPhoto, photoExists, photoUri } from '../evidenceFiles.ts';
-import { aiStatus, ocrAvailable, pickLibraryPhoto, readPhotos, tidyNote } from '../ai.ts';
+import { aiStatus, ocrAvailable, pickLibraryPhotos, readPhotos, tidyNote } from '../ai.ts';
 import { vinCandidates, type VinCandidate } from '../../engine/scan.ts';
 import { color, useType } from '../theme.ts';
 import { Body, ErrorBox, Go, Label, Note, Seg, TimeField, u } from './ui.tsx';
@@ -23,6 +23,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
   const [perm, askPerm] = useCameraPermissions();
   const [cam, setCam] = useState<CameraView | null>(null);
   const [camOn, setCamOn] = useState(false);
+  const [queue, setQueue] = useState<string[]>([]); // more photos chosen together with the first; each becomes its own record
   const [shot, setShot] = useState<string | null>(null); // the camera's temporary file, until Save copies it
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(0); // photos saved with Save and add another
@@ -64,7 +65,7 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
   };
   const choose = async () => {
     setError(null);
-    try { const uri = await pickLibraryPhoto(); if (uri) { setShot(uri); setCamOn(false); } }
+    try { const uris = await pickLibraryPhotos(); if (uris.length) { setShot(uris[0]); setQueue(uris.slice(1)); setCamOn(false); } }
     catch (e) { setError(`The photo could not be chosen: ${(e as Error).message}`); }
   };
   const addVin = () => {
@@ -110,15 +111,23 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
         const r = await save((c) => E.editEvidenceEvents(c, item.id, form(item.photo), change(why, whyOther)));
         return r.ok ? onClose('Photo record changed. The old values are kept in the log.') : setError(r.error);
       }
-      // Check everything first so a refused form never copies a file.
-      const rel = evidencePath(state.operationId, E.nextEventId(state));
-      const bad = E.evidenceProblem(state, form(shot ? rel : null), shot ? rel : null);
+      // Check everything first so a refused form never copies a file. Photos chosen together are saved one by one, each its
+      // own record with the same type, deck, hatch, reason, time and notes; the VINs go on the first only.
+      const files = shot ? [shot, ...queue] : [];
+      const base = E.nextEventId(state);
+      const rels = files.map((_, i) => evidencePath(state.operationId, i === 0 ? base : `${base}-p${i}`));
+      const bad = E.evidenceProblem(state, form(shot ? rels[0] : null), shot ? rels[0] : null);
       if (bad) return setError(bad);
-      try { await keepPhoto(shot!, rel); } catch (e) { return setError(`The photo could not be kept on this phone: ${(e as Error).message} Nothing was saved.`); }
-      const r = await save((c) => E.addEvidenceEvents(c, form(rel)));
-      if (r.ok && another) { setSaved((n) => n + 1); setShot(null); setVins([]); setVinText(''); setNotes(''); setTime(''); setFound(null); setTidy(null); }
-      else if (r.ok) onClose('Photo saved on this phone.');
-      else { dropUnsavedPhoto(rel); setError(r.error); }
+      let done = 0;
+      for (let i = 0; i < files.length; i++) {
+        try { await keepPhoto(files[i], rels[i]); } catch (e) { setQueue(files.slice(i + 1)); setShot(files[i]); return setError(`The photo could not be kept on this phone: ${(e as Error).message} ${done} saved; the rest are still here.`); }
+        const r = await save((c) => E.addEvidenceEvents(c, { ...form(rels[i]), vins: i === 0 ? vins : [] }));
+        if (!r.ok) { dropUnsavedPhoto(rels[i]); setShot(files[i]); setQueue(files.slice(i + 1)); return setError(`${r.error} ${done} saved; the rest are still here.`); }
+        done++;
+      }
+      const msg = done === 1 ? 'Photo saved on this phone.' : `${done} photos saved on this phone.`;
+      if (another) { setSaved((n) => n + done); setShot(null); setQueue([]); setVins([]); setVinText(''); setNotes(''); setTime(''); setFound(null); setTidy(null); }
+      else onClose(msg);
     } finally { setBusy(false); }
   };
   const remove = async () => {
@@ -144,13 +153,14 @@ export function EvidenceForm({ state, baseline, save, item = null, onClose }: { 
       ) : shot ? (
         <View style={{ gap: 10 }}>
           <Image source={{ uri: shot }} style={s.cam} resizeMode="cover" accessibilityLabel="Photo just taken" />
-          <Go ghost label="Retake photo" onPress={() => { setShot(null); void open(); }} />
+          {queue.length > 0 && <Note>{`${queue.length + 1} photos chosen. Each is saved as its own record with the same type, deck, hatch, reason, time and notes; a VIN goes on the first only.`}</Note>}
+          <Go ghost label="Retake photo" onPress={() => { setShot(null); setQueue([]); void open(); }} />
           <Go ghost label="Choose a different photo" onPress={choose} />
         </View>
       ) : (
         <View style={{ gap: 10 }}>
           <Go label="Open camera" onPress={open} />
-          <Go ghost label="Choose from camera roll" onPress={choose} />
+          <Go ghost label="Choose from camera roll (one or many)" onPress={choose} />
         </View>
       )}
 

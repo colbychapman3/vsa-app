@@ -91,11 +91,11 @@ export async function readPhotos(from: 'camera' | 'library', paperwork = false):
   return { pages, scans };
 }
 
-// One picture from the camera roll → its temporary file (the caller copies it into the app folder; the roll itself is never changed).
-// null = cancelled. iOS shows its own picker, which needs no extra permission.
-export async function pickLibraryPhoto(): Promise<string | null> {
+// Pictures from the camera roll → their temporary files (the caller copies each into the app folder; the roll itself is never changed).
+// [] = cancelled. iOS shows its own picker, which needs no extra permission.
+export async function pickLibraryPhotos(): Promise<string[]> {
   const ImagePicker = loadPicker();
-  if (!ImagePicker) throw new Error('Choosing a photo is not in this build. Use the camera.');
-  const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: false, quality: 1 });
-  return r.canceled ? null : r.assets[0].uri;
+  if (!ImagePicker) throw new Error('Choosing photos is not in this build. Use the camera.');
+  const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: 30, quality: 1 });
+  return r.canceled ? [] : r.assets.map((x: { uri: string }) => x.uri);
 }
