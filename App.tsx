@@ -26,6 +26,8 @@ import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screen
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
 import { Boxes } from './src/app/screens/SnapshotBoxes.tsx';
 import { EtaHistory } from './src/app/screens/EtaHistory.tsx';
+import { CompleteSheet } from './src/app/screens/CompleteSheet.tsx';
+import { completionDue, completionStale } from './src/app/complete.ts';
 import { defaultLayout, layoutText, parseLayout, type Layout } from './src/app/snapshotLayout.ts';
 import { Go } from './src/app/screens/ui.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
@@ -79,9 +81,18 @@ export default function App() {
   const [remind, setRemind] = useState<ReminderStatus>('ask');
   const [fg, setFg] = useState(0); // bumps when the app returns to the foreground, to re-plan reminders
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'new' | 'settings' | 'map' | 'search' | 'ask' | 'eta' | null>(null); // one modal at a time
+  const [sheet, setSheet] = useState<'new' | 'settings' | 'map' | 'search' | 'ask' | 'eta' | 'complete' | null>(null); // one modal at a time
   const [rows, setRows] = useState<VesselRow[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
+
+  // Remaining reaches exactly 0: ask once "Is the vessel complete?" (never marks it by itself). Waits until no sheet is open; asks again only after remaining leaves 0.
+  const asked = useRef(false);
+  const openAny = logOpen || deckOpen != null || sheet != null || drawer;
+  useEffect(() => {
+    const st = vessel?.state;
+    if (!st || !completionDue(st)) { asked.current = false; return; }
+    if (!asked.current && !openAny) { asked.current = true; setNotice(null); setSheet('complete'); }
+  }, [vessel, openAny]);
 
   // The break strip and "forecast passed" follow the clock: refresh every minute and
   // whenever the app comes back to the foreground.
@@ -353,6 +364,15 @@ export default function App() {
                     <Go ghost label="Save a copy now" onPress={() => { void backup.onExport(); }} />
                   </View>
                 )}
+                {tab === 'snap' && (
+                  <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+                    {vessel.state.completed && !completionStale(vessel.state)
+                      ? <Pressable onPress={() => setSheet('complete')} accessibilityRole="button" style={({ pressed }) => [s.doneBar, pressed && { opacity: 0.6 }]}>
+                          <Text style={[s.noticeText, { color: color.gInk }]}>VESSEL COMPLETE · {vessel.state.completed.time}{vessel.state.completed.override ? ' · closed with open items' : ''} · tap to reopen</Text>
+                        </Pressable>
+                      : <Go ghost label={vessel.state.completed ? 'Marked complete, but remaining is not 0: review' : 'Mark vessel complete'} onPress={() => setSheet('complete')} />}
+                  </View>
+                )}
                 {tab === 'snap'
                   ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice}
                       layout={layout} onLayout={changeLayout} onHistory={() => { setNotice(null); setSheet('eta'); }} />
@@ -378,6 +398,7 @@ export default function App() {
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} />}
+              {sheet === 'complete' && <CompleteSheet state={vessel.state} isTest={vessel.isTest} save={save} onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} onGo={openTab} />}
               {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               {sheet === 'settings' && (
                 <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)} layout={layout} onLayout={changeLayout}
@@ -422,6 +443,7 @@ const s = StyleSheet.create({
   noticeAction: { minHeight: 56, minWidth: 88, maxWidth: 130, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: color.ink, borderRadius: 10 },
   dismiss: { minWidth: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   ok: { backgroundColor: color.gBg },
+  doneBar: { backgroundColor: color.gBg, borderColor: color.green, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, minHeight: 56, justifyContent: 'center' },
   errBar: { backgroundColor: color.rBg },
   err: { color: color.rInk, backgroundColor: color.rBg, padding: 12, borderRadius: 10 },
 });

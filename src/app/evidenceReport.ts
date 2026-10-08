@@ -4,6 +4,7 @@
 import { TYPE_LABEL, toAbs, type Baseline, type EvidenceType } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 import { esc, REPORT_CSS, reportMeta } from './report.ts';
+import { completeLine } from './complete.ts';
 import { periodAt } from './view.ts';
 
 export type EvidenceReportKind = 'accident' | 'poor-stowage' | 'pre-stow-damage' | 'stowage';
@@ -72,7 +73,7 @@ export function buildEvidenceReport(kind: EvidenceReportKind, s: State, b: Basel
     const deck = s.decks.find((d) => d.id === x.deck)?.label ?? x.deck;
     return `Removed: ${TYPE_LABEL[x.type]} · ${deck} ${x.hatch} · ${atText(x)}${x.vins.length ? ` · ${x.vins.join(', ')}` : ''} · reason for removal: ${x.removedReason}`;
   });
-  return { kind, title, meta, interim: s.vesselRemaining !== 0, intro, groups, removed };
+  return { kind, title, meta, interim: completeLine(s).interim, intro, groups, removed };
 }
 
 // Paths of the photos the report will show (current ones only), for the caller to load in reduced size.

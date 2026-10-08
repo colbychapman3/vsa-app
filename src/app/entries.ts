@@ -4,6 +4,7 @@
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
 import { activeEvents, backNotMarked, BLANK_VAN, checkEvidence, checkVan, evidencePath, MAX_VANS, needsReason, numberHeldBy, trimVan, type VanData, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
+import { completeBlockers } from './complete.ts';
 
 export type Ctx = {
   operationId: string;
@@ -53,7 +54,7 @@ function builder(ctx: Ctx) {
     workstream?: 'auto_discharge' | 'operation'; deck?: string | null; hatch?: string | null; commodity?: string | null;
     at?: OpTime | null; period?: [string, string] | null; reason?: string | null; supersedes?: string | null; inputs?: string[];
     provenance?: VsaEvent['provenance']; cause?: string | null;
-    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData; van?: VanData }; // plan_note / evidence / van fields
+    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData; van?: VanData; blockers?: string[] }; // plan_note / evidence / van / vessel_complete fields
   }) => {
     const id = `${ctx.operationId}-${seq}`;
     out.push({
@@ -199,6 +200,31 @@ export function endShiftEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reje
   if (bt) return bt;
   const { add, out } = builder(ctx);
   add({ type: 'status_change', metric: 'shift', value: 'ended', workstream: 'operation', at: time });
+  return out;
+}
+
+// ---------- Vessel complete (spec 7k) ----------
+
+export const REOPEN_REASONS = ['Marked by mistake', 'More cars found', 'Count corrected'] as const; // plus "Other…"
+export const OVERRIDE_REASONS = ['Remaining cars not ours', 'Paperwork gap to settle later', 'Clerk confirmed complete'] as const; // plus "Other…"
+
+// Mark complete. Open items stop a clean close; `reason` set = Colby overrides them, and the open items are kept in the event.
+export function completeVesselEvents(ctx: Ctx, reason: string | null): VsaEvent[] | Reject {
+  if (ctx.state.completed) return reject('The vessel is already marked complete.');
+  const open = completeBlockers(ctx.state).map((b) => b.text);
+  const why = reason?.trim() || null;
+  if (open.length && !why) return reject(`Open items: ${open.join(' ')} Pick a reason to mark the vessel complete anyway.`);
+  const { add, out } = builder(ctx);
+  add({ type: 'status_change', metric: 'vessel_complete', value: 'completed', workstream: 'operation', reason: open.length ? why : null, extra: { blockers: open } });
+  return out;
+}
+
+export function reopenVesselEvents(ctx: Ctx, reason: string | null): VsaEvent[] | Reject {
+  if (!ctx.state.completed) return reject('The vessel is not marked complete.');
+  const why = reason?.trim();
+  if (!why) return reject('Pick a reason for reopening the vessel. The earlier mark stays in the log.');
+  const { add, out } = builder(ctx);
+  add({ type: 'status_change', metric: 'vessel_complete', value: 'reopened', workstream: 'operation', reason: why });
   return out;
 }
 

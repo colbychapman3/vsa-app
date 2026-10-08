@@ -100,6 +100,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const evidenceList: EvidenceItem[] = [];
   const vanList: VanSlot[] = [];
   const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
+  let completed: { time: string; override: boolean; reason: string | null; blockers: string[] } | null = null; // vessel marked complete by Colby (last mark wins; a reopen clears it)
   let recStart = 0; // sequence of the latest break/shift-end start
   const lastDeckEvent: Record<string, string> = {}; // for naming the event in whole-sheet errors
 
@@ -267,6 +268,26 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         }
         else return fail(`Event ${id}: shift value must be "ended" or "started".`, id);
         continue;
+      case 'vessel_complete': {
+        // Colby marks the vessel complete (never automatic), or reopens it. Open items at the time are kept with the mark.
+        if (e.event_type !== 'status_change') return fail(`Event ${id}: vessel complete must be a status change.`, id);
+        if (sc.workstream !== 'operation') return fail(`Event ${id}: vessel complete belongs to the operation.`, id);
+        if (p.count_kind !== 'not_applicable') return fail(`Event ${id}: vessel complete must not be a count kind (count_kind not_applicable).`, id);
+        if (p.value !== 'completed' && p.value !== 'reopened') return fail(`Event ${id}: vessel complete must be "completed" or "reopened".`, id);
+        const blockers = p.blockers ?? [];
+        if (!Array.isArray(blockers) || blockers.some((x) => typeof x !== 'string')) return fail(`Event ${id}: the open items must be a list of text.`, id);
+        const why = p.reason?.trim() || null;
+        if (p.value === 'completed') {
+          if (completed) return fail(`Event ${id}: the vessel is already marked complete.`, id);
+          if (blockers.length && !why) return fail(`Event ${id}: marking the vessel complete with open items needs a reason.`, id);
+          completed = { time: when(occurred, e.recorded_at), override: blockers.length > 0, reason: why, blockers };
+        } else {
+          if (!completed) return fail(`Event ${id}: the vessel is not marked complete.`, id);
+          if (!why) return fail(`Event ${id}: reopening the vessel needs a reason.`, id);
+          completed = null;
+        }
+        continue;
+      }
       case 'hh_phase': {
         // H/H start / complete marker (spec 7g): a time and nothing else; awareness only, no count, no ledger.
         const edited = e.event_type === 'correction';
@@ -493,6 +514,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     ops: { ...ops, phase },
     plan,
     issues: [...issues.values()],
+    ...(completed ? { completed } : {}), // only when marked, so logs that never were keep their exact output
     notes: noteList, // creation order; removed ones stay, flagged
     evidence: evidenceList, // creation order; removed ones stay, flagged
     vans: vanList, // slot order; removed ones stay, flagged

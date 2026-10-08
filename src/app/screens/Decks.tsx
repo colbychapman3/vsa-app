@@ -53,9 +53,11 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
             </View>
             {r.cleared && <Note style={s.indent}>{r.cleared}</Note>}
             {!r.cleared && r.split && <Note style={s.indent}>Deck split: {r.split} · counts per hatch not on paperwork</Note>}
+            {r.photoTypes.length > 0 && <View style={[s.chips, s.indent]}>
+              {r.photoTypes.map((t) => <Chip key={t.type} square text={`📷 ${t.label} · ${t.photos}`} tone={t.tone} />)}
+            </View>}
             <View style={[s.chips, s.indent]}>
               {r.height.tone !== 'plain' && <Chip text={r.height.text} tone={r.height.tone} />}
-              {r.photoTypes.map((t) => <Chip key={t.type} text={`${t.label} · ${t.photos} photo${t.photos === 1 ? '' : 's'}`} tone={t.tone} />)}
               {r.hatches.map((h) => <Chip key={h.h} text={h.chip} tone={h.left?.tone} />)}
             </View>
           </Pressable>

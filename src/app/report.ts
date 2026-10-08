@@ -3,6 +3,7 @@
 // analysis stay in separate sections, and the app never writes conclusions (notes are typed by Colby).
 import { formatHM, parseHM, preBreak, validateBaseline, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
+import { completeLine } from './complete.ts';
 import { snapshot } from './view.ts';
 
 export type ReportKind = 'break' | 'completion';
@@ -13,11 +14,10 @@ export type Report = { title: string; meta: string[]; interim: boolean; sections
 export const NOTE_SECTIONS = ['Load-back', 'Efficiency and trends', 'Destination and route effects', 'Bottlenecks', 'Lessons learned', 'Recommendations'] as const;
 
 const n = (x: number | null | undefined) => (x == null || Number.isNaN(x) ? 'unknown' : x.toLocaleString('en-US'));
-const complete = (s: State) => s.vesselRemaining === 0;
 const STATUS = { active: 'Active', paused: 'Paused', notStarted: 'Not started', complete: 'Complete', unknown: 'Unknown' } as const;
 
 export function buildReport(kind: ReportKind, s: State, b: Baseline, o: { isTest: boolean; generatedAt: string; notes?: Record<string, string> }): Report {
-  const interim = !complete(s);
+  const interim = completeLine(s).interim;
   const phase = s.ops.shiftEnded ? `Shift ended${s.ops.shiftEnd ? ` at ${s.ops.shiftEnd}` : ''}` : s.ops.onBreak ? `On break${s.ops.breakStart ? ` since ${s.ops.breakStart}` : ''}` : 'Working (not at a break)';
   const title = kind === 'break' ? (s.ops.shiftEnded ? 'End-of-shift report' : 'Break report') : 'Vessel completion report';
   const meta = reportMeta(title, s, b, o);
@@ -34,7 +34,7 @@ export function reportMeta(title: string, s: State, b: Baseline, o: { isTest: bo
     o.isTest ? 'TEST DATA' : 'LIVE',
     title,
     `Generated ${o.generatedAt} (phone time)`,
-    complete(s) ? 'COMPLETE' : 'INTERIM: the vessel is not complete',
+    completeLine(s).text,
   ];
 }
 

@@ -120,6 +120,7 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 - Clear-by before breaks: Northside 15 min, Southside 30 min. Southside (Protocol Appendix C) = Zone 1, MBZ, Zone T, Zone V, Zone X, Zone B, Site 5, Site 6, Gate 2; everything else is Northside. `src/engine/terminal.ts` holds the list; change it there, with a test, never in a screen. "MB Field" alone means MBZ; Zone 1 is separate. Apply a cutoff once; never double-subtract when a stop time is given.
 - The pre-break hour is short: record when production stopped (:30 or :45). Pace uses productive minutes.
 - H.A. = field count ÷ counted hours (denominator shown). Pace = field count ÷ productive hours. Show both.
+- Vessel complete is Colby's mark only (spec 7k, 2026-10-08): the app asks "Is the vessel complete?" when remaining hits 0, a clean Yes needs no open items (remaining 0, every deck counted, ship = field overall and by brand, no open issue), and "Mark complete anyway" works with a reason and prints the open items on the report. Reports say COMPLETE only for a mark that holds; remaining 0 alone is "ready to close, not confirmed". Reopen needs a reason; the log keeps every mark.
 - ETA is always labeled FORECAST, is break-aware, and is never marked complete automatically.
 - Ships can run two days: Day 1 shift end plus next-day start; ETA rolls into Day 2.
 

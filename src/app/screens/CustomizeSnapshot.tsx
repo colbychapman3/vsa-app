@@ -57,10 +57,11 @@ function Row({ id, layout, rowH, onMeasure, onLayout, latest }: { id: BoxId; lay
           <View {...pan.panHandlers} accessibilityRole="adjustable" accessibilityLabel={`Drag ${BOX_TITLE[id]} to reorder`} style={{ width: TAP, height: TAP, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: 28, color: color.muted }}>⠿</Text>
           </View>
-          <Body semi style={{ flex: 1, fontSize: 17 }}>{BOX_TITLE[id]}{pinned ? ' (always shown)' : ''}</Body>
+          <View style={{ flex: 1 }} />
           <Step label="▲" a11y={`Move ${BOX_TITLE[id]} up`} disabled={hidden || first} onPress={() => nudge(-1)} f={f.bodySemi} />
           <Step label="▼" a11y={`Move ${BOX_TITLE[id]} down`} disabled={hidden || atEnd} onPress={() => nudge(1)} f={f.bodySemi} />
         </View>
+        <Body semi style={{ fontSize: 18 }}>{BOX_TITLE[id]}{pinned ? ' (always shown)' : ''}</Body>
         <Seg<Where> columns={pinned ? 4 : 3} value={where} onChange={set} options={options} />
       </Card>
     </Animated.View>

@@ -39,6 +39,7 @@ export type VsaEvent = {
     photo?: string | null;      // plan_note only: kept photo file path (none while typed-only)
     evidence?: EvidenceData;    // evidence only (added / corrected): what the photo shows and where
     van?: VanData;              // van only (added / corrected): the row's values after this event
+    blockers?: string[];        // vessel_complete only: what was still open when it was marked complete (empty = a clean close)
   };
 };
 
