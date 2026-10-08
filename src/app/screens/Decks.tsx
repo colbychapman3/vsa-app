@@ -1,14 +1,18 @@
 // Decks tab (reference: docs/reference/screens/04). Layout only; values from view.decksView().
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { State } from '../../storage/store.ts';
-import { decksView } from '../view.ts';
+import { decksRemaining, decksView } from '../view.ts';
 import { color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
-import { Body, Card, Chip, InfoNote, Note, Pill, SectionHead, u } from './ui.tsx';
+import { Body, Card, Chip, InfoNote, Note, Pill, SectionHead, Seg, u } from './ui.tsx';
 
 export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenDeck: (id: string) => void; onOpenPlan: () => void }) {
   const f = useType();
   const v = decksView(state);
+  const [show, setShow] = useState<'all' | 'remaining'>('all');
+  const left = decksRemaining(v.rows);
+  const rows = show === 'all' ? v.rows : left;
   return (
     <View style={s.main}>
       <View style={{ gap: 10 }}>
@@ -28,8 +32,11 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
         )}
       </View>
 
+      <Seg<'all' | 'remaining'> columns={2} value={show} onChange={setShow}
+        options={[{ value: 'all', label: `All decks (${v.rows.length})` }, { value: 'remaining', label: `Decks remaining (${left.length})` }]} />
+      {rows.length === 0 && <Card style={u.pad}><Note>Every deck is complete.</Note></Card>}
       <Card>
-        {v.rows.map((r, i) => (
+        {rows.map((r, i) => (
           <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} accessibilityRole="button" accessibilityLabel={`${r.label}, ${r.pill}, ${r.remaining} of ${r.start} remaining`}
             style={({ pressed }) => [s.row, i > 0 && s.rowLine, r.low && { backgroundColor: color.rBg }, pressed && u.pressed]}>
             <View style={s.line}>

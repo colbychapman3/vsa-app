@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { project } from '../src/engine/index.ts';
-import { snapshot } from '../src/app/view.ts';
+import { decksRemaining, decksView, snapshot } from '../src/app/view.ts';
 import { etaHistory } from '../src/app/etaHistory.ts';
 import { BOXES, boxesFor, defaultLayout, hiddenBoxes, layoutText, moveBox, moveToTab, parseLayout, reorder, setHidden } from '../src/app/snapshotLayout.ts';
 import { AFTERNOON, glovis, MORNING, SCENARIOS, toEvents } from './scenarios.ts';
@@ -91,4 +91,14 @@ test('ETA history: the plus/minus line states the move and what the hour counted
 test('ETA history: a long log keeps only the latest points and an empty log gives none', () => {
   assert.deepEqual(etaHistory(glovis, [], OPID), []);
   assert.equal(etaHistory(glovis, events, OPID, 3).length, 3);
+});
+
+test('decks remaining: every deck that is not Complete, in order', () => {
+  const p = project(glovis, events, OPID);
+  assert.ok(p.ok);
+  if (!p.ok) return;
+  const rows = decksView(p).rows;
+  const left = decksRemaining(rows);
+  assert.deepEqual(left.map((r) => r.id), rows.filter((r) => r.status !== 'complete').map((r) => r.id));
+  assert.ok(left.length > 0 && left.length < rows.length, 'the demo day has both finished and unfinished decks');
 });

@@ -307,6 +307,9 @@ export function decksView(s: State) {
   return { low, unconfirmed, rows };
 }
 
+// Decks still to work: everything not Complete (Not started, Active, Paused, Unknown, skipped ones included: they still hold cargo).
+export const decksRemaining = <T extends { status: string }>(rows: T[]): T[] => rows.filter((r) => r.status !== 'complete');
+
 // High & Heavy count for Plan (its own ledger). Unknown when a row was not read, or when the rows don't add to the
 // printed game plan TOTAL (stored as hhTotal; null = not read). Reference baselines without hhTotal show their rows' sum.
 export function hhText(b: Record<string, unknown>): string {
