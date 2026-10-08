@@ -90,7 +90,9 @@ function checkEnvelope(e: VsaEvent): string | null {
   // A count is a whole number, or null with provenance 'unknown' (kit file 15: unknown = null, class unknown).
   // Only a vessel remaining count can go back to unknown (the deck sheet's cleared box).
   const unknownCount = p.metric === 'vessel_remaining' && p.value === null && e.provenance === 'unknown';
-  if (p.count_kind !== 'not_applicable' && !unknownCount && !(Number.isInteger(p.value) && (p.value as number) >= 0)) {
+  // A logged hour taken back (Colby, 2026-10-08): a correction of an hour's count, brand count, drivers or stop time to 'void'.
+  const voidedHour = e.event_type === 'correction' && p.value === 'void' && ['field_units', 'drivers', 'productive_minutes'].includes(p.metric) && p.period_start !== null;
+  if (p.count_kind !== 'not_applicable' && !unknownCount && !voidedHour && !(Number.isInteger(p.value) && (p.value as number) >= 0)) {
     return `Event ${e.event_id}: ${p.metric} must be a whole number of 0 or more (got ${p.value}).`;
   }
   for (const k of ['period_start', 'period_end'] as const) if (p[k] !== null && badTime(p[k])) return `Event ${e.event_id}: ${k} must be null or a date-time with UTC offset.`;

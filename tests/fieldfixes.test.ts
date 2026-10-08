@@ -282,3 +282,26 @@ test('review R5/R6: a clerk count stays with its break after an hour correction;
   assert.ok(p.ok, JSON.stringify(p));
   assert.equal(Math.max(...p.corrections.map((c) => c.history.length)), 2001);
 });
+
+test('a wrongly logged hour is taken back with a reason: it leaves the record and the averages, the log keeps it, and it can be logged again', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 200, drivers: 70, brands: { Hyundai: 120, Kia: 80 } }));
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '23:00', count: 269 })); // the wrong hour (Colby, 2026-10-08)
+  assert.equal(s.state.field, 469);
+  assert.deepEqual(E.removeHourEvents(s.ctx(), { day: 1, start: '23:00', reason: null }), { ok: false, error: 'Pick a reason for removing the 23:00 hour. Its values stay in the log, marked removed.' });
+  assert.deepEqual(E.removeHourEvents(s.ctx(), { day: 1, start: '10:00', reason: 'Wrong hour' }), { ok: false, error: 'The 10:00 hour is not logged, so there is nothing to remove.' });
+  await s.ok(E.removeHourEvents(s.ctx(), { day: 1, start: '23:00', reason: 'Wrong hour' }));
+  assert.equal(s.state.field, 200);
+  assert.deepEqual(s.state.periods.map((p) => p.start), ['08:00']);
+  assert.ok(s.state.log.events.some((e) => e.payload.metric === 'field_units' && e.payload.value === 269), 'the original 269 is still in the log');
+  assert.ok(s.state.log.events.some((e) => e.payload.value === 'void' && e.payload.reason === 'Wrong hour'));
+  // Removing the 08:00 hour takes its brands and drivers with it.
+  await s.ok(E.removeHourEvents(s.ctx(), { day: 1, start: '08:00', reason: 'Duplicate' }));
+  assert.equal(s.state.field, 0);
+  assert.equal(s.state.periods.length, 0);
+  assert.deepEqual(E.removeHourEvents(s.ctx(), { day: 1, start: '08:00', reason: 'Duplicate' }), { ok: false, error: 'The 08:00 hour is not logged, so there is nothing to remove.' });
+  // Logging that hour again needs no reason (nothing is held for it) and its history keeps the removal out of the old counts.
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 210 }));
+  assert.equal(s.state.field, 210);
+  assert.deepEqual(s.state.periods[0].was, [200]);
+});

@@ -105,14 +105,22 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
   const [stop, setStop] = useState<number | null>(existing?.stopMin ?? suggest(hour));
   const [reason, setReason] = useState<string | null>(null);
   const [other, setOther] = useState('');
+  const [rmReason, setRmReason] = useState<string | null>(null); // why a wrongly logged hour is taken back
+  const [rmOther, setRmOther] = useState('');
 
   const pick = (h: string) => {
     const p = logged.get(h);
-    setHour(h); setError(null); setReason(null); setOther('');
+    setHour(h); setError(null); setReason(null); setOther(''); setRmReason(null); setRmOther('');
     setCount(p ? String(p.count) : '');
     setDrivers(p?.hourDrivers != null ? String(p.hourDrivers) : '');
     setBrands(Object.fromEntries(state.brands.map((b) => [b.name, p?.brands?.[b.name] != null ? String(p.brands[b.name]) : ''])));
     setStop(p?.stopMin ?? suggest(h));
+  };
+
+  const removeHour = () => {
+    setError(null);
+    const why = rmReason === 'Other' ? rmOther.trim() : rmReason;
+    void run((ctx) => E.removeHourEvents(ctx, { day, start: hour, reason: why }), `Removed the ${hour} hour. Its values stay in the log, marked removed.`);
   };
 
   const submit = () => {
@@ -166,8 +174,18 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
           {reason === 'Other' && <Field label="Reason" value={other} onChange={setOther} keyboard="default" maxLength={120} />}
         </View>
       )}
+      {existing && count.trim() === '0' && <Note>A 0 here saves a real hour with nothing counted. If this was the wrong hour, use Remove this hour below instead.</Note>}
       <Note>Enter the count for that hour only, not the running total. Re-entering an hour replaces it and keeps the old value.</Note>
       <Go label="Save hourly count" onPress={submit} />
+      {existing && (
+        <View style={{ gap: 8 }}>
+          <Label>LOGGED THE WRONG HOUR?</Label>
+          <Seg columns={2} value={rmReason} onChange={setRmReason} options={[...E.HOUR_REMOVE_REASONS, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
+          {rmReason === 'Other' && <Field label="Reason" value={rmOther} onChange={setRmOther} keyboard="default" maxLength={120} />}
+          <Go ghost label={`Remove the ${hour} hour`} onPress={removeHour} />
+          <Note>The hour leaves the record and the averages. Its values stay in the log, marked removed.</Note>
+        </View>
+      )}
     </View>
   );
 }

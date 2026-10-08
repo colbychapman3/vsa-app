@@ -17,7 +17,11 @@ const clock = (abs: number) => `${formatHM(abs % 1440)}${abs >= 1440 ? ` (Day ${
 
 // Hours logged later than `max` ago are dropped from the front: the work is a projection per point, so it stays small.
 export function etaHistory(baseline: Baseline, events: VsaEvent[], operationId: string, max = 48): EtaPoint[] {
-  const cuts = events.map((e, i) => ({ e, i })).filter(({ e }) => e.event_type === 'observation' && e.payload.metric === 'field_units' && e.scope.commodity == null && typeof e.payload.value === 'number' && e.payload.period_start);
+  // An hour taken back later is not part of the record any more: it has no point here either.
+  const last = new Map<string | null, unknown>(); // the latest total for each hour: 'void' = taken back and not logged again
+  for (const e of events) if (e.payload.metric === 'field_units' && e.scope.commodity == null) last.set(e.payload.period_start, e.payload.value);
+  const gone = { has: (k: string | null) => last.get(k) === 'void' };
+  const cuts = events.map((e, i) => ({ e, i })).filter(({ e }) => !gone.has(e.payload.period_start) && e.event_type === 'observation' && e.payload.metric === 'field_units' && e.scope.commodity == null && typeof e.payload.value === 'number' && e.payload.period_start);
   const day1 = Date.parse(baseline.date) || (cuts.length ? Date.parse(cuts[0].e.payload.period_start!.slice(0, 10)) : 0);
   const raw = cuts.slice(-max).flatMap(({ e, i }) => {
     // The hour's own entries (total, brands, drivers, stop time) go in together: the total alone may not match its brand split.

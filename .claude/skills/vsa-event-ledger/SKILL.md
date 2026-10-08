@@ -21,6 +21,7 @@ The record is an append-only log of kit-06 events (`docs/06_event_log_schema.jso
 - A correction is a new event with `event_type: 'correction'`, `supersedes_event_id` = the **current head** of the chain, and a non-empty `payload.reason`. The engine refuses a correction without a reason, one that targets an already-replaced event, or one that changes scope, metric, count kind or period.
 - The corrected value **replaces** the old one; history is kept in the chain (`historyOf`). Never model a correction as a +/- offset that gets summed.
 - To take something back (a duplicate break, say), supersede it with a correction whose value is the removal marker the engine understands for that metric (breaks: `'void'`), with a reason. It stays in the log, shown as removed.
+- A wrongly logged hour is taken back the same way: every value of the hour (count, brands, drivers, stop time) is corrected to `'void'` with a reason (`removeHourEvents`; Colby, 2026-10-08). The hour leaves the record and the averages, the log keeps it, and logging it again corrects the removal marker without asking a reason. A real zero-count hour is a count of 0, never a removal.
 - Correction reasons are quick picks in the UI (`REASONS`, `BREAK_REASONS` in `entries.ts`) plus "Other…".
 
 ## Time fields

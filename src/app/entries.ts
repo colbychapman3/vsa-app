@@ -99,15 +99,33 @@ export function hourEvents(ctx: Ctx, f: HourForm): VsaEvent[] | Reject {
   ];
   const changes = wanted.filter((w) => find(w.metric, w.commodity)?.payload.value !== w.value);
   if (!changes.length) return reject('Nothing to save: these values are already logged for that hour.');
-  if (changes.some((w) => find(w.metric, w.commodity)) && !f.reason?.trim()) {
+  const isVoid = (m: string, c: string | null) => find(m, c)?.payload.value === 'void';
+  // An hour that was taken back is logged again without a reason: nothing is held for it (like re-setting a cleared day's drivers).
+  if (changes.some((w) => find(w.metric, w.commodity) && !isVoid(w.metric, w.commodity)) && !f.reason?.trim()) {
     return reject(`Pick a reason for changing the ${f.start} hour. The old value is kept.`);
   }
   const { add, out } = builder(ctx);
   for (const w of changes) {
     const old = find(w.metric, w.commodity);
     add({ type: old ? 'correction' : 'observation', metric: w.metric, value: w.value, kind: w.kind, commodity: w.commodity, period,
-      supersedes: old?.event_id ?? null, reason: old ? f.reason!.trim() : null });
+      supersedes: old?.event_id ?? null, reason: old ? (isVoid(w.metric, w.commodity) ? 'Hour logged again after it was removed' : f.reason!.trim()) : null });
   }
+  return out;
+}
+
+// Taking a wrongly logged hour back (Colby, 2026-10-08: "I selected the wrong hour"). Every value of the hour is corrected to
+// 'void' with the reason; the log keeps them, the hour leaves the record. A real zero-count hour is a count of 0, not this.
+export const HOUR_REMOVE_REASONS = ['Wrong hour', 'Logged by mistake', 'Duplicate'] as const; // plus "Other…"
+export function removeHourEvents(ctx: Ctx, f: { day: number; start: string; reason: string | null }): VsaEvent[] | Reject {
+  const bt = badTimes({ day: f.day, hm: f.start });
+  if (bt) return bt;
+  const endMin = preBreak(f.start, ctx.state.breaks) ?? parseHM(f.start)! + 60;
+  const period: [string, string] = [iso(ctx, { day: f.day, hm: f.start }), iso(ctx, endMin >= 1440 ? { day: f.day + 1, hm: formatHM(endMin) } : { day: f.day, hm: formatHM(endMin) })];
+  const live = activeEvents(ctx.state.log).filter((e) => e.payload.period_start === period[0] && e.payload.value !== 'void' && ['field_units', 'drivers', 'productive_minutes'].includes(e.payload.metric));
+  if (!live.length) return reject(`The ${f.start} hour is not logged, so there is nothing to remove.`);
+  if (!f.reason?.trim()) return reject(`Pick a reason for removing the ${f.start} hour. Its values stay in the log, marked removed.`);
+  const { add, out } = builder(ctx);
+  for (const e of live) add({ type: 'correction', metric: e.payload.metric, value: 'void', kind: e.payload.count_kind, commodity: e.scope.commodity, period, supersedes: e.event_id, reason: f.reason.trim() });
   return out;
 }
 

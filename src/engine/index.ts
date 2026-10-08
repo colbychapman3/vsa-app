@@ -137,12 +137,13 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       const held = hourValue.get(slot);
       if (held) return fail(`Event ${id}: Hour ${eventTimeLabel(s)} already has ${p.metric}${sc.commodity ? ` for ${sc.commodity}` : ''} (event ${held}); correct that event instead.`, id);
       hourValue.set(slot, id);
+      if (e.event_type === 'correction' && p.value === 'void') continue; // the hour was taken back with a reason; the log keeps it
       const h = hours.get(key) ?? { key, day: s.day, start: s.hm, count: NaN };
       if (p.metric === 'field_units') {
         if (p.count_kind !== 'interval') return fail(`Event ${id}: field_units must be an hourly interval count.`, id);
         if (sc.commodity == null) {
           h.count = p.value as number;
-          h.was = historyOf(log, id).slice(0, -1).map((x) => x.payload.value as number); // earlier values, kept
+          h.was = historyOf(log, id).slice(0, -1).map((x) => x.payload.value).filter((x): x is number => typeof x === 'number'); // earlier values, kept (a removal marker is not a count)
         }
         else h.brands = { ...h.brands, [sc.commodity]: p.value as number };
       } else if (p.metric === 'drivers') {
