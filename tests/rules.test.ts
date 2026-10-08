@@ -23,7 +23,7 @@ const RULES: { id: string; rule: string; tests: string[] }[] = [
   // Field vs ship
   { id: 'R10', rule: 'Vessel remaining = starting − deck progress; unknown if an active deck has no count; field balance labeled', tests: ['parity: Active deck with no count', 'B08: field only'] },
   { id: 'R11', rule: 'In transit = ship − field, never negative', tests: ['B13: field ahead of vessel'] },
-  { id: 'R12', rule: 'During work: monitor the gap (field ahead, gap above driver count); no alarms', tests: ['during work: gap above the driver count is noted', 'T4: 10:00'] },
+  { id: 'R12', rule: 'During work: monitor the gap and state which side is ahead and by how much; no driver-count warning; no alarms', tests: ['during work: a gap above the driver count is stated as field under ship', 'T4: 10:00'] },
   { id: 'R13', rule: 'At breaks and shift end: match green, ship ahead warning, field ahead red (overall and by brand)', tests: ['break by brand: ship ahead = warning', 'lunch: ship = field (green)', 'end of shift: field ahead (alarm)'] },
   // Time and production
   { id: 'R14', rule: 'Breaks 12:00 and 18:00, 1 hour', tests: ['parity: ETA matches the tracker across breaks'] },

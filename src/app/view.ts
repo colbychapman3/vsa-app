@@ -168,10 +168,26 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   let gapNote: string | null = null;
   if (s.variance != null && !recon) {
     const dv = s.drivers;
-    if (s.variance < 0) gapNote = `Field is ${fmt(-s.variance)} ahead of ship progress · recheck deck counts; reconciles at break`;
-    else if (dv && s.variance > dv.n) gapNote = `Gap ${fmt(s.variance)} is more than ${dv.n} drivers (${dv.src}) · recheck counts`;
-    else rows.push({ k: 'Gap (in transit)', v: fmt(s.variance), sub: dv ? `of ${dv.n} drivers` : undefined });
+    // Colby, 2026-10-08: only which side is ahead and by how much; no warning when the gap passes the driver count.
+    if (s.variance < 0) gapNote = `Field is ${fmt(-s.variance)} over ship progress.`;
+    else {
+      rows.push({ k: 'Gap (in transit)', v: fmt(s.variance), sub: dv ? `of ${dv.n} drivers` : undefined });
+      if (s.variance > 0) gapNote = `Field is ${fmt(s.variance)} under ship progress.`;
+    }
   }
+  // The field record box (Colby, 2026-10-08): the official hourly counts, apart from the vessel balance. `rows` above stays the full
+  // list (screens 01-03 pin it); the hero shows only what is about the ship.
+  const lastP = s.periods.at(-1);
+  const fieldRecord = {
+    rows: [
+      { k: 'Field count', v: fmt(s.field) },
+      { k: 'Field balance', v: fmt(s.fieldBalance), sub: 'starting − field' },
+      ...(s.variance != null && s.variance >= 0 ? [{ k: 'In transit', v: fmt(s.variance), sub: s.drivers ? `of ${s.drivers.n} drivers` : undefined }] : []),
+      { k: 'Last hour logged', v: lastP ? `${lastP.day > 1 ? `Day ${lastP.day} ` : ''}${lastP.start} · ${fmt(lastP.count)}` : '—' },
+      { k: 'Counted hours', v: String(s.production.countedHours) },
+    ] as { k: string; v: string; sub?: string }[],
+    note: 'Hourly field counts are the official record. Autos only; H/H is never added.',
+  };
   const hero = {
     label: known ? 'VESSEL REMAINING' : 'FIELD BALANCE',
     value: fmt(known ? s.vesselRemaining : s.fieldBalance),
@@ -180,7 +196,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     barLeft: known ? `${fmt(s.progress)} done` : `${fmt(s.field)} counted`,
     barRight: `${fmt(known ? s.vesselRemaining : s.fieldBalance)} to go`,
     pct: pct ?? 0,
-    clerkBadge, clerkLine, rows, gapNote,
+    clerkBadge, clerkLine, rows, heroRows: rows.filter((r) => r.k === 'Ship progress'), gapNote,
     unknownNote: known ? null : `Vessel remaining unknown · needs a remaining count on ${s.missingDecks.join(', ')}`,
   };
 
@@ -212,7 +228,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     rows: s.brands.map((x) => ({ name: x.name, remaining: fmt(x.remaining), start: fmt(x.start), pct: x.remaining == null ? null : (x.remaining / x.start) * 100 })), // null: no bar (unknown ≠ finished)
   };
 
-  return { banners, strip, openIssues: openIssues.length, hero, eta, ha, brands, side: sideSplit(s, b) };
+  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, brands, side: sideSplit(s, b) };
 }
 
 // Side split from destinations; autos left per side only when each brand goes to one side.

@@ -111,7 +111,7 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 - Hourly field counts are the official record. Deck progress is the working tool.
 - Vessel remaining = starting − confirmed deck progress. If an active deck has no count, vessel remaining is unknown; show the field balance, clearly labeled.
 - In transit = ship progress − field. It can't be negative.
-- During active work: monitor the gap (note it if field runs ahead or the gap exceeds the driver count). Don't raise alarms.
+- During active work: monitor the gap and state which side is ahead and by how much ("Field is N over / under ship progress"). No warning about the driver count (Colby, 2026-10-08). Don't raise alarms.
 - At breaks and end of shift: ship must equal field (overall and by brand). Match = green; ship ahead = warning; field ahead = red.
 
 **Time and production**

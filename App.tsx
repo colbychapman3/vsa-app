@@ -24,6 +24,9 @@ import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/ap
 import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, type AppearanceMode } from './src/app/theme.ts';
 import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
+import { Boxes } from './src/app/screens/SnapshotBoxes.tsx';
+import { EtaHistory } from './src/app/screens/EtaHistory.tsx';
+import { defaultLayout, layoutText, parseLayout, type Layout } from './src/app/snapshotLayout.ts';
 import { Go } from './src/app/screens/ui.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
 import { Ask } from './src/app/screens/Ask.tsx';
@@ -70,12 +73,13 @@ export default function App() {
   const [prefill, setPrefill] = useState<HourPrefill | undefined>(undefined); // an hourly count typed in Ask, shown in the Log form
   const [drawer, setDrawer] = useState(false); // the left-side menu (an overlay, not a modal)
   const [appearance, setAppearance] = useState<AppearanceMode>('light');
+  const [layout, setLayout] = useState<Layout>(defaultLayout()); // which Snapshot boxes show where (a per-phone preference)
   const [remindersPaused, setRemindersPaused] = useState(false);
   const [quiet, setQuiet] = useState<Quiet | null>(null);
   const [remind, setRemind] = useState<ReminderStatus>('ask');
   const [fg, setFg] = useState(0); // bumps when the app returns to the foreground, to re-plan reminders
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'new' | 'settings' | 'map' | 'search' | 'ask' | null>(null); // one modal at a time
+  const [sheet, setSheet] = useState<'new' | 'settings' | 'map' | 'search' | 'ask' | 'eta' | null>(null); // one modal at a time
   const [rows, setRows] = useState<VesselRow[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
@@ -127,6 +131,7 @@ export default function App() {
           applyAppearance(mode); setAppearance(mode);
           setRemindersPaused((await getPref(dbRef.current, 'remindersPaused')) === '1');
           setQuiet(quietFromText(await getPref(dbRef.current, 'quiet')));
+          setLayout(parseLayout(await getPref(dbRef.current, 'snapshotLayout')));
         } catch { applyAppearance('light'); /* defaults: Light, reminders on, no quiet hours */ }
         const all = await store.current.listVessels();
         if (!all.length) {
@@ -285,6 +290,7 @@ export default function App() {
   };
   const refreshRows = async () => { try { setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); } };
   const setPrefSafe = async (k: string, v: string) => { try { await setPref(dbRef.current!, k, v); } catch (e) { setNotice({ ok: false, text: `Setting not saved: ${(e as Error).message}` }); } };
+  const changeLayout = (l: Layout) => { setLayout(l); void setPrefSafe('snapshotLayout', layoutText(l)); };
   const switchTo = async (id: string) => {
     if (saving.current) return setNotice({ ok: false, text: 'Still saving the last entry. Try again.' });
     try { await openVessel(id); setDrawer(false); setSheet(null); setTab('snap'); setNotice(null); }
@@ -348,12 +354,18 @@ export default function App() {
                   </View>
                 )}
                 {tab === 'snap'
-                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice} />
-                  : tab === 'decks'
+                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice}
+                      layout={layout} onLayout={changeLayout} onHistory={() => { setNotice(null); setSheet('eta'); }} />
+                  : <>
+                    {/* Snapshot boxes Colby moved to this tab sit at its top. */}
+                    <Boxes tab={tab} layout={layout} onLayout={changeLayout} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} onNotice={setNotice}
+                      onOpenTab={openTab} onHistory={() => { setNotice(null); setSheet('eta'); }} />
+                    {tab === 'decks'
                     ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} baseline={vessel.baseline} />
                       : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
+                  </>}
               </ScrollView>
               <LogButton onPress={() => { setNotice(null); setPrefill(undefined); setLogOpen(true); }} />
               <AskButton onPress={() => { setNotice(null); setSheet('ask'); }} />
@@ -366,8 +378,9 @@ export default function App() {
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} />}
+              {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               {sheet === 'settings' && (
-                <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)}
+                <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)} layout={layout} onLayout={changeLayout}
                   appearance={appearance} onAppearance={(m) => { setAppearance(m); applyAppearance(m); void setPrefSafe('appearance', m); }}
                   reminders={remind} remindersPaused={remindersPaused} onPauseReminders={(p) => { setRemindersPaused(p); void setPrefSafe('remindersPaused', p ? '1' : '0'); }}
                   onEnableReminders={async () => setRemind(await enableReminders())}

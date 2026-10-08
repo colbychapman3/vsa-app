@@ -4,19 +4,20 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { snapshot, type Banner } from '../view.ts';
-import { color, HA_COLOR, TAP, useType } from '../theme.ts';
+import type { Layout } from '../snapshotLayout.ts';
+import { color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
-import { VesselCards, type Save } from './Plan.tsx';
-import { Bar, BannerView, Big, Body, Card, FlipTile, Label, Note, SectionHead, Tag, u } from './ui.tsx';
+import type { Save } from './Plan.tsx';
+import { Boxes } from './SnapshotBoxes.tsx';
+import { BannerView, Body, u } from './ui.tsx';
 
 type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'decks' | 'plan') => void; onTrack: (b: Banner) => void;
-  isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void };
+  isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void;
+  layout: Layout; onLayout: (l: Layout) => void; onHistory: () => void };
 
-export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice }: Props) {
+export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice, layout, onLayout, onHistory }: Props) {
   const f = useType();
   const v = snapshot(state, baseline, nowMin);
-  const h = v.hero;
-  const heroColor = h.clerkBadge ? (h.clerkBadge.ok ? color.green : color.red) : color.ink;
 
   return (
     <View>
@@ -44,132 +45,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
         </Pressable>
       )}
 
-      <View style={s.main}>
-        {/* Hero */}
-        <Card style={[u.pad, { gap: 10 }]}>
-          <View style={u.secH}>
-            <Label style={{ flexShrink: 1 }}>{h.label}</Label>
-            {h.clerkBadge && (
-              <Text style={[s.clerk, h.clerkBadge.ok ? s.clerkOk : s.clerkBad, { fontFamily: f.bodySemi }]}>
-                {h.clerkBadge.ok ? '✓ ' : '! '}{h.clerkBadge.text}
-              </Text>
-            )}
-          </View>
-          <Big size={112} style={{ color: heroColor }}>{h.value}</Big>
-          <Body style={{ fontSize: 17 }}>{h.of}</Body>
-          <Bar pct={h.pct} />
-          <View style={u.secH}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barLeft}</Text>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barRight}</Text>
-          </View>
-          {h.clerkLine && (
-            <Text style={[{ fontFamily: f.body, fontSize: 14 }, h.clerkLine.tone === 'red' ? s.err : h.clerkLine.tone === 'green' ? { color: color.gInk } : { color: color.muted }]}>
-              {h.clerkLine.text}
-            </Text>
-          )}
-          <View style={s.hr}>
-            {h.rows.map((r) => (
-              <View key={r.k} style={u.kv}>
-                <Body style={{ color: color.muted, maxWidth: '45%' }}>{r.k}</Body>
-                <Text style={{ flex: 1, textAlign: 'right' }}>
-                  <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{r.v}</Text>
-                  {r.sub ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> {r.sub}</Text> : null}
-                </Text>
-              </View>
-            ))}
-            {h.gapNote && <Note style={{ color: color.oInk, fontWeight: '600' }}>{h.gapNote}</Note>}
-            {h.unknownNote && <Note>{h.unknownNote}</Note>}
-          </View>
-        </Card>
-
-        {/* Tiles */}
-        <View style={s.grid2}>
-          <FlipTile style={{ flex: 1 }} cardStyle={[s.tile, s.tileFc, v.eta.dashed && s.dashed]} label="Estimated completion forecast. Tap for how it is worked out"
-            front={<>
-              <Tag kind="FORECAST" />
-              <Label>EST. COMPLETION</Label>
-              {v.eta.day && <Body semi style={{ fontSize: 20 }}>{v.eta.day}</Body>}
-              <Big size={56}>{v.eta.value}</Big>
-              <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for details</Text>
-            </>}
-            back={<>
-              <Tag kind="FORECAST" />
-              <Label>HOW THIS IS WORKED OUT</Label>
-              {v.eta.notes.map((n) => <Body key={n}>{n}</Body>)}
-              <Note>A forecast, not a result: it follows the recent pace, skips the 12:00 and 18:00 breaks, and is never marked complete by itself.</Note>
-              <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap to flip back</Text>
-            </>} />
-          <FlipTile style={{ flex: 1 }} cardStyle={s.tile} label="Average hourly. Tap for how it is worked out"
-            front={<>
-              <Tag kind="CALCULATED" />
-              <Label>AVG HOURLY (H.A.)</Label>
-              <View style={s.haRow}>
-                <Big size={56} style={{ flexShrink: 1, color: HA_COLOR }}>{v.ha.value}</Big>
-                {v.ha.perHr && <Body style={{ fontSize: 16 }}>/hr</Body>}
-              </View>
-              <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for details</Text>
-            </>}
-            back={<>
-              <Tag kind="CALCULATED" />
-              <Label>HOW THIS IS WORKED OUT</Label>
-              {v.ha.notes.map((n) => <Body key={n}>{n}</Body>)}
-              <Note>H.A. counts every logged hour as a full hour. Pace counts only the minutes worked, so the short hour before a break is not held against it. They match when no hour was cut short. The forecast uses Pace.</Note>
-              <Pressable onPress={() => onOpenTab('hourly')} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
-                <Text style={[s.link, { fontFamily: f.bodySemi }]}>Hourly breakdown ›</Text>
-              </Pressable>
-              <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap the box to flip back</Text>
-            </>} />
-        </View>
-
-        {/* Remaining by brand */}
-        <View style={s.sec}>
-          <SectionHead title="Remaining by brand" right={`${v.brands.total} autos`} />
-          <View style={s.banner}>
-            <Big size={36} style={{ color: color.headInk }}>{String(v.brands.left)}</Big>
-            <View style={{ flexShrink: 1 }}>
-              <Body semi style={{ color: color.headInk }}>brands remaining</Body>
-              <Note style={{ color: color.headMuted }}>of {v.brands.count} on this vessel · {v.brands.finished} finished</Note>
-            </View>
-          </View>
-          <Card>
-            {v.brands.rows.map((r, i) => (
-              <View key={r.name} style={[s.row, i > 0 && s.rowLine]}>
-                <View style={u.secH}>
-                  <Body semi style={{ fontSize: 16 }}>{r.name}</Body>
-                  <Text numberOfLines={1}>
-                    <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }}>{r.remaining}</Text>
-                    <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}> of {r.start}</Text>
-                  </Text>
-                </View>
-                {r.pct != null ? <Bar small pct={r.pct} /> : <Note>Remaining unknown</Note>}
-              </View>
-            ))}
-          </Card>
-        </View>
-
-        {/* Side split */}
-        <View style={s.sec}>
-          <SectionHead title="Side split" right={v.side.clearByNote} />
-          <Card style={[u.pad, { gap: 12 }]}>
-            {v.side.northPct == null
-              ? <Note>{v.side.unknown}</Note>
-              : <View style={s.split}>
-                  {v.side.northPct > 0 && <View style={{ flex: v.side.northPct, backgroundColor: color.blue }} />}
-                  {v.side.northPct < 100 && <View style={{ flex: 100 - v.side.northPct, backgroundColor: color.ink }} />}
-                </View>}
-            <View style={s.grid2}>
-              {([['NORTHSIDE', v.side.north, color.blue], ['SOUTHSIDE', v.side.south, color.ink]] as const).map(([label, col, c]) => (
-                <View key={label} style={{ flex: 1, gap: 2 }}>
-                  <Label style={{ color: c }}>{label}</Label>
-                  <Big size={40}>{col.pct}</Big>
-                  <Note>{col.note}</Note>
-                </View>
-              ))}
-            </View>
-          </Card>
-        </View>
-        <VesselCards state={state} baseline={baseline} isTest={isTest} save={save} onNotice={onNotice} />
-      </View>
+      <Boxes tab="snap" layout={layout} onLayout={onLayout} state={state} baseline={baseline} nowMin={nowMin} isTest={isTest} save={save} onNotice={onNotice} onOpenTab={onOpenTab} onHistory={onHistory} />
     </View>
   );
 }
@@ -179,21 +55,4 @@ const s = StyleSheet.create({
   stripRight: { marginLeft: 'auto', fontSize: 14, color: color.muted, flexShrink: 1, textAlign: 'right' },
   issues: { backgroundColor: color.oBg },
   issueDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.orange, color: color.onOrange, textAlign: 'center', fontSize: 12, lineHeight: 18, overflow: 'hidden' },
-  main: { padding: 20, gap: 16 },
-  clerk: { fontSize: 12, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1.5, overflow: 'hidden' },
-  clerkOk: { backgroundColor: color.gBg, color: color.gInk, borderColor: color.green },
-  clerkBad: { backgroundColor: color.rBg, color: color.rInk, borderColor: color.red },
-  err: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 10 },
-  hr: { borderTopWidth: 1, borderTopColor: color.soft, marginTop: 6, paddingTop: 12, gap: 8 },
-  grid2: { flexDirection: 'row', gap: 12 },
-  tile: { flex: 1, padding: 16, gap: 6 },
-  tileFc: { borderWidth: 2, borderColor: color.orange },
-  dashed: { borderStyle: 'dashed' },
-  haRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  link: { fontSize: 13, color: color.blue, marginTop: 2 },
-  sec: { gap: 10 },
-  banner: { backgroundColor: color.head, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8 },
-  rowLine: { borderTopWidth: 1, borderTopColor: color.row },
-  split: { flexDirection: 'row', height: 16, borderRadius: 8, overflow: 'hidden', gap: 3 },
 });

@@ -43,7 +43,7 @@ export function Note({ children, style }: { children: ReactNode; style?: StylePr
 
 // A box that flips to its explanation when tapped and back when tapped again (a quarter turn out, swap, a quarter turn in).
 // The front stays short; the back carries the wording. Respects Reduce Motion by swapping at once.
-export function FlipTile({ front, back, style, cardStyle, label }: { front: ReactNode; back: ReactNode; style?: StyleProp<ViewStyle>; cardStyle?: StyleProp<ViewStyle>; label: string }) {
+export function FlipTile({ front, back, style, cardStyle, label, onLongPress }: { front: ReactNode; back: ReactNode; style?: StyleProp<ViewStyle>; cardStyle?: StyleProp<ViewStyle>; label: string; onLongPress?: () => void }) {
   const [showBack, setShowBack] = useState(false);
   const turn = useRef(new Animated.Value(0)).current;
   const reduce = useRef(false);
@@ -61,7 +61,7 @@ export function FlipTile({ front, back, style, cardStyle, label }: { front: Reac
   };
   const rotate = turn.interpolate({ inputRange: [-1, 0, 1], outputRange: ['-90deg', '0deg', '90deg'] });
   return (
-    <Pressable onPress={flip} style={style} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={showBack ? 'Shows the figure again' : 'Shows how it is worked out'}>
+    <Pressable onPress={flip} onLongPress={onLongPress} delayLongPress={450} style={style} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={showBack ? 'Shows the figure again' : 'Shows how it is worked out'}>
       <Animated.View style={[u.card, cardStyle, { transform: [{ perspective: 900 }, { rotateY: rotate }] }]}>{showBack ? back : front}</Animated.View>
     </Pressable>
   );

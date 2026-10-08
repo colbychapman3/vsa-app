@@ -80,8 +80,9 @@ export function ledger(input: LedgerInput) {
   const notes: string[] = [];
   let status: RecStatus = 'monitor', message: string | null = null;
   if (!recon) {
-    if (variance != null && variance < 0) notes.push(`Field is ${n(-variance)} ahead of ship progress. Recheck deck counts.`);
-    if (variance != null && drivers && variance > drivers.n) notes.push(`In transit ${n(variance)} is more than ${drivers.n} drivers (${drivers.src}). Recheck counts.`);
+    // Colby, 2026-10-08: say which side is ahead and by how much; no warning about the driver count.
+    if (variance != null && variance < 0) notes.push(`Field is ${n(-variance)} over ship progress.`);
+    if (variance != null && variance > 0) notes.push(`Field is ${n(variance)} under ship progress.`);
   } else {
     status = atStop(variance);
     message = variance == null ? `${label} reconciliation waiting on deck counts: add a remaining count for ${missingDecks.join(', ')}.`

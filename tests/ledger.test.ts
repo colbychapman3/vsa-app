@@ -119,16 +119,16 @@ test('B13: field ahead of vessel → variance −10, mismatch, in transit not es
   assert.equal(work.inTransit, null);
   assert.equal(work.progress, 490);                       // not changed to match field
   assert.equal(work.reconciliation.status, 'monitor');   // during work: a note, not an alarm
-  assert.deepEqual(work.reconciliation.notes, ['Field is 10 ahead of ship progress. Recheck deck counts.']);
+  assert.deepEqual(work.reconciliation.notes, ['Field is 10 over ship progress.']);
   const brk = engine({ D1: { status: 'paused', hatchRemaining: { H1: 510 } } }, hours(250, 250), 'break', TEST_A);
   assert.equal(brk.reconciliation.status, 'alarm');
   assert.equal(brk.reconciliation.message, 'Break reconciliation: field exceeds ship by 10. These should match at break.');
 });
 
-test('during work: gap above the driver count is noted, not alarmed', () => {
+test('during work: a gap above the driver count is stated as field under ship, with no warning (Colby, 2026-10-08)', () => {
   const r = ledger({ decks: [deckCalc(TEST_A.decks[0], { status: 'active', hatchRemaining: { H1: 300 } })], periods: buildPeriods(hours(300, 310), BREAKS), phase: 'working', drivers: { n: 70, src: 'labor order' } });
   assert.equal(r.inTransit, 90);
-  assert.deepEqual(r.reconciliation.notes, ['In transit 90 is more than 70 drivers (labor order). Recheck counts.']);
+  assert.deepEqual(r.reconciliation.notes, ['Field is 90 under ship progress.']);
 });
 
 test('break: match is green; waiting on deck counts lists the decks', () => {

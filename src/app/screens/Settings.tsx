@@ -8,12 +8,15 @@ import { makeQuiet, type Quiet } from '../assistant.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
 import { APPEARANCES, color, useType, type AppearanceMode } from '../theme.ts';
 import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
+import { CustomizeSnapshot } from './CustomizeSnapshot.tsx';
+import type { Layout } from '../snapshotLayout.ts';
 
 export type ExportResult = { ok: boolean; text: string };
 
 const APPEARANCE_LABEL: Record<AppearanceMode, string> = { light: 'Light', night: 'Night', auto: 'Auto' };
 
-export function Settings({ isTest, rows, currentId, appearance, onAppearance, reminders, remindersPaused, onPauseReminders, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose }: {
+export function Settings({ isTest, rows, currentId, appearance, onAppearance, reminders, remindersPaused, onPauseReminders, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
+  layout: Layout; onLayout: (l: Layout) => void;
   isTest: boolean; rows: VesselRow[]; currentId: string;
   appearance: AppearanceMode; onAppearance: (m: AppearanceMode) => void;
   reminders: ReminderStatus; remindersPaused: boolean; onPauseReminders: (paused: boolean) => void; onEnableReminders: () => void;
@@ -26,11 +29,24 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, re
   const ai = aiStatus();
   const version = Constants.expoConfig?.version ?? 'unknown';
   const build = Constants.nativeBuildVersion ?? 'dev';
+  const [customize, setCustomize] = useState(false); // swaps the content of this sheet: one modal at a time
+  if (customize) {
+    return (
+      <Sheet title="Customize Snapshot" isTest={isTest} onClose={onClose}>
+        <Go ghost label="‹ Settings" onPress={() => setCustomize(false)} />
+        <CustomizeSnapshot layout={layout} onLayout={onLayout} />
+      </Sheet>
+    );
+  }
   return (
     <Sheet title="Settings" isTest={isTest} onClose={onClose}>
       <SectionHead title="Appearance" />
       <Seg<AppearanceMode> options={APPEARANCES.map((m) => ({ value: m, label: APPEARANCE_LABEL[m] }))} value={appearance} onChange={onAppearance} />
       <Note>Light is the sun-readable default. Night is for night shifts. Auto follows your iPhone.</Note>
+
+      <SectionHead title="Snapshot" />
+      <Go ghost label="Customize Snapshot" onPress={() => setCustomize(true)} />
+      <Note>Move, hide or send any Snapshot box to Plan, Hourly or Decks. Saved on this phone.</Note>
 
       <SectionHead title="Plan reminders" />
       <Body>{REMINDER_STATUS_TEXT[reminders]}</Body>
