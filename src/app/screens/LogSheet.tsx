@@ -65,9 +65,9 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   return (
     <Sheet title="Log" isTest={isTest} onClose={() => onClose()}>
           <Seg options={modes} value={mode} onChange={(m) => { setMode(m); setError(null); }} />
-          {mode === 'hour' && phase !== 'working' && <BreakBox state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
+          {mode === 'hour' && phase !== 'working' && <BreakBox baseline={baseline} state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'hour' && <HourForm state={state} baseline={baseline} run={run} setError={setError} prefill={prefill} />}
-          {mode === 'hour' && phase === 'working' && <BreakBox state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
+          {mode === 'hour' && phase === 'working' && <BreakBox baseline={baseline} state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
           {mode === 'hh' && <HhForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'clerk' && <ClerkForm phase={phase} run={run} now={now} timeOf={timeOf} setError={setError} />}
@@ -210,7 +210,7 @@ function DeckList({ state, onOpenDeck }: { state: State; onOpenDeck: (id: string
 // ---------- Break / shift (part of the Hourly count tab) ----------
 
 // Working: a tap-to-open section. On a break or at shift end the next step is open straight away.
-function BreakBox(p: { state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
+function BreakBox(p: { baseline: Baseline; state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
   const f = useType();
   const phase = p.state.ops.phase;
   const [open, setOpen] = useState(phase !== 'working');
@@ -226,10 +226,11 @@ function BreakBox(p: { state: State; run: Run; now: () => string | null; timeOf:
   );
 }
 
-function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
+function BreakForm({ baseline, state, run, now, timeOf, setError }: { baseline: Baseline; state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
   const [t, setT] = useState('');
   const [end, setEnd] = useState('');
   const phase = state.ops.phase, day = state.ops.day;
+  const hoursDone = hourOptions(state, baseline).hours.filter((h) => h.logged); // a break is tagged to an hour you've counted
   const fill = (set: (v: string) => void) => () => { const n = now(); if (n) set(n); };
   const go = (value: string, d: number, build: (c: E.Ctx, at: OpTime | null) => VsaEvent[] | Reject, done: (at: OpTime | null) => string) => {
     setError(null); // so a repeated identical error is announced again
@@ -260,6 +261,13 @@ function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: R
   }
   return (
     <View style={{ gap: 14 }}>
+      {hoursDone.length > 0 && (
+        <View style={{ gap: 8 }}>
+          <Label>BREAK AFTER WHICH HOUR?</Label>
+          <Seg columns={4} value={hoursDone.find((h) => h.end === t.trim())?.start ?? null} onChange={(v) => setT(hoursDone.find((h) => h.start === v)!.end)}
+            options={hoursDone.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}–${h.end.slice(0, 2)}${h.end.endsWith(':00') ? '' : h.end.slice(2)}` }))} />
+        </View>
+      )}
       <TimeField required label="Break started at" value={t} onChange={setT} onNow={fill(setT)} />
       <Go label="Log break start" onPress={() => go(t, day, E.breakStartEvents, (at) => `Break started${at ? ` at ${at.hm}` : ''}.`)} />
       <View style={s.hr}>
