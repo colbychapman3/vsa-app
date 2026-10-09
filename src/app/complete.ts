@@ -36,3 +36,10 @@ export function completeLine(s: State): { interim: boolean; text: string } {
   if (c && !completionStale(s)) return { interim: false, text: c.override ? `COMPLETE: closed with ${c.blockers.length} open item${c.blockers.length === 1 ? '' : 's'}. ${c.blockers.join(' ')} Reason: ${c.reason}` : 'COMPLETE' };
   return { interim: true, text: s.vesselRemaining === 0 ? 'INTERIM: ready to close, not confirmed' : 'INTERIM: the vessel is not complete' };
 }
+
+// The status chip on Plan › Reports: the same state the PDFs print.
+export function reportStatus(s: State): { text: string; tone: 'green' | 'orange' | 'blue' } {
+  const c = s.completed;
+  if (c && !completionStale(s)) return c.override ? { text: 'COMPLETE · open items', tone: 'orange' } : { text: 'COMPLETE', tone: 'green' };
+  return s.vesselRemaining === 0 ? { text: 'Ready to close', tone: 'blue' } : { text: 'INTERIM', tone: 'orange' };
+}

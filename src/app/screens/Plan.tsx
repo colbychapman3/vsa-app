@@ -10,7 +10,8 @@ import { allPhotoFiles, planView, photoHourNotes, photoTypesPresent } from '../v
 import { saveToCameraRoll } from '../evidenceFiles.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
-import { color, useType } from '../theme.ts';
+import { reportStatus } from '../complete.ts';
+import { color, TAP, useType } from '../theme.ts';
 import { Vans } from './Vans.tsx';
 import { Big, Body, Card, Chip, Collapse, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
@@ -50,6 +51,12 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
     } finally {
       setBusy(false);
     }
+  };
+  const status = reportStatus(state);
+  const makeReport = async (kind: NonNullable<typeof making>, run: () => Promise<void>) => {
+    if (busy || making) return;
+    setBusy(true); setMaking(kind);
+    try { await run(); } finally { setBusy(false); setMaking(null); }
   };
   const kv = (k: string, val: string) => (
     <View key={k} style={u.kv}><Body style={{ color: color.muted, maxWidth: '45%' }}>{k}</Body><Body semi style={{ textAlign: 'right', flex: 1 }}>{val}</Body></View>
@@ -169,15 +176,22 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
       </Card>
 
       <Card style={[u.pad, { gap: 10 }]}>
-        <SectionHead title="Reports" />
-        <Body>PDF through the share sheet. Unknowns print as unknown; a report is INTERIM until the vessel is complete.</Body>
-        <Go label={making === 'break' ? 'Preparing report…' : 'Break / shift-end report'} disabled={making === 'break'} onPress={async () => { if (busy || making) return; setBusy(true); setMaking('break'); try { await reports.onReport('break'); } finally { setBusy(false); setMaking(null); } }} />
-        <Go label={making === 'completion' ? 'Preparing report…' : 'Vessel completion report'} disabled={making === 'completion'} onPress={async () => { if (busy || making) return; setBusy(true); setMaking('completion'); try { await reports.onReport('completion'); } finally { setBusy(false); setMaking(null); } }} />
-        <Go ghost label="Completion report notes" onPress={() => setNotesOpen(true)} />
+        <View style={u.secH}>
+          <SectionHead title="Reports" />
+          <Chip text={status.text} tone={status.tone} />
+        </View>
+        <InfoNote><Note>Each report is a PDF through the share sheet. Unknowns print as unknown. A report is INTERIM until you mark the vessel complete; at 0 remaining it reads “ready to close, not confirmed”.</Note></InfoNote>
+        <Label>SHIFT REPORTS</Label>
+        <ReportRow title="Break / shift-end report" sub="Ship vs field at a break or end of shift" busy={making === 'break'} onPress={() => makeReport('break', () => reports.onReport('break'))} />
+        <ReportRow title="Vessel completion report" sub="Totals, notes and open items" busy={making === 'completion'} onPress={() => makeReport('completion', () => reports.onReport('completion'))} />
+        <Pressable onPress={() => setNotesOpen(true)} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingLeft: 14 }, pressed && u.pressed]}>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>Completion report notes ›</Text>
+        </Pressable>
         {/* Photo reports exist only for photo types that have photos. */}
+        {photoTypesPresent(state).length > 0 && <Label>PHOTO REPORTS</Label>}
         {photoTypesPresent(state).map((t) => {
           const r = EVIDENCE_REPORTS[t];
-          return <Go key={r.kind} label={making === r.kind ? 'Preparing report…' : r.title} disabled={making === r.kind} onPress={async () => { if (busy || making) return; setBusy(true); setMaking(r.kind); try { await reports.onEvidenceReport(r.kind); } finally { setBusy(false); setMaking(null); } }} />;
+          return <ReportRow key={r.kind} title={r.title} sub="Every photo with its details" busy={making === r.kind} onPress={() => makeReport(r.kind, () => reports.onEvidenceReport(r.kind))} />;
         })}
       </Card>
 
@@ -518,6 +532,21 @@ function ImportSheet({ isTest, backup, onClose }: { isTest: boolean; backup: Bac
 }
 
 // Typed notes for the completion report's analysis sections. The app never writes conclusions itself.
+// One report: a white row with its title and what it holds; the chevron says it is tappable.
+function ReportRow({ title, sub, busy, onPress }: { title: string; sub: string; busy: boolean; onPress: () => void }) {
+  const f = useType();
+  return (
+    <Pressable onPress={onPress} disabled={busy} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`}
+      style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: color.line, borderRadius: 12, backgroundColor: color.card }, (pressed || busy) && u.pressed]}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{busy ? 'Preparing report…' : title}</Text>
+        <Note>{sub}</Note>
+      </View>
+      <Text style={{ fontSize: 22, color: color.blue }}>›</Text>
+    </Pressable>
+  );
+}
+
 function NotesSheet({ isTest, reports, onClose }: { isTest: boolean; reports: Reports; onClose: () => void }) {
   const f = useType();
   const [text, setText] = useState<Record<string, string>>(reports.notes);

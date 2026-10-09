@@ -8,7 +8,7 @@ import type { VsaEvent, Reject } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
 import { buildReport } from '../src/app/report.ts';
-import { completeBlockers, completeLine, completionDue, completionStale } from '../src/app/complete.ts';
+import { completeBlockers, completeLine, completionDue, completionStale, reportStatus } from '../src/app/complete.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
 
@@ -116,4 +116,16 @@ test('a clean mark goes stale when remaining leaves 0 (a deck set Active again)'
   await s.ok(E.deckEvents(s.ctx(), { deck: d.id, status: 'active', skipped: false, hatchRemaining: {}, deckRemaining: 5, time: null }));
   assert.equal(completionStale(s.state), true);
   assert.equal(completeLine(s.state).interim, true);
+});
+
+test('Reports status chip: INTERIM, ready to close, COMPLETE, and COMPLETE with open items', async (tc) => {
+  const s = await setup(tc);
+  assert.deepEqual(reportStatus(s.state), { text: 'INTERIM', tone: 'orange' });
+  await s.finish();
+  assert.deepEqual(reportStatus(s.state), { text: 'Ready to close', tone: 'blue' });
+  await s.ok(E.completeVesselEvents(s.ctx(), null));
+  assert.deepEqual(reportStatus(s.state), { text: 'COMPLETE', tone: 'green' });
+  const o = await setup(tc);
+  await o.ok(E.completeVesselEvents(o.ctx(), 'Remaining cars not ours'));
+  assert.deepEqual(reportStatus(o.state), { text: 'COMPLETE · open items', tone: 'orange' });
 });
