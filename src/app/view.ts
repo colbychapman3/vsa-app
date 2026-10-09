@@ -381,6 +381,8 @@ export function deckSheet(d: Deck, b: Baseline) {
     remaining: fmt(d.rem),
     height: heightChip(d),
     possible: heights.length ? `Possible: ${heights.map((h) => h.m.toFixed(2)).join(' / ')} m` : 'Possible heights not on the stow plan',
+    // Summary lines for the top of the sheet: remaining of start per hatch, "—" when not counted.
+    summary: d.hatches.map((h) => ({ h: h.h, text: `${h.rem == null ? '—' : fmt(h.rem)} of ${h.qty == null ? '—' : fmt(h.qty)}`, brands: h.qty == null ? 'count not on paperwork' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + ') })),
     hatches: d.hatches.map((h) => ({ h: h.h, qty: h.qty, rem: h.rem, brands: h.qty == null ? 'count not on paperwork' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + ') })),
     // Deck-level split (game plan): the brands are known for the deck, not per hatch.
     split: h0(d) ? null : Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + '),

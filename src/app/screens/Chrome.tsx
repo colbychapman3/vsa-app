@@ -3,7 +3,7 @@
 import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { color, TAP, useType } from '../theme.ts';
+import { color, elev, TAP, useType } from '../theme.ts';
 
 export type Tab = 'snap' | 'decks' | 'hourly' | 'plan';
 
@@ -105,7 +105,7 @@ export function AskButton({ onPress }: { onPress: () => void }) {
 }
 
 const s = StyleSheet.create({
-  header: { backgroundColor: color.head, paddingHorizontal: 20, paddingBottom: 16, gap: 6 },
+  header: { backgroundColor: color.head, paddingHorizontal: 20, paddingBottom: 16, gap: 6, ...elev.raised },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   chip: { fontSize: 12, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' },
   chipTest: { backgroundColor: color.accent, color: color.onAccent },
@@ -117,14 +117,14 @@ const s = StyleSheet.create({
   mapBtn: { minHeight: 44, minWidth: 52, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
   mapText: { fontSize: 14, color: color.headInk },
   h1: { fontSize: 32, color: color.headInk },
-  tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8 },
+  tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8, ...elev.raised, shadowOffset: { width: 0, height: -3 } },
   tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 4, borderTopWidth: 3, borderTopColor: 'transparent' },
   tabOn: { borderTopColor: color.accent },
   tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%' },
   tabLabel: { fontSize: 12, flexShrink: 1 },
   badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 11, overflow: 'hidden' },
-  fab: { position: 'absolute', right: 16, minHeight: TAP, paddingHorizontal: 22, borderRadius: 999, backgroundColor: color.blue, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ask: { position: 'absolute', left: 16, width: TAP, height: TAP, borderRadius: TAP / 2, backgroundColor: color.head, borderWidth: 2, borderColor: color.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  fab: { position: 'absolute', right: 16, minHeight: TAP, paddingHorizontal: 22, borderRadius: 999, backgroundColor: color.blue, flexDirection: 'row', alignItems: 'center', gap: 8, ...elev.raised },
+  ask: { position: 'absolute', left: 16, width: TAP, height: TAP, borderRadius: TAP / 2, backgroundColor: color.head, borderWidth: 2, borderColor: color.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, ...elev.raised },
   askText: { color: color.headInk, fontSize: 16 },
   fabText: { color: color.onBlue, fontSize: 16 },
 });

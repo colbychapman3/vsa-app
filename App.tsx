@@ -22,7 +22,8 @@ import type { Built } from './src/app/setup.ts';
 import { saveBatch, shareAndMark, type SaveResult } from './src/app/session.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/app/view.ts';
-import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, type AppearanceMode } from './src/app/theme.ts';
+import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, SunContext, type AppearanceMode } from './src/app/theme.ts';
+import { asSun, sunFamilies } from './src/app/sun.ts';
 import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
 import { Boxes } from './src/app/screens/SnapshotBoxes.tsx';
@@ -76,6 +77,7 @@ export default function App() {
   const [prefill, setPrefill] = useState<HourPrefill | undefined>(undefined); // an hourly count typed in Ask, shown in the Log form
   const [drawer, setDrawer] = useState(false); // the left-side menu (an overlay, not a modal)
   const [appearance, setAppearance] = useState<AppearanceMode>('light');
+  const [sun, setSun] = useState(false); // Extra visible (Settings): heavier type, 2 pt borders
   const [layout, setLayout] = useState<Layout>(defaultLayout()); // which Snapshot boxes show where (a per-phone preference)
   const [remindersPaused, setRemindersPaused] = useState(false);
   const [quiet, setQuiet] = useState<Quiet | null>(null);
@@ -151,6 +153,7 @@ export default function App() {
         try {
           const mode = asAppearance(await getPref(dbRef.current, 'appearance'));
           applyAppearance(mode); setAppearance(mode);
+          setSun(asSun(await getPref(dbRef.current, 'sun')));
           setRemindersPaused((await getPref(dbRef.current, 'remindersPaused')) === '1');
           setQuiet(quietFromText(await getPref(dbRef.current, 'quiet')));
           setLayout(parseLayout(await getPref(dbRef.current, 'snapshotLayout')));
@@ -330,7 +333,8 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <FontContext.Provider value={fonts(fontsLoaded)}>
+      <SunContext.Provider value={sun}>
+      <FontContext.Provider value={sun ? sunFamilies(fonts(fontsLoaded)) : fonts(fontsLoaded)}>
         <View style={s.page}>
           {vessel ? (
             <>
@@ -388,6 +392,7 @@ export default function App() {
               {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               {sheet === 'settings' && (
                 <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)} layout={layout} onLayout={changeLayout}
+                  sun={sun} onSun={(v) => { setSun(v); void setPrefSafe('sun', v ? '1' : '0'); }}
                   appearance={appearance} onAppearance={(m) => { setAppearance(m); applyAppearance(m); void setPrefSafe('appearance', m); }}
                   reminders={remind} remindersPaused={remindersPaused} onPauseReminders={(p) => { setRemindersPaused(p); void setPrefSafe('remindersPaused', p ? '1' : '0'); }}
                   onEnableReminders={async () => setRemind(await enableReminders())}
@@ -415,6 +420,7 @@ export default function App() {
           <StatusBar style="light" />
         </View>
       </FontContext.Provider>
+      </SunContext.Provider>
     </SafeAreaProvider>
   );
 }

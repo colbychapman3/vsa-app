@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { color, edge, elev, TAP, useSun, useType } from '../theme.ts';
 
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[u.card, style]}>{children}</View>;
+  return <View style={[u.card, edge(useSun()), style]}>{children}</View>;
 }
 
 // Short caps labels stay on one line and shrink to fit, so a word never splits at
@@ -32,13 +32,13 @@ export function Big({ children, size, style }: { children: ReactNode; size: numb
 
 // `fit`: one line, shrinks to fit (table cells), so a word never splits.
 export function Body({ children, style, semi, fit }: { children: ReactNode; style?: StyleProp<TextStyle>; semi?: boolean; fit?: boolean }) {
-  const f = useType();
-  return <Text style={[u.body, { fontFamily: semi ? f.bodySemi : f.body }, style]} {...(fit ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 } : {})}>{children}</Text>;
+  const f = useType(), sun = useSun();
+  return <Text style={[u.body, sun && { fontSize: 16 }, { fontFamily: semi ? f.bodySemi : f.body }, style]} {...(fit ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 } : {})}>{children}</Text>;
 }
 
 export function Note({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
-  const f = useType();
-  return <Text style={[u.note, { fontFamily: f.body }, style]}>{children}</Text>;
+  const f = useType(), sun = useSun();
+  return <Text style={[u.note, sun && { fontSize: 14, lineHeight: 19 }, { fontFamily: f.body }, style]}>{children}</Text>;
 }
 
 // A box that flips to its explanation when tapped and back when tapped again (a quarter turn out, swap, a quarter turn in).
@@ -74,10 +74,10 @@ export function InfoNote({ children, label = 'About this' }: { children: ReactNo
   const f = useType();
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ gap: 6 }}>
-      <Pressable onPress={() => setOpen(!open)} hitSlop={8} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={open ? 'Hide details' : label}
-        style={({ pressed }) => [{ minHeight: 40, minWidth: 40, alignSelf: 'flex-start', justifyContent: 'center' }, pressed && u.pressed]}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 20, color: color.blue }}>{open ? '✕' : 'ⓘ'}</Text>
+    <View style={{ gap: 4 }}>
+      <Pressable onPress={() => setOpen(!open)} hitSlop={16} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={open ? 'Hide details' : label}
+        style={({ pressed }) => [{ minHeight: 24, minWidth: 24, alignSelf: 'flex-start', justifyContent: 'center' }, pressed && u.pressed]}>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.blue }}>{open ? '✕' : 'ⓘ'}</Text>
       </Pressable>
       {open && children}
     </View>
@@ -190,7 +190,7 @@ export function BannerView({ banner, onTrack, onGo }: { banner: Banner; onTrack?
 }
 
 export const u = StyleSheet.create({
-  card: { backgroundColor: color.card, borderWidth: 1, borderColor: color.line, borderRadius: 16 },
+  card: { backgroundColor: color.card, borderWidth: 1, borderColor: color.line, borderRadius: 16, ...elev.card },
   pad: { paddingVertical: 18, paddingHorizontal: 20 },
   lbl: { fontSize: 13, letterSpacing: 0.8, color: color.muted },
   body: { fontSize: 15, color: color.ink },
@@ -214,10 +214,10 @@ export const u = StyleSheet.create({
   pressed: { opacity: 0.6 },
   input: { minHeight: TAP, borderWidth: 1.5, borderColor: color.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
   segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  segOn: { backgroundColor: color.ink, borderColor: color.ink },
-  goBtn: { minHeight: TAP, borderRadius: 12, backgroundColor: color.blue, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  ghostBtn: { minHeight: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
-  x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
+  segOn: { backgroundColor: color.ink, borderColor: color.ink, ...elev.raised },
+  goBtn: { minHeight: TAP, borderRadius: 12, backgroundColor: color.blue, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, ...elev.raised },
+  ghostBtn: { minHeight: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, ...elev.card },
+  x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, ...elev.card, alignItems: 'center', justifyContent: 'center' },
   errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 12, fontSize: 14, overflow: 'hidden' },
 });
 
@@ -227,12 +227,12 @@ export function Field({ label, value, onChange, placeholder, keyboard = 'number-
   label: string; value: string; onChange: (v: string) => void; placeholder?: string;
   keyboard?: 'number-pad' | 'default' | 'numbers-and-punctuation'; note?: string; maxLength?: number;
 }) {
-  const f = useType();
+  const f = useType(), sun = useSun();
   return (
     <View style={{ gap: 6, flex: 1 }}>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} keyboardType={keyboard} maxLength={maxLength}
-        style={[u.input, { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
+        style={[u.input, edge(sun), { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
     </View>
   );
 }
@@ -260,14 +260,14 @@ export function TimeField({ label, value, onChange, onNow, required, hint }: { l
 export function Seg<T extends string | number>({ options, value, onChange, columns = 3 }: {
   options: { value: T; label: string }[]; value: T | null; onChange: (v: T) => void; columns?: number;
 }) {
-  const f = useType();
+  const f = useType(), sun = useSun();
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
       {options.map((o) => {
         const on = o.value === value;
         return (
           <Pressable key={String(o.value)} onPress={() => onChange(o.value)} accessibilityRole="radio" accessibilityState={{ selected: on }}
-            style={({ pressed }) => [u.segBtn, { flexBasis: `${100 / columns - 2}%` }, on && u.segOn, pressed && u.pressed]}>
+            style={({ pressed }) => [u.segBtn, { flexBasis: `${100 / columns - 2}%` }, edge(sun), on && u.segOn, pressed && u.pressed]}>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: on ? color.bg : color.ink, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{o.label}</Text>
           </Pressable>
         );
@@ -288,10 +288,10 @@ export function Reasons({ options, value, onChange, other, onOther }: { options:
 }
 
 export function Go({ label, onPress, ghost, disabled }: { label: string; onPress: () => void; ghost?: boolean; disabled?: boolean }) {
-  const f = useType();
+  const f = useType(), sun = useSun();
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button"
-      style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, (pressed || disabled) && { opacity: 0.6 }]}>
+      style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, sun && ghost && edge(sun), pressed && { transform: [{ scale: 0.98 }] }, (pressed || disabled) && { opacity: 0.6 }]}>
       {/* A one-word label ("Unarchive" beside Delete) stays on one line and shrinks; it never splits mid-word. Sentences wrap between words. */}
       <Text style={{ fontFamily: f.bodySemi, fontSize: ghost ? 15 : 17, color: ghost ? color.ink : color.onBlue }}
         {...(/s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 })}>{label}</Text>
@@ -327,10 +327,10 @@ export function Pill({ text }: { text: string }) {
 
 // Small rounded chip (tracker .bchip); tone colors a height warning.
 export function Chip({ text, tone = 'plain', tall, square }: { text: string; tone?: 'plain' | 'red' | 'orange' | 'blue' | 'green'; tall?: boolean; square?: boolean }) {
-  const f = useType();
+  const f = useType(), sun = useSun();
   const c = tone === 'red' ? { bg: color.rBg, ink: color.rInk, b: color.red } : tone === 'green' ? { bg: color.gBg, ink: color.gInk, b: color.green } : tone === 'blue' ? { bg: color.card, ink: color.blue, b: color.blue } : tone === 'orange' ? { bg: color.oBg, ink: color.oInk, b: color.orange } : { bg: color.card, ink: color.ink, b: color.line };
   const label = <Text style={{ fontFamily: f.body, fontSize: 13, color: c.ink }}>{text}</Text>;
-  const box = { backgroundColor: c.bg, borderColor: c.b, borderWidth: 1, borderRadius: square ? 6 : 999, paddingHorizontal: tall ? 16 : 10, paddingVertical: tall ? 0 : 3 };
+  const box = { backgroundColor: c.bg, borderColor: c.b, borderWidth: sun ? 2 : 1, borderRadius: square ? 6 : 999, paddingHorizontal: tall ? 16 : 10, paddingVertical: tall ? 0 : 3 };
   return tall ? <View style={[box, { minHeight: TAP, justifyContent: 'center' }]}>{label}</View> : <Text style={[box, { fontFamily: f.body, fontSize: 13, color: c.ink, overflow: 'hidden' }]}>{text}</Text>;
 }
 

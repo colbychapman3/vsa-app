@@ -71,9 +71,21 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
             </Text>
           </View>
           <View style={s.chips}><Chip text={v.height.text} tone={v.height.tone} /><Note>{v.possible}</Note></View>
+          {v.split && <Note>Deck split: {v.split}. Counts per hatch are not on the paperwork.</Note>}
+          {v.summary.map((r) => (
+            <View key={r.h} style={s.sum}>
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink, maxWidth: '45%' }} numberOfLines={1} adjustsFontSizeToFit>{r.h}</Text>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>{r.text}</Text>
+                <Note>{r.brands}</Note>
+              </View>
+            </View>
+          ))}
+          {v.history.length > 0 && <Note>Previous: {v.history.join(' · ')}</Note>}
           <InfoNote><Note>Deck heights are confirmed on the Plan tab.</Note></InfoNote>
 
-          <Label>STATUS</Label>
+          <View style={s.rule} />
+          <Label>EDIT · STATUS</Label>
           <Seg options={STATUSES.map((x) => ({ value: x, label: STATUS_PILL[x] }))} value={status} onChange={setStatus} />
           {status === 'notStarted' && (
             <Pressable onPress={() => setSkipped(!skipped)} style={s.check} accessibilityRole="checkbox" accessibilityState={{ checked: skipped }}>
@@ -84,7 +96,6 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
 
           {counted ? (
             <>
-              {v.split && <Note>Deck split: {v.split}. Counts per hatch are not on the paperwork.</Note>}
               <Label wrap>REMAINING BY HATCH (H4 → H1) · CLEAR A BOX IF UNKNOWN</Label>
               <View style={s.grid}>
                 {d.hatches.map((h, i) => (
@@ -103,7 +114,6 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
             onNow={() => { const n = E.nowOpTime(operationDate(baseline)!, new Date()); if (n) setT(n.hm); else setError('The phone’s date is before this operation’s Day 1.'); }} />
           {error && <ErrorBox text={error} />}
           <Go label="Save deck update" onPress={submit} />
-          {v.history.length > 0 && <Note>Previous: {v.history.join(' · ')}</Note>}
           <DeckPhotoTypes state={state} deckId={d.id} onOpen={(t) => setPv({ kind: 'type', type: t })} onAdd={() => setPv({ kind: 'add', type: null })} />
         </View>
   );
@@ -113,6 +123,8 @@ const s = StyleSheet.create({
   back: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 24 },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  sum: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  rule: { height: 2, backgroundColor: color.ink, opacity: 0.15 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
   box: { width: 28, height: 28, borderRadius: 6, borderWidth: 2, borderColor: color.ink, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: color.ink },

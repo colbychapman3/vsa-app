@@ -15,7 +15,8 @@ export type ExportResult = { ok: boolean; text: string };
 
 const APPEARANCE_LABEL: Record<AppearanceMode, string> = { light: 'Light', night: 'Night', auto: 'Auto' };
 
-export function Settings({ isTest, rows, currentId, appearance, onAppearance, reminders, remindersPaused, onPauseReminders, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
+export function Settings({ isTest, rows, currentId, appearance, onAppearance, sun, onSun, reminders, remindersPaused, onPauseReminders, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
+  sun: boolean; onSun: (v: boolean) => void;
   layout: Layout; onLayout: (l: Layout) => void;
   isTest: boolean; rows: VesselRow[]; currentId: string;
   appearance: AppearanceMode; onAppearance: (m: AppearanceMode) => void;
@@ -43,6 +44,8 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, re
       <SectionHead title="Appearance" />
       <Seg<AppearanceMode> options={APPEARANCES.map((m) => ({ value: m, label: APPEARANCE_LABEL[m] }))} value={appearance} onChange={onAppearance} />
       <InfoNote><Note>Light is the sun-readable default. Night is for night shifts. Auto follows your iPhone.</Note></InfoNote>
+      <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Standard' }, { value: 'on', label: 'Extra visible' }]} value={sun ? 'on' : 'off'} onChange={(v) => onSun(v === 'on')} />
+      <InfoNote><Note>Extra visible: heavier text, thicker outlines and slightly larger writing, for direct sun and gloves.</Note></InfoNote>
 
       <SectionHead title="Snapshot" />
       <Go ghost label="Customize Snapshot" onPress={() => setCustomize(true)} />

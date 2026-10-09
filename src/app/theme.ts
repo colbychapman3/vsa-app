@@ -56,6 +56,17 @@ export function fonts(loaded: boolean) {
 // Gloves: nothing tappable smaller than this (points).
 export const TAP = 56;
 
-// Font families for the current load state; provided once in App.tsx.
+// Depth: soft shadows lift cards and buttons off the page. Shadows fade in Night, where the card border carries the edge.
+export const elev = {
+  card: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6 },
+  raised: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.22, shadowRadius: 7 },
+} as const;
+
+// Font families for the current load state; provided once in App.tsx (already stepped up when Extra visible is on).
 export const FontContext = createContext(fonts(false));
 export const useType = () => useContext(FontContext);
+
+// Extra visible: 2 pt ink borders and a point more on running text. Families are stepped in App.tsx through sunFamilies().
+export const SunContext = createContext(false);
+export const useSun = () => useContext(SunContext);
+export const edge = (sun: boolean) => (sun ? { borderWidth: 2, borderColor: color.ink } : null);
