@@ -45,7 +45,7 @@ test('workday drivers: set once for the day, used by every hour without its own 
   const s = await setup(tc);
   // Before anything is set, the gap line uses the labor order, as before.
   assert.equal(s.state.drivers?.src, 'labor order');
-  assert.deepEqual(planView(s.state, glovis).workday.map((d) => d.value), ['Not set (labor order 70)', 'Not set (labor order 70)']);
+  assert.deepEqual(planView(s.state, glovis).workday.map((d) => d.value), ['Not set (labor order 70)']);
 
   await s.ok(E.workdayDriversEvents(s.ctx(), 1, 70));
   assert.deepEqual(s.state.workdayDrivers, { 1: 70 });

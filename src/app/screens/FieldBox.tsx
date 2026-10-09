@@ -2,7 +2,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { snapshot } from '../view.ts';
 import { color, useType } from '../theme.ts';
-import { Bar, Body, Card, FillNumber, Label, Note, u } from './ui.tsx';
+import { Bar, Body, Card, FillNumber, InfoNote, Label, Note, u } from './ui.tsx';
 
 export function FieldBox({ v }: { v: ReturnType<typeof snapshot> }) {
   const f = useType();
@@ -41,7 +41,7 @@ export function FieldBox({ v }: { v: ReturnType<typeof snapshot> }) {
           </View>
         ))}
         {v.fieldRecord.unsplitNote && <Note>{v.fieldRecord.unsplitNote}</Note>}
-        <Note>{v.fieldRecord.note}</Note>
+        <InfoNote><Note>{v.fieldRecord.note}</Note></InfoNote>
       </View>
     </Card>
   );

@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAP, type Pt } from '../map/data.ts';
 import { CHIPS, FEATURES, card, featureAt, highlighted, measure, pathD, type ChipId, type Feature } from '../map/model.ts';
 import { color, TAP, useType } from '../theme.ts';
-import { Go, Note } from './ui.tsx';
+import { Go, InfoNote, Note } from './ui.tsx';
 
 const KIND_COLOR = { zone: color.mapZone, site: color.mapSite, yard: color.mapYard, oem: color.mapOem, point: color.ink } as const;
 const MAX_ZOOM = 10; // times the fit-to-screen scale
@@ -219,7 +219,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
           <View style={[s.panel, { paddingBottom: insets.bottom + 12 }]}>
             <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }}>Measure a rough distance</Text>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.oInk }}>Start opens the map full screen. Tap a point at the start, then at every turn.</Text>
-            <Note>Lot outlines and the map scale are approximate (about plus or minus 10%). For route distances use the berth miles on each lot's card.</Note>
+            <InfoNote><Note>Lot outlines and the map scale are approximate (about plus or minus 10%). For route distances use the berth miles on each lot's card.</Note></InfoNote>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}><Go ghost label="Cancel" onPress={() => setReady(false)} /></View>
               <View style={{ flex: 1 }}><Go label="Start" onPress={() => { setReady(false); setPts([]); setMeasuring(true); }} /></View>
@@ -245,7 +245,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
           </View>
         ) : (
           <View style={[s.panel, { paddingBottom: insets.bottom + 12 }]}>
-            <Note>Tap a lot or a marker for its card, or pick one from the list above. Works offline. Side, cutoff and miles come from the terminal directory (Appendix C and D).</Note>
+            <InfoNote><Note>Tap a lot or a marker for its card, or pick one from the list above. Works offline. Side, cutoff and miles come from the terminal directory (Appendix C and D).</Note></InfoNote>
           </View>
         )}
       </View>

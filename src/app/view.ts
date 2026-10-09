@@ -566,8 +566,8 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
       })),
       footnote: 'Miles: measured route distances (Protocol App. D). Reference times: cycle scope (one-way vs round trip) unspecified.',
     },
-    // Drivers are set once per workday; Day 2 is always offered so it can be set ahead.
-    workday: Array.from({ length: Math.max(2, s.ops.day, ...Object.keys(s.workdayDrivers).map(Number)) }, (_, i) => {
+    // Drivers are set once per workday. A one-day ship shows only Day 1; Day 2 appears once a shift end is planned, the next day has started, or it was set.
+    workday: Array.from({ length: Math.max(s.plan.shiftEnd != null ? 2 : 1, s.ops.day, ...Object.keys(s.workdayDrivers).map(Number)) }, (_, i) => {
       const day = i + 1, n = s.workdayDrivers[day];
       return { day, label: `Day ${day} drivers`, value: n != null ? `${fmt(n)} drivers` : `Not set${labor.autoDrivers != null ? ` (labor order ${fmt(labor.autoDrivers)})` : ''}`, n: n ?? null };
     }),

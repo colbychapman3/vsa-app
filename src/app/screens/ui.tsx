@@ -69,14 +69,15 @@ export function FlipTile({ front, back, style, cardStyle, label, onLongPress }: 
 
 // The wording behind a tap: a short "About this" row that shows or hides its notes. Keeps main screens short; nothing that
 // warns or blocks goes in here, only explanations.
+// Explanatory text stays out of the way: a small ⓘ that opens it on a tap.
 export function InfoNote({ children, label = 'About this' }: { children: ReactNode; label?: string }) {
   const f = useType();
   const [open, setOpen] = useState(false);
   return (
     <View style={{ gap: 6 }}>
-      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={open ? 'Hide details' : label}
-        style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{open ? 'Hide details ▴' : `${label} ▾`}</Text>
+      <Pressable onPress={() => setOpen(!open)} hitSlop={8} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={open ? 'Hide details' : label}
+        style={({ pressed }) => [{ minHeight: 40, minWidth: 40, alignSelf: 'flex-start', justifyContent: 'center' }, pressed && u.pressed]}>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 20, color: color.blue }}>{open ? '✕' : 'ⓘ'}</Text>
       </Pressable>
       {open && children}
     </View>

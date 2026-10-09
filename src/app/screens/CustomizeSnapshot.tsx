@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
 import { BOX_TITLE, boxesFor, defaultLayout, moveBox, PINNED, reorder, setHidden, moveToTab, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
 import { color, TAP, useType } from '../theme.ts';
-import { Body, Card, Go, Note, Seg, u } from './ui.tsx';
+import { Body, Card, Go, InfoNote, Note, Seg, u } from './ui.tsx';
 
 type Where = BoxTab | 'hidden';
 
@@ -13,7 +13,7 @@ export function CustomizeSnapshot({ layout, onLayout }: { layout: Layout; onLayo
   const layoutRef = useRef(layout); layoutRef.current = layout;
   return (
     <View style={{ gap: 10 }}>
-      <Note>Drag a box by its handle ⠿ to reorder it, or use ▲ ▼. Pick where it shows. On the Snapshot you can also long press a box for “Move to”.</Note>
+      <InfoNote><Note>Drag a box by its handle ⠿ to reorder it, or use ▲ ▼. Pick where it shows. On the Snapshot you can also long press a box for “Move to”.</Note></InfoNote>
       {layout.order.map((id) => (
         <Row key={id} id={id} layout={layout} rowH={rowH} onMeasure={setRowH} onLayout={onLayout} latest={layoutRef} />
       ))}

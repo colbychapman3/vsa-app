@@ -7,7 +7,7 @@ import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
 import { color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
-import { Bar, Big, Body, Card, Chip, FlipTile, Label, Note, SectionHead, Seg, u } from './ui.tsx';
+import { Bar, Big, Body, Card, Chip, FlipTile, InfoNote, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
   const f = useType();
@@ -33,7 +33,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
           <Body semi style={{ color: paceColor }}>Pace: {v.stats.paceNote}. Only the minutes worked count, so the short hour before a break is not held against it.</Body>
           <Body>Total: field count.</Body>
           {v.paceLine && <Note>{v.paceLine}</Note>}
-          <Note>They match when no hour was cut short. The forecast uses Pace. Tap to flip back.</Note>
+          <InfoNote><Note>They match when no hour was cut short. The forecast uses Pace. Tap to flip back.</Note></InfoNote>
         </View>} />
       {v.unsetShort && (
         <View style={s.warn}>
@@ -66,7 +66,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
               <SvgPoint key={i} x={p.x} y={p.y} count={p.count} short={p.short} xLabel={p.xLabel} baseY={v.graph!.H - v.graph!.Bm + 16} />
             ))}
           </Svg>
-          <Note>{v.graph.note}{v.graph.hasShort ? ' Orange = pre-break hour, pace adjusted for the stoppage.' : ''}</Note>
+          <InfoNote><Note>{v.graph.note}{v.graph.hasShort ? ' Orange = pre-break hour, pace adjusted for the stoppage.' : ''}</Note></InfoNote>
         </Card>
       )}
     </View>

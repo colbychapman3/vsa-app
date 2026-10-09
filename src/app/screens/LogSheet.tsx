@@ -10,9 +10,9 @@ import { deckSheet, decksView, hourOptions } from '../view.ts';
 import { DeckForm } from './DeckSheet.tsx';
 import { EvidenceForm } from './EvidenceForm.tsx';
 import { color, useType } from '../theme.ts';
-import { Body, ErrorBox, Field, Go, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
+import { Body, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
 
-export type Mode = 'hour' | 'deck' | 'break' | 'hh' | 'issue' | 'photo';
+export type Mode = 'hour' | 'deck' | 'break' | 'hh' | 'clerk' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode; prefill?: HourPrefill };
 // From the assistant: a count and hour that were typed. Shown in the form; nothing is saved until Save is tapped.
@@ -49,6 +49,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
     { value: 'deck', label: 'Deck' },
     { value: 'break', label: phase === 'break' ? 'End break' : phase === 'shift_end' ? 'Next day' : 'Break / shift' },
     { value: 'hh', label: 'H/H' },
+    { value: 'clerk', label: 'Clerk count' },
     { value: 'issue', label: 'Discrepancy' },
     { value: 'photo', label: 'Photo' },
   ];
@@ -69,6 +70,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
           {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
           {mode === 'break' && <BreakForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'hh' && <HhForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
+          {mode === 'clerk' && <ClerkForm phase={phase} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'photo' && <EvidenceForm state={state} baseline={baseline} save={save} onClose={(done) => onClose(done)} />}
           {error && <ErrorBox text={error} />}
@@ -153,7 +155,7 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
         <Field label={dayDrivers != null ? 'Drivers this hour' : 'Drivers'} note={dayDrivers != null ? `(only if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} />
       </View>
       {state.hh.passes.some((p) => p.end && p.end.abs >= (day - 1) * 1440 + parseHM(hour)! - 60 && p.end.abs < (day - 1) * 1440 + parseHM(hour)! + 60) && <Note>H/H completed near this hour. Drivers changed? If some moved to cars, enter this hour’s driver count; leave it empty if nothing changed.</Note>}
-      {dayDrivers == null && <Note>Tip: set the day’s drivers once in Plan › Labor instead of every hour.</Note>}
+      {dayDrivers == null && <InfoNote><Note>Tip: set the day’s drivers once in Plan › Labor instead of every hour.</Note></InfoNote>}
       <Label>SPLIT BY BRAND (OPTIONAL)</Label>
       <View style={s.row2}>
         {state.brands.map((b) => <Field key={b.name} label={b.name} value={brands[b.name] ?? ''} onChange={(v) => setBrands((x) => ({ ...x, [b.name]: v }))} />)}
@@ -173,7 +175,7 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
         </View>
       )}
       {existing && count.trim() === '0' && <Note>A 0 here saves a real hour with nothing counted. If this was the wrong hour, use Remove this hour below instead.</Note>}
-      <Note>Enter the count for that hour only, not the running total. Re-entering an hour replaces it and keeps the old value.</Note>
+      <InfoNote><Note>Enter the count for that hour only, not the running total. Re-entering an hour replaces it and keeps the old value.</Note></InfoNote>
       <Go label="Save hourly count" onPress={submit} />
       {existing && (
         <View style={{ gap: 8 }}>
@@ -181,7 +183,7 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
           <Seg columns={2} value={rmReason} onChange={setRmReason} options={[...E.HOUR_REMOVE_REASONS, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
           {rmReason === 'Other' && <Field label="Reason" value={rmOther} onChange={setRmOther} keyboard="default" maxLength={120} />}
           <Go ghost label={`Remove the ${hour} hour`} onPress={removeHour} />
-          <Note>The hour leaves the record and the averages. Its values stay in the log, marked removed.</Note>
+          <InfoNote><Note>The hour leaves the record and the averages. Its values stay in the log, marked removed.</Note></InfoNote>
         </View>
       )}
     </View>
@@ -246,7 +248,7 @@ function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: R
       <View style={s.hr}>
         <TimeField required label="Shift ended at" value={end} onChange={setEnd} onNow={fill(setEnd)} />
         <Go ghost label="Log end of shift" onPress={() => go(end, day, E.endShiftEvents, () => 'End of shift logged. Reconcile ship and field.')} />
-        <Note>Starts end-of-shift reconciliation. No cars should be in transit.</Note>
+        <InfoNote><Note>Starts end-of-shift reconciliation. No cars should be in transit.</Note></InfoNote>
       </View>
     </View>
   );
@@ -290,7 +292,7 @@ function HhForm({ state, run, now, timeOf, setError }: { state: State; run: Run;
         <Go label="Save the new time" onPress={() => change(false)} />
         <Go ghost label="Remove this marker" onPress={() => change(true)} />
         <Go ghost label="Back" onPress={() => { setEdit(null); setError(null); }} />
-        <Note>Nothing is overwritten: the original time stays in the log.</Note>
+        <InfoNote><Note>Nothing is overwritten: the original time stays in the log.</Note></InfoNote>
       </View>
     );
   }
@@ -313,7 +315,27 @@ function HhForm({ state, run, now, timeOf, setError }: { state: State; run: Run;
             : <Note>{p.endedWithShift ? 'No closing time entered: ended with the shift.' : 'Still active.'}</Note>}
         </View>
       ))}
-      <Note>H/H is awareness only. Its counts stay with the other stevedore and are never added to the auto counts. If you don’t log a complete, the pass ends with the shift.</Note>
+      <InfoNote><Note>H/H is awareness only. Its counts stay with the other stevedore and are never added to the auto counts. If you don’t log a complete, the pass ends with the shift.</Note></InfoNote>
+    </View>
+  );
+}
+
+// ---------- Clerk count ----------
+
+function ClerkForm({ phase, run, now, timeOf, setError }: { phase: string; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
+  const [rem, setRem] = useState('');
+  const [t, setT] = useState('');
+  return (
+    <View style={{ gap: 14 }}>
+      <Field label="Clerk’s vessel remaining" value={rem} onChange={setRem} />
+      <TimeField label="Time" value={t} onChange={setT} onNow={() => { const n = now(); if (n) setT(n); }} />
+      <InfoNote><Note>{phase !== 'working' ? 'Shows as match or discrepancy on the snapshot during this reconciliation.' : 'Tip: log this during a break so it shows on the snapshot.'}</Note></InfoNote>
+      <Go label="Save clerk count" onPress={() => {
+        const n = num(rem), at = timeOf(t);
+        if (n == null || Number.isNaN(n)) return setError('Enter the clerk’s remaining count as a whole number.');
+        if (at === 'bad') return setError('Enter the time as HH:MM.');
+        void run((c) => E.clerkEvents(c, n, at), `Clerk count saved: ${n.toLocaleString('en-US')}.`);
+      }} />
     </View>
   );
 }
@@ -327,7 +349,7 @@ function IssueForm({ run, now, timeOf, setError }: { run: Run; now: () => string
     <View style={{ gap: 14 }}>
       <Field label="What doesn’t match" value={text} onChange={setText} keyboard="default" maxLength={200} />
       <TimeField label="Noticed at" value={t} onChange={setT} onNow={() => { const n = now(); if (n) setT(n); }} />
-      <Note>Stays on the open list until someone marks it resolved.</Note>
+      <InfoNote><Note>Stays on the open list until someone marks it resolved.</Note></InfoNote>
       <Go label="Add to open discrepancies" onPress={() => {
         const at = timeOf(t);
         if (at === 'bad') return setError('Enter the time as HH:MM.');

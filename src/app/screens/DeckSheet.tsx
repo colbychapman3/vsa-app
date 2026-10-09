@@ -9,7 +9,7 @@ import * as E from '../entries.ts';
 import { deckSheet, STATUS_PILL } from '../view.ts';
 import { color, useType } from '../theme.ts';
 import { DeckPhotoTypes, PhotoPages, type PhotoView } from './DeckPhotoTypes.tsx';
-import { Body, Chip, ErrorBox, Field, Go, Label, Note, Pill, Seg, Sheet, TimeField } from './ui.tsx';
+import { Body, Chip, ErrorBox, Field, Go, InfoNote, Label, Note, Pill, Seg, Sheet, TimeField } from './ui.tsx';
 
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
@@ -71,7 +71,7 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
             </Text>
           </View>
           <View style={s.chips}><Chip text={v.height.text} tone={v.height.tone} /><Note>{v.possible}</Note></View>
-          <Note>Deck heights are confirmed on the Plan tab.</Note>
+          <InfoNote><Note>Deck heights are confirmed on the Plan tab.</Note></InfoNote>
 
           <Label>STATUS</Label>
           <Seg options={STATUSES.map((x) => ({ value: x, label: STATUS_PILL[x] }))} value={status} onChange={setStatus} />
@@ -96,7 +96,7 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
               <Field label="Or deck total remaining" value={total} onChange={setTotal} />
             </>
           ) : (
-            <Note>{status === 'complete' ? 'Complete sets remaining to 0 and records the cleared brands.' : status === 'notStarted' ? 'Not started keeps the full count.' : 'Unknown: remaining is unknown until counted.'}</Note>
+            <InfoNote><Note>{status === 'complete' ? 'Complete sets remaining to 0 and records the cleared brands.' : status === 'notStarted' ? 'Not started keeps the full count.' : 'Unknown: remaining is unknown until counted.'}</Note></InfoNote>
           )}
 
           <TimeField label="Time of this update" value={t} onChange={setT}

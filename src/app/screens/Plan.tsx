@@ -123,11 +123,9 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
       {(ph.noTime.length > 0 || ph.outside.length > 0) && (
         <Card style={[u.pad, { gap: 6 }]}>
           <SectionHead title="Photos not on an hour" />
-          {ph.noTime.length > 0 && <Label>TIME NOT PROVIDED</Label>}
           {ph.noTime.map((p) => <Body key={p}>{p}</Body>)}
-          {ph.outside.length > 0 && <Label wrap>OUTSIDE THE LOGGED HOURS (BREAK OR NOT LOGGED YET)</Label>}
           {ph.outside.map((p) => <Body key={p}>{p}</Body>)}
-          <InfoNote><Note>Photos are records only. They never change a count or a rate.</Note></InfoNote>
+          <InfoNote><Note>{ph.noTime.length > 0 ? 'Rows with no time were saved without one. ' : ''}{ph.outside.length > 0 ? 'Rows with a time fall outside the logged hours (a break, or the hour is not logged yet). ' : ''}Photos are records only. They never change a count or a rate.</Note></InfoNote>
         </Card>
       )}
 
@@ -137,7 +135,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         {kv('Auto drivers (ordered)', v.labor.autoDrivers)}
         {kv('Van drivers', v.labor.vanDrivers)}
         {kv('Heavy gang', v.labor.heavyGang)}
-        <Note>Labor order figures are ordered, not a confirmed shape-up.</Note>
+        <InfoNote><Note>Labor order figures are ordered, not a confirmed shape-up.</Note></InfoNote>
         {v.workday.map((d) => kv(d.label, d.value))}
         <Go ghost label="Set the day’s drivers" onPress={() => setDriversOpen(true)} />
       </Card>
@@ -148,7 +146,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         {kv('H/H units (read-only)', v.hh.units)}
         {v.hh.passes.map((p) => <Note key={p}>{p}</Note>)}
         {v.hh.lines.map((l) => <Note key={l}>{l}</Note>)}
-        <Note>Log H/H start and complete from the Log sheet (H/H). H/H counts stay with the other stevedore and are never added to the auto counts.</Note>
+        <InfoNote><Note>Log H/H start and complete from the Log sheet (H/H). H/H counts stay with the other stevedore and are never added to the auto counts.</Note></InfoNote>
       </Card>
 
       <Collapse title="Forecast settings">
@@ -335,7 +333,7 @@ function DriversSheet({ state, baseline, isTest, save, onClose }: { isTest: bool
       <Seg columns={days.length} value={day} onChange={pick} options={days.map((d) => ({ value: d.day, label: `Day ${d.day}` }))} />
       <Field label={`Drivers on Day ${day}`} value={n} onChange={setN} />
       {cur != null && <Reasons options={E.REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />}
-      <Note>Used for every hour of that day. If the gang changes during the day, enter the drivers on that hour in the Log sheet instead.</Note>
+      <InfoNote><Note>Used for every hour of that day. If the gang changes during the day, enter the drivers on that hour in the Log sheet instead.</Note></InfoNote>
       {error && <ErrorBox text={error} />}
       <Go label="Save drivers" onPress={submit} />
       {cur != null && <Go ghost label={`Clear Day ${day} (back to not set)`} onPress={async () => {

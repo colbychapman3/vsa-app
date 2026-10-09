@@ -7,7 +7,7 @@ import { aiStatus, AI_STATUS_TEXT } from '../ai.ts';
 import { makeQuiet, type Quiet } from '../assistant.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
 import { APPEARANCES, color, useType, type AppearanceMode } from '../theme.ts';
-import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
+import { Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
 import { CustomizeSnapshot } from './CustomizeSnapshot.tsx';
 import type { Layout } from '../snapshotLayout.ts';
 
@@ -42,11 +42,11 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, re
     <Sheet title="Settings" isTest={isTest} onClose={onClose}>
       <SectionHead title="Appearance" />
       <Seg<AppearanceMode> options={APPEARANCES.map((m) => ({ value: m, label: APPEARANCE_LABEL[m] }))} value={appearance} onChange={onAppearance} />
-      <Note>Light is the sun-readable default. Night is for night shifts. Auto follows your iPhone.</Note>
+      <InfoNote><Note>Light is the sun-readable default. Night is for night shifts. Auto follows your iPhone.</Note></InfoNote>
 
       <SectionHead title="Snapshot" />
       <Go ghost label="Customize Snapshot" onPress={() => setCustomize(true)} />
-      <Note>Move, hide or send any Snapshot box to Plan, Hourly or Decks. Saved on this phone.</Note>
+      <InfoNote><Note>Move, hide or send any Snapshot box to Plan, Hourly or Decks. Saved on this phone.</Note></InfoNote>
 
       <SectionHead title="Plan reminders" />
       <Body>{REMINDER_STATUS_TEXT[reminders]}</Body>
@@ -65,7 +65,7 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, re
 
       <SectionHead title="On-device AI" />
       <Body>{AI_STATUS_TEXT[ai]}</Body>
-      <Note>The app works fully without it.</Note>
+      <InfoNote><Note>The app works fully without it.</Note></InfoNote>
 
       <SectionHead title="About" />
       <Body>Version {version} · Build {build}</Body>
@@ -177,7 +177,7 @@ function ArchiveList({ rows, currentId, onArchive, onDelete }: { rows: VesselRow
           </Card>
         </View>
       ))}
-      <Note>Archive hides a vessel from the menu. Its record stays on the phone and can be unarchived here.</Note>
+      <InfoNote><Note>Archive hides a vessel from the menu. Its record stays on the phone and can be unarchived here.</Note></InfoNote>
       <Note>Tap Delete twice to delete a vessel. A deleted vessel and its photos cannot be brought back, except from a saved copy. The open vessel can't be deleted. Deleting is on during the prototype phase only.</Note>
     </View>
   );

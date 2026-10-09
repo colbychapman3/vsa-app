@@ -7,7 +7,7 @@ import type { State } from '../../storage/store.ts';
 import { etaHistory, type EtaPoint } from '../etaHistory.ts';
 import { snapshot } from '../view.ts';
 import { color } from '../theme.ts';
-import { Body, Label, Note, Seg, Sheet, Tag } from './ui.tsx';
+import { Body, InfoNote, Label, Note, Seg, Sheet, Tag } from './ui.tsx';
 
 const clock = (abs: number) => formatHM(abs % 1440);
 const W = 340, H = 190, PAD = 30;
@@ -21,7 +21,7 @@ export function EtaHistory({ state, baseline, nowMin, isTest, onClose }: { state
       <Tag kind="FORECAST" />
       <Label>HOW THIS IS WORKED OUT</Label>
       {v.eta.notes.map((n) => <Body key={n}>{n}</Body>)}
-      <Note>A forecast, not a result: it follows the recent pace, skips the 12:00 and 18:00 breaks, and is never marked complete by itself.</Note>
+      <InfoNote><Note>A forecast, not a result: it follows the recent pace, skips the 12:00 and 18:00 breaks, and is never marked complete by itself.</Note></InfoNote>
 
       <Label>ETA AFTER EACH LOGGED HOUR</Label>
       {pts.length === 0
@@ -32,7 +32,7 @@ export function EtaHistory({ state, baseline, nowMin, isTest, onClose }: { state
             <Note>{view === 'line' ? 'Higher on the chart is a later finish.' : 'Orange bars: the ETA moved later at that hour. Green bars: earlier.'}</Note>
             <Label>PLUS / MINUS BY HOUR</Label>
             {[...pts].reverse().map((p) => <Body key={`${p.day}-${p.hour}`}>{p.text}</Body>)}
-            <Note>These lines say what changed. They don’t say why: pace, drivers, breaks and the cargo left all move the ETA.</Note>
+            <InfoNote><Note>These lines say what changed. They don’t say why: pace, drivers, breaks and the cargo left all move the ETA.</Note></InfoNote>
           </>}
     </Sheet>
   );
