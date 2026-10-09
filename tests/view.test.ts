@@ -360,5 +360,5 @@ test('backup nudge: offered only for LIVE vessels with entries not in a saved co
   assert.equal(offerCopy(3, true), false);
   assert.equal(unsavedNote(0, null), null);
   assert.equal(unsavedNote(1, null), '1 entry not backed up. No copy saved yet.');
-  assert.equal(unsavedNote(1234, '2026-09-21T14:42:10-04:00'), '1,234 entries not backed up. Last copy: 2026-09-21 14:42 (phone clock).');
+  assert.equal(unsavedNote(1234, '2026-09-21T14:42:10-04:00'), '1,234 entries not backed up. Last copy Sep 21, 14:42.');
 });

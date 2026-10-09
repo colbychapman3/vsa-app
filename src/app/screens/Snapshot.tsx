@@ -33,7 +33,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
                   Clear-by {v.strip.clearBy.map((c, i) => <Text key={c.side}>{i ? ' · ' : ''}{c.side} <Text style={{ fontFamily: f.bodySemi, color: color.ink }}>{c.at}</Text></Text>)}
                 </Text>
               </>
-            : <Body semi>No more scheduled breaks today</Body>}
+            : <Body semi>No more breaks today</Body>}
         </View>
       )}
 

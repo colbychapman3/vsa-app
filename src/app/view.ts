@@ -680,5 +680,5 @@ export const offerCopy = (unsaved: number, isTest: boolean): boolean => unsaved 
 export function unsavedNote(unsaved: number, lastAt: string | null): string | null {
   if (unsaved <= 0) return null;
   const n = `${unsaved.toLocaleString('en-US')} ${unsaved === 1 ? 'entry' : 'entries'} not backed up.`;
-  return lastAt ? `${n} Last copy: ${lastAt.replace('T', ' ').slice(0, 16)} (phone clock).` : `${n} No copy saved yet.`;
+  return lastAt ? `${n} Last copy ${new Date(lastAt.slice(0, 16)).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: false })}.` : `${n} No copy saved yet.`;
 }

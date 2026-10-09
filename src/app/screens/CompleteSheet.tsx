@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import type { Reject, VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
-import { completeBlockers, completionStale } from '../complete.ts';
+import { clockOf, completeBlockers, completionStale } from '../complete.ts';
 import * as E from '../entries.ts';
 import { Body, ErrorBox, Go, Note, Reasons, Sheet } from './ui.tsx';
 
@@ -29,7 +29,7 @@ export function CompleteSheet({ state, isTest, save, onClose, onGo }: { state: S
     <Sheet title={marked ? 'Vessel complete' : 'Is the vessel complete?'} isTest={isTest} onClose={() => onClose()}>
       {marked ? (
         <>
-          <Body semi>Marked complete {marked.time}.</Body>
+          <Body semi>Marked complete{clockOf(marked.time) ? ` at ${clockOf(marked.time)}` : ''}.</Body>
           {marked.override && <Note>Closed with open items: {marked.blockers.join(' ')} Reason: {marked.reason}</Note>}
           {completionStale(state) && <Note>The remaining count is no longer 0, so this mark no longer holds. Reopen it, or add the count back.</Note>}
           <Reasons options={E.REOPEN_REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />

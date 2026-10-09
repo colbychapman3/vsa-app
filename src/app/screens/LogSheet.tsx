@@ -9,10 +9,10 @@ import * as E from '../entries.ts';
 import { deckSheet, decksView, hourOptions } from '../view.ts';
 import { DeckForm } from './DeckSheet.tsx';
 import { EvidenceForm } from './EvidenceForm.tsx';
-import { color, useType } from '../theme.ts';
+import { color, TAP, useType } from '../theme.ts';
 import { Body, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
 
-export type Mode = 'hour' | 'deck' | 'break' | 'hh' | 'clerk' | 'issue' | 'photo';
+export type Mode = 'hour' | 'deck' | 'hh' | 'clerk' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode; prefill?: HourPrefill };
 // From the assistant: a count and hour that were typed. Shown in the form; nothing is saved until Save is tapped.
@@ -24,7 +24,7 @@ const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Nu
 export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'hour', prefill }: Props) {
   const f = useType();
   const [deck, setDeck] = useState<string | null>(null); // a deck opened from Deck mode, shown in this same sheet
-  const [mode, setMode] = useState<Mode>(initial);
+  const [mode, setMode] = useState<Mode>((initial as string) === 'break' ? 'hour' : initial);
   const [error, setError] = useState<string | null>(null);
   const opDate = operationDate(baseline)!;
   const day = state.ops.day;
@@ -47,7 +47,6 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   const modes: { value: Mode; label: string }[] = [
     { value: 'hour', label: 'Hourly count' },
     { value: 'deck', label: 'Deck' },
-    { value: 'break', label: phase === 'break' ? 'End break' : phase === 'shift_end' ? 'Next day' : 'Break / shift' },
     { value: 'hh', label: 'H/H' },
     { value: 'clerk', label: 'Clerk count' },
     { value: 'issue', label: 'Discrepancy' },
@@ -66,9 +65,10 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   return (
     <Sheet title="Log" isTest={isTest} onClose={() => onClose()}>
           <Seg options={modes} value={mode} onChange={(m) => { setMode(m); setError(null); }} />
+          {mode === 'hour' && phase !== 'working' && <BreakBox state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'hour' && <HourForm state={state} baseline={baseline} run={run} setError={setError} prefill={prefill} />}
+          {mode === 'hour' && phase === 'working' && <BreakBox state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
-          {mode === 'break' && <BreakForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'hh' && <HhForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'clerk' && <ClerkForm phase={phase} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setError} />}
@@ -146,13 +146,13 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
 
   return (
     <View style={{ gap: 14 }}>
-      <Label>HOUR{day > 1 ? ` · DAY ${day}` : ''}</Label>
+      {day > 1 && <Label>DAY {day}</Label>}
       <Seg columns={4} value={hour} onChange={pick}
-        options={opts.hours.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' (correct)' : ''}` }))} />
+        options={opts.hours.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' ✓' : ''}` }))} />
       <Note>{`${hour}–${endHM}`}{existing ? ' · already logged: saving a change keeps the old value' : ''}</Note>
       <View style={s.row2}>
-        <Field label="Autos counted this hour" value={count} onChange={setCount} />
-        <Field label={dayDrivers != null ? 'Drivers this hour' : 'Drivers'} note={dayDrivers != null ? `(only if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} />
+        <Field label="Autos this hour" value={count} onChange={setCount} />
+        <Field label="Drivers" note={dayDrivers != null ? `(if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} />
       </View>
       {state.hh.passes.some((p) => p.end && p.end.abs >= (day - 1) * 1440 + parseHM(hour)! - 60 && p.end.abs < (day - 1) * 1440 + parseHM(hour)! + 60) && <Note>H/H completed near this hour. Drivers changed? If some moved to cars, enter this hour’s driver count; leave it empty if nothing changed.</Note>}
       {dayDrivers == null && <InfoNote><Note>Tip: set the day’s drivers once in Plan › Labor instead of every hour.</Note></InfoNote>}
@@ -207,7 +207,24 @@ function DeckList({ state, onOpenDeck }: { state: State; onOpenDeck: (id: string
   );
 }
 
-// ---------- Break / shift ----------
+// ---------- Break / shift (part of the Hourly count tab) ----------
+
+// Working: a tap-to-open section. On a break or at shift end the next step is open straight away.
+function BreakBox(p: { state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
+  const f = useType();
+  const phase = p.state.ops.phase;
+  const [open, setOpen] = useState(phase !== 'working');
+  const title = phase === 'break' ? 'Break in progress' : phase === 'shift_end' ? 'Shift ended' : 'Break or end of shift';
+  return (
+    <View style={[u.card, u.pad, { gap: 12 }]}>
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
+        <Text style={[u.h2, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
+        <Text style={{ marginLeft: 'auto', fontSize: 16, color: color.blue }}>{open ? '▴' : '▾'}</Text>
+      </Pressable>
+      {open && <BreakForm {...p} />}
+    </View>
+  );
+}
 
 function BreakForm({ state, run, now, timeOf, setError }: { state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
   const [t, setT] = useState('');

@@ -27,7 +27,7 @@ import { Snapshot } from './src/app/screens/Snapshot.tsx';
 import { Boxes } from './src/app/screens/SnapshotBoxes.tsx';
 import { EtaHistory } from './src/app/screens/EtaHistory.tsx';
 import { CompleteSheet } from './src/app/screens/CompleteSheet.tsx';
-import { completionDue, completionStale } from './src/app/complete.ts';
+import { completionDue, completionStale, clockOf } from './src/app/complete.ts';
 import { defaultLayout, layoutText, parseLayout, type Layout } from './src/app/snapshotLayout.ts';
 import { anySheetOpen, Go } from './src/app/screens/ui.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
@@ -378,7 +378,7 @@ export default function App() {
                   <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
                     {vessel.state.completed && !completionStale(vessel.state)
                       ? <Pressable onPress={() => setSheet('complete')} accessibilityRole="button" style={({ pressed }) => [s.doneBar, pressed && { opacity: 0.6 }]}>
-                          <Text style={[s.noticeText, { color: color.gInk }]}>VESSEL COMPLETE · {vessel.state.completed.time}{vessel.state.completed.override ? ' · closed with open items' : ''} · tap to reopen</Text>
+                          <Text style={[s.noticeText, { color: color.gInk }]}>Vessel complete{clockOf(vessel.state.completed.time) ? ` at ${clockOf(vessel.state.completed.time)}` : ''}{vessel.state.completed.override ? ' · with open items' : ''} · tap to reopen</Text>
                         </Pressable>
                       : <Go ghost label={vessel.state.completed ? 'Marked complete, but remaining is not 0: review' : 'Mark vessel complete'} onPress={() => setSheet('complete')} />}
                   </View>

@@ -43,3 +43,6 @@ export function reportStatus(s: State): { text: string; tone: 'green' | 'orange'
   if (c && !completionStale(s)) return c.override ? { text: 'COMPLETE · open items', tone: 'orange' } : { text: 'COMPLETE', tone: 'green' };
   return s.vesselRemaining === 0 ? { text: 'Ready to close', tone: 'blue' } : { text: 'INTERIM', tone: 'orange' };
 }
+
+// Just the clock of a mark's time ('Logged at 23:05 UTC-04:00 (processing time…)' → '23:05'); empty when none.
+export const clockOf = (t: string) => t.match(/d{1,2}:d{2}/)?.[0] ?? '';

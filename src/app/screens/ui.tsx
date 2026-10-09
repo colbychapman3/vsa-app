@@ -105,7 +105,7 @@ export function Collapse({ title, right, open: startOpen = false, children }: { 
     <View style={[u.card, u.pad, { gap: 10 }]}>
       <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={`${title}. ${open ? 'Hide' : 'Show'}`}
         style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
-        <Text style={[u.h2, { fontFamily: f.display, flexShrink: 1 }]}>{title}</Text>
+        <Text style={[u.h2, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
         {right ? <Text style={[u.secRight, { fontFamily: f.body, marginLeft: 'auto' }]}>{right}</Text> : <View style={{ marginLeft: 'auto' }} />}
         <Text style={{ fontSize: 16, color: color.blue }}>{open ? '▴' : '▾'}</Text>
       </Pressable>
