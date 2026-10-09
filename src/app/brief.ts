@@ -1,6 +1,6 @@
 // Full vessel brief (7d step 1), pure: built only from the same view models the screens use, so every total equals a screen's.
 // Formulas and denominators sit beside each number. No VINs, ids, photos or the vessel name (the caller adds the name if asked).
-import type { Baseline } from '../engine/index.ts';
+import { formatHM, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 import { completeLine } from './complete.ts';
 import { decksView, hourlyView, planView, snapshot } from './view.ts';
@@ -30,7 +30,7 @@ export function vesselBrief(s: State, b: Baseline, nowMin: number): string[] {
 }
 
 // "Why" traces (7d step 2): inputs, formula and exclusions for each derived number, from the same state the screens read.
-export type Trace = { key: 'remaining' | 'transit' | 'ha' | 'pace' | 'gap' | 'clearby'; title: string; lines: string[] };
+export type Trace = { key: 'remaining' | 'transit' | 'ha' | 'pace' | 'gap' | 'clearby' | 'eta'; title: string; lines: string[] };
 const n = (x: number) => x.toLocaleString('en-US');
 export function traces(s: State, b: Baseline): Trace[] {
   const p = s.production;
@@ -46,6 +46,10 @@ export function traces(s: State, b: Baseline): Trace[] {
       : [`Ship progress ${n(s.progress!)} vs field ${n(s.field)}: ${s.variance === 0 ? 'they match' : s.variance > 0 ? `ship is ${n(s.variance)} ahead` : `field is ${n(-s.variance)} ahead`}.`, 'Mid-work this is only watched; at a break or end of shift ship must equal field.'] },
     { key: 'ha', title: 'H.A. (hourly average)', lines: p.ha == null ? ['Unknown: no counted hours yet.'] : [`Field ${n(s.field)} ÷ ${p.countedHours} counted hour${p.countedHours === 1 ? '' : 's'} = ${n(Math.round(p.ha))}/hr.`, 'Every counted hour counts as a whole hour, including the short pre-break hour.'] },
     { key: 'pace', title: 'Pace', lines: p.pace == null ? ['Unknown: no productive time known (a short hour needs its stoppage time).'] : [`${n(p.prodCount)} autos in the hours with known minutes ÷ ${(p.prodMin / 60).toFixed(2)} productive hr = ${n(Math.round(p.pace))}/hr.`, 'Pre-break hours count only the minutes worked before stoppage.'] },
+    { key: 'eta', title: 'ETA (FORECAST)', lines: s.vesselRemaining === 0 ? ['Nothing remaining, so there is no forecast.']
+      : s.eta.etaAbs == null || s.eta.rate == null ? [`Unknown: ${s.eta.reason ?? 'not enough data'}.`]
+      : [`${n(s.vesselRemaining ?? s.fieldBalance)} ${s.vesselRemaining == null ? 'field balance' : 'remaining'} ÷ ${n(Math.round(s.eta.rate))}/hr (average pace of the last ${s.eta.hoursUsed} hour${s.eta.hoursUsed === 1 ? '' : 's'} with a known pace) → ${formatHM(s.eta.etaAbs % 1440)}${s.eta.etaAbs >= 1440 ? ` on Day ${Math.floor(s.eta.etaAbs / 1440) + 1}` : ''}.`,
+        'Steps over each scheduled 1-hour break and the clear-by before it, and rolls into Day 2 at the next-day start.', 'A forecast: never marked complete automatically.'] },
     { key: 'clearby', title: 'Clear-by', lines: [`Breaks at ${b.breaks.join(' and ')}, 1 hour each. Clear-by is a fixed time before the break: Northside 15 min, Southside 30 min (Appendix C).`, 'It is not computed from travel times, and it is applied once (a stop time you give is used as given).'] },
   ];
 }

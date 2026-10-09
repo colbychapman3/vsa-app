@@ -7,7 +7,7 @@ import type { State } from '../storage/store.ts';
 import { NOT_FOUND, search, type KnowledgeIndex } from './knowledge/search.ts';
 import { traces, vesselBrief } from './brief.ts';
 import { decksView, hourlyView, planView, snapshot } from './view.ts';
-import { canClear, driversChange, finishAtPace, paceWatch } from './whatif.ts';
+import { canClear, driversChange, finishAtPace, fitWatch, moveBreak, paceWatch, stopAt } from './whatif.ts';
 
 export type Where = 'snap' | 'decks' | 'hourly' | 'plan';
 export type Intent =
@@ -16,8 +16,8 @@ export type Intent =
   | { k: 'distance'; zone: string | null }
   | { k: 'clearby'; zone: string | null }
   | { k: 'knowledge'; q: string }
-  | { k: 'whatif'; w: 'pace'; pace: number } | { k: 'whatif'; w: 'drivers'; drivers: number } | { k: 'whatif'; w: 'clear'; deck: string }
-  | { k: 'why'; key: 'remaining' | 'transit' | 'ha' | 'pace' | 'gap' | 'clearby' }
+  | { k: 'whatif'; w: 'pace'; pace: number } | { k: 'whatif'; w: 'drivers'; drivers: number } | { k: 'whatif'; w: 'clear'; deck: string } | { k: 'whatif'; w: 'stop'; at: number } | { k: 'whatif'; w: 'break'; from: number; to: number }
+  | { k: 'why'; key: 'remaining' | 'transit' | 'ha' | 'pace' | 'gap' | 'clearby' | 'eta' }
   | { k: 'missing'; what: string }; // a deck or zone that is not on this vessel / not in the directory
 export type Answer = {
   title: string;
@@ -64,10 +64,15 @@ const deckIn = (text: string, s: State): string | null | 'missing' => {
 export function routeQuestion(text: string, s: State): Intent {
   const t = norm(text);
   if (/\b(why|how (is|are|do|does)|explain|worked out|calculated)\b/.test(t)) {
-    const key = /\bin transit\b/.test(t) ? 'transit' : /\b(gap|ahead|behind)\b/.test(t) ? 'gap' : /\b(h a|ha|hourly average)\b/.test(t) ? 'ha' : /\bpace\b/.test(t) ? 'pace' : /\bclear.?by\b/.test(t) ? 'clearby' : /\b(remaining|left)\b/.test(t) ? 'remaining' : null;
+    const key = /\b(eta|finish time)\b/.test(t) ? 'eta' : /\bin transit\b/.test(t) ? 'transit' : /\b(gap|ahead|behind)\b/.test(t) ? 'gap' : /\b(h a|ha|hourly average)\b/.test(t) ? 'ha' : /\bpace\b/.test(t) ? 'pace' : /\bclear.?by\b/.test(t) ? 'clearby' : /\b(remaining|left)\b/.test(t) ? 'remaining' : null;
     if (key) return { k: 'why', key };
   }
   // What-ifs first: numbers, decks and brands come from the typed words only.
+  const clockIn = (x: string) => { const m = /^(\d{1,2}) ?(\d{2})$/.exec(x.trim()); if (!m) return null; const h = Number(m[1]), mi = Number(m[2]); return h < 24 && mi < 60 ? h * 60 + mi : null; };
+  const wb = /\b(\d{1,2} ?\d{2})\s+break\b.*\b(?:to|until|at)\s+(\d{1,2} ?\d{2})\b/.exec(t);
+  if (wb) { const a = clockIn(wb[1]), z = clockIn(wb[2]); return a != null && z != null ? { k: 'whatif', w: 'break', from: a, to: z } : { k: 'missing', what: 'That is not a clock time (use HH:MM, 24-hour).' }; }
+  const ws = /\b(?:stop|stops|stopping|knock off|knocking off|quit|end)\s+(?:at|by)\s+(\d{1,2} ?\d{2})\b/.exec(t);
+  if (ws) { const a = clockIn(ws[1]); return a != null ? { k: 'whatif', w: 'stop', at: a } : { k: 'missing', what: 'That is not a clock time (use HH:MM, 24-hour).' }; }
   const wp = /\b(?:at|pace of|pace|rate of)\s+(\d{1,4})\s*(?:autos?|cars?|units?)?\s*(?:per|an|a)\s*(?:hr|hour)\b/.exec(t);
   if (/\b(if|what if|at)\b/.test(t) && wp) return { k: 'whatif', w: 'pace', pace: Number(wp[1]) };
   const wd = /\b(?:with|if|using)\s+(\d{1,3})\s+(?:auto\s+)?drivers?\b/.exec(t);
@@ -175,9 +180,9 @@ export function answer(i: Intent, s: State, b: Baseline, nowMin: number, index: 
       if (!t) return { title: 'Clear-by', where: null, tags: [], lines: [`${i.zone} is not in the terminal directory.`] };
       return { title: 'Clear-by', where: 'snap', tags: [], lines: [`${t.name}: ${t.side === 'S' ? 'Southside' : 'Northside'}, clear ${t.clearBy} min before the break (breaks at ${brk}).`] };
     }
-    case 'why': { const x = traces(s, b).find((y) => y.key === i.key)!; return { title: x.title, lines: x.lines, tags: ['CALCULATED'], where: null }; }
+    case 'why': { const x = traces(s, b).find((y) => y.key === i.key)!; return { title: x.title, lines: x.lines, tags: [i.key === 'eta' ? 'FORECAST' : 'CALCULATED'], where: null }; }
     case 'whatif': {
-      const w = i.w === 'pace' ? finishAtPace(s, b, nowMin, i.pace) : i.w === 'drivers' ? driversChange(s, b, nowMin, i.drivers) : canClear(s, b, nowMin, i.deck);
+      const w = i.w === 'pace' ? finishAtPace(s, b, nowMin, i.pace) : i.w === 'drivers' ? driversChange(s, b, nowMin, i.drivers) : i.w === 'stop' ? stopAt(s, b, nowMin, i.at) : i.w === 'break' ? moveBreak(s, b, nowMin, i.from, i.to) : canClear(s, b, nowMin, i.deck);
       return w.ok ? { title: w.title, lines: w.lines, tags: ['FORECAST'], where: 'snap' } : { title: 'Cannot work that out', lines: [w.error], tags: [], where: null };
     }
     case 'missing': return { title: 'Not on this vessel', where: null, tags: [], lines: [i.what] };
@@ -194,7 +199,7 @@ export function answer(i: Intent, s: State, b: Baseline, nowMin: number, index: 
 export function alerts(s: State, b: Baseline, nowMin?: number): string[] {
   const p = planView(s, b);
   const vans = gassingAlert(s.vans, s.vesselRemaining); // only once the vessel is finished (remaining confirmed 0)
-  return [...p.heights.pending.map((h) => `${h.label} height not confirmed`), ...p.issues.open.map((x) => x.text), ...(vans ? [vans] : []), ...(nowMin == null ? [] : paceWatch(s, b, nowMin))];
+  return [...p.heights.pending.map((h) => `${h.label} height not confirmed`), ...p.issues.open.map((x) => x.text), ...(vans ? [vans] : []), ...fitWatch(s), ...(nowMin == null ? [] : paceWatch(s, b, nowMin))];
 }
 
 // ---------- Actions ----------

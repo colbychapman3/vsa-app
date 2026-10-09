@@ -94,3 +94,43 @@ test('why traces use the state’s own numbers and route from plain questions', 
   assert.equal(answer({ k: 'why', key: 'clearby' }, s, glovis, 15 * 60, INDEX).tags[0], 'CALCULATED');
   assert.equal(routeQuestion('how many autos are remaining', s).k, 'remaining');
 });
+
+import { fitWatch, moveBreak, stopAt } from '../src/app/whatif.ts';
+test('stop-time and move-break what-ifs: forecasts with assumptions, refused with reasons', () => {
+  const s = working();
+  const st = stopAt(s, glovis, 13 * 60, 16 * 60 + 30);
+  if (s.production.pace == null) assert.equal(st.ok, false);
+  else { assert.ok(st.ok); if (st.ok) assert.ok(st.lines.join(' ').includes('clear-by is not applied')); }
+  assert.equal(stopAt(s, glovis, 13 * 60, 12 * 60).ok, false); // not after now
+  assert.equal(moveBreak(s, glovis, 9 * 60, 11 * 60, 13 * 60).ok, false); // no break at 11:00
+  const mv = moveBreak(s, glovis, 9 * 60, 12 * 60, 13 * 60);
+  if (!mv.ok) assert.ok(mv.error.length > 0); else assert.ok(mv.lines.join(' ').includes('nothing is saved'));
+});
+
+test('router: stop at, move a break, and the ETA trace', () => {
+  const s = working();
+  assert.deepEqual(routeQuestion('what if we stop at 16:30', s), { k: 'whatif', w: 'stop', at: 16 * 60 + 30 });
+  assert.deepEqual(routeQuestion('what if the 12:00 break moves to 13:00', s), { k: 'whatif', w: 'break', from: 720, to: 780 });
+  assert.equal(routeQuestion('what if we stop at 25:00', s).k, 'missing');
+  assert.deepEqual(routeQuestion('how is the eta worked out', s), { k: 'why', key: 'eta' });
+  assert.equal(answer({ k: 'why', key: 'eta' }, s, glovis, 15 * 60, INDEX).tags[0], 'FORECAST');
+  assert.equal(routeQuestion('how many autos are remaining', s).k, 'remaining');
+});
+
+test('ETA trace is a forecast, unknown when there is no pace, and uses the engine’s own rate', () => {
+  const s = working();
+  const t = traces(s, glovis).find((x) => x.key === 'eta')!;
+  assert.ok(t.title.includes('FORECAST'));
+  assert.ok(t.lines.join(' ').includes('never marked complete'));
+  const fresh = traces(build('start of shift'), glovis).find((x) => x.key === 'eta')!;
+  assert.ok(fresh.lines[0].startsWith('Unknown') || fresh.lines[0].startsWith('Nothing'));
+});
+
+test('fit watch lists an active low deck only', () => {
+  const s = working();
+  assert.deepEqual(fitWatch({ ...s, decks: s.decks.map((d) => ({ ...d, status: 'notStarted' as const })) } as State), []);
+  const low = { ...s, decks: s.decks.map((d, i) => (i === 0 ? { ...d, status: 'active' as const, height: { ...d.height, level: 'hard' as const, current: 1.7 } } : { ...d, status: 'notStarted' as const })) } as State;
+  const w = fitWatch(low);
+  assert.equal(w.length, 1);
+  assert.ok(w[0].includes('low deck'));
+});

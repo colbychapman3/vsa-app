@@ -2,6 +2,7 @@
 // Impossible or unknown inputs are refused with the reason, never filled in.
 import { formatHM, parseHM, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
+import { heightChip } from './view.ts';
 
 export type WhatIf = { ok: true; title: string; lines: string[] } | { ok: false; error: string };
 const n = (x: number) => Math.round(x).toLocaleString('en-US');
@@ -57,6 +58,44 @@ export function canClear(s: State, b: Baseline, nowMin: number, deckId: string):
   }
   lines.push(`Needs ${n(d.rem)} by the cutoff; assumes the whole pace goes to this deck.`);
   return { ok: true, title: `Can ${d.label} clear before the break?`, lines };
+}
+
+// Hours of work between two clock times, minus each scheduled break that falls inside.
+const workHours = (from: number, to: number, breaks: number[]) =>
+  (to - from - [...breaks, ...breaks.map((x) => x + 1440)].reduce((m, x) => m + Math.max(0, Math.min(to, x + 60) - Math.max(from, x)), 0)) / 60;
+
+// "What if we stop at HH:MM?" How many more cars the current pace gives by then. A stop time Colby gives is used as given: no clear-by is applied.
+export function stopAt(s: State, b: Baseline, nowMin: number, stopMin: number): WhatIf {
+  const pace = s.production.pace;
+  if (pace == null) return err('No pace yet: an hour needs its stoppage time or full minutes.');
+  if (stopMin <= nowMin) return err(`${formatHM(stopMin)} is not after the time now (${formatHM(nowMin)}).`);
+  const hrs = workHours(nowMin, stopMin, breakMins(b));
+  if (hrs <= 0) return err(`Everything between now and ${formatHM(stopMin)} is a scheduled break.`);
+  const cars = pace * hrs, rem = s.vesselRemaining;
+  return { ok: true, title: `Stop at ${formatHM(stopMin)}`, lines: [
+    `About ${n(cars)} more cars by ${formatHM(stopMin)} (${hrs.toFixed(2)} work hr at ${n(pace)}/hr).`,
+    rem == null ? `Vessel remaining is unknown (add a count for ${s.missingDecks.join(', ')}), so no remaining figure.` : cars >= rem ? `${n(rem)} remaining: enough to finish.` : `${n(rem)} remaining → about ${n(rem - cars)} would be left.`,
+    `Assumes steady pace and scheduled breaks of 1 hour (${b.breaks.join(', ')}); clear-by is not applied to a stop time you give.`] };
+}
+
+// "What if the 12:00 break moves to 13:00?" The finish time at the current pace with that one break moved, next to the current one.
+export function moveBreak(s: State, b: Baseline, nowMin: number, from: number, to: number): WhatIf {
+  const brs = breakMins(b);
+  if (!brs.includes(from)) return err(`There is no scheduled break at ${formatHM(from)} (breaks: ${b.breaks.join(', ')}).`);
+  const pace = s.production.pace;
+  if (pace == null) return err('No pace yet: an hour needs its stoppage time or full minutes.');
+  if (s.vesselRemaining == null) return err(`Vessel remaining is unknown: add a count for ${s.missingDecks.join(', ')} first.`);
+  if (s.vesselRemaining === 0) return err('Vessel remaining is already 0.');
+  const hrs = s.vesselRemaining / pace;
+  const was = workUntil(nowMin, hrs, brs), now = workUntil(nowMin, hrs, brs.map((x) => (x === from ? to : x)));
+  return { ok: true, title: `Move the ${formatHM(from)} break to ${formatHM(to)}`, lines: [
+    `${n(s.vesselRemaining)} remaining at ${n(pace)}/hr: about ${clock(now)} with the break at ${formatHM(to)} (about ${clock(was)} as scheduled).`,
+    `Assumes steady pace from ${formatHM(nowMin)}, every break 1 hour, no stoppages. Moving a break is only a calculation here; nothing is saved.`] };
+}
+
+// Watch rule: an active deck that is a low deck (hard height warning, no vans). Soft (unconfirmed) heights are already listed as "height not confirmed".
+export function fitWatch(s: State): string[] {
+  return s.decks.filter((d) => d.status === 'active' && d.height.level === 'hard').map((d) => `${d.label} is active: ${heightChip(d).text}.`);
 }
 
 // Watch rule (7d step 5): an active deck whose remaining cars the current pace cannot clear before the next break's cutoff.

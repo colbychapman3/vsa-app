@@ -3,17 +3,14 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Keep **Now** current; add a row to the timeline when a phase or build changes. Build numbers are App Store Connect build numbers (EAS `autoIncrement`), as shown in TestFlight.
 
-## Now (2026-10-05)
-- **Do not phone-check build #7** (EAS `dd5051bd`, 2026-10-05). It was built without the text reader: `.gitignore` hid `modules/vsa-text/ios/`, and its build log has no `VsaText`. Fixed in PR #1.
-- **Build #8** (EAS `0a53a6a0`, from `b484819`, 2026-10-05): text reader and Zone 7-9 distance correction. Its build log has `VsaText` (#7 had none); submitted to TestFlight.
-- **Next:** phone-check #8: 7b (this game plan, VIN scan, van sheet, notes) and 7c (Night, large text, a TEST vessel).
-- **Build #8 phone check, 2026-10-05 (Pontus Highway cover page):** the phone's reader dropped the deck digits of two rows and the labor order's numbers. Fixed in the parser (no build needed): every row is kept (a row with no deck number gets a deck card), the red autos subtotal is the TOTAL, the "1041 BMW / 13 RR / ..." line is read, "BMW / RR" rows are settled from it when it settles them exactly (Colby approved), `3*` / `З*` hatches and single-yard destinations. **Number pass built (Colby: yes), ships in the next build:** `modules/vsa-text` now also reads 12 enlarged, overlapping tiles; `addMissedNumerals` (src/app/layout.ts) keeps only numerals from it, only where the full-page read found nothing (merge tested; the Swift is unproven until a store build, so after build #9 check "Share what was read" shows an `extra` list and the deck digits 8 and 1 are back). Then the labor order reader (`docs/specs/phase-7-labor-order.md`: drivers = auto drivers across gangs, 77 on this page; H/H awareness only).
-- **7e 07:00 safety meeting built 2026-10-05** (Colby: "build the 7e rule"; spec defaults taken). Phone-check in the next build: a 07:00 day's first hour shows "50 min worked (safety meeting 07:00-07:10)". **Colby:** add the rule to the Project's copy of the Project Instructions (ANALYTICS).
-- **Phase 8 hardening approved 2026-10-05** (`docs/specs/phase-8-hardening.md`): 8a (guardrail tests, CI native job, ESLint), 8b (linear replay), 8f (terminal drift tests) and 8c (save-a-copy prompts, damaged-row handling) are built and tested; 8d and 8e (= 7d step 2) come after 7e. **Phone-check in the next build:** Log › Photo save (a photo-copy bug was fixed) and the save-a-copy prompts after a break report, the completion report and an archive.
-- **H/H timeline built 2026-10-05** (`docs/specs/phase-7g-hh-timeline.md`, approved): Log sheet › H/H, Start H/H and H/H complete, repeatable passes, a pass left open ends with the shift, changes need a reason. Plan shows state and the before/after observation; hours carry tags; the completion report has an H/H section; Ask answers "when did H/H finish". Phone-check in the next build: log a pass, change a time, see the tags and the Plan card.
-- **Vessel delete built 2026-10-05** (Colby: the no-delete rule is suspended until the app is live): Settings › vessel list, swipe a vessel left, tap the trash. Removes the vessel, its events, photos and local marks; never the open vessel; a LIVE vessel needs a current saved copy. Schema V4 keeps the database guard (only the guarded delete path gets through). **Before go-live: set `VESSEL_DELETE_ALLOWED = false`** in `src/storage/store.ts`. Phone-check in the next build: the swipe doesn't fight the sheet's scrolling, the trash can is easy to hit with gloves, and an old phone database upgrades (V3 to V4) with its vessels intact.
-- **Waiting on Colby:** mirror the corrected Southside line (nine lots) from `docs/knowledge-src/02-Stevedoring-Operations-Reference.md` into the Project's copy. iCloud Backup is on (confirmed 2026-10-05). Automatic off-phone backup: decided not now (Colby, 2026-10-05); see Backlog.
-- **After that:** keep import photos (7b step 6) and the safety meeting rule in one build, then 7d Smarter Ask.
+## Now (2026-10-09)
+- **Latest TestFlight build: #19** (EAS `c10e8b19`, from `5c940e7`; `VsaText` is in its log). Phone-checked 2026-10-09 up to #18: all good except the info icon, now smaller. Builds 16 and 17 added vessel complete (7k), photo groups (7j), customizable Snapshot and ETA history (7i), the text-clarity sweep, break-after-hour chips, One day / Two days, and the discharge summary reader (7h). #18: clock fix, Complete chip in the vessel list, 7d Smarter Ask, 8d. #19: soft shadows, the Extra visible option in Settings, a summary above the edit section on the deck sheet, the smaller info icon. `VsaText` is also in build 18's log.
+- **Phone-check in #19:** shadows on cards, buttons, tab bar and header (header shadow over the content); Settings › Appearance › Extra visible (heavier text, 2 pt outlines, no wrapping or clipping at large text, sun readability); the deck sheet summary; the smaller info icon.
+- **Built after #19, not in a build yet:** the ETA "why" trace, the stop-at and move-a-break what-ifs, and the low-deck watch in alerts (see 7d below).
+- **Still to phone-check from earlier builds:** Night mode, the 07:00 safety meeting hour (50 min worked), the H/H timeline (log a pass, change a time), vessel delete and the V3 to V4 database upgrade, the save-a-copy prompts.
+- **Not built:** keep import photos (7b step 6; the `app.json` photo text is already updated); the labor order reader (7f, waiting on a real "Share what was read" output); the 7d test set of about 40 hand-written questions; a "growing gap" watch (needs per-hour history, and the rule is to monitor the gap, not alarm); the "About this" taps on screens for the why traces (they are in Ask only); the iCloud wording line in the About-backups note (Colby confirmed iCloud Backup is on).
+- **Before go-live:** set `VESSEL_DELETE_ALLOWED = false` in `src/storage/store.ts`.
+- **Waiting on Colby:** mirror the corrected Southside line (nine lots) and the 07:00 safety meeting rule into the Project's copy of the instructions. Automatic off-phone backup: decided not now (2026-10-05); see Backlog. Never submit to public App Store review without his go.
 
 ## Timeline
 | Phase | Spec approved | Built | Phone-checked | Build |
@@ -31,8 +28,12 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 | 7b Game plan reader | 10-04 | 10-04 | pending | #7 (no reader), #8 |
 | Zone 7-9 distance correction | 10-05 (Colby) | 10-05 | with #8 | #8 |
 | 7e 07:00 safety meeting | 10-05 | 10-05 | next build | |
-| 7d Smarter Ask | 10-03 (plan) | | | |
 | 8 Hardening (8a, 8b) | 10-05 | 10-05 | with next build | none |
+| 7g H/H timeline, vessel delete | 10-05 | 10-05 | open | with later builds |
+| 7i Customizable Snapshot, 7j Photo groups, 7k Vessel complete | 10-08 | 10-08 | 10-09 | #15 to #17 |
+| 7h Discharge summary reader (narrowed to the totals block) | 10-09 | 10-09 | 10-09 | #17 |
+| 7d Smarter Ask steps 1 to 5, 8d | 10-09 | 10-09 | 10-09 (partly) | #18 |
+| Depth and Extra visible | 10-09 | 10-09 | in #19 | #19 |
 
 ## Phase 7: TestFlight, paperwork import, sidebar, smarter Ask
 **7a TestFlight: live.** Store builds ship headless: `eas build --platform ios --profile production --non-interactive`, then `eas submit --platform ios --profile production --latest --non-interactive`. Phone checks happen on the TestFlight build; nothing in this phase needs the dev client. Each checkpoint is one store build, and EAS counts builds against the paid plan's monthly quota.
