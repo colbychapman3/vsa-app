@@ -96,6 +96,43 @@ export function Tag({ kind }: { kind: 'FORECAST' | 'CALCULATED' }) {
   return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{kind}</Text>;
 }
 
+// A card whose body is hidden until the header is tapped (Colby, 2026-10-08: the math-behind-the-engine cards stay out of the way).
+export function Collapse({ title, right, open: startOpen = false, children }: { title: string; right?: string; open?: boolean; children: ReactNode }) {
+  const f = useType();
+  const [open, setOpen] = useState(startOpen);
+  return (
+    <View style={[u.card, u.pad, { gap: 10 }]}>
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={`${title}. ${open ? 'Hide' : 'Show'}`}
+        style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
+        <Text style={[u.h2, { fontFamily: f.display, flexShrink: 1 }]}>{title}</Text>
+        {right ? <Text style={[u.secRight, { fontFamily: f.body, marginLeft: 'auto' }]}>{right}</Text> : <View style={{ marginLeft: 'auto' }} />}
+        <Text style={{ fontSize: 16, color: color.blue }}>{open ? '▴' : '▾'}</Text>
+      </Pressable>
+      {open && children}
+    </View>
+  );
+}
+
+// A big number that fills from the bottom as the percentage rises (Colby, 2026-10-08): the pale digits are the whole, the solid part is done.
+// The fill is measured on the line box; GLYPH_BOTTOM/TOP say where the digits sit inside it, so 0% shows none and 100% shows all.
+const GLYPH_BOTTOM = 0.1, GLYPH_TOP = 0.9;
+export function FillNumber({ children, size, pct, fill }: { children: string; size: number; pct: number; fill: ColorValue }) {
+  const f = useType();
+  const H = size * 0.95;
+  const p = Math.max(0, Math.min(100, pct)) / 100;
+  const share = p <= 0 ? 0 : p >= 1 ? 1 : GLYPH_BOTTOM + p * (GLYPH_TOP - GLYPH_BOTTOM);
+  const style: TextStyle = { fontSize: size, lineHeight: H, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] };
+  const props = { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.5 } as const;
+  return (
+    <View accessible accessibilityLabel={`${children}, ${Math.round(p * 100)} percent`}>
+      <Text {...props} style={[style, { color: color.ink, opacity: 0.16 }]}>{children}</Text>
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: H * share, overflow: 'hidden' }}>
+        <Text {...props} style={[style, { position: 'absolute', left: 0, right: 0, bottom: 0, height: H, color: fill }]}>{children}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function SectionHead({ title, right }: { title: string; right?: string }) {
   const f = useType();
   return (
@@ -273,7 +310,7 @@ const PILL: Record<string, { bg: ColorValue; ink: ColorValue; border: ColorValue
   Paused: { bg: color.oBg, ink: color.oInk, border: color.orange },
   Skipped: { bg: color.oBg, ink: color.oInk, border: color.orange },
   'Not started': { bg: 'transparent', ink: color.ink, border: color.ink },
-  Complete: { bg: color.soft, ink: color.muted, border: color.soft },
+  Complete: { bg: color.gBg, ink: color.gInk, border: color.green },
   Unknown: { bg: 'transparent', ink: color.muted, border: color.muted, dashed: true },
 };
 export function Pill({ text }: { text: string }) {

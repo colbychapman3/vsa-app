@@ -102,3 +102,32 @@ test('decks remaining: every deck that is not Complete, in order', () => {
   assert.deepEqual(left.map((r) => r.id), rows.filter((r) => r.status !== 'complete').map((r) => r.id));
   assert.ok(left.length > 0 && left.length < rows.length, 'the demo day has both finished and unfinished decks');
 });
+
+test('field record hero matches the vessel hero layout; the brand table shows only with more than one brand', () => {
+  const p = project(glovis, events, OPID);
+  assert.ok(p.ok);
+  if (!p.ok) return;
+  const v = snapshot(p, glovis, 15 * 60);
+  const h = v.fieldRecord.hero;
+  assert.equal(h.value, v.fieldRecord.rows[0].v);
+  assert.equal(h.barLeft, `${h.value} counted`);
+  assert.equal(h.pct, (p.field / p.start) * 100);
+  assert.match(h.of, /^of [\d,]+ starting · \d+\.\d% counted$/);
+  assert.equal(v.fieldRecord.brands.length > 0, p.brands.length > 1);
+  const one = { ...p, brands: p.brands.slice(0, 1) };
+  assert.deepEqual(snapshot(one, glovis, 15 * 60).fieldRecord.brands, []);
+});
+
+test('hourly rows split the per-driver rate and the driver count; a pace change is marked so it can be hidden', async () => {
+  const { hourlyView } = await import('../src/app/view.ts');
+  const p = project(glovis, events, OPID);
+  assert.ok(p.ok);
+  if (!p.ok) return;
+  const rows = hourlyView(p, glovis).rows;
+  assert.ok(rows.some((r) => r.rateLine == null || /per driver per productive hr|stoppage time/.test(r.rateLine)));
+  for (const r of rows) {
+    if (r.driversLine) assert.match(r.driversLine, /^\d+ drivers/);
+    assert.equal(r.drivers === null, r.driversLine === null);
+    if (r.delta && r.deltaPaced) assert.match(r.delta, /\/hr pace/);
+  }
+});

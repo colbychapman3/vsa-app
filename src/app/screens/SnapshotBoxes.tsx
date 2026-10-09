@@ -8,7 +8,8 @@ import { snapshot } from '../view.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
 import { color, HA_COLOR, TAP, useType } from '../theme.ts';
 import { VesselCards, type Save } from './Plan.tsx';
-import { Bar, Big, Body, Card, FlipTile, Label, Note, SectionHead, Tag, u } from './ui.tsx';
+import { FieldBox } from './FieldBox.tsx';
+import { Bar, Big, Body, Card, FillNumber, FlipTile, Label, Note, SectionHead, Tag, u } from './ui.tsx';
 
 export type BoxProps = {
   tab: BoxTab; layout: Layout; onLayout: (l: Layout) => void;
@@ -45,22 +46,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   const f = useType();
   switch (id) {
     case 'hero': return wrap(<HeroBox v={v} />);
-    case 'field': return wrap(
-      <View style={s.sec}>
-        <SectionHead title="Field record" right="official counts" />
-        <Card style={[u.pad, { gap: 8 }]}>
-          {v.fieldRecord.rows.map((r) => (
-            <View key={r.k} style={u.kv}>
-              <Body style={{ color: color.muted, maxWidth: '45%' }}>{r.k}</Body>
-              <Text style={{ flex: 1, textAlign: 'right' }}>
-                <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>{r.v}</Text>
-                {r.sub ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> {r.sub}</Text> : null}
-              </Text>
-            </View>
-          ))}
-          <Note>{v.fieldRecord.note}</Note>
-        </Card>
-      </View>);
+    case 'field': return wrap(<FieldBox v={v} />);
     case 'eta': return (
       <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
         accessibilityLabel="Estimated completion forecast. Tap for its history" accessibilityHint="Long press to move or hide this box">
@@ -157,7 +143,7 @@ function HeroBox({ v }: { v: V }) {
           </Text>
         )}
       </View>
-      <Big size={112} style={{ color: heroColor }}>{h.value}</Big>
+      {h.value === '—' ? <Big size={112} style={{ color: heroColor }}>{h.value}</Big> : <FillNumber size={112} pct={h.pct} fill={heroColor}>{h.value}</FillNumber>}
       <Body style={{ fontSize: 17 }}>{h.of}</Body>
       <Bar pct={h.pct} />
       <View style={u.secH}>

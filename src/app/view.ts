@@ -88,11 +88,12 @@ export function deckPhotos(s: State, deckId: string) {
 
 // Photo types a deck holds (Colby, 2026-10-09): one entry per type with its photo and incident counts, each type its own tone.
 export const TYPE_TONE: Record<keyof typeof TYPE_LABEL, 'red' | 'orange' | 'blue' | 'green'> = { accident: 'red', 'pre-stow-damage': 'orange', 'poor-stowage': 'blue', 'pre-stow': 'green' };
+export const TYPE_ICON: Record<keyof typeof TYPE_LABEL, string> = { accident: '🚨', 'pre-stow-damage': '💥', 'poor-stowage': '📦', 'pre-stow': '📋' };
 export function deckPhotoTypes(s: State, deckId: string) {
   const mine = livePhotos(s).filter((x) => x.deck === deckId);
   return TYPES_ORDER.filter((t) => mine.some((x) => x.type === t)).map((t) => {
     const of = mine.filter((x) => x.type === t);
-    return { type: t, label: TYPE_LABEL[t], tone: TYPE_TONE[t], photos: photosIn(of), incidents: of.length };
+    return { type: t, label: TYPE_LABEL[t], icon: TYPE_ICON[t], tone: TYPE_TONE[t], photos: photosIn(of), incidents: of.length };
   });
 }
 
@@ -212,6 +213,16 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
       { k: 'Counted hours', v: String(s.production.countedHours) },
     ] as { k: string; v: string; sub?: string }[],
     note: 'Hourly field counts are the official record. Autos only; H/H is never added.',
+    // The same layout as the vessel hero (Colby, 2026-10-08): big count that fills with the share counted, bar, counted / to go.
+    hero: {
+      value: fmt(s.field),
+      of: `of ${fmt(s.start)} starting · ${s.start > 0 ? ((s.field / s.start) * 100).toFixed(1) : '—'}% counted`,
+      pct: s.start > 0 ? (s.field / s.start) * 100 : 0,
+      barLeft: `${fmt(s.field)} counted`, barRight: `${fmt(s.fieldBalance)} to go`,
+    },
+    // Field against cleared by brand, only when there is more than one brand (a single brand repeats the totals).
+    brands: s.brands.length > 1 ? brandTableOf(s) : [],
+    unsplitNote: s.brands.length > 1 && s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,
   };
   const hero = {
     label: known ? 'VESSEL REMAINING' : 'FIELD BALANCE',
@@ -390,11 +401,10 @@ export function hhTagsFor(s: State, x: { day: number; start: string }): string[]
   ]);
 }
 
-export function hourlyView(s: State, b?: Baseline) {
-  const p = s.production;
-  // Field over ship is red only when the ship must equal the field (a break or shift end); mid-work it's just the gap to watch.
+// Field vs cleared per brand (the tracker's table): field − cleared, "in transit" when cleared is ahead.
+function brandTableOf(s: State) {
   const reconciling = s.ops.phase !== 'working';
-  const brandTable = s.brands.map((b) => {
+  return s.brands.map((b) => {
     const d = b.variance == null ? null : 0 - b.variance; // field − cleared, as the tracker shows it
     return {
       name: b.name,
@@ -403,6 +413,12 @@ export function hourlyView(s: State, b?: Baseline) {
       diff: d == null ? { tone: 'plain' as const, text: '—' } : d > 0 ? { tone: reconciling ? 'red' as const : 'plain' as const, text: `+${fmt(d)} field over` } : d < 0 ? { tone: 'plain' as const, text: `${fmt(-d)} in transit` } : { tone: 'plain' as const, text: '0' },
     };
   });
+}
+
+export function hourlyView(s: State, b?: Baseline) {
+  const p = s.production;
+  // Field over ship is red only when the ship must equal the field (a break or shift end); mid-work it's just the gap to watch.
+  const brandTable = brandTableOf(s);
   const max = Math.max(1, ...s.periods.map((x) => x.count));
   const ph = photoHourNotes(s);
   const multi = s.periods.some((x) => x.day > 1);
@@ -426,6 +442,10 @@ export function hourlyView(s: State, b?: Baseline) {
       // H/H markers that fall inside this hour (awareness only: no count, never added to the auto count).
       hhTags: hhTagsFor(s, x),
       brands: x.brands ? Object.entries(x.brands).map(([b, v]) => ({ b, v: fmt(v) })) : [],
+      deltaPaced: !!x.deltaPaced,
+      // The per-driver rate stays on the row; the driver count itself goes with the details.
+      rateLine: typeof x.drivers === 'number' && x.drivers > 0 ? (x.driverRate.rate != null ? `${x.driverRate.rate.toFixed(2)} per driver per productive hr` : 'per-driver rate needs the stoppage time') : null,
+      driversLine: typeof x.drivers === 'number' && x.drivers > 0 ? `${x.drivers} drivers${x.driversFrom === 'day' ? ` (Day ${x.day} setting)` : ''}` : null,
       drivers: typeof x.drivers === 'number' && x.drivers > 0
         ? `${x.drivers} drivers${x.driversFrom === 'day' ? ` (Day ${x.day} setting)` : ''} · ${x.driverRate.rate != null ? `${x.driverRate.rate.toFixed(2)} per driver per productive hr` : 'per-driver rate needs the stoppage time'}`
         : null,

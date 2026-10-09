@@ -1,13 +1,13 @@
 // Hourly tab (reference: docs/reference/screens/06–07). Layout only; values and graph
 // geometry come from view.hourlyView() (the tracker's viewHourly/hourGraph).
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
 import { color, HA_COLOR, PACE_COLOR, useType } from '../theme.ts';
-import { Bar, Big, Body, Card, Chip, FlipTile, InfoNote, Label, Note, SectionHead, Seg, u } from './ui.tsx';
+import { Bar, Big, Body, Card, Chip, FlipTile, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
   const f = useType();
@@ -42,60 +42,13 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
         </View>
       )}
 
-      <Card style={[u.pad, { gap: 10 }]}>
-        <SectionHead title="Field vs cleared by brand" />
-        <View style={s.tr}>
-          {['Brand', 'Field', 'Cleared', 'Difference'].map((h, i) => <Text key={h} style={[s.th, COL[i], i > 0 && s.num, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{h}</Text>)}
-        </View>
-        {v.brandTable.map((b) => (
-          <View key={b.name} style={[s.tr, s.tdLine]}>
-            <Body fit semi style={[s.td, COL[0]]}>{b.name}</Body>
-            <Body fit style={[s.td, COL[1], s.num]}>{b.field}</Body>
-            <Body fit style={[s.td, COL[2], s.num]}>{b.cleared}</Body>
-            <Body fit semi={b.diff.tone === 'red'} style={[s.td, COL[3], s.num, b.diff.tone === 'red' && { color: color.red }]}>{b.diff.text}</Body>
-          </View>
-        ))}
-        {v.unsplitNote && <Note>{v.unsplitNote}</Note>}
-        <InfoNote><Note>Cleared = starting minus remaining on vessel for that brand. Unknown until every deck holding that brand has a count.</Note></InfoNote>
-      </Card>
-
       {v.rows.length === 0
         ? <Card style={u.pad}><Note style={{ textAlign: 'center' }}>No hourly counts yet. Use Log to add the first hour.</Note></Card>
         : <Seg columns={2} value={view} onChange={setView} options={[{ value: 'list', label: 'List' }, { value: 'graph', label: 'Graph' }]} />}
 
       {v.rows.length > 0 && view === 'list' && (
         <Card>
-          {v.rows.map((r, i) => (
-            <View key={`${r.dayHeader ?? ''}${r.range}${i}`}>
-              {r.dayHeader && <Text style={[s.dayHead, { fontFamily: f.bodySemi }]}>{r.dayHeader}</Text>}
-              <View style={[s.row, i > 0 && !r.dayHeader && s.rowLine]}>
-                <View style={u.secH}>
-                  <Body semi>{r.range}</Body>
-                  <Big size={28}>{r.count}</Big>
-                </View>
-                <Bar small pct={r.barPct} />
-                {r.short && (
-                  <View style={s.tagRow}>
-                    <Text style={[s.tag, { borderColor: color.orange, color: color.oInk, fontFamily: f.bodySemi }]}>SHORT HOUR</Text>
-                    <Note style={r.shortUnset ? { color: color.oInk, fontWeight: '600' } : undefined}>{r.short}</Note>
-                    {r.cutoff && <Note>{r.cutoff}</Note>}
-                  </View>
-                )}
-                {r.minNote && <Note>{r.minNote}</Note>}
-                {r.hhTags.map((t) => <Note key={t} style={{ color: color.blue }}>{t}</Note>)}
-                {r.corrected && (
-                  <View style={s.tagRow}>
-                    <Text style={[s.tag, { borderColor: color.blue, color: color.blue, fontFamily: f.bodySemi }]}>CORRECTED</Text>
-                    <Note>{r.corrected}</Note>
-                  </View>
-                )}
-                {r.delta && <Note>{r.delta}</Note>}
-                {r.brands.length > 0 && <View style={s.tagRow}>{r.brands.map((b) => <Chip key={b.b} text={`${b.b} ${b.v}`} />)}</View>}
-                {r.drivers && <Note>{r.drivers}</Note>}
-                {r.photos.map((p) => <Note key={p} style={{ color: color.ink }}>Photo: {p}</Note>)}
-              </View>
-            </View>
-          ))}
+          {v.rows.map((r, i) => <HourRow key={`${r.dayHeader ?? ''}${r.range}${i}`} r={r} first={i === 0} />)}
         </Card>
       )}
 
@@ -120,6 +73,54 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
   );
 }
 
+type HourRowData = ReturnType<typeof hourlyView>['rows'][number];
+
+// One hour. The count, its bar, the change from the prior hour (green) and the per-driver rate (blue) stay on the row; minutes worked,
+// pace, the clear-by note and the driver count are behind "Details" (Colby, 2026-10-08). A warning (stoppage time not set) always shows.
+function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
+  const f = useType();
+  const [open, setOpen] = useState(false);
+  const details: string[] = [
+    ...(r.short && !r.shortUnset ? [r.short] : []), ...(r.cutoff ? [r.cutoff] : []), ...(r.minNote ? [r.minNote] : []),
+    ...(r.driversLine ? [r.driversLine] : []), ...(r.delta && r.deltaPaced ? [r.delta] : []),
+  ];
+  return (
+    <View>
+      {r.dayHeader && <Text style={[s.dayHead, { fontFamily: f.bodySemi }]}>{r.dayHeader}</Text>}
+      <View style={[s.row, !first && !r.dayHeader && s.rowLine]}>
+        <View style={u.secH}>
+          <Body semi>{r.range}</Body>
+          <Big size={28}>{r.count}</Big>
+        </View>
+        <Bar small pct={r.barPct} />
+        {r.short && (
+          <View style={s.tagRow}>
+            <Text style={[s.tag, { borderColor: color.orange, color: color.oInk, fontFamily: f.bodySemi }]}>SHORT HOUR</Text>
+            {r.shortUnset && <Note style={{ color: color.oInk, fontWeight: '600' }}>{r.short}</Note>}
+          </View>
+        )}
+        {r.delta && !r.deltaPaced && <Note style={{ color: color.gInk }}>{r.delta}</Note>}
+        {r.rateLine && <Note style={{ color: color.blue }}>{r.rateLine}</Note>}
+        {r.hhTags.map((t) => <Note key={t} style={{ color: color.blue }}>{t}</Note>)}
+        {r.corrected && (
+          <View style={s.tagRow}>
+            <Text style={[s.tag, { borderColor: color.blue, color: color.blue, fontFamily: f.bodySemi }]}>CORRECTED</Text>
+            <Note>{r.corrected}</Note>
+          </View>
+        )}
+        {r.brands.length > 0 && <View style={s.tagRow}>{r.brands.map((b) => <Chip key={b.b} text={`${b.b} ${b.v}`} />)}</View>}
+        {r.photos.map((p) => <Note key={p} style={{ color: color.ink }}>Photo: {p}</Note>)}
+        {details.length > 0 && (
+          <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center' }, pressed && u.pressed]}>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.blue }}>{open ? 'Hide details ▴' : 'Details ▾'}</Text>
+          </Pressable>
+        )}
+        {open && details.map((d) => <Note key={d}>{d}</Note>)}
+      </View>
+    </View>
+  );
+}
+
 function SvgGridLine({ y, label, L, right }: { y: number; label: string; L: number; right: number }) {
   return (
     <>
@@ -139,8 +140,6 @@ function SvgPoint({ x, y, count, short, xLabel, baseY }: { x: number; y: number;
   );
 }
 
-// Brand table column widths: wide first and last columns so names and "field over" text fit.
-const COL = [{ flex: 1.3 }, { flex: 1 }, { flex: 1 }, { flex: 1.8 }];
 
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },

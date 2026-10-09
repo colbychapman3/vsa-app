@@ -43,6 +43,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
               <View style={s.dnBox}>
                 <Text style={[s.dn, { fontFamily: f.display }]} numberOfLines={1} adjustsFontSizeToFit>{r.label}</Text>
                 <Text style={[s.hm, { fontFamily: f.display, color: r.height.tone === 'red' ? color.rInk : r.height.tone === 'orange' ? color.oInk : color.muted }]} numberOfLines={1} adjustsFontSizeToFit accessibilityLabel={r.height.text}>{r.heightShort}</Text>
+                {r.photos > 0 && <Text style={[s.badge, { fontFamily: f.bodySemi }]} accessibilityLabel={`${r.photos} photo${r.photos === 1 ? '' : 's'} on this deck`}>📷 {r.photos}</Text>}
               </View>
               <Pill text={r.pill} />
               <Text style={s.rn} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
@@ -53,9 +54,6 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
             </View>
             {r.cleared && <Note style={s.indent}>{r.cleared}</Note>}
             {!r.cleared && r.split && <Note style={s.indent}>Deck split: {r.split} · counts per hatch not on paperwork</Note>}
-            {r.photoTypes.length > 0 && <View style={[s.chips, s.indent]}>
-              {r.photoTypes.map((t) => <Chip key={t.type} square text={`📷 ${t.label} · ${t.photos}`} tone={t.tone} />)}
-            </View>}
             <View style={[s.chips, s.indent]}>
               {r.height.tone !== 'plain' && <Chip text={r.height.text} tone={r.height.tone} />}
               {r.hatches.map((h) => <Chip key={h.h} text={h.chip} tone={h.left?.tone} />)}
@@ -78,6 +76,7 @@ const s = StyleSheet.create({
   dnBox: { width: 56 },
   dn: { fontSize: 26, color: color.ink },
   hm: { fontSize: 17 },
+  badge: { alignSelf: 'flex-start', marginTop: 4, fontSize: 12, color: color.onBlue, backgroundColor: color.red, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
   rn: { marginLeft: 'auto', textAlign: 'right', flexShrink: 1 },
   indent: { paddingLeft: 68 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

@@ -12,7 +12,7 @@ import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts'
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
 import { color, useType } from '../theme.ts';
 import { Vans } from './Vans.tsx';
-import { Big, Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
+import { Big, Body, Card, Chip, Collapse, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Backup = {
   lastAt: string | null; unsaved: number;
@@ -82,8 +82,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         </Card>
       )}
 
-      <Card style={[u.pad, { gap: 10 }]}>
-        <SectionHead title="Open discrepancies" right={`${v.issues.open.length} open`} />
+      <Collapse title="Open discrepancies" right={`${v.issues.open.length} open`} open={v.issues.open.length > 0}>
         {v.issues.open.length === 0 && <Note>Nothing open.</Note>}
         {v.issues.open.map((i) => (
           <View key={i.id} style={s.issue}>
@@ -95,10 +94,9 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
           </View>
         ))}
         {v.issues.resolved && <Note>{v.issues.resolved}</Note>}
-      </Card>
+      </Collapse>
 
-      <Card style={[u.pad, { gap: 10 }]}>
-        <SectionHead title="Notes" right={v.notes.current.length ? `${v.notes.current.length}` : undefined} />
+      <Collapse title="Notes" right={v.notes.current.length ? `${v.notes.current.length}` : undefined}>
         {v.notes.current.length === 0 && <Note>No ship notes yet.</Note>}
         {v.notes.current.map((n) => (
           <Pressable key={n.id} onPress={() => setNoteSheet({ id: n.id })} style={({ pressed }) => [s.logRow, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${n.title ?? 'Note'}. Edit or remove`}>
@@ -111,7 +109,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         {v.notes.removed.map((n) => <Note key={n.id}>Removed: {n.text} ({n.meta})</Note>)}
         <Go ghost label="Add a note" onPress={() => setNoteSheet({ id: null })} />
         <InfoNote><Note>Notes never change any count, ledger or forecast. Edits and removals keep the earlier text in the log.</Note></InfoNote>
-      </Card>
+      </Collapse>
 
       <Vans state={state} baseline={baseline} isTest={isTest} save={save} onNotice={onNotice} />
 
@@ -146,14 +144,13 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         <Note>Log H/H start and complete from the Log sheet (H/H). H/H counts stay with the other stevedore and are never added to the auto counts.</Note>
       </Card>
 
-      <Card style={[u.pad, { gap: 10 }]}>
-        <SectionHead title="Forecast settings" />
+      <Collapse title="Forecast settings">
         {kv('Breaks', v.forecast.breaks)}
         {kv('Day 1 shift ends', v.forecast.dayEnd)}
         {kv('Next day starts', v.forecast.nextStart)}
         <InfoNote><Note>Set a shift end when the ship carries over to a second day. The ETA then resumes the next morning.</Note></InfoNote>
         <Go ghost label="Change shift settings" onPress={() => setShiftOpen(true)} />
-      </Card>
+      </Collapse>
 
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Break log" />

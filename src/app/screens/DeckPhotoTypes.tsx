@@ -7,7 +7,7 @@ import type { Baseline, EvidenceType, Reject, VsaEvent } from '../../engine/inde
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { photoExists, photoUri, saveToCameraRoll } from '../evidenceFiles.ts';
-import { deckPhotoTypes, typePage } from '../view.ts';
+import { deckPhotoTypes, TYPE_ICON, typePage } from '../view.ts';
 import { color, useType } from '../theme.ts';
 import { EvidenceForm } from './EvidenceForm.tsx';
 import { Body, Chip, ErrorBox, Field, Go, Label, Note, Seg, u } from './ui.tsx';
@@ -26,7 +26,7 @@ export function DeckPhotoTypes({ state, deckId, onOpen, onAdd }: { state: State;
       {types.map((t) => (
         <Pressable key={t.type} onPress={() => onOpen(t.type)} accessibilityRole="button" accessibilityLabel={`${t.label}, ${plural(t.photos, 'photo')}. Open`}
           style={({ pressed }) => [s.typeRow, pressed && u.pressed]}>
-          <Chip text={t.label} tone={t.tone} />
+          <Chip text={`${t.icon} ${t.label}`} tone={t.tone} />
           <Body semi style={{ marginLeft: 'auto' }}>{plural(t.photos, 'photo')}</Body>
           <Text style={{ fontSize: 18, color: color.muted }}>›</Text>
         </Pressable>
@@ -123,7 +123,7 @@ function TypePage({ state, save, deckId, deckLabel, type, setView, back }: {
   return (
     <View style={{ gap: 14 }}>
       {back(deckLabel, null)}
-      <Body semi style={{ fontSize: 20 }}>{label} · {deckLabel}</Body>
+      <Body semi style={{ fontSize: 20 }}>{TYPE_ICON[type]} {label} · {deckLabel}</Body>
       <Note>{plural(files.length, 'photo')} in {plural(page.length, 'incident')}.</Note>
       <Go label="Add photos" disabled={busy} onPress={() => setView({ kind: 'add', type })} />
       {files.length > 0 && <Go ghost label="Save these photos to camera roll" disabled={busy} onPress={toRoll} />}

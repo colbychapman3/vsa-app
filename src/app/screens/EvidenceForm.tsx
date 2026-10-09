@@ -11,6 +11,7 @@ import { dropUnsavedPhoto, keepPhoto, photoExists, photoUri } from '../evidenceF
 import { aiStatus, ocrAvailable, pickLibraryPhotos, readPhotos, tidyNote } from '../ai.ts';
 import { vinCandidates, type VinCandidate } from '../../engine/scan.ts';
 import { color, useType } from '../theme.ts';
+import { TYPE_ICON } from '../view.ts';
 import { Body, ErrorBox, Go, Label, Note, Seg, TimeField, u } from './ui.tsx';
 
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
@@ -147,7 +148,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
   return (
     <View style={{ gap: 14 }}>
       <Label>PHOTO TYPE</Label>
-      <Seg columns={2} value={type} onChange={setType} options={EVIDENCE_TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] }))} />
+      <Seg columns={2} value={type} onChange={setType} options={EVIDENCE_TYPES.map((t) => ({ value: t, label: `${TYPE_ICON[t]} ${TYPE_LABEL[t]}` }))} />
 
       <Label>PHOTO</Label>
       {item && !camOn ? (
