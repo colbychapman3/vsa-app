@@ -106,7 +106,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
       </View>);
     case 'side': return wrap(
       <View style={s.sec}>
-        <SectionHead title="Side split" right={v.side.clearByNote} />
+        <SectionHead title="Side split" />
         <Card style={[u.pad, { gap: 12 }]}>
           {v.side.northPct == null
             ? <Note>{v.side.unknown}</Note>

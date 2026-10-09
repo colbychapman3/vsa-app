@@ -347,6 +347,8 @@ export function decksView(s: State) {
     cleared: d.status === 'complete'
       ? `Cleared ${Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + ')} · ${d.time == null ? 'time not provided' : /^(Logged|time not)/.test(d.time) ? d.time : `at ${d.time}`}`
       : null,
+    // Short line under the deck: the clock only (a save time is marked 'logged').
+    clearedShort: d.status === 'complete' ? (d.time == null ? 'time not provided' : /^Logged/.test(d.time) ? `logged ${d.time.match(/d{1,2}:d{2}/)?.[0] ?? ''}`.trim() : d.time) : null,
     height: heightChip(d),
     heightShort: d.height.current == null ? '— m' : m2(d.height.current), // shown under the deck number
     photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id)),

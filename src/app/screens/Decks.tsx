@@ -55,7 +55,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
               </Text>
               <Icon name="chev" color={color.muted} />
             </View>
-            {r.cleared && <Note style={s.indent}>{r.cleared}</Note>}
+            {r.clearedShort && <Note style={s.indent}>Cleared: {r.clearedShort}</Note>}
             {!r.cleared && r.split && <Note style={s.indent}>Deck split: {r.split} · counts per hatch not on paperwork</Note>}
             <View style={[s.chips, s.indent]}>
               {r.height.tone !== 'plain' && <Chip text={r.height.text} tone={r.height.tone} />}

@@ -368,12 +368,6 @@ export default function App() {
                 </View>
               )}
               <ScrollView key={tab} contentContainerStyle={s.scroll}>{/* new tab starts at the top */}
-                {tab === 'snap' && bk.unsaved > 0 && (
-                  <View style={{ paddingHorizontal: 20, paddingTop: 12, gap: 8 }}>
-                    <Text style={s.note}>{unsavedNote(bk.unsaved, bk.lastAt)}</Text>
-                    <Go ghost label="Save a copy now" onPress={() => { void backup.onExport(); }} />
-                  </View>
-                )}
                 {tab === 'snap' && (
                   <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
                     {vessel.state.completed && !completionStale(vessel.state)

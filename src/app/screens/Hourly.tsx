@@ -82,7 +82,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
   const [open, setOpen] = useState(false);
   const details: string[] = [
     ...(r.short && !r.shortUnset ? [r.short] : []), ...(r.cutoff ? [r.cutoff] : []), ...(r.minNote ? [r.minNote] : []),
-    ...(r.driversLine ? [r.driversLine] : []), ...(r.delta && r.deltaPaced ? [r.delta] : []),
+    ...(r.rateLine ? [r.rateLine] : []), ...(r.driversLine ? [r.driversLine] : []), ...(r.delta && r.deltaPaced ? [r.delta] : []),
   ];
   return (
     <View>
@@ -99,8 +99,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
             {r.shortUnset && <Note style={{ color: color.oInk, fontWeight: '600' }}>{r.short}</Note>}
           </View>
         )}
-        {r.delta && !r.deltaPaced && <Note style={{ color: color.gInk }}>{r.delta}</Note>}
-        {r.rateLine && <Note style={{ color: color.blue }}>{r.rateLine}</Note>}
+        {r.delta && !r.deltaPaced && <Note style={{ color: color.gInk }}>{r.delta.replace(' vs prior hour', '')}</Note>}
         {r.hhTags.map((t) => <Note key={t} style={{ color: color.blue }}>{t}</Note>)}
         {r.corrected && (
           <View style={s.tagRow}>
