@@ -45,4 +45,4 @@ export function reportStatus(s: State): { text: string; tone: 'green' | 'orange'
 }
 
 // Just the clock of a mark's time ('Logged at 23:05 UTC-04:00 (processing time…)' → '23:05'); empty when none.
-export const clockOf = (t: string) => t.match(/d{1,2}:d{2}/)?.[0] ?? '';
+export const clockOf = (t: string) => t.match(/\d{1,2}:\d{2}/)?.[0] ?? '';

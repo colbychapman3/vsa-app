@@ -30,6 +30,7 @@ export async function deleteVessel(db: Db, store: Store, id: string): Promise<{ 
 export type VesselRow = {
   operationId: string; name: string; isTest: boolean; date: string; archived: boolean;
   remaining: number | null; // vessel remaining; null = unknown (never shown as 0)
+  complete: boolean; // Colby's mark still holds (same rule as app/complete.ts completionStale)
   start: number | null; field: number | null; problem: string | null;
 };
 
@@ -39,11 +40,11 @@ export async function listRows(db: Db, store: Store): Promise<VesselRow[]> {
     const r = await store.load(v.operationId);
     const archived = (await get(db, ARCHIVED(v.operationId))) != null;
     const base = { operationId: v.operationId, name: v.name, isTest: v.isTest, archived };
-    if (!r.ok) { rows.push({ ...base, date: '', remaining: null, start: null, field: null, problem: r.error }); continue; }
+    if (!r.ok) { rows.push({ ...base, date: '', remaining: null, complete: false, start: null, field: null, problem: r.error }); continue; }
     const s = r.state;
     rows.push(s.ok
-      ? { ...base, date: r.baseline.date, remaining: s.vesselRemaining, start: s.start, field: s.field, problem: null }
-      : { ...base, date: r.baseline.date, remaining: null, start: null, field: null, problem: s.error });
+      ? { ...base, date: r.baseline.date, remaining: s.vesselRemaining, complete: !!s.completed && (s.completed.override || s.vesselRemaining === 0), start: s.start, field: s.field, problem: null }
+      : { ...base, date: r.baseline.date, remaining: null, complete: false, start: null, field: null, problem: s.error });
   }
   return rows.reverse(); // newest first
 }

@@ -36,6 +36,7 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings }:
           accessibilityRole="button" accessibilityLabel={`${r.operationId === currentId ? 'Open now: ' : 'Open '}${r.name}`}>
           <View style={s.chips}>
             <Chip text={r.isTest ? 'TEST' : 'LIVE'} tone={r.isTest ? 'orange' : 'plain'} />
+            {r.complete && <Chip text="Complete" tone="green" />}
             {r.operationId === currentId && <Chip text="Open now" />}
           </View>
           <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.name}</Text>

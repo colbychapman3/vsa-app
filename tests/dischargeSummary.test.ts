@@ -40,3 +40,10 @@ test('labels map to the vessel’s own brand names only when exactly one fits', 
   assert.equal(brandFor('LR', ['BMW', 'Mercedes-Benz']), null);
   assert.equal(brandFor('MB', ['Mercedes', 'Mercedes Vans']), null);
 });
+
+import { clockOf } from '../src/app/complete.ts';
+test('clockOf pulls the clock out of a logged time', () => {
+  assert.equal(clockOf('Logged at 23:05 UTC-04:00 (processing time, not event time)'), '23:05');
+  assert.equal(clockOf('9:30'), '9:30');
+  assert.equal(clockOf('time not provided'), '');
+});
