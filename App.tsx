@@ -19,6 +19,7 @@ import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
 import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceReportKind } from './src/app/evidenceReport.ts';
 import { reducedPhotoData } from './src/app/evidencePhotos.ts';
 import type { Built } from './src/app/setup.ts';
+import { saveBatch, shareAndMark, type SaveResult } from './src/app/session.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/app/view.ts';
 import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, type AppearanceMode } from './src/app/theme.ts';
@@ -49,7 +50,7 @@ const DEMO = 'TEST-GLOVIS-101';
 const glovis = glovisJson as Baseline;
 
 type Loaded = { id: string; baseline: Baseline; isTest: boolean; state: State };
-export type SaveResult = { ok: true } | Reject;
+export type { SaveResult } from './src/app/session.ts';
 type Notice = { ok: boolean; text: string; action?: { label: string; onPress: () => void } }; // action: one tap to do what the message offers
 
 const minutesNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
@@ -179,27 +180,14 @@ export default function App() {
   }, [vessel]);
 
   // One save at a time; nothing is written unless the engine accepts the whole batch.
-  const save = useCallback(async (build: (c: Ctx) => VsaEvent[] | Reject): Promise<SaveResult> => {
-    const c = ctx();
-    if (!c || !store.current) return { ok: false, error: 'The vessel is still loading.' };
-    if (saving.current) return { ok: false, error: 'Still saving the last entry. Try again.' };
-    saving.current = true;
-    try {
-      const evs = build(c);
-      if (!Array.isArray(evs)) return evs;
-      const r = await store.current.append(c.operationId, evs);
-      if (!r.ok) return r;
-      if (latestId.current !== c.operationId) return { ok: true }; // vessel switched while saving: the write is on the right vessel; the switch reloads its state
-      latest.current = r.state;
-      setBk(await backupStatus(dbRef.current!, c.operationId, r.state.log.events.length));
-      setVessel((v) => (v ? { ...v, state: r.state } : v));
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: `Could not write to the phone: ${(e as Error).message}` };
-    } finally {
-      saving.current = false;
-    }
-  }, [ctx]);
+  const save = useCallback((build: (c: Ctx) => VsaEvent[] | Reject): Promise<SaveResult> => saveBatch({
+    ctx: ctx(), store: store.current, guard: saving, build, openId: () => latestId.current,
+    after: async (c, state) => {
+      latest.current = state; // a switch while saving reloads its own state (saveBatch skips this then)
+      setBk(await backupStatus(dbRef.current!, c.operationId, state.log.events.length));
+      setVessel((v) => (v ? { ...v, state } : v));
+    },
+  }), [ctx]);
 
   const openTab = useCallback((t: Tab) => { setNotice(null); setTab(t); }, []);
 
@@ -214,17 +202,11 @@ export default function App() {
   // One vessel's log to the iOS share sheet; it counts as backed up only if the sheet was used.
   const exportVessel = async (id: string): Promise<{ ok: boolean; text: string }> => {
     const at = recordedNow();
-    const r = await exportLog(store.current!, id, at);
-    if (!r.ok) return { ok: false, text: `Not exported: ${r.error}` };
-    try {
-      const res = await Share.share({ title: r.fileName, message: r.text });
-      if (res.action === Share.dismissedAction) return { ok: true, text: 'Export cancelled. Nothing marked as backed up.' };
-    } catch (e) {
-      return { ok: false, text: `Not exported: ${(e as Error).message}` };
-    }
-    await markExported(dbRef.current!, id, at, r.count);
-    if (id === vessel?.id) setBk(await backupStatus(dbRef.current!, id, r.count));
-    return { ok: true, text: `Shared ${r.count} entries.` };
+    return shareAndMark({
+      exported: await exportLog(store.current!, id, at),
+      share: async (title, message) => ((await Share.share({ title, message })).action === Share.dismissedAction ? 'dismissed' : 'shared'),
+      mark: async (count) => { await markExported(dbRef.current!, id, at, count); if (id === vessel?.id) setBk(await backupStatus(dbRef.current!, id, count)); },
+    });
   };
 
   // Backup: the phone's log is the only official record. Export hands the JSON text to the iOS share

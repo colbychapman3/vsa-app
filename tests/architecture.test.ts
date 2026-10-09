@@ -61,7 +61,7 @@ export function aiWriteBoundary(files: Files): string[] {
     ...(/\.append\(|\bopenStore\b|\.createVessel\(/.test(code(files[p])) ? [`${p} writes to the ledger`] : []),
   ]);
 }
-const APPEND_OK = ['App.tsx', 'src/storage/store.ts', 'src/storage/backup.ts'];
+const APPEND_OK = ['App.tsx', 'src/app/session.ts', 'src/storage/store.ts', 'src/storage/backup.ts'];
 const WRITE_SQL = /\b(?:INSERT\s+(?:OR\s+\w+\s+)?INTO|UPDATE|DELETE\s+FROM|REPLACE\s+INTO)\s+(?:events|vessels)\b/i;
 export function storageBoundary(files: Files): string[] {
   const bad: string[] = [];
@@ -121,6 +121,8 @@ test('the guardrails catch violations (made-up files)', () => {
   assert.equal(storageBoundary({ 'src/app/entries.ts': "await db.run('INSERT INTO events VALUES (1)');" }).length, 1);
   assert.equal(storageBoundary({ 'src/app/entries.ts': "await db.run('DELETE FROM vessels');" }).length, 1);
   assert.equal(storageBoundary({ 'src/app/screens/Plan.tsx': 'await store.append(id, evs);' }).length, 1);
+  assert.equal(storageBoundary({ 'src/app/session.ts': 'await store.append(id, evs);' }).length, 0);
+  assert.equal(storageBoundary({ 'src/app/assistant.ts': 'await store.append(id, evs);' }).length, 1);
   assert.equal(storageBoundary({ 'src/app/view.ts': "import * as SQLite from 'expo-sqlite';" }).length, 1);
   assert.equal(storageBoundary({ 'src/app/screens/Plan.tsx': "import { exportLog } from '../../storage/backup.ts';" }).length, 1);
   assert.equal(storageBoundary({ 'src/app/screens/Plan.tsx': "import type { State } from '../../storage/store.ts';", 'src/storage/store.ts': "await tx.run('INSERT INTO events VALUES (1)');", 'App.tsx': 'await store.current.append(id, evs);' }).length, 0);
