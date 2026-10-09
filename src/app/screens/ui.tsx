@@ -124,7 +124,7 @@ export function FillNumber({ children, size, pct, fill }: { children: string; si
   const style: TextStyle = { fontSize: size, lineHeight: H, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] };
   const props = { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.5 } as const;
   return (
-    <View accessible accessibilityLabel={`${children}, ${Math.round(p * 100)} percent`}>
+    <View accessible accessibilityLabel={`${children}, ${Math.round(p * 100)} percent done`}>
       <Text {...props} style={[style, { color: color.ink, opacity: 0.16 }]}>{children}</Text>
       <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: H * share, overflow: 'hidden' }}>
         <Text {...props} style={[style, { position: 'absolute', left: 0, right: 0, bottom: 0, height: H, color: fill }]}>{children}</Text>
@@ -335,9 +335,14 @@ export function Chip({ text, tone = 'plain', tall, square }: { text: string; ton
 
 // One sheet frame for every form: title, TEST chip (sheets cover the header), close.
 // Only one Modal is ever open: the deck sheet opens inside the Log sheet, not on top of it.
+// How many sheets are open right now, anywhere (a tab's own sheets too). The completion prompt waits for 0.
+let sheetsOpen = 0;
+export const anySheetOpen = () => sheetsOpen > 0;
+
 export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn }: { title: string; isTest: boolean; onClose: () => void; children: ReactNode; scrollKey?: string; scrollTopOn?: string }) {
   const f = useType();
   const ref = useRef<ScrollView>(null);
+  useEffect(() => { sheetsOpen++; return () => { sheetsOpen--; }; }, []);
   // scrollTopOn: go back to the top without remounting the children (a form keeps its typed values).
   useEffect(() => { ref.current?.scrollTo({ y: 0, animated: false }); }, [scrollTopOn]);
   return (

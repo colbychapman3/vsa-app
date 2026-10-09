@@ -29,7 +29,7 @@ import { EtaHistory } from './src/app/screens/EtaHistory.tsx';
 import { CompleteSheet } from './src/app/screens/CompleteSheet.tsx';
 import { completionDue, completionStale } from './src/app/complete.ts';
 import { defaultLayout, layoutText, parseLayout, type Layout } from './src/app/snapshotLayout.ts';
-import { Go } from './src/app/screens/ui.tsx';
+import { anySheetOpen, Go } from './src/app/screens/ui.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
 import { Ask } from './src/app/screens/Ask.tsx';
 import { quietFromText, quietToText, reminderPlan, type Quiet } from './src/app/assistant.ts';
@@ -85,13 +85,23 @@ export default function App() {
   const [rows, setRows] = useState<VesselRow[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
-  // Remaining reaches exactly 0: ask once "Is the vessel complete?" (never marks it by itself). Waits until no sheet is open; asks again only after remaining leaves 0.
-  const asked = useRef(false);
+  // Remaining reaches exactly 0: ask once per vessel "Is the vessel complete?" (never marks it by itself). Asks again only after
+  // remaining leaves 0 and comes back (a reopen at 0 does not re-ask). Waits 450 ms for a closing sheet to slide away, and until no
+  // sheet anywhere is open (a tab's own sheets included), so two modals never stack.
+  const askedFor = useRef(new Set<string>());
   const openAny = logOpen || deckOpen != null || sheet != null || drawer;
   useEffect(() => {
-    const st = vessel?.state;
-    if (!st || !completionDue(st)) { asked.current = false; return; }
-    if (!asked.current && !openAny) { asked.current = true; setNotice(null); setSheet('complete'); }
+    const st = vessel?.state, id = vessel?.id;
+    if (!st || !id) return;
+    if (st.vesselRemaining !== 0) { askedFor.current.delete(id); return; }
+    if (!completionDue(st) || askedFor.current.has(id) || openAny) return;
+    let t: ReturnType<typeof setTimeout>;
+    const tryOpen = () => {
+      if (anySheetOpen()) { t = setTimeout(tryOpen, 1000); return; }
+      askedFor.current.add(id); setNotice(null); setSheet('complete');
+    };
+    t = setTimeout(tryOpen, 450);
+    return () => clearTimeout(t);
   }, [vessel, openAny]);
 
   // The break strip and "forecast passed" follow the clock: refresh every minute and

@@ -43,7 +43,7 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
               <View style={s.dnBox}>
                 <Text style={[s.dn, { fontFamily: f.display }]} numberOfLines={1} adjustsFontSizeToFit>{r.label}</Text>
                 <Text style={[s.hm, { fontFamily: f.display, color: r.height.tone === 'red' ? color.rInk : r.height.tone === 'orange' ? color.oInk : color.muted }]} numberOfLines={1} adjustsFontSizeToFit accessibilityLabel={r.height.text}>{r.heightShort}</Text>
-                {r.photos > 0 && <Text style={[s.badge, { fontFamily: f.bodySemi }]} accessibilityLabel={`${r.photos} photo${r.photos === 1 ? '' : 's'} on this deck`}>📷 {r.photos}</Text>}
+                {r.photos > 0 && <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[s.badge, { fontFamily: f.bodySemi }]} accessibilityLabel={`${r.photos} photo${r.photos === 1 ? '' : 's'} on this deck`}>📷 {r.photos}</Text>}
               </View>
               <Pill text={r.pill} />
               <Text style={s.rn} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>

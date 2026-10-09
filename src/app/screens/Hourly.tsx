@@ -6,7 +6,7 @@ import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
-import { color, HA_COLOR, PACE_COLOR, useType } from '../theme.ts';
+import { color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
 import { Bar, Big, Body, Card, Chip, FlipTile, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
@@ -111,7 +111,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
         {r.brands.length > 0 && <View style={s.tagRow}>{r.brands.map((b) => <Chip key={b.b} text={`${b.b} ${b.v}`} />)}</View>}
         {r.photos.map((p) => <Note key={p} style={{ color: color.ink }}>Photo: {p}</Note>)}
         {details.length > 0 && (
-          <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center' }, pressed && u.pressed]}>
+          <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.blue }}>{open ? 'Hide details ▴' : 'Details ▾'}</Text>
           </Pressable>
         )}

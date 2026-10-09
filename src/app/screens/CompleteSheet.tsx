@@ -34,7 +34,7 @@ export function CompleteSheet({ state, isTest, save, onClose, onGo }: { state: S
           {completionStale(state) && <Note>The remaining count is no longer 0, so this mark no longer holds. Reopen it, or add the count back.</Note>}
           <Reasons options={E.REOPEN_REASONS} value={reason} onChange={setReason} other={other} onOther={setOther} />
           {error && <ErrorBox text={error} />}
-          <Go label="Reopen the vessel" disabled={busy} onPress={() => run((c) => E.reopenVesselEvents(c, why), 'Vessel reopened. The earlier mark stays in the log.')} />
+          <Go label="Reopen the vessel" disabled={busy || !why} onPress={() => run((c) => E.reopenVesselEvents(c, why), 'Vessel reopened. The earlier mark stays in the log.')} />
         </>
       ) : (
         <>

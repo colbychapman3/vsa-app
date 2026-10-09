@@ -186,7 +186,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
       clerkBadge = { ok: false, text: `Off by ${fmt(off)}` };
       clerkLine = { tone: 'red', text: `Discrepancy: ${fmt(off)} autos · Chief clerk ${c.time}: ${fmt(c.remaining)} · Yours: ${fmt(s.vesselRemaining)}` };
     } else if (c) clerkLine = { tone: 'muted', text: `Chief clerk at ${c.time}: ${fmt(c.remaining)} · can’t compare until every active deck has a remaining count` };
-    else clerkLine = { tone: 'muted', text: 'Chief clerk count not logged for this break.' };
+    // No clerk count: say nothing (the Log no longer takes one; Colby, 2026-10-08). Old logs with a clerk count still compare.
   }
   const rows: { k: string; v: string; sub?: string }[] = [];
   if (known) rows.push({ k: 'Ship progress', v: fmt(s.progress) });
