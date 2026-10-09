@@ -288,7 +288,7 @@ function HhForm({ state, run, now, timeOf, setError }: { state: State; run: Run;
   const log = (kind: 'started' | 'completed') => {
     setError(null);
     const at = timeOf(t, day);
-    if (at === 'bad') return setError('Enter the time as HH:MM, or leave it empty to use the phone’s time (marked as processing time).');
+    if (at === 'bad') return setError('Enter the time as HH:MM, or leave it empty.');
     void run((c) => E.hhMarkerEvents(c, kind, at), kind === 'started' ? 'H/H start logged.' : 'H/H complete logged.');
   };
   const change = (remove: boolean) => {
@@ -316,7 +316,7 @@ function HhForm({ state, run, now, timeOf, setError }: { state: State; run: Run;
   return (
     <View style={{ gap: 14 }}>
       <Body semi>{hh.text}</Body>
-      <TimeField label="Time (empty = the phone’s time, marked as processing time)" value={t} onChange={setT} onNow={fill(setT)} />
+      <TimeField label="Time (optional)" value={t} onChange={setT} onNow={fill(setT)} />
       <Go label="Start H/H" disabled={active} onPress={() => log('started')} />
       <Go label="H/H complete" disabled={!needsEnd} onPress={() => log('completed')} />
       {hh.passes.map((p, i) => (

@@ -15,7 +15,7 @@ import { hourOptions } from '../view.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
 import { color, TAP, useType } from '../theme.ts';
 import type { HourPrefill } from './LogSheet.tsx';
-import { Body, Card, ErrorBox, Go, Note, Seg, Sheet, Tag, u } from './ui.tsx';
+import { Body, Card, ErrorBox, Go, Note, Seg, Sheet, Tag, u, InfoNote } from './ui.tsx';
 
 const INDEX = indexJson as unknown as KnowledgeIndex;
 type Save = (build: (c: Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
@@ -78,22 +78,22 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
         return (
           <Card style={[u.pad, { gap: 10 }]}>
             <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }}>Send to your AI app</Text>
-            <Note>This exact text goes to the app you pick in the next step. Nothing is sent until you choose one. Its reply stays in that app and is not checked by this app.</Note>
+            <InfoNote><Note>This exact text goes to the app you pick in the next step. Nothing is sent until you choose one. Its reply stays in that app and is not checked by this app.</Note></InfoNote>
             <Body semi>Vessel name</Body>
             <Seg options={[{ value: 'out', label: 'Keep out' }, { value: 'in', label: 'Include' }]} columns={2} value={hand.name ? 'in' : 'out'} onChange={(x) => setHand({ ...hand, name: x === 'in' })} />
             <Body semi>Documents</Body>
             <Seg options={[{ value: 'text', label: 'All, in message' }, { value: 'file', label: 'All, as file' }, { value: 'closest', label: 'Closest 3' }]} value={hand.how} onChange={(x) => setHand({ ...hand, how: x })} />
             <Text selectable style={{ fontFamily: f.body, fontSize: 14, color: color.ink, lineHeight: 20 }}>{shown}</Text>
-            {hand.how !== 'closest' && <Note>Then all {INDEX.chunks.length} passages of the SOP, protocol, glossary and operations reference, quoted as written ({(Math.round(text.length / 1000) * 1000).toLocaleString('en-US')} characters in all).</Note>}
+            {hand.how !== 'closest' && <InfoNote><Note>Then all {INDEX.chunks.length} passages of the SOP, protocol, glossary and operations reference, quoted as written ({(Math.round(text.length / 1000) * 1000).toLocaleString('en-US')} characters in all).</Note></InfoNote>}
             {hand.how === 'file'
-              ? <Note>As a file: attach “{QUESTION_FILE}” in your AI app and say “Answer the question in this file.” Use this if the app refuses a very long message.</Note>
+              ? <InfoNote><Note>As a file: attach “{QUESTION_FILE}” in your AI app and say “Answer the question in this file.” Use this if the app refuses a very long message.</Note></InfoNote>
               : null}
             <Go label={hand.how === 'file' ? 'Share as a file…' : 'Send…'} onPress={() => {
               onClose();
               setTimeout(() => { if (hand.how === 'file') void shareTextFile(QUESTION_FILE, text); else void Share.share({ message: text }); }, 450);
             }} />
             <Go ghost label="Documents only, to upload once…" onPress={() => { onClose(); setTimeout(() => { void shareTextFile(DOCS_FILE, documentsFile(INDEX)); }, 450); }} />
-            <Note>Documents only: upload “{DOCS_FILE}” once to a project or chat in your AI app, then later questions only need the short message (Closest 3).</Note>
+            <InfoNote><Note>Documents only: upload “{DOCS_FILE}” once to a project or chat in your AI app, then later questions only need the short message (Closest 3).</Note></InfoNote>
             <Go ghost label="Cancel" onPress={() => setHand(null)} />
           </Card>
         );
@@ -105,7 +105,7 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
         <Note>{REMINDER_STATUS_TEXT[reminders]}</Note>
         {reminders === 'ask' && <Go ghost label="Turn on reminders" onPress={onEnableReminders} />}
       </Card>
-      <Note>Answers come from the same numbers as the screens and from the loaded documents, never from a guess. Try “log 140 at 10:00”, “note: …” or “new vessel”.</Note>
+      <InfoNote><Note>Answers come from the same numbers as the screens and from the loaded documents, never from a guess. Try “log 140 at 10:00”, “note: …” or “new vessel”.</Note></InfoNote>
     </Sheet>
   );
 }
@@ -126,7 +126,7 @@ function AnswerCard({ a, onShow }: { a: Answer; onShow: (w: Where) => void }) {
           <Text style={{ fontFamily: f.body, fontSize: 15, color: color.ink, lineHeight: 21 }}>{p.text}</Text>
         </View>
       ))}
-      {a.passages?.length ? <Note>Quoted as written, not summarized. The protocol and Colby’s instruction win on any difference.</Note> : null}
+      {a.passages?.length ? <InfoNote><Note>Quoted as written, not summarized. The protocol and Colby’s instruction win on any difference.</Note></InfoNote> : null}
       {a.where && <Go ghost label="Show me" onPress={() => onShow(a.where!)} />}
     </Card>
   );
@@ -144,7 +144,7 @@ function ActionCard({ action, state, baseline, save, setError, onClose, onLog, o
       <Card style={[u.pad, { gap: 8 }]}>
         <Text style={{ fontFamily: f.display, fontSize: 24, color: color.ink }}>Hourly count</Text>
         <Body semi>{action.count.toLocaleString('en-US')} autos{action.start ? ` at ${action.start}` : ''}</Body>
-        <Note>{action.start == null ? 'No hour was given: pick it in the form.' : known ? 'Opens the hourly form with these values. Nothing is saved until you tap Save there.' : `${action.start} is not an hour that can be logged now: pick the hour in the form.`}</Note>
+        <InfoNote><Note>{action.start == null ? 'No hour was given: pick it in the form.' : known ? 'Opens the hourly form with these values. Nothing is saved until you tap Save there.' : `${action.start} is not an hour that can be logged now: pick the hour in the form.`}</Note></InfoNote>
         <Go label="Open hourly form" onPress={() => { onClose(); onLog({ count: action.count, start: known ? action.start : null }); }} />
       </Card>
     );
@@ -165,7 +165,7 @@ function ActionCard({ action, state, baseline, save, setError, onClose, onLog, o
   return (
     <Card style={[u.pad, { gap: 8 }]}>
       <Text style={{ fontFamily: f.display, fontSize: 24, color: color.ink }}>New vessel</Text>
-      <Note>Opens the Vessels sheet on New vessel. Nothing is created until you finish setup there.</Note>
+      <InfoNote><Note>Opens the Vessels sheet on New vessel. Nothing is created until you finish setup there.</Note></InfoNote>
       <Go label="Open New vessel" onPress={() => { onClose(); onNewVessel(); }} />
     </Card>
   );

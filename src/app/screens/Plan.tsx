@@ -195,7 +195,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
 
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Backup" />
-        <Body>Last exported: {backup.lastAt ? `${backup.lastAt.replace('T', ' ').slice(0, 16)} (phone clock)` : 'never'}</Body>
+        <Body>Last exported: {backup.lastAt ? `${backup.lastAt.replace('T', ' ').slice(0, 16)} ` : 'never'}</Body>
         {backup.unsaved > 0 && <Note>{backup.unsaved} {backup.unsaved === 1 ? 'entry' : 'entries'} not backed up.</Note>}
         <Go label="Export vessel log" disabled={busy} onPress={async () => { setBusy(true); try { await backup.onExport(); } finally { setBusy(false); } }} />
         <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />

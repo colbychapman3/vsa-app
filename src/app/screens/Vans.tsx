@@ -9,7 +9,7 @@ import { readPhotos, ocrAvailable } from '../ai.ts';
 import { vanView } from '../view.ts';
 import { color, TAP, useType } from '../theme.ts';
 import type { Save } from './Plan.tsx';
-import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
+import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, Sheet, TimeField, u, InfoNote } from './ui.tsx';
 
 type Which = { k: 'list' } | { k: 'create'; more: boolean } | { k: 'edit'; id: string } | { k: 'mark' } | { k: 'photo' } | null;
 type Row = ReturnType<typeof vanView>['rows'][number];
@@ -58,7 +58,7 @@ export function Vans({ state, baseline, isTest, save, onNotice }: {
           {v.rows.map((r) => <VanRowView key={r.id} r={r} onOpen={() => setWhich({ k: 'edit', id: r.id })} />)}
           {ocrAvailable() && <Go ghost label="Read van sheet from a photo" onPress={() => setWhich({ k: 'photo' })} />}
           <Go ghost label="Add more slots" onPress={() => setWhich({ k: 'create', more: true })} />
-          <Note>Changes to a van number or driver keep their history. Driver names stay on this phone and are in the backup.</Note>
+          <InfoNote><Note>Changes to a van number or driver keep their history. Driver names stay on this phone and are in the backup.</Note></InfoNote>
         </Sheet>
       )}
       {which?.k === 'create' && <CreateSheet more={which.more} state={state} isTest={isTest} save={save} onClose={(t) => (t ? created(t) : toList())} />}
@@ -106,7 +106,7 @@ function CreateSheet({ more, state, isTest, save, onClose }: { more: boolean; st
   };
   return (
     <Sheet title={more ? 'Add van slots' : 'How many vans?'} isTest={isTest} onClose={() => onClose()}>
-      <Note>{more ? `The list has ${have} of ${MAX_VANS}. Choose how many slots to add (up to ${room}).` : 'Choose how many vans were checked out for this ship. You fill in the van numbers and drivers as they go out.'}</Note>
+      <InfoNote><Note>{more ? `The list has ${have} of ${MAX_VANS}. Choose how many slots to add (up to ${room}).` : 'Choose how many vans were checked out for this ship. You fill in the van numbers and drivers as they go out.'}</Note></InfoNote>
       {room <= 0 ? <ErrorBox text={`The list already holds ${MAX_VANS} vans.`} /> : (
         <>
           <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel="Choose the number of vans"
@@ -204,7 +204,7 @@ function EditSheet({ id, opDate, state, isTest, save, onClose }: { id: string; o
       )}
       <Field label="Remove this row" note="reason required; it stays in the log" value={removeWhy} onChange={setRemoveWhy} keyboard="default" maxLength={200} />
       <Go ghost label="Remove this van row" disabled={busy} onPress={() => run((c) => E.removeVanEvents(c, id, removeWhy), 'Van row removed. It stays in the log, marked removed.')} />
-      <Note>Nothing is overwritten: every earlier value stays in the log.</Note>
+      <InfoNote><Note>Nothing is overwritten: every earlier value stays in the log.</Note></InfoNote>
     </Sheet>
   );
 }
@@ -226,7 +226,7 @@ function MarkSheet({ opDate, state, isTest, save, onClose }: { opDate: string; s
   };
   return (
     <Sheet title="Mark Back vans gassed" isTest={isTest} onClose={() => onClose()}>
-      <Note>These vans are checked in and not yet marked. Vans that are Out, Not assigned or already marked are not touched.</Note>
+      <InfoNote><Note>These vans are checked in and not yet marked. Vans that are Out, Not assigned or already marked are not touched.</Note></InfoNote>
       {v.backToMark.map((x) => <Body key={x.id} semi>{x.label}</Body>)}
       <TimeField label="Gassed at (optional)" value={t} onChange={setT} onNow={() => { const n = E.nowOpTime(opDate, new Date()); if (n) setT(n.hm); else setError('The phone’s date is before this operation’s Day 1.'); }} />
       {error && <ErrorBox text={error} />}
@@ -259,7 +259,7 @@ function PhotoSheet({ state, isTest, save, onClose }: { state: State; isTest: bo
   };
   return (
     <Sheet title="Read the van sheet" isTest={isTest} onClose={() => onClose()}>
-      <Note>The reader proposes van numbers and any name on the same line. Handwriting and crossed-out lines are unreliable: remove anything wrong, then add. Nothing is saved until you tap Add. The photo is not kept.</Note>
+      <InfoNote><Note>The reader proposes van numbers and any name on the same line. Handwriting and crossed-out lines are unreliable: remove anything wrong, then add. Nothing is saved until you tap Add. The photo is not kept.</Note></InfoNote>
       {!rows && (
         <>
           <Go label="Choose a photo" disabled={busy} onPress={() => read('library')} />

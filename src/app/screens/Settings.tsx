@@ -145,7 +145,7 @@ function BackupPicker({ rows, onExportVessel }: { rows: VesselRow[]; onExportVes
       })}
       <Go label={picked.length ? `Back up ${picked.length} selected` : 'Pick vessels to back up'} disabled={!picked.length}
         onPress={() => setQ({ ids: rows.filter((r) => picked.includes(r.operationId)).map((r) => r.operationId), i: 0, results: [] })} />
-      <Note>Each vessel opens its own share sheet, one after another. A vessel counts as backed up only if you use the share sheet.</Note>
+      <InfoNote><Note>Each vessel opens its own share sheet, one after another. A vessel counts as backed up only if you use the share sheet.</Note></InfoNote>
     </View>
   );
 }
@@ -178,7 +178,7 @@ function ArchiveList({ rows, currentId, onArchive, onDelete }: { rows: VesselRow
         </View>
       ))}
       <InfoNote><Note>Archive hides a vessel from the menu. Its record stays on the phone and can be unarchived here.</Note></InfoNote>
-      <Note>Tap Delete twice to delete a vessel. A deleted vessel and its photos cannot be brought back, except from a saved copy. The open vessel can't be deleted. Deleting is on during the prototype phase only.</Note>
+      <InfoNote><Note>Tap Delete twice to delete a vessel. A deleted vessel and its photos cannot be brought back, except from a saved copy. The open vessel can't be deleted. Deleting is on during the prototype phase only.</Note></InfoNote>
     </View>
   );
 }

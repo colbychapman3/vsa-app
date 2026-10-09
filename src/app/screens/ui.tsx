@@ -251,7 +251,7 @@ export function TimeField({ label, value, onChange, onNow, required, hint }: { l
         </Pressable>
       </View>
       <Text style={{ fontFamily: f.body, fontSize: 12, color: required ? color.ink : color.muted }}>
-        {required ? 'Required: type the time or tap Now.' : 'Leave empty if unknown: the save time is shown, labeled as processing time.'}{hint ? ` ${hint}` : ''}
+        {required ? 'Required: type the time or tap Now.' : 'Leave empty if unknown.'}{hint ? ` ${hint}` : ''}
       </Text>
     </View>
   );

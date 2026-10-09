@@ -13,7 +13,7 @@ import { readGamePlanPages } from '../gamePlan.ts';
 import type { Page } from '../layout.ts';
 import { readPhotos } from '../ai.ts';
 import { color, TAP, useType } from '../theme.ts';
-import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, u } from './ui.tsx';
+import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, u, InfoNote } from './ui.tsx';
 
 const STEPS = ['Vessel', 'Start', 'Cargo to destinations', 'Decks', 'Load list', 'Review'];
 const LAST = STEPS.length - 1;
@@ -166,7 +166,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
 
       {mode === 'paste' && !imported && (
         <View style={{ gap: 12 }}>
-          <Note>Paste a VSA baseline file (for example one prepared for you or saved from another phone). Its text is read as data only.</Note>
+          <InfoNote><Note>Paste a VSA baseline file (for example one prepared for you or saved from another phone). Its text is read as data only.</Note></InfoNote>
           <TextInput value={paste} onChangeText={setPaste} multiline autoCorrect={false} autoCapitalize="none" accessibilityLabel="Baseline file text"
             placeholder="Paste here" placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' }]} />
           <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
@@ -192,7 +192,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
               read.filled.includes('destinations') && 'brand / destination lines', hh.length && `H/H ${hhKnown != null ? n(hhKnown) : 'count'} (own ledger)`,
               read.notes.length && `${read.notes.length} note${read.notes.length === 1 ? '' : 's'}`].filter(Boolean).join(', ') || 'nothing'}.
           </Body>
-          <Note>Not on the game plan: berth, planned start{read.filled.includes('drivers') ? '' : ', drivers'}, deck heights, counts per hatch.</Note>
+          <InfoNote><Note>Not on the game plan: berth, planned start{read.filled.includes('drivers') ? '' : ', drivers'}, deck heights, counts per hatch.</Note></InfoNote>
           {read.problems.map((p) => <Text key={p} style={[u.note, { color: color.oInk, fontFamily: f.body }]}>• {p}</Text>)}
           <Go ghost label="Share what was read" onPress={() => shareRead(read.scans)} />
           <Go ghost label="Start over with another photo" onPress={startOver} />
@@ -207,9 +207,9 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
           <Field label="Port" value={v.port} onChange={set('port')} keyboard="default" />
           <Body semi>Berth</Body>
           <Seg options={BERTHS} value={v.berth || null} onChange={set('berth')} />
-          <Note>The berth sets the miles to each destination.</Note>
+          <InfoNote><Note>The berth sets the miles to each destination.</Note></InfoNote>
           <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
-          <Note>TEST data never mixes with a live vessel. Reference vessels (Glovis Condor 101) can only be TEST.</Note>
+          <InfoNote><Note>TEST data never mixes with a live vessel. Reference vessels (Glovis Condor 101) can only be TEST.</Note></InfoNote>
           <Go label="Next" onPress={() => { if (!v.vessel.trim()) setError('The vessel needs a name.'); else if (!v.berth) setError('Choose the berth.'); else go(1); }} />
           <Go ghost label="Back" onPress={back} />
         </View>
@@ -227,7 +227,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
       {mode === 'form' && step === 2 && (
         <View style={{ gap: 12 }}>
           {tag}
-          <Note>One line per brand and destination. The side, clear-by and miles fill in from the destination you choose.</Note>
+          <InfoNote><Note>One line per brand and destination. The side, clear-by and miles fill in from the destination you choose.</Note></InfoNote>
           {allocs.map((a, i) => {
             const info = a.destination ? terminalInfo(a.destination, v.berth) : null;
             return (
@@ -269,7 +269,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
       {mode === 'form' && step === 3 && (
         <View style={{ gap: 12 }}>
           {tag}
-          <Note>Decks in discharge order. Hatches read H4 → H1. A deck from the game plan carries its brand split; counts per hatch are not on the game plan and are tracked as you go.</Note>
+          <InfoNote><Note>Decks in discharge order. Hatches read H4 → H1. A deck from the game plan carries its brand split; counts per hatch are not on the game plan and are tracked as you go.</Note></InfoNote>
           {decks.map((d, i) => (
             <Card key={i} style={[u.pad, { gap: 10 }]}>
               <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -344,7 +344,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
         const c = check(b.brandStart);
         return (
           <View style={{ gap: 12 }}>
-            <Note>Type each brand total from the discharge summary (load list). Leave a box empty if you don't have it. The load list controls unless you choose the game plan at Review.</Note>
+            <InfoNote><Note>Type each brand total from the discharge summary (load list). Leave a box empty if you don't have it. The load list controls unless you choose the game plan at Review.</Note></InfoNote>
             {c.rows.map((r) => (
               <Card key={r.brand} style={[u.pad, { gap: 6 }]}>
                 <Field label={r.brand} value={load[r.brand] ?? ''} onChange={(x) => { setLoad({ ...load, [r.brand]: x }); setOverride(false); }} />
@@ -403,7 +403,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
                 <Card style={[u.pad, { gap: 6 }]}>
                   <SectionHead title="High & Heavy" right="own ledger" />
                   {hh.map((x, i) => <Body key={i}>{x.deck ? `Deck ${x.deck}` : 'Deck not read'}: {x.qty == null ? 'count not read' : n(x.qty)}{x.cargo ? ` · ${x.cargo}` : ''}</Body>)}
-                  <Note>Counted by the H/H stevedore. Never added to your autos.</Note>
+                  <InfoNote><Note>Counted by the H/H stevedore. Never added to your autos.</Note></InfoNote>
                 </Card>
               )}
               {loadCheck && (
@@ -415,7 +415,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
                   {loadCheck.discrepancies.map((d) => <ErrorBox key={d} text={d} />)}
                   {loadCheck.mismatch && (
                     <>
-                      <Note>Fix the deck numbers until they match, or let the game plan control. Either way both numbers stay on the vessel and show on Plan.</Note>
+                      <InfoNote><Note>Fix the deck numbers until they match, or let the game plan control. Either way both numbers stay on the vessel and show on Plan.</Note></InfoNote>
                       <Seg options={[{ value: 'fix', label: 'Fix the decks' }, { value: 'gp', label: 'Game plan controls (override)' }]} columns={2}
                         value={override ? 'gp' : 'fix'} onChange={(x) => setOverride(x === 'gp')} />
                     </>
@@ -436,7 +436,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
               {read && !imported && read.notes.length + read.extras.length > 0 && (
                 <Card style={[u.pad, { gap: 8 }]}>
                   <SectionHead title="Notes for Plan" />
-                  <Note>From the game plan. Ticked lines become Plan notes; untick any you don't want. Notes never change a count.</Note>
+                  <InfoNote><Note>From the game plan. Ticked lines become Plan notes; untick any you don't want. Notes never change a count.</Note></InfoNote>
                   {[...read.notes, ...read.extras].map((line) => {
                     const on = keep.includes(line);
                     return (

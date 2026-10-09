@@ -6,7 +6,7 @@ import { Pressable, Text, TextInput } from 'react-native';
 import indexJson from '../../../assets/knowledge/index.json';
 import { search, segments, snippet, type Chunk, type KnowledgeIndex } from '../knowledge/search.ts';
 import { color, TAP, useType } from '../theme.ts';
-import { Card, Go, Note, Sheet, u } from './ui.tsx';
+import { Card, Go, Note, Sheet, u, InfoNote } from './ui.tsx';
 
 const INDEX = indexJson as unknown as KnowledgeIndex;
 
@@ -37,15 +37,15 @@ export function Search({ isTest, onClose }: { isTest: boolean; onClose: () => vo
             <Marked text={open.text} toks={r.tokens} style={body} />
           </Card>
           {src ? <Note>{src.note}</Note> : null}
-          <Note>Quoted from the loaded pack (built {INDEX.builtAt}), not summarized. If this disagrees with the app’s rules or the current protocol, the protocol and Colby’s instruction win.</Note>
+          <InfoNote><Note>Quoted from the loaded pack (built {INDEX.builtAt}), not summarized. If this disagrees with the app’s rules or the current protocol, the protocol and Colby’s instruction win.</Note></InfoNote>
         </>
       ) : (
         <>
           <TextInput value={q} onChangeText={setQ} placeholder="Search SOPs, protocol, glossary" placeholderTextColor={color.muted} accessibilityLabel="Search the knowledge pack"
             autoCorrect={false} autoCapitalize="none" returnKeyType="search" clearButtonMode="while-editing"
             style={[u.input, { fontFamily: f.bodyMedium, fontSize: 18 }]} />
-          {r.message ? <Card style={[u.pad, { gap: 4 }]}><Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{r.message}</Text><Note>Try other words. The app only answers from the documents in the pack and never guesses.</Note></Card> : null}
-          {!r.hits.length && r.related.length > 0 && <Note>Closest passages, not an answer. Check them yourself:</Note>}
+          {r.message ? <Card style={[u.pad, { gap: 4 }]}><Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{r.message}</Text><InfoNote><Note>Try other words. The app only answers from the documents in the pack and never guesses.</Note></InfoNote></Card> : null}
+          {!r.hits.length && r.related.length > 0 && <InfoNote><Note>Closest passages, not an answer. Check them yourself:</Note></InfoNote>}
           {(r.hits.length ? r.hits : r.related).map((h) => (
             <Pressable key={h.chunk.id} onPress={() => setOpen(h.chunk)} style={({ pressed }) => [pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`${h.chunk.cite}. Open the passage`}>
               <Card style={[u.pad, { gap: 6, minHeight: TAP }]}>
@@ -56,7 +56,7 @@ export function Search({ isTest, onClose }: { isTest: boolean; onClose: () => vo
             </Pressable>
           ))}
           {!q.trim() && <Note>Type a word or two. Works offline. {INDEX.chunks.length} passages from {INDEX.sources.length} documents.</Note>}
-          <Note>Pack built {INDEX.builtAt}. The operations reference is older than the protocol; where they differ, Protocol Appendix C wins. Re-export the pack to update it.</Note>
+          <InfoNote><Note>Pack built {INDEX.builtAt}. The operations reference is older than the protocol; where they differ, Protocol Appendix C wins. Re-export the pack to update it.</Note></InfoNote>
         </>
       )}
     </Sheet>
