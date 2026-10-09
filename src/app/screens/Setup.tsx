@@ -10,6 +10,7 @@ import {
   type Allocation, type Built, type DeckDraft, type HhEntry, type SetupForm,
 } from '../setup.ts';
 import { readGamePlanPages } from '../gamePlan.ts';
+import { brandFor, readDischargeSummary } from '../dischargeSummary.ts';
 import type { Page } from '../layout.ts';
 import { readPhotos } from '../ai.ts';
 import { color, TAP, useType } from '../theme.ts';
@@ -44,6 +45,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sumMsg, setSumMsg] = useState<string | null>(null); // what the last discharge summary photo filled, or why not
   const [openDrop, setOpenDrop] = useState<number | null>(null);
   const [read, setRead] = useState<GameRead | null>(null);
   const [failed, setFailed] = useState<{ text: string; scans: Page[] } | null>(null);
@@ -110,6 +112,23 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
       setKeep(res.plan.notes); // notes-area lines start ticked; Colby can untick them at Review
       if (read) { setLoad({}); setLoadHh(''); setOverride(false); } // a new read starts its load list check over
       setConfirmed([]); setStep(0); setMode('form');
+    } catch (e) {
+      setError(`Could not read the photo: ${(e as Error).message}`);
+    } finally { setBusy(false); }
+  };
+  // Discharge summary photo → its printed brand totals → the load list boxes below (empty boxes only; Colby checks them).
+  const fromSummary = async (src: 'camera' | 'library', rowBrands: string[]) => {
+    setError(null); setSumMsg(null); setBusy(true);
+    try {
+      const r = await readPhotos(src, true);
+      if (!r) return;
+      const res = readDischargeSummary(r.scans);
+      if (!res.ok) { setSumMsg(res.error); return; }
+      const next = { ...load }; const left: string[] = [];
+      for (const tt of res.totals) { const b = brandFor(tt.label, rowBrands); if (b && !(next[b] ?? '').trim()) next[b] = String(tt.count); else if (!b) left.push(`${tt.count} ${tt.label}`); }
+      setLoad(next); setOverride(false);
+      if (res.hh != null && !loadHh.trim()) setLoadHh(String(res.hh));
+      setSumMsg(`Filled from the page: check each box. ${res.note}${left.length ? ` Not placed (no matching brand on this vessel): ${left.join(', ')}.` : ''}`);
     } catch (e) {
       setError(`Could not read the photo: ${(e as Error).message}`);
     } finally { setBusy(false); }
@@ -345,6 +364,16 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
         return (
           <View style={{ gap: 12 }}>
             <InfoNote><Note>Type each brand total from the discharge summary (load list). Leave a box empty if you don't have it. The load list controls unless you choose the game plan at Review.</Note></InfoNote>
+            <Card style={[u.pad, { gap: 10 }]}>
+              <SectionHead title="Read the discharge summary" />
+              {busy ? <Note>Reading the page…</Note> : (
+                <>
+                  <Go label="Take a picture of the totals" onPress={() => fromSummary('camera', c.rows.map((x) => x.brand))} />
+                  <Go ghost label="Choose from camera roll" onPress={() => fromSummary('library', c.rows.map((x) => x.brand))} />
+                </>
+              )}
+              {sumMsg && <Note>{sumMsg}</Note>}
+            </Card>
             {c.rows.map((r) => (
               <Card key={r.brand} style={[u.pad, { gap: 6 }]}>
                 <Field label={r.brand} value={load[r.brand] ?? ''} onChange={(x) => { setLoad({ ...load, [r.brand]: x }); setOverride(false); }} />

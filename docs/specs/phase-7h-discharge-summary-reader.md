@@ -1,6 +1,6 @@
 # Spec: Discharge summary reader for the Load list (Phase 7h)
 
-Status: **DRAFT**, waiting on approval. Colby's answer to C3 on 2026-10-05 ("I approve and agree with recommendations"): yes, spec it after the labor order reader.
+Status: **APPROVED 2026-10-09 and built, narrowed.** The real fixture (`6-discharge-summary-totals.json`) prints its own brand totals block ("920 - MB", "566 - BMW", "47 - H/H", total 1,625), so the reader takes those printed figures by position instead of summing the messy table rows (no VIN or booking text is read at all). Brands map to the vessel's own brand names only when exactly one fits; anything else is listed as not placed. The page total is checked against the parts and a mismatch or missing total is said, never fixed. Row-sum reading is not built (the table fixture is too noisy to trust).
 
 ## Objective
 Colby photographs the vessel's **Discharge Summary** (one table: booking, party, commodity, weight, CBM, load quantity, VIN, special code) and the Load list step in Setup fills the brand totals and the H/H total from it, instead of typing them. Free, offline, no AI. Success: on the Hector Highway 10A summary (fixture `5-discharge-summary-table.json`, `6-discharge-summary-totals.json`), the brand totals are proposed, each tagged "From discharge summary: check", and the game plan comparison (match, or the exact difference) works as it does for typed numbers.
