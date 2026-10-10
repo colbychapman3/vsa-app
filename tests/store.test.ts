@@ -143,6 +143,25 @@ test('migrate is stepwise: a v1 phone database gets only v2 and keeps its data',
   await db.close();
 });
 
+test('migrate v3 to v4: a populated phone database keeps every event and still refuses an unmarked delete', async (t) => {
+  const db = openNodeDb(tempFile(t));
+  await migrate(db);
+  await db.run(`INSERT INTO vessels VALUES ('LIVE-1', 'Live', 0, '{}', 'x')`);
+  for (let i = 1; i <= 3; i++) await db.run(`INSERT INTO events VALUES ('LIVE-1', ${i}, 'E${i}', 'E${i}', '{"n":${i}}')`);
+  // Put the file back to what a v3 phone holds: unconditional delete triggers, user_version 3.
+  await db.exec(`DROP TRIGGER events_no_delete; DROP TRIGGER vessels_no_delete;
+    CREATE TRIGGER events_no_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT, 'Events are append-only. Corrections are new events.'); END;
+    CREATE TRIGGER vessels_no_delete BEFORE DELETE ON vessels BEGIN SELECT RAISE(ABORT, 'Vessels cannot be deleted.'); END;
+    PRAGMA user_version = 3`);
+  await migrate(db);
+  assert.equal((await db.all<{ user_version: number }>('PRAGMA user_version'))[0].user_version, SCHEMA_VERSION);
+  assert.equal((await db.all('SELECT * FROM events')).length, 3);
+  await assert.rejects(db.run(`DELETE FROM events WHERE operation_id = 'LIVE-1'`), /append-only/);
+  await assert.rejects(db.run(`DELETE FROM vessels WHERE operation_id = 'LIVE-1'`), /cannot be deleted/);
+  assert.equal((await db.all('SELECT * FROM events')).length, 3);
+  await db.close();
+});
+
 test('transaction: a failure inside rolls everything back (storage test 7)', async (t) => {
   const db = openNodeDb(tempFile(t));
   await migrate(db);

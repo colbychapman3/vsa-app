@@ -105,7 +105,7 @@ export function AskButton({ onPress }: { onPress: () => void }) {
 }
 
 const s = StyleSheet.create({
-  header: { backgroundColor: color.head, paddingHorizontal: 20, paddingBottom: 16, gap: 6, ...elev.raised },
+  header: { backgroundColor: color.head, paddingHorizontal: 20, paddingBottom: 16, gap: 6, zIndex: 1, ...elev.raised },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   chip: { fontSize: 12, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' },
   chipTest: { backgroundColor: color.accent, color: color.onAccent },
