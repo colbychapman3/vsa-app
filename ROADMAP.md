@@ -3,12 +3,11 @@
 Each phase ends with a working, tested result and Colby's approval before the next starts.
 Keep **Now** current; add a row to the timeline when a phase or build changes. Build numbers are App Store Connect build numbers (EAS `autoIncrement`), as shown in TestFlight.
 
-## Now (2026-10-09)
-- **Latest TestFlight build: #19** (EAS `c10e8b19`, from `5c940e7`; `VsaText` is in its log). Phone-checked 2026-10-09 up to #18: all good except the info icon, now smaller. Builds 16 and 17 added vessel complete (7k), photo groups (7j), customizable Snapshot and ETA history (7i), the text-clarity sweep, break-after-hour chips, One day / Two days, and the discharge summary reader (7h). #18: clock fix, Complete chip in the vessel list, 7d Smarter Ask, 8d. #19: soft shadows, the Extra visible option in Settings, a summary above the edit section on the deck sheet, the smaller info icon. `VsaText` is also in build 18's log.
-- **Phone-check in #19:** shadows on cards, buttons, tab bar and header (header shadow over the content); Settings › Appearance › Extra visible (heavier text, 2 pt outlines, no wrapping or clipping at large text, sun readability); the deck sheet summary; the smaller info icon.
-- **Built after #19, not in a build yet:** the ETA "why" trace, the stop-at and move-a-break what-ifs, and the low-deck watch in alerts (see 7d below).
+## Now (2026-10-10)
+- **Latest TestFlight build: #21** (EAS `437f7862`, from `18c6fb4`; `VsaText` is in its log). Phone-checked 2026-10-09 up to #18. #19 (`5c940e7`): soft shadows, Settings › Appearance › Extra visible, the deck sheet summary, the smaller info icon. #20 (`584367d`): the ETA "why" trace, the stop-at and move-a-break what-ifs, the low-deck watch in alerts. #21 (`18c6fb4`): keep paperwork photos (Settings switch, Plan card), the Clerk count tab removed from Log (its events still replay), the Ask question set (`tests/askQuestions.test.ts`) and the H.A. why-route fix, number plates in Extra visible.
+- **Every commit is in a build.** Phone-check #19 to #21: shadows and Extra visible in the sun and at large text; the deck sheet summary; the ETA why, stop-at and move-a-break answers in Ask; the low-deck alert; keep paperwork photos on and off; Log without the Clerk count tab.
 - **Still to phone-check from earlier builds:** Night mode, the 07:00 safety meeting hour (50 min worked), the H/H timeline (log a pass, change a time), vessel delete and the V3 to V4 database upgrade, the save-a-copy prompts.
-- **Not built:** keep import photos (7b step 6; the `app.json` photo text is already updated); the labor order reader (7f, waiting on a real "Share what was read" output); the 7d test set of about 40 hand-written questions; a "growing gap" watch (needs per-hour history, and the rule is to monitor the gap, not alarm); the "About this" taps on screens for the why traces (they are in Ask only); the iCloud wording line in the About-backups note (Colby confirmed iCloud Backup is on).
+- **Not built:** the labor order reader (7f, waiting on a real "Share what was read" output); a "growing gap" watch (needs per-hour history, and the rule is to monitor the gap, not alarm); the "About this" taps on screens for the why traces (they are in Ask only); the iCloud wording line in the About-backups note (Colby confirmed iCloud Backup is on).
 - **Before go-live:** set `VESSEL_DELETE_ALLOWED = false` in `src/storage/store.ts`.
 - **Waiting on Colby:** mirror the corrected Southside line (nine lots) and the 07:00 safety meeting rule into the Project's copy of the instructions. Automatic off-phone backup: decided not now (2026-10-05); see Backlog. Never submit to public App Store review without his go.
 
@@ -33,7 +32,9 @@ Keep **Now** current; add a row to the timeline when a phase or build changes. B
 | 7i Customizable Snapshot, 7j Photo groups, 7k Vessel complete | 10-08 | 10-08 | 10-09 | #15 to #17 |
 | 7h Discharge summary reader (narrowed to the totals block) | 10-09 | 10-09 | 10-09 | #17 |
 | 7d Smarter Ask steps 1 to 5, 8d | 10-09 | 10-09 | 10-09 (partly) | #18 |
-| Depth and Extra visible | 10-09 | 10-09 | in #19 | #19 |
+| Depth and Extra visible | 10-09 | 10-09 | pending | #19 |
+| 7d ETA why, stop-at and move-a-break what-ifs, low-deck watch | 10-09 | 10-09 | pending | #20 |
+| Keep paperwork photos (7b step 6), Clerk count tab removed, Ask question set | 10-10 | 10-10 | pending | #21 |
 
 ## Phase 7: TestFlight, paperwork import, sidebar, smarter Ask
 **7a TestFlight: live.** Store builds ship headless: `eas build --platform ios --profile production --non-interactive`, then `eas submit --platform ios --profile production --latest --non-interactive`. Phone checks happen on the TestFlight build; nothing in this phase needs the dev client. Each checkpoint is one store build, and EAS counts builds against the paid plan's monthly quota.

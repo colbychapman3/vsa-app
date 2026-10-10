@@ -19,7 +19,7 @@ In `docs/reference/`:
 
 Terms (Zone 1 vs MBZ, short hours, lot names): `docs/knowledge-src/VSA-Glossary.md`, the same glossary as the Project's.
 
-Plan: `ROADMAP.md` (its **Now** block is the current status; this file does not repeat it). Specs from `/spec` go in `docs/specs/`; replaced specs move to `docs/specs/superseded/` with a banner naming their replacement.
+Plan: `ROADMAP.md` (its **Now** block is the current status; this file does not repeat it). Update **Now** and the timeline in the same commit as each store build. It has lagged before, so for "what is the latest" check the EAS build list (newest build number and commit) and `git log` first, then the Brain. Specs from `/spec` go in `docs/specs/`; replaced specs move to `docs/specs/superseded/` with a banner naming their replacement.
 
 ## Where things are
 
@@ -56,7 +56,7 @@ Load the matching skill before changing that layer. They apply the rules below; 
 - **vsa-rules-engine**: engine and view-model math, validation, and the `node:test` discipline.
 - **polish**: final quality pass on a feature or screen before a phone check.
 
-`AGENTS.md` only points other agents here. Never copy these rules or skills elsewhere: copies drift (the old `.agents/` copy did).
+`AGENTS.md` only points other agents here. Never copy these rules or skills elsewhere: copies drift (the old `.agents/` copy did). Some tools recreate `.agents/`; it is gitignored, so delete it when it appears.
 
 Authority order: current user correction > project instructions > protocol > current-vessel paperwork > historical references > inference.
 

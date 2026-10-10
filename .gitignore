@@ -24,3 +24,5 @@ npm-debug.*
 *.tsbuildinfo
 # per-machine Claude Code permissions
 .claude/settings.local.json
+# old skill copies some tools recreate; the skills live in .claude/skills only
+/.agents/
