@@ -12,7 +12,7 @@ import { EvidenceForm } from './EvidenceForm.tsx';
 import { color, TAP, useType } from '../theme.ts';
 import { Body, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
 
-export type Mode = 'hour' | 'deck' | 'hh' | 'clerk' | 'issue' | 'photo';
+export type Mode = 'hour' | 'deck' | 'hh' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode; prefill?: HourPrefill };
 // From the assistant: a count and hour that were typed. Shown in the form; nothing is saved until Save is tapped.
@@ -48,7 +48,6 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
     { value: 'hour', label: 'Hourly count' },
     { value: 'deck', label: 'Deck' },
     { value: 'hh', label: 'H/H' },
-    { value: 'clerk', label: 'Clerk count' },
     { value: 'issue', label: 'Discrepancy' },
     { value: 'photo', label: 'Photo' },
   ];
@@ -70,7 +69,6 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
           {mode === 'hour' && phase === 'working' && <BreakBox baseline={baseline} state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
           {mode === 'hh' && <HhForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
-          {mode === 'clerk' && <ClerkForm phase={phase} run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setError} />}
           {mode === 'photo' && <EvidenceForm state={state} baseline={baseline} save={save} onClose={(done) => onClose(done)} />}
           {error && <ErrorBox text={error} />}
@@ -341,26 +339,6 @@ function HhForm({ state, run, now, timeOf, setError }: { state: State; run: Run;
         </View>
       ))}
       <InfoNote><Note>H/H is awareness only. Its counts stay with the other stevedore and are never added to the auto counts. If you don’t log a complete, the pass ends with the shift.</Note></InfoNote>
-    </View>
-  );
-}
-
-// ---------- Clerk count ----------
-
-function ClerkForm({ phase, run, now, timeOf, setError }: { phase: string; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
-  const [rem, setRem] = useState('');
-  const [t, setT] = useState('');
-  return (
-    <View style={{ gap: 14 }}>
-      <Field label="Clerk’s vessel remaining" value={rem} onChange={setRem} />
-      <TimeField label="Time" value={t} onChange={setT} onNow={() => { const n = now(); if (n) setT(n); }} />
-      <InfoNote><Note>{phase !== 'working' ? 'Shows as match or discrepancy on the snapshot during this reconciliation.' : 'Tip: log this during a break so it shows on the snapshot.'}</Note></InfoNote>
-      <Go label="Save clerk count" onPress={() => {
-        const n = num(rem), at = timeOf(t);
-        if (n == null || Number.isNaN(n)) return setError('Enter the clerk’s remaining count as a whole number.');
-        if (at === 'bad') return setError('Enter the time as HH:MM.');
-        void run((c) => E.clerkEvents(c, n, at), `Clerk count saved: ${n.toLocaleString('en-US')}.`);
-      }} />
     </View>
   );
 }

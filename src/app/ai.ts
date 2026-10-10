@@ -66,8 +66,9 @@ export const ocrAvailable = () => textReaderAvailable && loadPicker() != null;
 
 // Camera or photo library → recognized text, page by page, plus where each word sits (scans) for reading tables.
 // paperwork: language correction off, so numbers and codes come back as printed. null = cancelled; throws with a
-// plain message on failure. Pictures are read from the picker's temporary copy and never stored by the app.
-export async function readPhotos(from: 'camera' | 'library', paperwork = false): Promise<{ pages: string[]; scans: Page[] } | null> {
+// plain message on failure. Pictures are read from the picker's temporary copy; `files` are the upright temporary copies,
+// which the caller may keep (Setup, when Settings › Paperwork photos is on) or let go.
+export async function readPhotos(from: 'camera' | 'library', paperwork = false): Promise<{ pages: string[]; scans: Page[]; files: string[] } | null> {
   const ImagePicker = loadPicker();
   if (!textReaderAvailable || !ImagePicker) throw new Error('Text reading is not in this build. Type the values instead.');
   const perm = from === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -78,6 +79,7 @@ export async function readPhotos(from: 'camera' | 'library', paperwork = false):
   if (r.canceled) return null;
   const pages: string[] = [];
   const scans: Page[] = [];
+  const files: string[] = [];
   for (const a of r.assets) {
     // Vision reads the raw pixels and ignores the photo's rotation tag, so save an upright copy first (temporary, not kept).
     const upright = await (await ImageManipulator.manipulate(a.uri).renderAsync()).saveAsync({ compress: 1, format: SaveFormat.JPEG });
@@ -85,10 +87,11 @@ export async function readPhotos(from: 'camera' | 'library', paperwork = false):
     // Cells the reader skipped (a row with an amount but no deck): read each closely; same numeral rules as the tiles.
     const more = paperwork ? await readCells(upright.uri, gapCells(read)) : [];
     if (more.length) { read.words = addMissedNumerals(read.words, more); read.extra = [...(read.extra ?? []), ...more]; }
+    files.push(upright.uri);
     pages.push(read.lines.join('\n'));
     scans.push({ width: read.width, height: read.height, words: read.words, extra: read.extra });
   }
-  return { pages, scans };
+  return { pages, scans, files };
 }
 
 // Pictures from the camera roll → their temporary files (the caller copies each into the app folder; the roll itself is never changed).

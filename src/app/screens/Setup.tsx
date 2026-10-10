@@ -27,7 +27,7 @@ type GameRead = { filled: string[]; problems: string[]; notes: string[]; extras:
 // Content only: it lives inside the New vessel sheet, so there is never a second modal (iOS freezes on stacked modals).
 export function Setup({ isTest, setIsTest, onKey, onCreate }: {
   isTest: boolean; setIsTest: (t: boolean) => void; onKey: (k: string) => void;
-  onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[]) => Promise<{ ok: true } | Reject>;
+  onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[], photos: string[]) => Promise<{ ok: true } | Reject>;
 }) {
   const f = useType();
   const [mode, setMode] = useState<'start' | 'form' | 'paste'>('start');
@@ -45,6 +45,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [kept, setKept] = useState<string[]>([]); // temporary copies of the paperwork photos read here; saved with the vessel only if Settings says keep
   const [sumMsg, setSumMsg] = useState<string | null>(null); // what the last discharge summary photo filled, or why not
   const [openDrop, setOpenDrop] = useState<number | null>(null);
   const [read, setRead] = useState<GameRead | null>(null);
@@ -86,7 +87,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
     if (built.discrepancies.length > 0 && !ack) return setError('Choose “I have seen this” under the discrepancy above, then Save.');
     setBusy(true); setError(null);
     try {
-      const r = await onCreate(built, isTest, imported ? [] : keep);
+      const r = await onCreate(built, isTest, imported ? [] : keep, imported ? [] : kept);
       if (!r.ok) setError(r.error);
     } catch (e) {
       setError(`Could not save the vessel: ${(e as Error).message}`);
@@ -103,6 +104,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
       if (!r) return;
       const res = readGamePlanPages(r.scans);
       if (!res.ok) { setFailed({ text: res.error, scans: r.scans }); return; }
+      setKept(r.files); // a new game plan read replaces the earlier pages
       // A second photo replaces the first read: its values never mix with another page's.
       const base = read ? { v: { vessel: '', date: '', port: '', drivers: '' }, allocs: [blank()], decks: [] as DeckDraft[] } : { v: { vessel: v.vessel, date: v.date, port: v.port, drivers: v.drivers }, allocs, decks };
       const m = mergeGamePlan(base, res.plan);
@@ -124,6 +126,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
       if (!r) return;
       const res = readDischargeSummary(r.scans);
       if (!res.ok) { setSumMsg(res.error); return; }
+      setKept((k) => [...k, ...r.files]);
       const next = { ...load }; const left: string[] = [];
       for (const tt of res.totals) { const b = brandFor(tt.label, rowBrands); if (b && !(next[b] ?? '').trim()) next[b] = String(tt.count); else if (!b) left.push(`${tt.count} ${tt.label}`); }
       setLoad(next); setOverride(false);

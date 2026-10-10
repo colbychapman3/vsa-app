@@ -12,7 +12,7 @@ import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/
 import { openExpoDb, type Db } from './src/storage/db.ts';
 import { exportLog, importLog, markExported, backupStatus } from './src/storage/backup.ts';
 import { openStore, type State, type Store } from './src/storage/store.ts';
-import { dropVesselPhotos } from './src/app/evidenceFiles.ts';
+import { dropVesselPhotos, keepImports } from './src/app/evidenceFiles.ts';
 import { deleteVessel, getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, type VesselRow } from './src/storage/vessels.ts';
 import { getPref, setPref } from './src/storage/prefs.ts';
 import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
@@ -77,6 +77,7 @@ export default function App() {
   const [prefill, setPrefill] = useState<HourPrefill | undefined>(undefined); // an hourly count typed in Ask, shown in the Log form
   const [drawer, setDrawer] = useState(false); // the left-side menu (an overlay, not a modal)
   const [appearance, setAppearance] = useState<AppearanceMode>('light');
+  const [keepPhotos, setKeepPhotos] = useState(false); // Settings › Paperwork photos: keep the Setup pages with the new vessel
   const [sun, setSun] = useState(false); // Extra visible (Settings): heavier type, 2 pt borders
   const [layout, setLayout] = useState<Layout>(defaultLayout()); // which Snapshot boxes show where (a per-phone preference)
   const [remindersPaused, setRemindersPaused] = useState(false);
@@ -154,6 +155,7 @@ export default function App() {
           const mode = asAppearance(await getPref(dbRef.current, 'appearance'));
           applyAppearance(mode); setAppearance(mode);
           setSun(asSun(await getPref(dbRef.current, 'sun')));
+          setKeepPhotos((await getPref(dbRef.current, 'keepImports')) === '1');
           setRemindersPaused((await getPref(dbRef.current, 'remindersPaused')) === '1');
           setQuiet(quietFromText(await getPref(dbRef.current, 'quiet')));
           setLayout(parseLayout(await getPref(dbRef.current, 'snapshotLayout')));
@@ -304,7 +306,7 @@ export default function App() {
   };
   // Paperwork lines Colby ticked at Review become Plan notes (source photo-read), written before the vessel opens.
   // If a note fails, the vessel is still created and the message says how many notes did not save.
-  const create = async (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[]): Promise<{ ok: true } | Reject> => {
+  const create = async (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[], photos: string[]): Promise<{ ok: true } | Reject> => {
     const c = await store.current!.createVessel({ operationId: b.operationId, baseline: b.baseline, isTest });
     if (!c.ok) return c;
     let failed: string | null = null;
@@ -320,8 +322,9 @@ export default function App() {
         state = r.state; saved++;
       }
     } catch (e) { failed = (e as Error).message; }
+    const keptN = keepPhotos && photos.length ? await keepImports(b.operationId, photos) : 0;
     await switchTo(b.operationId);
-    const made = `${b.baseline.vessel} created (${isTest ? 'TEST' : 'LIVE'})`;
+    const made = `${b.baseline.vessel} created (${isTest ? 'TEST' : 'LIVE'})${keptN ? `, ${keptN} paperwork photo${keptN === 1 ? '' : 's'} kept` : ''}`;
     setNotice(failed
       ? { ok: false, text: `${made}, but ${notes.length - saved} of ${notes.length} notes did not save: ${failed.replace(/\.?$/, '.')} Add them in Plan.` }
       : { ok: true, text: `${made}${saved ? `, ${saved} note${saved === 1 ? '' : 's'} added to Plan` : ''}.` });
@@ -374,7 +377,7 @@ export default function App() {
                     ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} baseline={vessel.baseline} />
-                      : <Plan state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
+                      : <Plan vesselId={vessel.id} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
                   </>}
               </ScrollView>
               <LogButton onPress={() => { setNotice(null); setPrefill(undefined); setLogOpen(true); }} />
@@ -393,6 +396,7 @@ export default function App() {
               {sheet === 'settings' && (
                 <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)} layout={layout} onLayout={changeLayout}
                   sun={sun} onSun={(v) => { setSun(v); void setPrefSafe('sun', v ? '1' : '0'); }}
+                  keepPhotos={keepPhotos} onKeepPhotos={(v) => { setKeepPhotos(v); void setPrefSafe('keepImports', v ? '1' : '0'); }}
                   appearance={appearance} onAppearance={(m) => { setAppearance(m); applyAppearance(m); void setPrefSafe('appearance', m); }}
                   reminders={remind} remindersPaused={remindersPaused} onPauseReminders={(p) => { setRemindersPaused(p); void setPrefSafe('remindersPaused', p ? '1' : '0'); }}
                   onEnableReminders={async () => setRemind(await enableReminders())}

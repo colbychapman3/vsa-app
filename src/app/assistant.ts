@@ -64,7 +64,7 @@ const deckIn = (text: string, s: State): string | null | 'missing' => {
 export function routeQuestion(text: string, s: State): Intent {
   const t = norm(text);
   if (/\b(why|how (is|are|do|does)|explain|worked out|calculated)\b/.test(t)) {
-    const key = /\b(eta|finish time)\b/.test(t) ? 'eta' : /\bin transit\b/.test(t) ? 'transit' : /\b(gap|ahead|behind)\b/.test(t) ? 'gap' : /\b(h a|ha|hourly average)\b/.test(t) ? 'ha' : /\bpace\b/.test(t) ? 'pace' : /\bclear.?by\b/.test(t) ? 'clearby' : /\b(remaining|left)\b/.test(t) ? 'remaining' : null;
+    const key = /\b(eta|finish time)\b/.test(t) ? 'eta' : /\bin transit\b/.test(t) ? 'transit' : /\b(gap|ahead|behind)\b/.test(t) ? 'gap' : /\b(h a|h\.a|ha|hourly average)\b/.test(t) ? 'ha' : /\bpace\b/.test(t) ? 'pace' : /\bclear.?by\b/.test(t) ? 'clearby' : /\b(remaining|left)\b/.test(t) ? 'remaining' : null;
     if (key) return { k: 'why', key };
   }
   // What-ifs first: numbers, decks and brands come from the typed words only.

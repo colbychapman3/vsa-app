@@ -7,7 +7,7 @@ import { Setup } from './Setup.tsx';
 
 export function Vessels({ onCreate, onClose }: {
   onClose: () => void;
-  onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[]) => Promise<{ ok: true } | Reject>;
+  onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[], photos: string[]) => Promise<{ ok: true } | Reject>;
 }) {
   const [newTest, setNewTest] = useState(false);
   const [key, setKey] = useState('');

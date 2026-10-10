@@ -13,6 +13,7 @@ import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
 import { reportStatus } from '../complete.ts';
 import { color, TAP, useType } from '../theme.ts';
 import { Vans } from './Vans.tsx';
+import { ImportPhotos } from './ImportPhotos.tsx';
 import { Big, Body, Card, Chip, Collapse, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Backup = {
@@ -28,7 +29,7 @@ export type Reports = {
 };
 export type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
-export function Plan({ state, baseline, isTest, save, backup, reports, onNotice }: { state: State; baseline: Baseline; isTest: boolean; save: Save; backup: Backup; reports: Reports; onNotice: (n: { ok: boolean; text: string }) => void }) {
+export function Plan({ vesselId, state, baseline, isTest, save, backup, reports, onNotice }: { vesselId: string; state: State; baseline: Baseline; isTest: boolean; save: Save; backup: Backup; reports: Reports; onNotice: (n: { ok: boolean; text: string }) => void }) {
   const f = useType();
   const [recheck, setRecheck] = useState<Set<string>>(new Set());
   const [shiftOpen, setShiftOpen] = useState(false);
@@ -193,6 +194,7 @@ export function Plan({ state, baseline, isTest, save, backup, reports, onNotice 
         })}
       </Card>
 
+      <ImportPhotos vesselId={vesselId} />
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="Backup" />
         <Body>Last exported: {backup.lastAt ? `${backup.lastAt.replace('T', ' ').slice(0, 16)} ` : 'never'}</Body>

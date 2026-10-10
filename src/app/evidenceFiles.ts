@@ -12,12 +12,30 @@ export async function keepPhoto(tmpUri: string, relPath: string): Promise<void> 
   await new File(tmpUri).copy(new File(Paths.document, ...parts));
 }
 
+// Paperwork photos kept from Setup (Settings › Paperwork photos): imports/<vesselId>/<n>.jpg. Not part of the log; removed with the vessel.
+// Runs after the vessel is saved, so a file that cannot be copied is skipped and counted out; it never blocks the vessel.
+export async function keepImports(vesselId: string, tmpUris: string[]): Promise<number> {
+  let kept = 0;
+  for (let i = 0; i < tmpUris.length; i++) {
+    try { await keepPhoto(tmpUris[i], `imports/${vesselId}/${i + 1}.jpg`); kept++; } catch { /* skipped */ }
+  }
+  return kept;
+}
+export function listImports(vesselId: string): string[] {
+  try {
+    const d = new Directory(Paths.document, 'imports', vesselId);
+    return d.exists ? d.list().filter((x): x is File => x instanceof File).map((f) => `imports/${vesselId}/${f.name}`).sort() : [];
+  } catch { return []; }
+}
+
 export const photoUri = (relPath: string) => new File(Paths.document, ...relPath.split('/')).uri;
 export const photoExists = (relPath: string) => new File(Paths.document, ...relPath.split('/')).exists;
 
 // A deleted vessel's photo folder (evidence/<vesselId>/). Best effort: a folder left behind is harmless and refers to nothing.
 export function dropVesselPhotos(vesselId: string): void {
-  try { const d = new Directory(Paths.document, 'evidence', vesselId); if (d.exists) d.delete(); } catch { /* left behind, harmless */ }
+  for (const top of ['evidence', 'imports']) {
+    try { const d = new Directory(Paths.document, top, vesselId); if (d.exists) d.delete(); } catch { /* left behind, harmless */ }
+  }
 }
 
 // Only for a copy made by keepPhoto whose event was then refused: nothing refers to it.

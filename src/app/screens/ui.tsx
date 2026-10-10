@@ -21,9 +21,9 @@ export function Label({ children, style, wrap }: { children: ReactNode; style?: 
 
 // Big numbers stay on one line and shrink to fit instead of wrapping mid-digit.
 export function Big({ children, size, style }: { children: ReactNode; size: number; style?: StyleProp<TextStyle> }) {
-  const f = useType();
+  const f = useType(), sun = useSun();
   return (
-    <Text style={[{ fontSize: size, lineHeight: size * 0.95, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, style]}
+    <Text style={[{ fontSize: size, lineHeight: size * 0.95, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, sun && { backgroundColor: color.soft, borderRadius: 8, paddingHorizontal: 6, overflow: 'hidden' }, style]}
       numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
       {children}
     </Text>

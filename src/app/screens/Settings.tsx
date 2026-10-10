@@ -15,8 +15,9 @@ export type ExportResult = { ok: boolean; text: string };
 
 const APPEARANCE_LABEL: Record<AppearanceMode, string> = { light: 'Light', night: 'Night', auto: 'Auto' };
 
-export function Settings({ isTest, rows, currentId, appearance, onAppearance, sun, onSun, reminders, remindersPaused, onPauseReminders, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
+export function Settings({ isTest, rows, currentId, appearance, onAppearance, sun, onSun, keepPhotos, onKeepPhotos, reminders, remindersPaused, onPauseReminders, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
   sun: boolean; onSun: (v: boolean) => void;
+  keepPhotos: boolean; onKeepPhotos: (v: boolean) => void;
   layout: Layout; onLayout: (l: Layout) => void;
   isTest: boolean; rows: VesselRow[]; currentId: string;
   appearance: AppearanceMode; onAppearance: (m: AppearanceMode) => void;
@@ -46,6 +47,10 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, su
       <InfoNote><Note>Light is the sun-readable default. Night is for night shifts. Auto follows your iPhone.</Note></InfoNote>
       <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Standard' }, { value: 'on', label: 'Extra visible' }]} value={sun ? 'on' : 'off'} onChange={(v) => onSun(v === 'on')} />
       <InfoNote><Note>Extra visible: heavier text, thicker outlines and slightly larger writing, for direct sun and gloves.</Note></InfoNote>
+
+      <SectionHead title="Paperwork photos" />
+      <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Don’t keep' }, { value: 'on', label: 'Keep on this phone' }]} value={keepPhotos ? 'on' : 'off'} onChange={(v) => onKeepPhotos(v === 'on')} />
+      <InfoNote><Note>When on, the game plan and discharge summary pages you photograph in Setup are kept with the new vessel (see Plan). Only the pages read after you turn it on. They stay on this phone and are not in the exported log.</Note></InfoNote>
 
       <SectionHead title="Snapshot" />
       <Go ghost label="Customize Snapshot" onPress={() => setCustomize(true)} />
