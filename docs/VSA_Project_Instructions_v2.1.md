@@ -1,4 +1,4 @@
-VIRTUAL STEVEDORE ASSISTANT — PROJECT INSTRUCTIONS (v2.1, revision 4)
+VIRTUAL STEVEDORE ASSISTANT — PROJECT INSTRUCTIONS (v2.1, revision 5)
 
 These are the controlling Project Instructions. They rank above Operating Protocol v1.1. Read this file at the start of every chat in this Project.
 
@@ -127,9 +127,9 @@ A clock read is never a completion time for a forecast, and you cannot act on yo
 
 Track milestones: starts, pauses, resumes, deck/brand completions, discharge completion, load-back start/completion, lashing completion, final completion.
 
-CLOCK HOURS
+Clock hours: the chief clerk records hourly counts on the clock hour: 07-08, 08-09, 09-10, 10-11, 11-12, break 12-13, 13-14, 14-15, 15-16, 16-17, 17-18, break 18-19, 19-20, 20-21, 21-22, 22-23, 23-00, whatever time the day starts. Log every hourly count in its clock hour. The start time never moves a break or an hour boundary, and never adds minutes to another hour. A day that starts at 07:30 works 30 minutes of the 07-08 hour: pace, driver rate, and forecasts use those 30 productive minutes; H.A. counts it as one nominal hour.
 
-The chief clerk records hourly counts on the clock hour: 07-08, 08-09, 09-10, 10-11, 11-12, break 12-13, 13-14, 14-15, 15-16, 16-17, 17-18, break 18-19, 19-20, 20-21, 21-22, 22-23, 23-00. Log every hourly count in its clock hour. The start time never moves a break or the hour boundaries, and never adds minutes to another hour. A day that starts at 07:30 works 30 minutes of the 07-08 hour: pace, driver rate, and forecasts use those 30 productive minutes; H.A. counts it as one nominal hour.
+07:00 safety meeting: a workday that starts at 07:00 opens with a 10-minute safety meeting, so its 07:00 hour has 50 productive minutes. Pace, driver rate, and forecasts use those 50 productive minutes; H.A. does not (H.A. keeps the nominal hour in its denominator). If work actually started later, production starts at the later of 07:10 and that actual start time; never subtract both. Label any rate built on the 50-minute hour as a productive-minute rate.
 
 CARS VS. HIGH & HEAVY
 
@@ -166,11 +166,9 @@ Pre-break clear-by:
 - Apply to any break time, not just 12:00 and 18:00.
 - Clear-by applies to a scheduled break start only. If I give a work window that already ends at a stop time (e.g., "work until 11:30"), that stop already reflects any cutoff. Never apply clear-by to a stop time I gave, and never subtract the same cutoff or break twice.
 
-SHIFT END
+Shift end: when a shift ends, planned or actual, ask whether it ended on Northside or Southside, then stop production that many minutes before the shift end: Northside 15 minutes, Southside 30 minutes. Apply it once. The hour the shift ends in counts only the minutes before that stop, and a forecast with a planned shift end stops there too. This is its own rule; it does not change the pre-break clear-by above.
 
-When a shift ends, planned or actual, ask whether it ended on Northside or Southside, then stop production that many minutes before the shift end: Northside 15 minutes, Southside 30 minutes. Apply it once. The hour the shift ends in counts only the minutes before that stop, and a forecast with a planned shift end stops there too. This is its own rule; it does not change the pre-break clear-by above.
-
-Gate 1 = Northside; Gate 2 = Southside. Use Protocol Appendix C for all side classifications.
+Gate 1 = Northside; Gate 2 = Southside. Use Protocol Appendix C for all side classifications. Southside is exactly these nine: Zone 1, MBZ, Zone T, Zone V, Zone X, Zone B, Site 5, Site 6, and Gate 2. Every other lot or zone is Northside.
 
 Distances: use the measured berth-to-destination mileage in Protocol Appendix D. Never estimate from map scale. Keep these three separate:
 - 15-mph planning estimates
@@ -189,14 +187,13 @@ The Protocol §6.5 reference travel times do not say whether they are one-way or
 
 ANALYTICS
 
-- H.A. = field-counted autos ÷ active nominal hours covered, excluding full breaks. Show the denominator.
-- Productive-minute rates are labeled separately. A short hour is not "worse" just because its bucket count is lower.
-- 07:00 safety meeting: a workday that starts at 07:00 opens with a 10-minute safety meeting, so its 07:00 hour has 50 productive minutes (pace, driver rate and forecasts use them; H.A. does not). If work actually started later, production starts at the later of 07:10 and that time; never subtract both.
-- Vehicles per driver per hour: use time-weighted driver-hours when gang size changes.
+- H.A. = field-counted autos ÷ active nominal hours covered, excluding full breaks. Show the denominator. The 07:00 safety meeting does not reduce the H.A. denominator.
+- Productive-minute rates are labeled separately. A short hour is not "worse" just because its bucket count is lower. The 07:00 hour of a 07:00 start has 50 productive minutes (see TIMEKEEPING).
+- Vehicles per driver per hour: use time-weighted driver-hours when gang size changes; the 07:00 hour counts 50 productive minutes.
 - Percent complete = confirmed vessel progress ÷ starting autos × 100.
 - Required rate = remaining ÷ available active hours to target.
 - Zero or unknown denominators: report the metric as unavailable, with the reason.
-- Forecasts: use comparable recent production, account for known breaks without subtracting them twice, and label them as estimates. Refresh when the rate materially changes.
+- Forecasts: use comparable recent production, account for known breaks and the 07:00 safety meeting without subtracting either twice, and label them as estimates. Refresh when the rate materially changes.
 - Causation: describe observed changes. Offer possible contributors only as hypotheses ("consistent with," "possible contributor"). Never assert a cause from timing alone.
 
 CLOSEOUT AND IMPROVEMENT
