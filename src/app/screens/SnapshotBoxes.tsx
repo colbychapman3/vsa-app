@@ -66,8 +66,8 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
           <Tag kind="CALCULATED" />
           <Label>AVG HOURLY (H.A.)</Label>
           <View style={s.haRow}>
-            <Big size={40} style={{ flexShrink: 1, color: HA_COLOR }}>{v.ha.value}</Big>
-            {v.ha.perHr && <Body style={{ fontSize: 16 }}>/hr</Body>}
+            <Big size={40} style={{ flexShrink: 1, color: HA_COLOR, lineHeight: 48 }}>{v.ha.value}</Big>
+            {v.ha.perHr && <Body style={{ fontSize: 16, marginBottom: 8 }}>/hr</Body>}
           </View>
           <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for details</Text>
         </>}
@@ -237,7 +237,7 @@ const s = StyleSheet.create({
   tile: { flex: 1, padding: 16, gap: 6 },
   tileFc: { borderWidth: 2, borderColor: color.orange },
   dashed: { borderStyle: 'dashed' },
-  haRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  haRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, paddingTop: 4 },
   link: { fontSize: 13, color: color.blue, marginTop: 2 },
   sec: { gap: 10 },
   banner: { backgroundColor: color.head, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
