@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
-import { color, edge, elev, TAP, useSun, useType } from '../theme.ts';
+import { color, elev, TAP, useEdge, useSun, useType } from '../theme.ts';
 
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[u.card, edge(useSun()), style]}>{children}</View>;
+  return <View style={[u.card, useEdge(), style]}>{children}</View>;
 }
 
 // Short caps labels stay on one line and shrink to fit, so a word never splits at
@@ -229,12 +229,12 @@ export function Field({ label, value, onChange, placeholder, keyboard = 'number-
   label: string; value: string; onChange: (v: string) => void; placeholder?: string;
   keyboard?: 'number-pad' | 'default' | 'numbers-and-punctuation'; note?: string; maxLength?: number;
 }) {
-  const f = useType(), sun = useSun();
+  const f = useType(), edge = useEdge();
   return (
     <View style={{ gap: 6, flex: 1 }}>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} keyboardType={keyboard} maxLength={maxLength}
-        style={[u.input, edge(sun), { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
+        style={[u.input, edge, { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
     </View>
   );
 }
@@ -262,14 +262,14 @@ export function TimeField({ label, value, onChange, onNow, required, hint }: { l
 export function Seg<T extends string | number>({ options, value, onChange, columns = 3 }: {
   options: { value: T; label: string }[]; value: T | null; onChange: (v: T) => void; columns?: number;
 }) {
-  const f = useType(), sun = useSun();
+  const f = useType(), edge = useEdge();
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
       {options.map((o) => {
         const on = o.value === value;
         return (
           <Pressable key={String(o.value)} onPress={() => onChange(o.value)} accessibilityRole="radio" accessibilityState={{ selected: on }}
-            style={({ pressed }) => [u.segBtn, { flexBasis: `${100 / columns - 2}%` }, edge(sun), on && u.segOn, pressed && u.pressed]}>
+            style={({ pressed }) => [u.segBtn, { flexBasis: `${100 / columns - 2}%` }, edge, on && u.segOn, pressed && u.pressed]}>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: on ? color.bg : color.ink, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{o.label}</Text>
           </Pressable>
         );
@@ -290,10 +290,10 @@ export function Reasons({ options, value, onChange, other, onOther }: { options:
 }
 
 export function Go({ label, onPress, ghost, disabled }: { label: string; onPress: () => void; ghost?: boolean; disabled?: boolean }) {
-  const f = useType(), sun = useSun();
+  const f = useType(), edge = useEdge();
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button"
-      style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, sun && ghost && edge(sun), pressed && { transform: [{ scale: 0.98 }] }, (pressed || disabled) && { opacity: 0.6 }]}>
+      style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, ghost && edge, pressed && { transform: [{ scale: 0.98 }] }, (pressed || disabled) && { opacity: 0.6 }]}>
       {/* A one-word label ("Unarchive" beside Delete) stays on one line and shrinks; it never splits mid-word. Sentences wrap between words. */}
       <Text style={{ fontFamily: ghost ? f.bodySemi : f.displaySemi, fontSize: ghost ? 15 : 18, color: ghost ? color.ink : color.onAction }}
         {...(/\s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 })}>{label}</Text>

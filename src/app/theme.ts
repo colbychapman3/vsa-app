@@ -1,7 +1,7 @@
 // Design B "Ship Plan" (Colby, 2026-10-11): Schibsted Grotesk for numbers, headings and text, DM Mono for small
 // labels and times. Light (steel grey and navy) plus a Night palette; values in palette.ts.
 import { createContext, useContext } from 'react';
-import { Appearance, DynamicColorIOS, Platform, Settings as DeviceSettings, type ColorValue } from 'react-native';
+import { Appearance, DynamicColorIOS, Platform, Settings as DeviceSettings, useColorScheme, type ColorValue } from 'react-native';
 import { light, night, sunLight, type Token } from './palette.ts';
 // One import per weight: the packages' index files require every weight and style (32 files, 4.8 MB) into the app bundle.
 import { SchibstedGrotesk_400Regular } from '@expo-google-fonts/schibsted-grotesk/400Regular';
@@ -78,4 +78,9 @@ export const useType = () => useContext(FontContext);
 // Extra visible: 2 pt ink borders and a point more on running text. Families are stepped in App.tsx through sunFamilies().
 export const SunContext = createContext(false);
 export const useSun = () => useContext(SunContext);
-export const edge = (sun: boolean) => (sun ? { borderWidth: 2, borderColor: color.ink } : null);
+// Border colors are fixed on the layer, and iOS resolves a dynamic color there with the phone's own Light/Dark, not the app's
+// forced Night, so Extra visible's black outline vanished on the dark page. The outline is therefore picked from the app's scheme.
+export function useEdge() {
+  const sun = useSun(), dark = useColorScheme() === 'dark';
+  return sun ? { borderWidth: 2, borderColor: dark ? night.ink : (sunPaletteLoaded ? sunLight : light).ink } : null;
+}
