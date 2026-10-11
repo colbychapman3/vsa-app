@@ -36,6 +36,8 @@ import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
 import { Ask } from './src/app/screens/Ask.tsx';
 import { quietFromText, quietToText, reminderPlan, type Quiet } from './src/app/assistant.ts';
 import { enableReminders, installHandlers, reminderStatus, syncReminders, type ReminderStatus } from './src/app/reminders.ts';
+import { answerAfterSave, type Answer } from './src/app/answer.ts';
+import { AnswerCard, answerText } from './src/app/screens/AnswerCard.tsx';
 import { Decks } from './src/app/screens/Decks.tsx';
 import { DeckSheet } from './src/app/screens/DeckSheet.tsx';
 import { Hourly } from './src/app/screens/Hourly.tsx';
@@ -52,7 +54,7 @@ const glovis = glovisJson as Baseline;
 
 type Loaded = { id: string; baseline: Baseline; isTest: boolean; state: State };
 export type { SaveResult } from './src/app/session.ts';
-type Notice = { ok: boolean; text: string; action?: { label: string; onPress: () => void } }; // action: one tap to do what the message offers
+type Notice = { ok: boolean; text: string; action?: { label: string; onPress: () => void }; answer?: Answer }; // action: one tap to do what the message offers; answer: the card after a Log or deck save
 
 const minutesNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
 
@@ -119,6 +121,16 @@ export default function App() {
   // Latest state for building events, so two quick taps never build from a stale state.
   const latest = useRef<State | null>(null);
   useEffect(() => { latest.current = vessel?.state ?? null; }, [vessel]);
+
+  // The answer after Save (Act II): the state when the Log or a deck sheet opened, compared with the state after its save.
+  const before = useRef<State | null>(null);
+  const answered = useCallback((done: string): Notice => {
+    const was = before.current, now = latest.current;
+    before.current = null;
+    if (!was || !now || !vessel) return { ok: true, text: done };
+    const a = answerAfterSave(was, now, vessel.baseline, minutesNow(), done);
+    return a.changed ? { ok: true, text: answerText(a), answer: a } : { ok: true, text: done };
+  }, [vessel]);
 
   // Plan reminders: notifications tapped open Plan; the schedule is replaced whenever the vessel's state changes or the app returns.
   const openPlan = useRef<() => void>(() => {});
@@ -342,7 +354,8 @@ export default function App() {
           {vessel ? (
             <>
               <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onMenu={openMenu} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
-              {notice && (
+              {notice?.answer && <AnswerCard answer={notice.answer} onDismiss={() => setNotice(null)} />}
+              {notice && !notice.answer && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>
                   <Text style={[s.noticeText, { color: notice.ok ? color.gInk : color.rInk }]}>{notice.text}</Text>
@@ -374,21 +387,21 @@ export default function App() {
                     <Boxes tab={tab} layout={layout} onLayout={changeLayout} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} onNotice={setNotice}
                       onOpenTab={openTab} onHistory={() => { setNotice(null); setSheet('eta'); }} />
                     {tab === 'decks'
-                    ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
+                    ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} baseline={vessel.baseline} />
                       : <Plan vesselId={vessel.id} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
                   </>}
               </ScrollView>
-              <LogButton onPress={() => { setNotice(null); setPrefill(undefined); setLogOpen(true); }} />
+              <LogButton onPress={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }} />
               <AskButton onPress={() => { setNotice(null); setSheet('ask'); }} />
               {logOpen && (
                 <LogSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} prefill={prefill}
-                  onClose={(done) => { setLogOpen(false); if (done) setNotice({ ok: true, text: done }); }} />
+                  onClose={(done) => { setLogOpen(false); if (done) setNotice(answered(done)); else before.current = null; }} />
               )}
               {deckOpen && (
                 <DeckSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} deckId={deckOpen} save={save}
-                  onClose={(done) => { setDeckOpen(null); if (done) setNotice({ ok: true, text: done }); }} />
+                  onClose={(done) => { setDeckOpen(null); if (done) setNotice(answered(done)); else before.current = null; }} />
               )}
               {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} />}
               {sheet === 'complete' && <CompleteSheet state={vessel.state} isTest={vessel.isTest} save={save} onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} onGo={openTab} />}
@@ -408,7 +421,7 @@ export default function App() {
               {sheet === 'ask' && (
                 <Ask state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} reminders={remind}
                   onEnableReminders={async () => setRemind(await enableReminders())}
-                  onShow={(w) => openTab(w)} onLog={(p) => { setPrefill(p); setTimeout(() => setLogOpen(true), 450); }} onNewVessel={() => setTimeout(() => { setNotice(null); setSheet('new'); }, 450)}
+                  onShow={(w) => openTab(w)} onLog={(p) => { setPrefill(p); before.current = vessel.state; setTimeout(() => setLogOpen(true), 450); }} onNewVessel={() => setTimeout(() => { setNotice(null); setSheet('new'); }, 450)}
                   onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
