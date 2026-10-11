@@ -87,3 +87,13 @@ export function eventTimeLabel(occurred: OpTime | null, logged?: { hm: string; t
   if (logged) return `Logged at ${logged.hm} ${logged.tz} (processing time, not event time)`;
   return 'time not provided';
 }
+
+// Minutes from Day 1 00:00 for an ISO date-time written in local time with its offset (the clock text is read, the offset must be
+// present; a UTC "Z" time or no offset is not read). Null when it can't be read or is before Day 1.
+export function absFromIso(iso: string, opDate: string): number | null {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?[+-]\d{2}:\d{2}$/.exec(iso);
+  const mins = m ? parseHM(m[2]) : null;
+  if (!m || mins == null) return null;
+  const day = Math.round((Date.parse(`${m[1]}T00:00:00Z`) - Date.parse(`${opDate}T00:00:00Z`)) / 86400000);
+  return day < 0 ? null : day * 1440 + mins;
+}

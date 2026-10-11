@@ -9,8 +9,8 @@ import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
 import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, SAFETY_MEETING, type HourEntry } from './production.ts';
 import { buildPasses, hhAnalysis, hhStatus, type HhMarker } from './hh.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
-import { eta, scheduleOf, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
-import { fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
+import { eta, scheduleOf, steadyFinish, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
+import { absFromIso, fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
 
 export * from './time.ts';
 export * from './baseline.ts';
@@ -106,6 +106,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   let completed: { time: string; override: boolean; reason: string | null; blockers: string[] } | null = null; // vessel marked complete by Colby (last mark wins; a reopen clears it)
   let recStart = 0; // sequence of the latest break/shift-end start
   const lastDeckEvent: Record<string, string> = {}; // for naming the event in whole-sheet errors
+  const deckSave: Record<string, number | null> = {}; // deck → when its numbers were last saved (reported time, else the save's processing time as an upper bound)
 
   // Each event is applied at its original's place in the log, so a corrected break time
   // takes effect where the break happened, not where the correction was saved.
@@ -166,6 +167,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       case 'vessel_remaining': {
         const d = sc.deck ? deckById.get(sc.deck) : undefined;
         if (!d) return fail(`Event ${id}: deck ${sc.deck} is not in the baseline.`, id);
+        if (p.metric !== 'deck_skipped' && p.metric !== 'deck_height_m') deckSave[d.id] = occurred ? toAbs(occurred) : opDate ? absFromIso(e.recorded_at, opDate) : null;
         const cur = decks[d.id] ?? { status: 'notStarted' as DeckStatus };
         let next: typeof cur = { ...cur };
         if (p.metric === 'deck_status') {
@@ -518,6 +520,10 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     schedule: scheduleOf(baseline, plan, Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm]))),
     ops,
   });
+  // The finish the screens show (Colby, 2026-10-11, option A): deck counts older than the last logged hour carried forward at the pace.
+  const steady = steadyFinish({ vesselRemaining: L.vesselRemaining, fieldBalance: L.fieldBalance, forecast: forecast, periods,
+    schedule: scheduleOf(baseline, plan, Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm]))), ops,
+    deckSaves: Object.values(deckSave), shiftEndAbs: breakLog.find((x) => x.kind === 'shift' && x.startAbs < 1440)?.startAbs ?? null });
 
   const corrections = log.events.filter((e) => e.supersedes_event_id && !log.supersededBy[e.event_id])
     .map((e) => ({ event_id: e.event_id, metric: e.payload.metric, history: historyOf(log, e.event_id).map((x) => x.payload.value), reason: e.payload.reason }));
@@ -533,6 +539,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     breaks: baseline.breaks,
     ...L,
     eta: forecast,
+    steady, // the finish the screens show; `eta` stays the raw forecast
     ops: { ...ops, phase },
     plan,
     issues: [...issues.values()],

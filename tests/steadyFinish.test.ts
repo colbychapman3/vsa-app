@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { carriedRemaining, productiveMinutes, type Schedule, type VsaEvent, type Reject } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
-import { steady } from '../src/app/steady.ts';
+const steady = (st: State, _b: unknown) => st.steady; // the engine's finish (project() builds it)
 import { snapshot } from '../src/app/view.ts';
 import { answerAfterSave } from '../src/app/answer.ts';
 import { etaHistory } from '../src/app/etaHistory.ts';
