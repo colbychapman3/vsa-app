@@ -134,7 +134,7 @@ export function productiveMinutes(s: Schedule, from: number, to: number): number
   if (!(to > from)) return 0;
   let total = 0;
   for (let d = Math.floor(from / DAY); d <= Math.floor(to / DAY); d++) {
-    for (const [a, z] of windows(s, d)) total += Math.max(0, Math.min(z, to) - Math.max(a, from));
+    for (const [a, z] of windows(s, d)) total += Math.max(0, Math.min(z, to, (d + 1) * DAY) - Math.max(a, from)); // a day ends at midnight: no overlap with the next
   }
   return total;
 }

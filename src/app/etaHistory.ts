@@ -2,6 +2,7 @@
 // (nothing is stored, so it cannot disagree with the record). A correction made later is not applied to an earlier point:
 // each point is the projection of the log as it stood then. Plus/minus lines state what changed and never a cause.
 import { formatHM, project, type Baseline, type VsaEvent } from '../engine/index.ts';
+import { steady } from './steady.ts';
 
 export type EtaPoint = {
   hour: string;            // "HH:MM" start of the hour just logged
@@ -31,7 +32,7 @@ export function etaHistory(baseline: Baseline, events: VsaEvent[], operationId: 
     if (!p.ok) return [];
     const day = Math.round((Date.parse(e.payload.period_start!.slice(0, 10)) - day1) / 86400000) + 1;
     const done = p.vesselRemaining === 0;
-    return [{ hour: e.payload.period_start!.slice(11, 16), day, count: e.payload.value as number, etaAbs: done ? null : p.eta.etaAbs, rate: done ? null : p.eta.rate }];
+    return [{ hour: e.payload.period_start!.slice(11, 16), day, count: e.payload.value as number, etaAbs: done ? null : steady(p, baseline).etaAbs /* the finish the tile showed then */, rate: done ? null : p.eta.rate }];
   });
   return raw.map((r, k): EtaPoint => {
     const prev = k > 0 ? raw[k - 1] : null;

@@ -261,7 +261,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     : st.etaAbs != null ? {
       value: formatHM(st.etaAbs),
       day: st.etaAbs >= 1440 ? `Day ${Math.floor(st.etaAbs / 1440) + 1}` : null,
-      notes: [`${fmt(st.remaining)} ÷ ${Math.round(e.rate!)}/hr pace (last ${e.hoursUsed} hr)`,
+      notes: [`${st.carry ? `~${fmt(st.remaining)} est. aboard` : fmt(st.remaining)} ÷ ${Math.round(e.rate!)}/hr pace (last ${e.hoursUsed} hr)`,
         ...(st.carry ? [`Counts ~${fmt(st.carry.cars)} cleared since the last deck update (est.)`] : []), ...(e.basisNote ? ['Based on field balance'] : [])],
       dashed: false,
     } : { value: '—', day: null, notes: [e.reason ?? ''], dashed: true };
