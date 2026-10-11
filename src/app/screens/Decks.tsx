@@ -18,7 +18,8 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
   return (
     <View style={s.main}>
       <View style={{ gap: 10 }}>
-        <SectionHead title="Deck insights" right="Vans need 1.85 m or more" />
+        <SectionHead title="Deck insights" />
+        <InfoNote><Note>Shuttle vans need a deck height of 1.85 m or more. A deck below that gets a low-deck warning.</Note></InfoNote>
         {v.low.length === 0 && <Card style={u.pad}><Note>No low decks with cargo remaining.</Note></Card>}
         {v.low.map((d) => (
           <View key={d.id} style={s.lowAlert} accessibilityRole="alert">

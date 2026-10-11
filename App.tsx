@@ -22,7 +22,7 @@ import type { Built } from './src/app/setup.ts';
 import { saveBatch, shareAndMark, type SaveResult } from './src/app/session.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/app/view.ts';
-import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, SunContext, type AppearanceMode } from './src/app/theme.ts';
+import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, setSunPalette, SunContext, type AppearanceMode } from './src/app/theme.ts';
 import { asSun, sunFamilies } from './src/app/sun.ts';
 import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
@@ -178,7 +178,8 @@ export default function App() {
         try {
           const mode = asAppearance(await getPref(dbRef.current, 'appearance'));
           applyAppearance(mode); setAppearance(mode);
-          setSun(asSun(await getPref(dbRef.current, 'sun')));
+          const sunPref = asSun(await getPref(dbRef.current, 'sun'));
+          setSun(sunPref); setSunPalette(sunPref);
           setKeepPhotos((await getPref(dbRef.current, 'keepImports')) === '1');
           setRemindersPaused((await getPref(dbRef.current, 'remindersPaused')) === '1');
           setQuiet(quietFromText(await getPref(dbRef.current, 'quiet')));
@@ -420,7 +421,7 @@ export default function App() {
               {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               {sheet === 'settings' && (
                 <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)} layout={layout} onLayout={changeLayout}
-                  sun={sun} onSun={(v) => { setSun(v); void setPrefSafe('sun', v ? '1' : '0'); }}
+                  sun={sun} onSun={(v) => { setSun(v); setSunPalette(v); void setPrefSafe('sun', v ? '1' : '0'); }}
                   keepPhotos={keepPhotos} onKeepPhotos={(v) => { setKeepPhotos(v); void setPrefSafe('keepImports', v ? '1' : '0'); }}
                   appearance={appearance} onAppearance={(m) => { setAppearance(m); applyAppearance(m); void setPrefSafe('appearance', m); }}
                   reminders={remind} remindersPaused={remindersPaused} onPauseReminders={(p) => { setRemindersPaused(p); void setPrefSafe('remindersPaused', p ? '1' : '0'); }}

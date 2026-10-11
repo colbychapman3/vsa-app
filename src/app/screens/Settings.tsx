@@ -6,7 +6,7 @@ import type { VesselRow } from '../../storage/vessels.ts';
 import { aiStatus, AI_STATUS_TEXT } from '../ai.ts';
 import { makeQuiet, type Quiet } from '../assistant.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
-import { APPEARANCES, color, useType, type AppearanceMode } from '../theme.ts';
+import { APPEARANCES, color, sunPaletteLoaded, useType, type AppearanceMode } from '../theme.ts';
 import { Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
 import { CustomizeSnapshot } from './CustomizeSnapshot.tsx';
 import type { Layout } from '../snapshotLayout.ts';
@@ -46,7 +46,8 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, su
       <Seg<AppearanceMode> options={APPEARANCES.map((m) => ({ value: m, label: APPEARANCE_LABEL[m] }))} value={appearance} onChange={onAppearance} />
       <InfoNote><Note>Light is the sun-readable default. Night is for night shifts. Auto follows your iPhone.</Note></InfoNote>
       <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Standard' }, { value: 'on', label: 'Extra visible' }]} value={sun ? 'on' : 'off'} onChange={(v) => onSun(v === 'on')} />
-      <InfoNote><Note>Extra visible: heavier text, thicker outlines and slightly larger writing, for direct sun and gloves.</Note></InfoNote>
+      <InfoNote><Note>Extra visible: black text, a darker page so cards stand out, bold outlines and larger labels, for direct sun and gloves.</Note></InfoNote>
+      {sun !== sunPaletteLoaded && <Note>The new colors show after you close VSA and open it again.</Note>}
 
       <SectionHead title="Paperwork photos" />
       <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Don’t keep' }, { value: 'on', label: 'Keep on this phone' }]} value={keepPhotos ? 'on' : 'off'} onChange={(v) => onKeepPhotos(v === 'on')} />

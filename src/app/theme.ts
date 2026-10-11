@@ -1,8 +1,8 @@
 // Design B "Ship Plan" (Colby, 2026-10-11): Schibsted Grotesk for numbers, headings and text, DM Mono for small
 // labels and times. Light (steel grey and navy) plus a Night palette; values in palette.ts.
 import { createContext, useContext } from 'react';
-import { Appearance, DynamicColorIOS, Platform, type ColorValue } from 'react-native';
-import { light, night, type Token } from './palette.ts';
+import { Appearance, DynamicColorIOS, Platform, Settings as DeviceSettings, type ColorValue } from 'react-native';
+import { light, night, sunLight, type Token } from './palette.ts';
 // One import per weight: the packages' index files require every weight and style (32 files, 4.8 MB) into the app bundle.
 import { SchibstedGrotesk_400Regular } from '@expo-google-fonts/schibsted-grotesk/400Regular';
 import { SchibstedGrotesk_500Medium } from '@expo-google-fonts/schibsted-grotesk/500Medium';
@@ -13,7 +13,14 @@ import { DMMono_500Medium } from '@expo-google-fonts/dm-mono/500Medium';
 
 // Every token is a DynamicColorIOS pair (Light / Night, values in palette.ts), so screens keep reading color.ink etc.
 // and iOS swaps them when the appearance changes. react-native-svg accepts these (its extractBrush handles dynamic colors).
-const make = (k: Token): ColorValue => (Platform.OS === 'ios' ? DynamicColorIOS({ light: light[k], dark: night[k] }) : light[k]);
+// Extra visible swaps the Light palette for sunLight. Colors are fixed when the app starts, so the choice is mirrored in the
+// iPhone's own preferences (read at once, before the database opens) and applies on the next launch.
+const SUN_KEY = 'vsa.extraVisible';
+const readSun = () => { try { return Platform.OS === 'ios' && DeviceSettings.get(SUN_KEY) === '1'; } catch { return false; } };
+export const sunPaletteLoaded = readSun();
+export function setSunPalette(on: boolean) { try { if (Platform.OS === 'ios') DeviceSettings.set({ [SUN_KEY]: on ? '1' : '0' }); } catch { /* the loaded palette stays */ } }
+const day = sunPaletteLoaded ? sunLight : light;
+const make = (k: Token): ColorValue => (Platform.OS === 'ios' ? DynamicColorIOS({ light: day[k], dark: night[k] }) : day[k]);
 export const color = Object.fromEntries((Object.keys(light) as Token[]).map((k) => [k, make(k)])) as Record<Token, ColorValue>;
 
 // Settings > Appearance. Light is the default; Auto follows the iPhone. Applied at startup, before the first screen.

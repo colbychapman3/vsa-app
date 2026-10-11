@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { contrast, light, night, TEXT_PAIRS, type Token } from '../src/app/palette.ts';
+import { contrast, light, night, sunLight, TEXT_PAIRS, type Token } from '../src/app/palette.ts';
 
 test('Night has every token Light has, as #RRGGBB', () => {
   for (const k of Object.keys(light) as Token[]) {
@@ -39,4 +39,15 @@ test('Light is Design B, Ship Plan (Colby, 2026-10-11): navy ink on steel grey, 
   assert.equal(light.ink, '#0E1A2B');
   assert.equal(light.action, '#FF8A3D');
   assert.ok(contrast(light.onAction, light.action) >= 7, 'the Log and Save buttons read at 7:1 in sun');
+});
+
+test('Extra visible: every text pair is at least 7:1, ink is black, and white cards stand off the page', () => {
+  for (const [t, b] of TEXT_PAIRS) {
+    const c = contrast(sunLight[t], sunLight[b]);
+    assert.ok(c >= 7, `sun ${t} on ${b} is ${c.toFixed(2)}:1`);
+  }
+  assert.equal(sunLight.ink, '#000000');
+  assert.ok(contrast(sunLight.card, sunLight.bg) > contrast(light.card, light.bg), 'cards separate from the page more than in Light');
+  assert.deepEqual(Object.keys(sunLight).sort(), Object.keys(light).sort());
+  for (const k of Object.keys(light) as Token[]) assert.match(sunLight[k], /^#[0-9A-F]{6}$/i, `sun ${k}`);
 });

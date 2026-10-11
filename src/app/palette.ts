@@ -28,6 +28,15 @@ export const night: Record<Token, string> = {
   mapZone: light.mapZone, mapSite: light.mapSite, mapYard: light.mapYard, mapOem: light.mapOem, mapRail: light.mapRail, mapMeasure: light.mapMeasure,
 };
 
+// Extra visible (Settings): Light with every text token pushed to its darkest readable value (all text pairs at 7:1 or better, ink is
+// pure black), a darker page so white cards stand off it, and solid status colors. Night keeps its own palette.
+export const sunLight: Record<Token, string> = {
+  ...light,
+  bg: '#C9D2DD', card: '#FFFFFF', ink: '#000000', muted: '#16202D', line: '#5C6B7E', soft: '#C2CCD8', row: '#EEF1F5',
+  blue: '#0A239A', orange: '#7A3503', oBg: '#FFF1E3', oInk: '#4A1704', red: '#8E1313', rBg: '#FFE0E0', rInk: '#5A0B0B',
+  green: '#0B5E27', gBg: '#D6F5E0', gInk: '#0A3A1A', head: '#0B1626', headMuted: '#FFFFFF', done: '#2B3848', deckMuted: '#D3DEEE', deckTrack: '#2B4570',
+};
+
 // [text token, background token]: the pairs the screens actually draw.
 export const TEXT_PAIRS: [Token, Token][] = [
   ['ink', 'bg'], ['ink', 'card'], ['onAccent', 'accent'], ['muted', 'bg'], ['muted', 'card'], ['done', 'card'], ['done', 'bg'],

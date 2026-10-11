@@ -144,10 +144,12 @@ export function Plan({ vesselId, state, baseline, isTest, save, backup, reports,
       <Card style={[u.pad, { gap: 10 }]}>
         <SectionHead title="H/H timeline" right="Awareness only" />
         <Body semi>{v.hh.text}</Body>
-        {kv('H/H units (read-only)', v.hh.units)}
-        {v.hh.passes.map((p) => <Note key={p}>{p}</Note>)}
-        {v.hh.lines.map((l) => <Note key={l}>{l}</Note>)}
-        <InfoNote><Note>Log H/H start and complete from the Log sheet (H/H). H/H counts stay with the other stevedore and are never added to the auto counts.</Note></InfoNote>
+        <InfoNote>
+          {kv('H/H units', v.hh.units)}
+          {v.hh.passes.map((p) => <Note key={p}>{p}</Note>)}
+          {v.hh.lines.map((l) => <Note key={l}>{l}</Note>)}
+          <Note>Log H/H start and complete from the Log sheet (H/H). H/H counts stay with the other stevedore and are never added to the auto counts. H/H units are read-only.</Note>
+        </InfoNote>
       </Card>
 
       <Collapse title="Forecast settings">

@@ -13,17 +13,18 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
 // large text sizes ("COMPLETIO/N"). Sentence-length labels pass `wrap`: they wrap
 // between words in a full-width row.
 export function Label({ children, style, wrap }: { children: ReactNode; style?: StyleProp<TextStyle>; wrap?: boolean }) {
-  const f = useType();
+  const f = useType(), sun = useSun();
   return wrap
-    ? <Text style={[u.lbl, { fontFamily: f.bodySemi }, style]}>{children}</Text>
-    : <Text style={[u.lbl, { fontFamily: f.bodySemi }, style]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{children}</Text>;
+    ? <Text style={[u.lbl, sun && { fontSize: 15 }, { fontFamily: f.bodySemi }, style]}>{children}</Text>
+    : <Text style={[u.lbl, sun && { fontSize: 15 }, { fontFamily: f.bodySemi }, style]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{children}</Text>;
 }
 
-// Big numbers stay on one line and shrink to fit instead of wrapping mid-digit.
+// Big numbers stay on one line and shrink to fit instead of wrapping mid-digit. With Extra visible the number sits in a
+// tinted box; that box needs a full line height or the digits stick out of it (phone check 2026-10-11, H.A. tile).
 export function Big({ children, size, style }: { children: ReactNode; size: number; style?: StyleProp<TextStyle> }) {
   const f = useType(), sun = useSun();
   return (
-    <Text style={[{ fontSize: size, lineHeight: size * 0.95, letterSpacing: -size * 0.025, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, sun && { backgroundColor: color.soft, borderRadius: 8, paddingHorizontal: 6, overflow: 'hidden' }, style]}
+    <Text style={[{ fontSize: size, lineHeight: size * 0.95, letterSpacing: -size * 0.025, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, sun && { lineHeight: size * 1.2 }, style]}
       numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
       {children}
     </Text>
@@ -38,7 +39,7 @@ export function Body({ children, style, semi, fit }: { children: ReactNode; styl
 
 export function Note({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
   const f = useType(), sun = useSun();
-  return <Text style={[u.note, sun && { fontSize: 14, lineHeight: 19 }, { fontFamily: f.body }, style]}>{children}</Text>;
+  return <Text style={[u.note, sun && { fontSize: 15, lineHeight: 20 }, { fontFamily: f.body }, style]}>{children}</Text>;
 }
 
 // A box that flips to its explanation when tapped and back when tapped again (a quarter turn out, swap, a quarter turn in).
@@ -85,16 +86,17 @@ export function InfoNote({ children, label = 'About this' }: { children: ReactNo
 }
 
 export function Bar({ pct, small }: { pct: number; small?: boolean }) {
+  const sun = useSun();
   return (
-    <View style={[u.bar, small && u.barSm]}>
+    <View style={[u.bar, small && u.barSm, sun && { height: small ? 12 : 18 }]}>
       <View style={[u.barFill, small && u.barFillSm, { width: `${Math.max(0, Math.min(100, pct))}%` }]} />
     </View>
   );
 }
 
 export function Tag({ kind }: { kind: 'FORECAST' | 'CALCULATED' }) {
-  const f = useType();
-  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{kind}</Text>;
+  const f = useType(), sun = useSun();
+  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, sun && { fontSize: 13 }, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{kind}</Text>;
 }
 
 // A card whose body is hidden until the header is tapped (Colby, 2026-10-08: the math-behind-the-engine cards stay out of the way).
@@ -118,7 +120,7 @@ export function Collapse({ title, right, open: startOpen = false, children }: { 
 // The fill is measured on the line box; GLYPH_BOTTOM/TOP say where the digits sit inside it, so 0% shows none and 100% shows all.
 const GLYPH_BOTTOM = 0.1, GLYPH_TOP = 0.9;
 export function FillNumber({ children, size, pct, fill }: { children: string; size: number; pct: number; fill: ColorValue }) {
-  const f = useType();
+  const f = useType(), sun = useSun();
   const H = size * 0.95;
   const p = Math.max(0, Math.min(100, pct)) / 100;
   const share = p <= 0 ? 0 : p >= 1 ? 1 : GLYPH_BOTTOM + p * (GLYPH_TOP - GLYPH_BOTTOM);
@@ -126,7 +128,7 @@ export function FillNumber({ children, size, pct, fill }: { children: string; si
   const props = { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.5 } as const;
   return (
     <View accessible accessibilityLabel={`${children}, ${Math.round(p * 100)} percent done`}>
-      <Text {...props} style={[style, { color: color.ink, opacity: 0.16 }]}>{children}</Text>
+      <Text {...props} style={[style, { color: color.ink, opacity: sun ? 0.32 : 0.16 }]}>{children}</Text>
       <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: H * share, overflow: 'hidden' }}>
         <Text {...props} style={[style, { position: 'absolute', left: 0, right: 0, bottom: 0, height: H, color: fill }]}>{children}</Text>
       </View>
