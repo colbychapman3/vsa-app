@@ -157,6 +157,15 @@ function HeroBox({ v }: { v: V }) {
         </View>
       </View>
       <Body style={{ fontSize: 17 }}>{h.of}</Body>
+      {h.estimate && (
+        <View style={{ gap: 4 }}>
+          <View style={[u.secH, { justifyContent: 'flex-start', gap: 8 }]}>
+            {h.estimate.forecast && <Tag kind="FORECAST" />}
+            <Text style={{ flexShrink: 1, fontFamily: f.bodySemi, fontSize: 17, color: h.estimate.tone === 'orange' ? color.oInk : color.ink }}>{h.estimate.text}</Text>
+          </View>
+          {h.estimate.sub && <Note>{h.estimate.sub}</Note>}
+        </View>
+      )}
       <Bar pct={h.pct} />
       <View style={u.secH}>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barLeft}</Text>

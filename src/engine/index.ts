@@ -9,7 +9,7 @@ import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
 import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, SAFETY_MEETING, type HourEntry } from './production.ts';
 import { buildPasses, hhAnalysis, hhStatus, type HhMarker } from './hh.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
-import { eta, vesselClearBy, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
+import { eta, scheduleOf, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
 import { fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
 
 export * from './time.ts';
@@ -515,8 +515,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     remaining: L.vesselRemaining ?? L.fieldBalance,
     basis: L.vesselRemaining != null ? 'vessel' : 'field',
     periods,
-    schedule: { dayStart: baseline.start, nextStart: plan.nextStart, shiftEnd: plan.shiftEnd, breaks: baseline.breaks, clearByMin: vesselClearBy(baseline.destinations),
-      ...(plan.shiftEndSide ? { shiftEndStopMin: SHIFT_END_STOP_MIN[plan.shiftEndSide] } : {}), ...(dayActual.size ? { actualStarts: Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm])) } : {}) },
+    schedule: scheduleOf(baseline, plan, Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm]))),
     ops,
   });
 
