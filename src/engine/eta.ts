@@ -1,19 +1,24 @@
 // FORECAST completion time, required rate, and forecast error.
 // ETA stepping is ported from the VSA Live tracker's etaCalc(): rate = average pace of
 // the last two hours with a known pace; skips clear-by + 1-hour breaks; Day 1 ends at
-// shift end minus clear-by; later days start at the next-day start time.
+// shift end minus the stop for the side it ends on; later days start at the next-day start time.
 import type { Destination } from './baseline.ts';
 import { preBreak, SAFETY_MEETING, type Period } from './production.ts';
 import { parseHM, toAbs, fromAbs, type OpTime, type Reject } from './time.ts';
 
 const DAY = 1440, BREAK_MIN = 60;
 
+// Shift end (Colby, 2026-10-10): the app asks which side the shift ends on and stops work this many minutes before it.
+// Its own rule: kept apart from the pre-break clear-by table, even though the numbers match today.
+export const SHIFT_END_STOP_MIN: Record<'N' | 'S', number> = { N: 15, S: 30 };
+
 export type Schedule = {
   dayStart: string;              // Day 1 start
   nextStart?: string | null;     // start time for Day 2 onward
   shiftEnd?: string | null;      // Day 1 shift end, if set
   breaks: string[];
-  clearByMin: number;            // applied once before each break and shift end
+  clearByMin: number;            // applied once before each break (and before the shift end when its side is not given: older logs)
+  shiftEndStopMin?: number;      // minutes before the Day 1 shift end that work stops, from the side Colby names (its own rule)
   actualStarts?: Record<number, string>; // day → actual (late) start; replaces that day's planned start
 };
 export type Ops = { day: number; onBreak?: boolean; breakStart?: string | null; shiftEnded?: boolean };
@@ -34,7 +39,7 @@ const dayStartMin = (s: Schedule, day: number) => {
 // Working windows for one day (0-based index d), in absolute minutes.
 function windows(s: Schedule, d: number): [number, number][] {
   const base = d * DAY, ds = base + dayStartMin(s, d + 1);
-  const end = d === 0 && s.shiftEnd ? base + parseHM(s.shiftEnd)! - s.clearByMin : Infinity;
+  const end = d === 0 && s.shiftEnd ? base + parseHM(s.shiftEnd)! - (s.shiftEndStopMin ?? s.clearByMin) : Infinity;
   const segs: [number, number][] = [];
   let cur = ds;
   for (const b of s.breaks.map((x) => parseHM(x)!).sort((a, z) => a - z)) { segs.push([cur, base + b - s.clearByMin]); cur = base + b + BREAK_MIN; }

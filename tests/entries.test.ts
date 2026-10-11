@@ -112,10 +112,10 @@ test('break, clerk, end of shift, next day and shift settings', async (tc) => {
   const r = await s.save(E.breakStartEvents(s.ctx(), null));
   assert.ok(!r.ok && /enter the break start time/.test(r.error));
 
-  await s.ok(E.shiftSettingsEvents(s.ctx(), '17:00', '07:00'));
-  assert.deepEqual(planView(s.state, glovis).forecast, { breaks: '12:00 and 18:00 · 1 hour each', dayEnd: '17:00', nextStart: '07:00' });
-  assert.deepEqual(E.shiftSettingsEvents(s.ctx(), '17:00', '07:00'), { ok: false, error: 'Nothing to save: these shift settings are already set.' });
-  await s.ok(E.endShiftEvents(s.ctx(), t('17:00')));
+  await s.ok(E.shiftSettingsEvents(s.ctx(), '17:00', '07:00', 'N'));
+  assert.deepEqual(planView(s.state, glovis).forecast, { breaks: '12:00 and 18:00 · 1 hour each', dayEnd: '17:00 · Northside (last cars 16:45)', nextStart: '07:00' });
+  assert.deepEqual(E.shiftSettingsEvents(s.ctx(), '17:00', '07:00', 'N'), { ok: false, error: 'Nothing to save: these shift settings are already set.' });
+  await s.ok(E.endShiftEvents(s.ctx(), t('17:00'), 'N'));
   assert.deepEqual(snapshot(s.state, glovis, 17 * 60 + 5).banners[0], { tone: 'break', title: 'SHIFT ENDED', sub: 'At 17:00 · Day 2 starts 07:00', trackable: false, tracked: false });
   await s.ok(E.nextDayEvents(s.ctx(), t('07:00', 2)));
   assert.deepEqual([s.state.ops.day, s.state.ops.phase], [2, 'working']);
@@ -346,7 +346,7 @@ test('round 5 R1: a 07:30 start logs 07:30–08:30 hours; an hour across a break
   const refused = await store.append(OP, bad);
   assert.ok(!refused.ok && /runs through the 12:00 break/.test(refused.error), JSON.stringify(refused));
   // Day 2 starting 07:30 after end of shift.
-  assert.ok((await save(E.endShiftEvents(ctx(), t('17:00')))).ok);
+  assert.ok((await save(E.endShiftEvents(ctx(), t('17:00'), 'N'))).ok);
   assert.ok((await save(E.nextDayEvents(ctx(), t('07:30', 2)))).ok);
   assert.ok((await save(E.hourEvents(ctx(), { day: 2, start: '07:30', count: 50 }))).ok);
   assert.equal(state.periods.at(-1)!.day, 2);
@@ -364,7 +364,7 @@ test('round 5 (import-only): brand only on counts; reasons must be text; strict 
   r = await s.save(d);
   assert.ok(!r.ok && /reason must be text/.test(r.error), JSON.stringify(r));
 
-  const sh = E.endShiftEvents(s.ctx(), t('17:00')) as VsaEvent[];
+  const sh = E.endShiftEvents(s.ctx(), t('17:00'), 'N') as VsaEvent[];
   sh[0].event_type = 'observation';
   r = await s.save(sh);
   assert.ok(!r.ok && /shift must be a status change/.test(r.error), JSON.stringify(r));
@@ -386,7 +386,7 @@ test('bad heights and bad times are refused as form errors, never thrown, and th
   assert.match((await s.save(E.heightEvents(s.ctx(), 'D7', Infinity, null)) as Reject).error, /deck height/);
   const bad = [{ day: 1, hm: '25:00' }, { day: 1, hm: '10:99' }, { day: 0, hm: '10:00' }, { day: NaN, hm: '10:00' }, { day: 1, hm: 'soon' }];
   for (const b of bad) {
-    const rs = [E.breakStartEvents(s.ctx(), b), E.breakEndEvents(s.ctx(), b), E.endShiftEvents(s.ctx(), b), E.nextDayEvents(s.ctx(), b),
+    const rs = [E.breakStartEvents(s.ctx(), b), E.breakEndEvents(s.ctx(), b), E.endShiftEvents(s.ctx(), b, 'N'), E.nextDayEvents(s.ctx(), b),
       E.heightEvents(s.ctx(), 'D7', 1.7, b), E.clerkEvents(s.ctx(), 5, b), E.openDiscrepancyEvents(s.ctx(), 'x', b), E.resolveDiscrepancyEvents(s.ctx(), 'E1', b),
       E.missedBreakEvents(s.ctx(), b, t('11:00')), E.missedBreakEvents(s.ctx(), t('10:00'), b),
       E.hourEvents(s.ctx(), { day: b.day, start: b.hm, count: 5 })];

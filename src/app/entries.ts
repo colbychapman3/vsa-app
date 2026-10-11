@@ -54,7 +54,7 @@ function builder(ctx: Ctx) {
     workstream?: 'auto_discharge' | 'operation'; deck?: string | null; hatch?: string | null; commodity?: string | null;
     at?: OpTime | null; period?: [string, string] | null; reason?: string | null; supersedes?: string | null; inputs?: string[];
     provenance?: VsaEvent['provenance']; cause?: string | null;
-    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData; van?: VanData; blockers?: string[] }; // plan_note / evidence / van / vessel_complete fields
+    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData; van?: VanData; blockers?: string[]; side?: 'N' | 'S' }; // plan_note / evidence / van / vessel_complete fields
   }) => {
     const id = `${ctx.operationId}-${seq}`;
     out.push({
@@ -195,11 +195,13 @@ export function breakEndEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reje
   return out;
 }
 
-export function endShiftEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Reject {
+// The shift ends on Northside or Southside (Colby, 2026-10-10): the hour it ends in stops that side's minutes before the end.
+export function endShiftEvents(ctx: Ctx, time: OpTime | null, side: 'N' | 'S' | null): VsaEvent[] | Reject {
   const bt = badTimes(time);
   if (bt) return bt;
+  if (side !== 'N' && side !== 'S') return reject('Pick the side the shift ended on: Northside or Southside.');
   const { add, out } = builder(ctx);
-  add({ type: 'status_change', metric: 'shift', value: 'ended', workstream: 'operation', at: time });
+  add({ type: 'status_change', metric: 'shift', value: 'ended', workstream: 'operation', at: time, extra: { side } });
   return out;
 }
 
@@ -274,10 +276,14 @@ export function nextDayEvents(ctx: Ctx, time: OpTime | null): VsaEvent[] | Rejec
 }
 
 // "Finish today" → shiftEnd null; "Carries to Day 2" → a Day 1 shift end time.
-export function shiftSettingsEvents(ctx: Ctx, shiftEnd: string | null, nextStart: string): VsaEvent[] | Reject {
+// A Day 1 shift end names its side (Colby, 2026-10-10): the forecast stops that side's minutes before the end.
+export function shiftSettingsEvents(ctx: Ctx, shiftEnd: string | null, nextStart: string, side: 'N' | 'S' | null = null): VsaEvent[] | Reject {
+  if (shiftEnd != null && side !== 'N' && side !== 'S') return reject('Pick the side Day 1 ends on: Northside or Southside.');
   const { add, out } = builder(ctx);
   const plan = ctx.state.plan;
-  if (shiftEnd !== plan.shiftEnd) add({ type: 'observation', metric: 'plan_shift_end', value: shiftEnd, workstream: 'operation' });
+  if (shiftEnd !== plan.shiftEnd || (shiftEnd != null && side !== (plan.shiftEndSide ?? null))) {
+    add({ type: 'observation', metric: 'plan_shift_end', value: shiftEnd, workstream: 'operation', ...(shiftEnd != null ? { extra: { side: side! } } : {}) });
+  }
   if (nextStart !== plan.nextStart) add({ type: 'observation', metric: 'plan_next_start', value: nextStart, workstream: 'operation' });
   return out.length ? out : reject('Nothing to save: these shift settings are already set.');
 }

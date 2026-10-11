@@ -162,6 +162,10 @@ Pre-break clear-by:
 - Apply to any break time, not just 12:00 and 18:00.
 - Clear-by applies to a scheduled break start only. If I give a work window that already ends at a stop time (e.g., "work until 11:30"), that stop already reflects any cutoff. Never apply clear-by to a stop time I gave, and never subtract the same cutoff or break twice.
 
+SHIFT END
+
+When a shift ends, planned or actual, ask whether it ended on Northside or Southside, then stop production that many minutes before the shift end: Northside 15 minutes, Southside 30 minutes. Apply it once. The hour the shift ends in counts only the minutes before that stop, and a forecast with a planned shift end stops there too. This is its own rule; it does not change the pre-break clear-by above.
+
 Gate 1 = Northside; Gate 2 = Southside. Use Protocol Appendix C for all side classifications.
 
 Distances: use the measured berth-to-destination mileage in Protocol Appendix D. Never estimate from map scale. Keep these three separate:

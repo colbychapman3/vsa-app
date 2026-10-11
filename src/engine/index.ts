@@ -9,7 +9,7 @@ import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
 import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, SAFETY_MEETING, type HourEntry } from './production.ts';
 import { buildPasses, hhAnalysis, hhStatus, type HhMarker } from './hh.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
-import { eta, vesselClearBy, type Ops } from './eta.ts';
+import { eta, vesselClearBy, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
 import { fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
 
 export * from './time.ts';
@@ -93,7 +93,10 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const breakLog: BreakEntry[] = [];
   const dayDrivers = new Map<number, { n: number; id: string }>(); // workday driver setting per operation day
   const dayActual = new Map<number, { hm: string; id: string; cause: string | null }>(); // actual (late) start per operation day
-  const plan: { shiftEnd: string | null; nextStart: string | null } = { shiftEnd: null, nextStart: null };
+  // shiftEndSide: the side the planned Day 1 shift end is on; null = not given (older logs: the vessel's widest clear-by).
+  const plan: { shiftEnd: string | null; nextStart: string | null; shiftEndSide?: 'N' | 'S' | null } = { shiftEnd: null, nextStart: null };
+  const shiftEnds: { day: number; hm: string; side: 'N' | 'S' }[] = []; // recorded shift ends that name a side (older ones don't)
+  const badSide = (v: unknown) => v != null && v !== 'N' && v !== 'S';
   const hhMarkers: HhMarker[] = []; // H/H start / complete markers, in log order
   const clerks: { remaining: number; time: string; seq: number }[] = [];
   const noteList: PlanNote[] = [];
@@ -259,6 +262,8 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
         if (e.event_type !== 'status_change') return fail(`Event ${id}: shift must be a status change.`, id);
         if (!occurred) return fail(`Event ${id}: shift changes need a time.`, id);
         if (p.value === 'ended') {
+          if (badSide(p.side)) return fail(`Event ${id}: the shift-end side must be N (Northside) or S (Southside).`, id);
+          if (p.side) shiftEnds.push({ day: occurred.day, hm: occurred.hm, side: p.side });
           Object.assign(ops, { shiftEnded: true, onBreak: false, day: occurred.day, shiftEnd: occurred.hm }); recStart = root.sequence;
           breakLog.push({ kind: 'shift', start: `Shift end ${when(occurred, e.recorded_at)}`, end: null, startAbs: toAbs(occurred)!, endAbs: null, startId: null, endId: null, edited: false });
         } else if (p.value === 'started') {
@@ -306,8 +311,12 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       case 'plan_shift_end':
       case 'plan_next_start':
         // A null Day 1 shift end means "works until finished".
-        if (p.metric === 'plan_shift_end' && p.value === null) { plan.shiftEnd = null; continue; }
+        if (p.metric === 'plan_shift_end' && p.value === null) { plan.shiftEnd = null; if (plan.shiftEndSide !== undefined) plan.shiftEndSide = null; continue; }
         if (typeof p.value !== 'string' || parseHM(p.value) == null) return fail(`Event ${id}: ${p.metric} must be an HH:MM time.`, id);
+        if (p.metric === 'plan_shift_end') {
+          if (badSide(p.side)) return fail(`Event ${id}: the shift-end side must be N (Northside) or S (Southside).`, id);
+          if (p.side || plan.shiftEndSide !== undefined) plan.shiftEndSide = p.side ?? null; // only logs that name a side carry the field
+        }
         plan[p.metric === 'plan_shift_end' ? 'shiftEnd' : 'nextStart'] = p.value;
         continue;
       case 'plan_note': {
@@ -464,6 +473,15 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       if (worked - late <= 0 && h.count > 0) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: Day ${h.day} work started at ${actual!.hm}, so this hour has no productive time and can't have a count above 0. Log the count in the hour work actually started, or correct the day's start time.`);
       h.lateMin = late;
     }
+    // The hour a recorded shift end falls in: work stops at the named side's minutes before it (Colby, 2026-10-10; its own rule,
+    // separate from the pre-break clear-by).
+    const end = shiftEnds.find((x) => x.day === h.day && parseHM(x.hm)! > parseHM(h.start)! && parseHM(x.hm)! <= parseHM(h.start)! + 60);
+    if (end) {
+      const sideName = end.side === 'S' ? 'Southside' : 'Northside', stop = SHIFT_END_STOP_MIN[end.side];
+      h.shiftEndMin = Math.max(0, parseHM(end.hm)! - parseHM(h.start)! - stop);
+      h.shiftEndNote = `Shift ended ${end.hm} on ${sideName} · stopped ${stop} min before`;
+      if (h.shiftEndMin - (h.lateMin ?? 0) <= 0 && h.count > 0) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: the shift ended ${end.hm} on ${sideName} (stop ${stop} min before), so this hour has no productive time and can't have a count above 0.`);
+    }
     if (h.start === SAFETY_MEETING.start && plannedStart(h.day) === SAFETY_MEETING.start) h.safetyMin = SAFETY_MEETING.min;
     const { key: _key, ...entry } = h;
     entries.push(entry);
@@ -493,7 +511,8 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     remaining: L.vesselRemaining ?? L.fieldBalance,
     basis: L.vesselRemaining != null ? 'vessel' : 'field',
     periods,
-    schedule: { dayStart: baseline.start, nextStart: plan.nextStart, shiftEnd: plan.shiftEnd, breaks: baseline.breaks, clearByMin: vesselClearBy(baseline.destinations), ...(dayActual.size ? { actualStarts: Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm])) } : {}) },
+    schedule: { dayStart: baseline.start, nextStart: plan.nextStart, shiftEnd: plan.shiftEnd, breaks: baseline.breaks, clearByMin: vesselClearBy(baseline.destinations),
+      ...(plan.shiftEndSide ? { shiftEndStopMin: SHIFT_END_STOP_MIN[plan.shiftEndSide] } : {}), ...(dayActual.size ? { actualStarts: Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm])) } : {}) },
     ops,
   });
 

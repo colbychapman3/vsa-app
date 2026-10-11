@@ -227,6 +227,7 @@ function BreakBox(p: { baseline: Baseline; state: State; run: Run; now: () => st
 function BreakForm({ baseline, state, run, now, timeOf, setError }: { baseline: Baseline; state: State; run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
   const [t, setT] = useState('');
   const [end, setEnd] = useState('');
+  const [side, setSide] = useState<'N' | 'S' | null>(null); // the side the shift ends on: sets when the last hour stopped
   const phase = state.ops.phase, day = state.ops.day;
   const hoursDone = hourOptions(state, baseline).hours.filter((h) => h.logged); // a break is tagged to an hour you've counted
   const fill = (set: (v: string) => void) => () => { const n = now(); if (n) set(n); };
@@ -270,8 +271,10 @@ function BreakForm({ baseline, state, run, now, timeOf, setError }: { baseline: 
       <Go label="Log break start" onPress={() => go(t, day, E.breakStartEvents, (at) => `Break started${at ? ` at ${at.hm}` : ''}.`)} />
       <View style={s.hr}>
         <TimeField required label="Shift ended at" value={end} onChange={setEnd} onNow={fill(setEnd)} />
-        <Go ghost label="Log end of shift" onPress={() => go(end, day, E.endShiftEvents, () => 'End of shift logged. Reconcile ship and field.')} />
-        <InfoNote><Note>Starts end-of-shift reconciliation. No cars should be in transit.</Note></InfoNote>
+        <Label>ENDED ON WHICH SIDE?</Label>
+        <Seg columns={2} value={side} onChange={setSide} options={[{ value: 'N', label: 'Northside (−15)' }, { value: 'S', label: 'Southside (−30)' }]} />
+        <Go ghost label="Log end of shift" onPress={() => go(end, day, (c, at) => E.endShiftEvents(c, at, side), () => 'End of shift logged. Reconcile ship and field.')} />
+        <InfoNote><Note>Starts end-of-shift reconciliation. No cars should be in transit. The last hour counts only the minutes before the stop: Northside 15 min, Southside 30 min before the end.</Note></InfoNote>
       </View>
     </View>
   );
