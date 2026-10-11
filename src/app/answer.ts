@@ -7,6 +7,7 @@ import type { State } from '../storage/store.ts';
 import { snapshot } from './view.ts';
 import { paceWatch } from './whatif.ts';
 import { alerts } from './assistant.ts';
+import { steady } from './steady.ts';
 
 export type Delta = { text: string; good: boolean | null }; // good: true = better, false = worse, null = neutral
 export type Fig = { k: string; v: string; tag: 'CALCULATED' | 'FORECAST' | null; d: Delta | null };
@@ -45,7 +46,7 @@ export function answerAfterSave(before: State, after: State, b: Baseline, nowMin
   });
 
   // Finish: the ETA, a forecast, labeled as one. Sooner is better.
-  const eNow = after.eta.etaAbs, eWas = before.eta.etaAbs;
+  const eNow = steady(after, b).etaAbs, eWas = steady(before, b).etaAbs;
   figs.push({
     k: 'Finish',
     v: snap.eta.day ? `${snap.eta.day} ${snap.eta.value}` : snap.eta.value,

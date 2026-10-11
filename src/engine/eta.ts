@@ -115,6 +115,20 @@ export function nowEstimate(i: { remaining: number | null; rate: number | null; 
   return { est: Math.max(0, Math.round(i.remaining - (i.rate * since) / 60)), sinceMin: Math.round(since), rate: i.rate };
 }
 
+// STEADY FINISH (Colby, 2026-10-11, option A). The forecast starts at the end of the last logged hour. Deck counts can be older
+// than that hour, so dividing the same stale cars from a later start made the finish jump an hour later with no new information.
+// Carry the deck count forward to the anchor at the forecast pace over the working minutes in between. An estimate, never a count;
+// the vessel remaining number is untouched. Null when nothing needs carrying (the counts are as new as the anchor) or there is
+// nothing safe to carry (no pace, no deck time, or the carry would reach zero: the live estimate says "may be finishing").
+export function carriedRemaining(i: { remaining: number | null; rate: number | null; deckAsOfAbs: number | null; fromAbs: number | null; schedule: Schedule }):
+  { remaining: number; cars: number; sinceMin: number } | null {
+  if (i.remaining == null || i.rate == null || !(i.rate > 0) || i.deckAsOfAbs == null || i.fromAbs == null) return null;
+  const since = productiveMinutes(i.schedule, i.deckAsOfAbs, i.fromAbs);
+  if (since < NOW_EST_MIN_MIN) return null;
+  const cars = Math.round((i.rate * since) / 60), remaining = i.remaining - cars;
+  return cars > 0 && remaining > 0 ? { remaining, cars, sinceMin: Math.round(since) } : null;
+}
+
 // Productive hours between two times, skipping breaks and clear-by windows.
 export function productiveMinutes(s: Schedule, from: number, to: number): number {
   if (!(to > from)) return 0;

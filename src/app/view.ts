@@ -4,6 +4,7 @@
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
 import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, scheduleOf, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
+import { steady } from './steady.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
 export type Banner = { tone: Tone; title: string; sub: string; trackable: boolean; tracked: boolean; go?: 'hourly' | 'decks' }; // go: the tab that addresses the warning
@@ -154,7 +155,8 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     }
   }
   const nowAbs = (s.ops.day - 1) * 1440 + nowMin;
-  if (s.eta.etaAbs != null && s.vesselRemaining !== 0 && !recon && nowAbs > s.eta.etaAbs) {
+  const st = steady(s, b); // the finish the screens show (see steady.ts)
+  if (st.etaAbs != null && s.vesselRemaining !== 0 && !recon && nowAbs > st.etaAbs) {
     banners.push({ tone: 'orange', title: 'Forecast passed · completion not reported', sub: 'Log a count or update decks to refresh.', trackable: false, tracked: false, go: 'hourly' });
   }
 
@@ -165,7 +167,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   for (const d of b.destinations) sideCut[d.side] = d.clearBy;
   // Design B (Colby, 2026-10-11: clear-by times needn't be shown): the strip says whether the forecast finish beats the cutoff.
   const cutAt = next == null ? null : next - Math.max(sideCut.N ?? 0, sideCut.S ?? 0);
-  const etaToday = s.eta.etaAbs == null ? null : s.eta.etaAbs - (s.ops.day - 1) * 1440;
+  const etaToday = st.etaAbs == null ? null : st.etaAbs - (s.ops.day - 1) * 1440;
   const finish = cutAt == null || etaToday == null || s.vesselRemaining === 0 ? null
     : etaToday <= cutAt ? { ok: true, text: `${Math.round(cutAt - etaToday)} min to spare (est.)` } : { ok: false, text: 'Runs past this break (est.)' };
   const strip = recon || next == null ? null : { // no strip after the last break of the day (it would be an empty bar)
@@ -232,7 +234,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   // Live estimate between counts (Colby, 2026-10-11): the forecast's own pace carried from the last logged hour to now.
   // A line under the number, labeled an estimate; the number itself stays the last count.
   const actual = Object.fromEntries(Object.entries(s.dayStarts).filter(([, d]) => d.actual != null).map(([k, d]) => [Number(k), d.actual!]));
-  const ne = nowEstimate({ remaining: known ? s.vesselRemaining : s.fieldBalance, rate: s.eta.rate, fromAbs: s.eta.fromAbs, nowAbs,
+  const ne = nowEstimate({ remaining: st.remaining, rate: s.eta.rate, fromAbs: s.eta.fromAbs, nowAbs,
     schedule: scheduleOf(b, s.plan, actual), phase: s.ops.phase });
   const about = (n: number) => (n >= 50 ? Math.round(n / 5) * 5 : n); // no false precision on a guess
   const estimate: { tone: 'muted' | 'orange'; text: string; sub: string | null; forecast: boolean } | null = ne.est != null
@@ -255,12 +257,12 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
 
   // Tiles.
   const e = s.eta;
-  const basisRem = s.vesselRemaining ?? s.fieldBalance;
   const eta = s.vesselRemaining === 0 ? { value: '0', day: null, notes: ['Nothing remaining on vessel'], dashed: e.etaAbs == null }
-    : e.etaAbs != null ? {
-      value: formatHM(e.etaAbs),
-      day: e.etaAbs >= 1440 ? `Day ${Math.floor(e.etaAbs / 1440) + 1}` : null,
-      notes: [`${fmt(basisRem)} ÷ ${Math.round(e.rate!)}/hr pace (last ${e.hoursUsed} hr)`, ...(e.basisNote ? ['Based on field balance'] : [])],
+    : st.etaAbs != null ? {
+      value: formatHM(st.etaAbs),
+      day: st.etaAbs >= 1440 ? `Day ${Math.floor(st.etaAbs / 1440) + 1}` : null,
+      notes: [`${fmt(st.remaining)} ÷ ${Math.round(e.rate!)}/hr pace (last ${e.hoursUsed} hr)`,
+        ...(st.carry ? [`Counts ~${fmt(st.carry.cars)} cleared since the last deck update (est.)`] : []), ...(e.basisNote ? ['Based on field balance'] : [])],
       dashed: false,
     } : { value: '—', day: null, notes: [e.reason ?? ''], dashed: true };
   const p = s.production;
