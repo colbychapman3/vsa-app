@@ -14,7 +14,7 @@ export function FieldBox({ v }: { v: ReturnType<typeof snapshot> }) {
         <Label style={{ flexShrink: 1 }}>FIELD RECORD</Label>
         <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>official counts</Text>
       </View>
-      <FillNumber size={112} pct={h.pct} fill={color.ink}>{h.value}</FillNumber>
+      <FillNumber size={84} pct={h.pct} fill={color.ink}>{h.value}</FillNumber>
       <Body style={{ fontSize: 17 }}>{h.of}</Body>
       <Bar pct={h.pct} />
       <View style={u.secH}>

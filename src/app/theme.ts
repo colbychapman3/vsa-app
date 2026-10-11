@@ -1,14 +1,15 @@
-// Look of the VSA Live tracker (docs/reference/vsa-live.html :root): light hi-vis (plus a Night palette)
-// theme, Barlow Condensed for big numbers and headings, IBM Plex Sans for text.
+// Design B "Ship Plan" (Colby, 2026-10-11): Schibsted Grotesk for numbers, headings and text, DM Mono for small
+// labels and times. Light (steel grey and navy) plus a Night palette; values in palette.ts.
 import { createContext, useContext } from 'react';
 import { Appearance, DynamicColorIOS, Platform, type ColorValue } from 'react-native';
 import { light, night, type Token } from './palette.ts';
 // One import per weight: the packages' index files require every weight and style (32 files, 4.8 MB) into the app bundle.
-import { BarlowCondensed_600SemiBold } from '@expo-google-fonts/barlow-condensed/600SemiBold';
-import { BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed/700Bold';
-import { IBMPlexSans_400Regular } from '@expo-google-fonts/ibm-plex-sans/400Regular';
-import { IBMPlexSans_500Medium } from '@expo-google-fonts/ibm-plex-sans/500Medium';
-import { IBMPlexSans_600SemiBold } from '@expo-google-fonts/ibm-plex-sans/600SemiBold';
+import { SchibstedGrotesk_400Regular } from '@expo-google-fonts/schibsted-grotesk/400Regular';
+import { SchibstedGrotesk_500Medium } from '@expo-google-fonts/schibsted-grotesk/500Medium';
+import { SchibstedGrotesk_600SemiBold } from '@expo-google-fonts/schibsted-grotesk/600SemiBold';
+import { SchibstedGrotesk_700Bold } from '@expo-google-fonts/schibsted-grotesk/700Bold';
+import { SchibstedGrotesk_900Black } from '@expo-google-fonts/schibsted-grotesk/900Black';
+import { DMMono_500Medium } from '@expo-google-fonts/dm-mono/500Medium';
 
 // Every token is a DynamicColorIOS pair (Light / Night, values in palette.ts), so screens keep reading color.ink etc.
 // and iOS swaps them when the appearance changes. react-native-svg accepts these (its extractBrush handles dynamic colors).
@@ -25,11 +26,12 @@ export function applyAppearance(m: AppearanceMode) {
 
 // Loaded once in App.tsx. Bundled with the app, so they work offline.
 export const fontFiles = {
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-  IBMPlexSans_400Regular,
-  IBMPlexSans_500Medium,
-  IBMPlexSans_600SemiBold,
+  SchibstedGrotesk_400Regular,
+  SchibstedGrotesk_500Medium,
+  SchibstedGrotesk_600SemiBold,
+  SchibstedGrotesk_700Bold,
+  SchibstedGrotesk_900Black,
+  DMMono_500Medium,
 };
 
 // H.A. is blue. Pace is blue too while it equals H.A.; when it differs it turns dark orange so the difference is seen at a glance.
@@ -42,11 +44,12 @@ export const PACE_COLOR = color.oInk;
 // If fonts fail to load, fall back to system fonts rather than block the app.
 export function fonts(loaded: boolean) {
   return {
-    display: loaded ? 'BarlowCondensed_700Bold' : undefined,
-    displaySemi: loaded ? 'BarlowCondensed_600SemiBold' : undefined,
-    body: loaded ? 'IBMPlexSans_400Regular' : undefined,
-    bodyMedium: loaded ? 'IBMPlexSans_500Medium' : undefined,
-    bodySemi: loaded ? 'IBMPlexSans_600SemiBold' : undefined,
+    display: loaded ? 'SchibstedGrotesk_900Black' : undefined,
+    displaySemi: loaded ? 'SchibstedGrotesk_700Bold' : undefined,
+    body: loaded ? 'SchibstedGrotesk_400Regular' : undefined,
+    bodyMedium: loaded ? 'SchibstedGrotesk_500Medium' : undefined,
+    bodySemi: loaded ? 'SchibstedGrotesk_600SemiBold' : undefined,
+    mono: loaded ? 'DMMono_500Medium' : undefined,
   };
 }
 

@@ -31,13 +31,13 @@ async function setup(tc: { after: (fn: () => Promise<void>) => void }, baseline:
   return { ctx, ok, get state() { return state; } };
 }
 
-test('the first count answers with remaining, H.A. and ETA, labeled; a field count leaves vessel remaining alone (separate ledgers)', async (tc) => {
+test('the first count answers with remaining, H.A. and the finish, labeled; a field count leaves vessel remaining alone (separate ledgers)', async (tc) => {
   const s = await setup(tc);
   const before = s.state;
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 200 }));
   const a = answerAfterSave(before, s.state, glovis, 9 * 60 + 5, 'Saved 08:00–09:00: 200 autos.');
   assert.equal(a.head, 'Saved 08:00–09:00: 200 autos.');
-  assert.deepEqual(a.figs.map((f) => [f.k, f.tag]), [['Remaining', null], ['H.A.', 'CALCULATED'], ['ETA', 'FORECAST']]);
+  assert.deepEqual(a.figs.map((f) => [f.k, f.tag]), [['Remaining', null], ['H.A.', 'CALCULATED'], ['Finish', 'FORECAST']]);
   const snap = snapshot(s.state, glovis, 9 * 60 + 5);
   assert.equal(a.figs[0].v, snap.hero.value); // the card never disagrees with the Snapshot
   assert.equal(a.figs[0].d, null); // vessel remaining moves with deck counts, never with field counts
@@ -54,6 +54,7 @@ test('a better hour says so: H.A. up and the forecast sooner; a worse hour says 
   assert.deepEqual(a.figs[1].d, { text: 'up 30', good: true }); // 200 → 230
   assert.equal(a.figs[2].d?.good, true);
   assert.match(a.figs[2].d!.text, /sooner$/);
+  assert.match(a.why ?? '', /^Why it moved: (no deck update since the last hour, so [\d,]+ still to go; )?pace \d+\/hr, was \d+\/hr\.$/); // the forecast's own inputs, nothing guessed
   before = s.state;
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '10:00', count: 140 }));
   a = answerAfterSave(before, s.state, glovis, 11 * 60 - 20, 'x');
@@ -62,15 +63,16 @@ test('a better hour says so: H.A. up and the forecast sooner; a worse hour says 
   assert.match(a.figs[2].d!.text, /later$/);
 });
 
-test('quiet when nothing needs the user; the clear-by time shows once a break is within 90 minutes', async (tc) => {
+test('quiet when nothing needs the user; no clear-by clock times on the card (Colby: they needn\'t be shown)', async (tc) => {
   const s = await setup(tc);
   const before = s.state;
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 200 }));
-  const early = answerAfterSave(before, s.state, glovis, 9 * 60 + 5, 'x');
-  assert.ok(!early.watch.some((w) => /clears by/.test(w)));
-  const late = answerAfterSave(before, s.state, glovis, 10 * 60 + 45, 'x'); // 75 min before 12:00
-  assert.ok(late.watch.includes('12:00 break: Northside clears by 11:45.'), JSON.stringify(late.watch));
-  assert.equal(late.quiet, null);
+  for (const at of [9 * 60 + 5, 10 * 60 + 45]) { // early, and 75 min before 12:00
+    const a = answerAfterSave(before, s.state, glovis, at, 'x');
+    assert.ok(!a.watch.some((w) => /clears by/.test(w)), JSON.stringify(a.watch));
+    assert.equal(a.quiet, 'Nothing needs your attention right now.');
+    assert.equal(a.why, null); // the first count has no earlier finish to compare
+  }
 });
 
 test('only new open items are raised: a standing one the user already knows about stays off the card', async (tc) => {

@@ -1,10 +1,10 @@
 // Which boxes the Snapshot shows, in what order, and on which tab (Colby, 2026-10-08). A per-phone preference: never part of a
 // vessel's record. Pure, so it is tested without a screen. A missing, corrupt or older saved layout falls back to the default.
-export const BOXES = ['hero', 'field', 'eta', 'ha', 'brands', 'side', 'vessel'] as const;
+export const BOXES = ['hero', 'ship', 'field', 'eta', 'ha', 'brands', 'side', 'vessel'] as const;
 export type BoxId = (typeof BOXES)[number];
 export const TABS = ['snap', 'plan', 'hourly', 'decks'] as const;
 export type BoxTab = (typeof TABS)[number];
-export const BOX_TITLE: Record<BoxId, string> = { hero: 'Vessel remaining', field: 'Field record', eta: 'Est. completion', ha: 'Avg hourly (H.A.)', brands: 'Remaining by brand', side: 'Side split', vessel: 'Vessel notes and cards' };
+export const BOX_TITLE: Record<BoxId, string> = { hero: 'Vessel remaining', ship: 'The ship (decks and hatches)', field: 'Field record', eta: 'Est. completion', ha: 'Avg hourly (H.A.)', brands: 'Remaining by brand', side: 'Side split', vessel: 'Vessel notes and cards' };
 export const TAB_TITLE: Record<BoxTab, string> = { snap: 'Snapshot', plan: 'Plan', hourly: 'Hourly', decks: 'Decks' };
 export const PINNED: readonly BoxId[] = ['hero']; // a vessel balance is never hidden
 
@@ -22,7 +22,8 @@ export function parseLayout(text: string | null): Layout {
   try {
     const j = JSON.parse(text) as { order?: unknown; hidden?: unknown; tab?: unknown };
     const order = Array.isArray(j.order) ? [...new Set(j.order.filter(isBox))] : [];
-    for (const b of BOXES) if (!order.includes(b)) order.push(b); // a box added by a later version appears at the end
+    // A box added by a later version appears right after the box before it in BOXES (the ship lands under the hero).
+    for (const b of BOXES) if (!order.includes(b)) { const prev = BOXES[BOXES.indexOf(b) - 1]; order.splice(prev ? order.indexOf(prev) + 1 : 0, 0, b); }
     const hidden = Array.isArray(j.hidden) ? [...new Set(j.hidden.filter(isBox))].filter((b) => !PINNED.includes(b)) : [];
     const tab = { ...d.tab };
     if (j.tab && typeof j.tab === 'object') for (const b of BOXES) { const t = (j.tab as Record<string, unknown>)[b]; if (isTab(t)) tab[b] = t; }

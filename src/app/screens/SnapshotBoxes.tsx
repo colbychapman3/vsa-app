@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { snapshot } from '../view.ts';
+import { shipView, HATCH_SLOTS, type Seg } from '../ship.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
 import { color, HA_COLOR, TAP, useType } from '../theme.ts';
 import { VesselCards, type Save } from './Plan.tsx';
@@ -46,6 +47,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   const f = useType();
   switch (id) {
     case 'hero': return wrap(<HeroBox v={v} />);
+    case 'ship': return wrap(<ShipBox state={p.state} onOpen={() => p.onOpenTab('decks')} />);
     case 'field': return wrap(<FieldBox v={v} />);
     case 'eta': return (
       <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
@@ -54,7 +56,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
           <Tag kind="FORECAST" />
           <Label>EST. COMPLETION</Label>
           {v.eta.day && <Body semi style={{ fontSize: 20 }}>{v.eta.day}</Body>}
-          <Big size={56}>{v.eta.value}</Big>
+          <Big size={40}>{v.eta.value}</Big>
           <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for history ›</Text>
         </View>
       </Pressable>);
@@ -64,7 +66,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
           <Tag kind="CALCULATED" />
           <Label>AVG HOURLY (H.A.)</Label>
           <View style={s.haRow}>
-            <Big size={56} style={{ flexShrink: 1, color: HA_COLOR }}>{v.ha.value}</Big>
+            <Big size={40} style={{ flexShrink: 1, color: HA_COLOR }}>{v.ha.value}</Big>
             {v.ha.perHr && <Body style={{ fontSize: 16 }}>/hr</Body>}
           </View>
           <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for details</Text>
@@ -118,7 +120,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
             {([['NORTHSIDE', v.side.north, color.blue], ['SOUTHSIDE', v.side.south, color.ink]] as const).map(([label, col, c]) => (
               <View key={label} style={{ flex: 1, gap: 2 }}>
                 <Label style={{ color: c }}>{label}</Label>
-                <Big size={40}>{col.pct}</Big>
+                <Big size={32}>{col.pct}</Big>
                 <Note>{col.note}</Note>
               </View>
             ))}
@@ -143,7 +145,17 @@ function HeroBox({ v }: { v: V }) {
           </Text>
         )}
       </View>
-      {h.value === '—' ? <Big size={112} style={{ color: heroColor }}>{h.value}</Big> : <FillNumber size={112} pct={h.pct} fill={heroColor}>{h.value}</FillNumber>}
+      <View style={s.heroRow}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          {h.value === '—' ? <Big size={96} style={{ color: heroColor }}>{h.value}</Big> : <FillNumber size={96} pct={h.pct} fill={heroColor}>{h.value}</FillNumber>}
+        </View>
+        {/* Design B: the finish sits beside the number, so "how many and when" is one glance. */}
+        <View style={s.finish} accessible accessibilityLabel={`Finish, forecast: ${v.eta.value}${v.eta.day ? `, ${v.eta.day}` : ''}`}>
+          <Text style={[s.mono, { fontFamily: f.mono }]} numberOfLines={1} adjustsFontSizeToFit>FINISH · EST.</Text>
+          <Big size={36}>{v.eta.value}</Big>
+          {v.eta.day && <Text style={[s.mono, { fontFamily: f.mono }]}>{v.eta.day}</Text>}
+        </View>
+      </View>
       <Body style={{ fontSize: 17 }}>{h.of}</Body>
       <Bar pct={h.pct} />
       <View style={u.secH}>
@@ -171,6 +183,39 @@ function HeroBox({ v }: { v: V }) {
   );
 }
 
+// Design B: the ship. One band per deck (top deck first), split into hatches H4 → H1; a hatch fills by how much is still
+// aboard. The whole box is one tap target (to Decks), so it stays glove-sized while the bands stay slim.
+function ShipBox({ state, onOpen }: { state: State; onOpen: () => void }) {
+  const f = useType();
+  const v = shipView(state);
+  const seg = (g: Seg | null, k: string) => g == null
+    ? <View key={k} style={{ flex: 1 }} />
+    : <View key={k} style={[s.seg, { backgroundColor: g.fill === 0 ? color.deckClear : color.deckTrack }, g.fill == null && s.segUnknown]}>
+        {g.fill != null && g.fill > 0 && <View style={[s.segFill, { width: `${Math.max(6, Math.round(g.fill * 100))}%` }]} />}
+      </View>;
+  return (
+    <Pressable onPress={onOpen} style={({ pressed }) => [s.hull, pressed && { opacity: 0.8 }]} accessibilityRole="button"
+      accessibilityLabel={`The ship: ${v.decksLeft} of ${v.decks} decks still have cars. ${v.rows.map((r) => r.a11y).join('. ')}. Opens Decks.`}>
+      <View style={s.shipHead}>
+        <Text style={[s.shipTitle, { fontFamily: f.bodySemi }]}>{v.decksLeft} of {v.decks} decks still have cars</Text>
+        <Text style={[s.shipLink, { fontFamily: f.bodySemi }]}>Decks ›</Text>
+      </View>
+      <View style={s.deckRow} importantForAccessibility="no-hide-descendants">
+        <View style={s.deckLabelBox} />
+        <View style={s.segs}>{HATCH_SLOTS.map((h) => <Text key={h} style={[s.hatchHead, { fontFamily: f.mono }]}>{h}</Text>)}</View>
+        <View style={s.deckRightBox} />
+      </View>
+      {v.rows.map((r) => (
+        <View key={r.id} style={s.deckRow} importantForAccessibility="no-hide-descendants">
+          <View style={s.deckLabelBox}><Text style={[s.deckLabel, { fontFamily: f.mono, color: r.tone === 'clear' ? color.deckMuted : color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text></View>
+          <View style={s.segs}>{r.segs.length === 1 ? seg(r.segs[0], 'all') : r.segs.map((g, i) => seg(g, String(i)))}</View>
+          <View style={s.deckRightBox}><Text style={[s.deckRight, { fontFamily: f.bodySemi, color: r.tone === 'clear' ? color.deckMuted : color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.right}</Text></View>
+        </View>
+      ))}
+    </Pressable>
+  );
+}
+
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
   moved: { paddingHorizontal: 20, paddingTop: 16, gap: 16 },
@@ -190,4 +235,21 @@ const s = StyleSheet.create({
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8 },
   rowLine: { borderTopWidth: 1, borderTopColor: color.row },
   split: { flexDirection: 'row', height: 16, borderRadius: 8, overflow: 'hidden', gap: 3 },
+  heroRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
+  finish: { alignItems: 'flex-end', maxWidth: '42%', paddingBottom: 6 },
+  mono: { fontSize: 12, letterSpacing: 0.6, color: color.muted },
+  hull: { backgroundColor: color.hull, paddingTop: 14, paddingHorizontal: 14, paddingBottom: 26, gap: 4, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 70, borderBottomRightRadius: 18, minHeight: TAP },
+  shipHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 },
+  shipTitle: { flexShrink: 1, fontSize: 15, color: color.deckInk },
+  shipLink: { fontSize: 15, color: color.deckMuted },
+  deckRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 24 },
+  deckLabelBox: { width: 46 },
+  deckLabel: { fontSize: 12 },
+  segs: { flex: 1, flexDirection: 'row', gap: 3, alignSelf: 'stretch' },
+  seg: { flex: 1, borderRadius: 4, overflow: 'hidden', minHeight: 22 },
+  segUnknown: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: color.deckMuted, backgroundColor: 'transparent' },
+  segFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: color.deckFill },
+  hatchHead: { flex: 1, textAlign: 'center', fontSize: 10, color: color.deckMuted },
+  deckRightBox: { width: 70, alignItems: 'flex-end' },
+  deckRight: { fontSize: 13 },
 });

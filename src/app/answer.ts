@@ -2,7 +2,7 @@
 // Compares the state before the save with the state after it: what changed (remaining, H.A., how far the forecast moved)
 // and only what needs action now. Silence means nothing needs the user: no warning is invented to fill the card.
 // Pure: reads the same views the screens read, so the card can never disagree with the Snapshot.
-import { parseHM, type Baseline } from '../engine/index.ts';
+import type { Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 import { snapshot } from './view.ts';
 import { paceWatch } from './whatif.ts';
@@ -10,10 +10,9 @@ import { alerts } from './assistant.ts';
 
 export type Delta = { text: string; good: boolean | null }; // good: true = better, false = worse, null = neutral
 export type Fig = { k: string; v: string; tag: 'CALCULATED' | 'FORECAST' | null; d: Delta | null };
-export type Answer = { head: string; figs: Fig[]; watch: string[]; quiet: string | null; changed: boolean }; // changed: the save moved a ledger or raised something
+export type Answer = { head: string; figs: Fig[]; why: string | null; watch: string[]; quiet: string | null; changed: boolean }; // changed: the save moved a ledger or raised something; why: what moved the finish
 
 const fmt = (n: number) => n.toLocaleString('en-US');
-const SOON_MIN = 90; // a break this close gets its clear-by times on the card
 
 export function answerAfterSave(before: State, after: State, b: Baseline, nowMin: number, head: string): Answer {
   const snap = snapshot(after, b, nowMin);
@@ -45,10 +44,10 @@ export function answerAfterSave(before: State, after: State, b: Baseline, nowMin
       : null,
   });
 
-  // ETA: a forecast, labeled as one. Sooner is better.
+  // Finish: the ETA, a forecast, labeled as one. Sooner is better.
   const eNow = after.eta.etaAbs, eWas = before.eta.etaAbs;
   figs.push({
-    k: 'ETA',
+    k: 'Finish',
     v: snap.eta.day ? `${snap.eta.day} ${snap.eta.value}` : snap.eta.value,
     tag: 'FORECAST',
     d: eNow != null && eWas != null && after.vesselRemaining !== 0
@@ -57,14 +56,23 @@ export function answerAfterSave(before: State, after: State, b: Baseline, nowMin
       : null,
   });
 
-  // What needs action now: decks the pace can't clear before the cutoff, clear-by times when a break is close,
-  // and anything that became an open item with this save. Standing items the user already knows about are left out.
-  const watch: string[] = [...paceWatch(after, b, nowMin)];
-  const brk = snap.strip?.breakAt;
-  if (snap.strip && brk && snap.strip.clearBy.length && !after.ops.onBreak) {
-    const left = parseHM(brk)! - nowMin;
-    if (left > 0 && left <= SOON_MIN) watch.push(`${brk} break: ${snap.strip.clearBy.map((c) => `${c.side}side clears by ${c.at}`).join(', ')}.`);
+  // Why the finish moved (Design B): only the inputs the forecast uses, the recent pace and the cars it divides.
+  let why: string | null = null;
+  const fin = figs[2].d;
+  if (fin) {
+    const parts: string[] = [];
+    // The forecast starts from the end of the last logged hour. If that moved and the cars to go didn't (no deck update),
+    // the same cars now start an hour later: say so, it's usually the biggest reason and the fix is a deck count.
+    if (after.eta.fromAbs !== before.eta.fromAbs && remNow != null && remNow === remWas) parts.push(`no deck update since the last hour, so ${fmt(remNow)} still to go`);
+    const pNow = after.eta.rate, pWas = before.eta.rate;
+    if (pNow != null && pWas != null && r(pNow) !== r(pWas)) parts.push(`pace ${r(pNow)}/hr, was ${r(pWas)}/hr`);
+    if (remNow != null && remWas != null && remNow !== remWas && sameLedger) parts.push(remNow < remWas ? `${fmt(remWas - remNow)} fewer to go` : `${fmt(remNow - remWas)} more to go`);
+    if (parts.length) why = `Why it moved: ${parts.join('; ')}.`;
   }
+
+  // What needs action now: decks the pace can't clear before the cutoff, and anything that became an open item with this
+  // save. Standing items the user already knows about are left out. No clear-by clock times (Colby: they needn't be shown).
+  const watch: string[] = [...paceWatch(after, b, nowMin)];
   const was = new Set(alerts(before, b));
   for (const a of alerts(after, b)) if (!was.has(a)) watch.push(a);
   // A red or orange Snapshot banner this save raised (a break or shift-end reconciliation that doesn't match, a field count over
@@ -73,7 +81,7 @@ export function answerAfterSave(before: State, after: State, b: Baseline, nowMin
   for (const x of snap.banners) if ((x.tone === 'red' || x.tone === 'orange') && !shown.has(x.title)) watch.push(`${x.title}.`);
 
   const changed = after.field !== before.field || after.vesselRemaining !== before.vesselRemaining || after.ops.phase !== before.ops.phase || watch.length > 0;
-  return { head, figs, watch, quiet: watch.length ? null : 'Nothing needs your attention right now.', changed };
+  return { head, figs, why, watch, quiet: watch.length ? null : 'Nothing needs your attention right now.', changed };
 }
 
 const moved = (m: number) => { const x = Math.round(m); return x >= 60 ? `${Math.floor(x / 60)} hr${x % 60 ? ` ${x % 60} min` : ''}` : `${x} min`; };

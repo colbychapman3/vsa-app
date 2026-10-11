@@ -1,13 +1,14 @@
 // The answer after Save (Act II): shown under the header where the plain "Saved …" message used to sit.
-// Three figures with what changed, then only what needs action now, or one quiet line when nothing does.
+// Design B: a white card that drops in like a banner. Three figures with what changed, why the finish moved, then only
+// what needs action now, or one quiet line when nothing does.
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Answer, Delta } from '../answer.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { color, elev, TAP, useType } from '../theme.ts';
 import { Big, Label } from './ui.tsx';
 
 export function answerText(a: Answer): string {
   const figs = a.figs.map((f) => `${f.k}${f.tag === 'FORECAST' ? ' (estimate)' : ''} ${f.v}${f.d ? `, ${f.d.text}` : ''}`).join('. ');
-  return [a.head, figs, ...(a.watch.length ? a.watch : [a.quiet ?? ''])].filter(Boolean).join(' ');
+  return [a.head, `${figs}.`, a.why ?? '', ...(a.watch.length ? a.watch : [a.quiet ?? ''])].filter(Boolean).join(' ');
 }
 
 const deltaColor = (d: Delta) => (d.good === true ? color.gInk : d.good === false ? color.oInk : color.muted);
@@ -17,8 +18,9 @@ export function AnswerCard({ answer, onDismiss }: { answer: Answer; onDismiss: (
   return (
     <View style={s.wrap} accessible accessibilityLabel={answerText(answer)}>
       <View style={s.headRow}>
-        <Text style={[s.head, { fontFamily: f.bodySemi }]}>{answer.head}</Text>
-        <Pressable onPress={onDismiss} style={s.dismiss} accessibilityRole="button" accessibilityLabel="Dismiss">
+        <View style={s.check}><Text style={[s.checkMark, { fontFamily: f.display }]}>✓</Text></View>
+        <Text style={[s.head, { fontFamily: f.displaySemi }]}>{answer.head}</Text>
+        <Pressable onPress={onDismiss} style={({ pressed }) => [s.dismiss, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Dismiss">
           <Text style={{ fontSize: 18, color: color.ink }}>✕</Text>
         </Pressable>
       </View>
@@ -31,6 +33,7 @@ export function AnswerCard({ answer, onDismiss }: { answer: Answer; onDismiss: (
           </View>
         ))}
       </View>
+      {answer.why && <Text style={[s.why, { fontFamily: f.body }]}>{answer.why}</Text>}
       {answer.watch.map((w) => (
         <View key={w} style={s.watch}>
           <Text style={[s.watchText, { fontFamily: f.bodySemi }]}>{w}</Text>
@@ -42,14 +45,17 @@ export function AnswerCard({ answer, onDismiss }: { answer: Answer; onDismiss: (
 }
 
 const s = StyleSheet.create({
-  wrap: { backgroundColor: color.gBg, borderBottomWidth: 1, borderBottomColor: color.line, paddingLeft: 20, paddingBottom: 12, gap: 8 },
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  head: { flex: 1, fontSize: 15, color: color.gInk, paddingTop: 10 },
+  wrap: { backgroundColor: color.card, marginHorizontal: 10, marginTop: 10, borderRadius: 22, paddingLeft: 16, paddingBottom: 14, gap: 10, borderWidth: 1, borderColor: color.line, ...elev.raised },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  check: { width: 30, height: 30, borderRadius: 15, backgroundColor: color.green, alignItems: 'center', justifyContent: 'center' },
+  checkMark: { color: color.card, fontSize: 16 },
+  head: { flex: 1, fontSize: 17, color: color.ink },
   dismiss: { minWidth: TAP, minHeight: TAP, alignItems: 'center', justifyContent: 'center' },
-  figs: { flexDirection: 'row', gap: 12, paddingRight: 20 },
+  figs: { flexDirection: 'row', gap: 12, paddingRight: 16 },
   fig: { flex: 1, minWidth: 0, gap: 2 },
   delta: { fontSize: 13 },
-  watch: { marginRight: 20, backgroundColor: color.oBg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  why: { fontSize: 14, color: color.muted, paddingRight: 16, borderTopWidth: 1, borderTopColor: color.soft, paddingTop: 10 },
+  watch: { marginRight: 16, backgroundColor: color.oBg, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   watchText: { fontSize: 15, color: color.oInk },
-  quiet: { fontSize: 14, color: color.gInk, paddingRight: 20 },
+  quiet: { fontSize: 14, color: color.muted, paddingRight: 16 },
 });

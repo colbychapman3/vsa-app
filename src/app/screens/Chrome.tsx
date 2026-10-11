@@ -88,8 +88,8 @@ export function LogButton({ onPress }: { onPress: () => void }) {
   const insets = useSafeAreaInsets();
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [s.fab, { bottom: insets.bottom + 84 }, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Log an entry">
-      <Icon name="plus" color={color.onBlue} />
-      <Text style={[s.fabText, { fontFamily: f.bodySemi }]}>Log</Text>
+      <Icon name="plus" color={color.onAction} />
+      <Text style={[s.fabText, { fontFamily: f.displaySemi }]}>Log</Text>
     </Pressable>
   );
 }
@@ -123,8 +123,8 @@ const s = StyleSheet.create({
   tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%' },
   tabLabel: { fontSize: 12, flexShrink: 1 },
   badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 11, overflow: 'hidden' },
-  fab: { position: 'absolute', right: 16, minHeight: TAP, paddingHorizontal: 22, borderRadius: 999, backgroundColor: color.blue, flexDirection: 'row', alignItems: 'center', gap: 8, ...elev.raised },
-  ask: { position: 'absolute', left: 16, width: TAP, height: TAP, borderRadius: TAP / 2, backgroundColor: color.head, borderWidth: 2, borderColor: color.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, ...elev.raised },
-  askText: { color: color.headInk, fontSize: 16 },
-  fabText: { color: color.onBlue, fontSize: 16 },
+  fab: { position: 'absolute', right: 16, minHeight: 60, paddingHorizontal: 28, borderRadius: 999, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 8, ...elev.raised },
+  ask: { position: 'absolute', left: 16, width: 60, height: 60, borderRadius: 30, backgroundColor: color.card, borderWidth: 1.5, borderColor: color.line, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, ...elev.raised },
+  askText: { color: color.ink, fontSize: 16 },
+  fabText: { color: color.onAction, fontSize: 19 },
 });
