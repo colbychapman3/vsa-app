@@ -294,7 +294,7 @@ export function Go({ label, onPress, ghost, disabled }: { label: string; onPress
       style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, sun && ghost && edge(sun), pressed && { transform: [{ scale: 0.98 }] }, (pressed || disabled) && { opacity: 0.6 }]}>
       {/* A one-word label ("Unarchive" beside Delete) stays on one line and shrinks; it never splits mid-word. Sentences wrap between words. */}
       <Text style={{ fontFamily: f.bodySemi, fontSize: ghost ? 15 : 17, color: ghost ? color.ink : color.onBlue }}
-        {...(/s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 })}>{label}</Text>
+        {...(/\s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 })}>{label}</Text>
     </Pressable>
   );
 }

@@ -25,7 +25,9 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   const f = useType();
   const [deck, setDeck] = useState<string | null>(null); // a deck opened from Deck mode, shown in this same sheet
   const [mode, setMode] = useState<Mode>((initial as string) === 'break' ? 'hour' : initial);
-  const [error, setError] = useState<string | null>(null);
+  // The error shows right under the part that raised it (the hourly form or the break box), not at the end of a long sheet.
+  const [err, setErr] = useState<{ text: string; where: 'hour' | 'break' | 'other' } | null>(null);
+  const setErrorAt = (where: 'hour' | 'break' | 'other') => (e: string | null) => setErr(e == null ? null : { text: e, where });
   const opDate = operationDate(baseline)!;
   const day = state.ops.day;
   const phase = state.ops.phase;
@@ -33,16 +35,18 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   // Time boxes: empty, or typed / filled by Now. Typed times are on the current operation day.
   const now = (): string | null => {
     const t = E.nowOpTime(opDate, new Date());
-    if (!t) { setError('The phone’s date is before this operation’s Day 1.'); return null; }
+    if (!t) { setErrorAt(mode === 'hour' ? 'break' : 'other')('The phone’s date is before this operation’s Day 1.'); return null; } // in Hourly count, Now is only in the break box
     return t.hm;
   };
   const timeOf = (v: string, d = day): OpTime | null | 'bad' => (v.trim() === '' ? null : parseHM(v.trim()) == null ? 'bad' : { day: d, hm: v.trim().padStart(5, '0') });
 
-  const run = async (build: (c: E.Ctx) => VsaEvent[] | Reject, done: string) => {
-    setError(null);
+  const runAt = (where: 'hour' | 'break' | 'other'): Run => async (build, done) => {
+    setErrorAt(where)(null);
     const r = await save(build);
-    if (r.ok) onClose(done); else setError(r.error);
+    if (r.ok) onClose(done); else setErrorAt(where)(r.error);
   };
+  const run = runAt('other');
+  const errorAt = (where: 'hour' | 'break' | 'other') => (err && err.where === where ? <ErrorBox text={err.text} /> : null);
 
   const modes: { value: Mode; label: string }[] = [
     { value: 'hour', label: 'Hourly count' },
@@ -63,15 +67,18 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   }
   return (
     <Sheet title="Log" isTest={isTest} onClose={() => onClose()}>
-          <Seg options={modes} value={mode} onChange={(m) => { setMode(m); setError(null); }} />
-          {mode === 'hour' && phase !== 'working' && <BreakBox baseline={baseline} state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
-          {mode === 'hour' && <HourForm state={state} baseline={baseline} run={run} setError={setError} prefill={prefill} />}
-          {mode === 'hour' && phase === 'working' && <BreakBox baseline={baseline} state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
+          <Seg options={modes} value={mode} onChange={(m) => { setMode(m); setErr(null); }} />
+          {mode === 'hour' && phase !== 'working' && <BreakBox baseline={baseline} state={state} run={runAt('break')} now={now} timeOf={timeOf} setError={setErrorAt('break')} />}
+          {mode === 'hour' && phase !== 'working' && errorAt('break')}
+          {mode === 'hour' && <HourForm state={state} baseline={baseline} run={runAt('hour')} setError={setErrorAt('hour')} prefill={prefill} />}
+          {mode === 'hour' && errorAt('hour')}
+          {mode === 'hour' && phase === 'working' && <BreakBox baseline={baseline} state={state} run={runAt('break')} now={now} timeOf={timeOf} setError={setErrorAt('break')} />}
+          {mode === 'hour' && phase === 'working' && errorAt('break')}
           {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
-          {mode === 'hh' && <HhForm state={state} run={run} now={now} timeOf={timeOf} setError={setError} />}
-          {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setError} />}
+          {mode === 'hh' && <HhForm state={state} run={run} now={now} timeOf={timeOf} setError={setErrorAt('other')} />}
+          {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setErrorAt('other')} />}
           {mode === 'photo' && <EvidenceForm state={state} baseline={baseline} save={save} onClose={(done) => onClose(done)} />}
-          {error && <ErrorBox text={error} />}
+          {mode !== 'hour' && errorAt('other')}
     </Sheet>
   );
 }

@@ -163,7 +163,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   const next = breaks.find((x) => x > nowMin);
   const sideCut: Partial<Record<'N' | 'S', number>> = {};
   for (const d of b.destinations) sideCut[d.side] = d.clearBy;
-  const strip = recon ? null : next == null ? { breakAt: null, clearBy: [] as { side: string; at: string }[] } : {
+  const strip = recon || next == null ? null : { // no strip after the last break of the day (it would be an empty bar)
     breakAt: formatHM(next),
     clearBy: [
       ...(sideCut.S != null ? [{ side: 'South', at: formatHM(next - sideCut.S) }] : []),
