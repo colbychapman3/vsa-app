@@ -1,23 +1,30 @@
 // Light and Night color values, plain data (no React Native), so contrast can be tested in Node.
-// Light is the VSA Live tracker's hi-vis theme and never changes here; Night mirrors each token so every
-// text/background pair keeps working when the pair flips (a token used as a fill and as text is lighter in Night).
+// Design B "Ship Plan" (Colby picked it, 2026-10-11): steel-grey page, navy ink and hull, hi-vis orange for the one
+// action that matters, a blue fill for cars still aboard. Night mirrors each token so every text/background pair keeps
+// working when the pair flips (a token used as a fill and as text is lighter in Night).
 export const light = {
-  bg: '#F4F1EA', card: '#FFFFFF', ink: '#15171A', muted: '#4A4F57', line: '#D9D3C7', soft: '#E6E0D4', row: '#EFEAE0',
+  bg: '#EEF1F4', card: '#FFFFFF', ink: '#0E1A2B', muted: '#3A4B60', line: '#CBD3DC', soft: '#DCE3EC', row: '#F4F6F8',
   blue: '#1D4ED8', onBlue: '#FFFFFF', orange: '#B45309', onOrange: '#FFFFFF', onRed: '#FFFFFF',
-  oBg: '#FFF7ED', oInk: '#7C2D12', red: '#B91C1C', rBg: '#FEE2E2', rInk: '#7F1D1D',
+  oBg: '#FFF4EB', oInk: '#7C2D12', red: '#B91C1C', rBg: '#FEE2E2', rInk: '#7F1D1D',
   green: '#15803D', gBg: '#DCFCE7', gInk: '#14532D',
-  head: '#15171A', headInk: '#F4F1EA', headMuted: '#D6D1C6', accent: '#FDBA74', onAccent: '#15171A', done: '#5A5F66',
+  head: '#14243B', headInk: '#FFFFFF', headMuted: '#C9D6EA', accent: '#FF8A3D', onAccent: '#0E1A2B', done: '#5A6B80',
+  // The one primary action (Log, Save): hi-vis orange with navy text, readable in sun at 7:1.
+  action: '#FF8A3D', onAction: '#0E1A2B',
+  // The ship: hull, deck tracks (a hatch with cars / a cleared one), the fill for cars still aboard, text on the hull.
+  hull: '#14243B', deckTrack: '#24375A', deckClear: '#1B2C47', deckFill: '#3D7BFF', deckWarn: '#FF8A3D', deckInk: '#FFFFFF', deckMuted: '#A9BAD1',
   // Terminal map data colors: only for shapes, never for text, same in both palettes.
   mapZone: '#2F8BFF', mapSite: '#22C47F', mapYard: '#FFB020', mapOem: '#A45CF2', mapRail: '#27C95A', mapMeasure: '#FF4FA3',
 };
 export type Token = keyof typeof light;
 
 export const night: Record<Token, string> = {
-  bg: '#101214', card: '#1B1E22', ink: '#F3F0E9', muted: '#B4BAC3', line: '#3A4048', soft: '#2C3137', row: '#23272C',
+  bg: '#0A121D', card: '#13202F', ink: '#E8EEF5', muted: '#B5C4D8', line: '#2A3B55', soft: '#1E2F48', row: '#15233A',
   blue: '#8CB2FF', onBlue: '#0A1226', orange: '#F5A524', onOrange: '#1C1100', onRed: '#2B0707',
   oBg: '#35210F', oInk: '#FFC999', red: '#FF8585', rBg: '#3A1414', rInk: '#FFC4C4',
   green: '#5EE08A', gBg: '#12301D', gInk: '#B8F2CB',
-  head: '#0A0B0D', headInk: '#F4F1EA', headMuted: '#D6D1C6', accent: '#FDBA74', onAccent: '#15171A', done: '#A3A9B1',
+  head: '#060D17', headInk: '#E8EEF5', headMuted: '#B5C4D8', accent: '#FF8A3D', onAccent: '#0A121D', done: '#A3B1C2',
+  action: '#FF8A3D', onAction: '#0A121D',
+  hull: '#050A12', deckTrack: '#1E3354', deckClear: '#101C2E', deckFill: '#4C8DFF', deckWarn: '#FF8A3D', deckInk: '#FFFFFF', deckMuted: '#A9BAD1',
   mapZone: light.mapZone, mapSite: light.mapSite, mapYard: light.mapYard, mapOem: light.mapOem, mapRail: light.mapRail, mapMeasure: light.mapMeasure,
 };
 
@@ -28,6 +35,7 @@ export const TEXT_PAIRS: [Token, Token][] = [
   ['blue', 'card'], ['blue', 'bg'], ['red', 'card'], ['green', 'card'], ['orange', 'card'],
   ['oInk', 'oBg'], ['oInk', 'card'], ['oInk', 'bg'], ['rInk', 'rBg'], ['gInk', 'gBg'],
   ['headInk', 'head'], ['headMuted', 'head'], ['accent', 'head'],
+  ['onAction', 'action'], ['deckInk', 'hull'], ['deckMuted', 'hull'], ['deckInk', 'deckTrack'],
 ];
 
 const channel = (h: string, i: number) => {

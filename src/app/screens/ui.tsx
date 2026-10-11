@@ -23,7 +23,7 @@ export function Label({ children, style, wrap }: { children: ReactNode; style?: 
 export function Big({ children, size, style }: { children: ReactNode; size: number; style?: StyleProp<TextStyle> }) {
   const f = useType(), sun = useSun();
   return (
-    <Text style={[{ fontSize: size, lineHeight: size * 0.95, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, sun && { backgroundColor: color.soft, borderRadius: 8, paddingHorizontal: 6, overflow: 'hidden' }, style]}
+    <Text style={[{ fontSize: size, lineHeight: size * 0.95, letterSpacing: -size * 0.025, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, sun && { backgroundColor: color.soft, borderRadius: 8, paddingHorizontal: 6, overflow: 'hidden' }, style]}
       numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
       {children}
     </Text>
@@ -122,7 +122,7 @@ export function FillNumber({ children, size, pct, fill }: { children: string; si
   const H = size * 0.95;
   const p = Math.max(0, Math.min(100, pct)) / 100;
   const share = p <= 0 ? 0 : p >= 1 ? 1 : GLYPH_BOTTOM + p * (GLYPH_TOP - GLYPH_BOTTOM);
-  const style: TextStyle = { fontSize: size, lineHeight: H, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] };
+  const style: TextStyle = { fontSize: size, lineHeight: H, letterSpacing: -size * 0.025, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] };
   const props = { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.5 } as const;
   return (
     <View accessible accessibilityLabel={`${children}, ${Math.round(p * 100)} percent done`}>
@@ -215,7 +215,7 @@ export const u = StyleSheet.create({
   input: { minHeight: TAP, borderWidth: 1.5, borderColor: color.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
   segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   segOn: { backgroundColor: color.ink, borderColor: color.ink, ...elev.raised },
-  goBtn: { minHeight: TAP, borderRadius: 12, backgroundColor: color.blue, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, ...elev.raised },
+  goBtn: { minHeight: 58, borderRadius: 999, backgroundColor: color.action, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, ...elev.raised },
   ghostBtn: { minHeight: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, ...elev.card },
   x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, ...elev.card, alignItems: 'center', justifyContent: 'center' },
   errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 12, fontSize: 14, overflow: 'hidden' },
@@ -293,7 +293,7 @@ export function Go({ label, onPress, ghost, disabled }: { label: string; onPress
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button"
       style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, sun && ghost && edge(sun), pressed && { transform: [{ scale: 0.98 }] }, (pressed || disabled) && { opacity: 0.6 }]}>
       {/* A one-word label ("Unarchive" beside Delete) stays on one line and shrinks; it never splits mid-word. Sentences wrap between words. */}
-      <Text style={{ fontFamily: f.bodySemi, fontSize: ghost ? 15 : 17, color: ghost ? color.ink : color.onBlue }}
+      <Text style={{ fontFamily: ghost ? f.bodySemi : f.displaySemi, fontSize: ghost ? 15 : 18, color: ghost ? color.ink : color.onAction }}
         {...(/\s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 })}>{label}</Text>
     </Pressable>
   );

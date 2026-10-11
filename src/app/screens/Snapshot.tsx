@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { snapshot, type Banner } from '../view.ts';
+import { nowLine } from '../now.ts';
 import type { Layout } from '../snapshotLayout.ts';
 import { color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
@@ -18,6 +19,7 @@ type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 
 export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice, layout, onLayout, onHistory }: Props) {
   const f = useType();
   const v = snapshot(state, baseline, nowMin);
+  const now = nowLine(state, baseline, nowMin);
 
   return (
     <View>
@@ -29,9 +31,8 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
           {v.strip.breakAt
             ? <>
                 <Body semi>Break {v.strip.breakAt}</Body>
-                <Text style={[s.stripRight, { fontFamily: f.body }]}>
-                  Clear-by {v.strip.clearBy.map((c, i) => <Text key={c.side}>{i ? ' · ' : ''}{c.side} <Text style={{ fontFamily: f.bodySemi, color: color.ink }}>{c.at}</Text></Text>)}
-                </Text>
+                {/* Design B (Colby, 2026-10-11): clear-by clock times needn't be shown; say whether the finish beats the cutoff. */}
+                {v.strip.finish && <Text style={[s.stripRight, { fontFamily: f.bodySemi, color: v.strip.finish.ok ? color.gInk : color.muted }]}>{v.strip.finish.text}</Text>}
               </>
             : null}
         </View>
@@ -45,6 +46,13 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
         </Pressable>
       )}
 
+      {now && (
+        <View style={[s.now, now.tone === 'warn' ? s.nowWarn : now.tone === 'due' ? s.nowDue : s.nowCalm]} accessibilityRole="text" accessibilityLabel={`Now: ${now.text}`}>
+          <Icon name="clock" color={now.tone === 'warn' ? color.onAction : now.tone === 'due' ? color.accent : color.green} />
+          <Text style={[s.nowText, { fontFamily: f.bodySemi, color: now.tone === 'warn' ? color.onAction : now.tone === 'due' ? color.headInk : color.ink }]}>{now.text}</Text>
+        </View>
+      )}
+
       <Boxes tab="snap" layout={layout} onLayout={onLayout} state={state} baseline={baseline} nowMin={nowMin} isTest={isTest} save={save} onNotice={onNotice} onOpenTab={onOpenTab} onHistory={onHistory} />
     </View>
   );
@@ -54,5 +62,11 @@ const s = StyleSheet.create({
   strip: { backgroundColor: color.card, borderBottomWidth: 1, borderBottomColor: color.line, paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   stripRight: { marginLeft: 'auto', fontSize: 14, color: color.muted, flexShrink: 1, textAlign: 'right' },
   issues: { backgroundColor: color.oBg },
+  // The Now line: the one thing worth knowing right now (navy when a count is due, hi-vis orange for a warning).
+  now: { marginHorizontal: 20, marginTop: 16, marginBottom: -4, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
+  nowWarn: { backgroundColor: color.action },
+  nowDue: { backgroundColor: color.head },
+  nowCalm: { backgroundColor: color.card, borderWidth: 1, borderColor: color.line },
+  nowText: { flex: 1, fontSize: 15, lineHeight: 20 },
   issueDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.orange, color: color.onOrange, textAlign: 'center', fontSize: 12, lineHeight: 18, overflow: 'hidden' },
 });

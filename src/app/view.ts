@@ -163,8 +163,13 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   const next = breaks.find((x) => x > nowMin);
   const sideCut: Partial<Record<'N' | 'S', number>> = {};
   for (const d of b.destinations) sideCut[d.side] = d.clearBy;
+  // Design B (Colby, 2026-10-11: clear-by times needn't be shown): the strip says whether the forecast finish beats the cutoff.
+  const cutAt = next == null ? null : next - Math.max(sideCut.N ?? 0, sideCut.S ?? 0);
+  const etaToday = s.eta.etaAbs == null ? null : s.eta.etaAbs - (s.ops.day - 1) * 1440;
+  const finish = cutAt == null || etaToday == null || s.vesselRemaining === 0 ? null
+    : etaToday <= cutAt ? { ok: true, text: `${Math.round(cutAt - etaToday)} min to spare (est.)` } : { ok: false, text: 'Runs past this break (est.)' };
   const strip = recon || next == null ? null : { // no strip after the last break of the day (it would be an empty bar)
-    breakAt: formatHM(next),
+    breakAt: formatHM(next), finish,
     clearBy: [
       ...(sideCut.S != null ? [{ side: 'South', at: formatHM(next - sideCut.S) }] : []),
       ...(sideCut.N != null ? [{ side: 'North', at: formatHM(next - sideCut.N) }] : []),
