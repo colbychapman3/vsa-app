@@ -4,7 +4,6 @@
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
 import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, scheduleOf, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
-import { steady } from './steady.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
 export type Banner = { tone: Tone; title: string; sub: string; trackable: boolean; tracked: boolean; go?: 'hourly' | 'decks' }; // go: the tab that addresses the warning
@@ -155,7 +154,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     }
   }
   const nowAbs = (s.ops.day - 1) * 1440 + nowMin;
-  const st = steady(s, b); // the finish the screens show (see steady.ts)
+  const st = s.steady; // the finish the screens show (state.steady, built in the engine)
   if (st.etaAbs != null && s.vesselRemaining !== 0 && !recon && nowAbs > st.etaAbs) {
     banners.push({ tone: 'orange', title: 'Forecast passed · completion not reported', sub: 'Log a count or update decks to refresh.', trackable: false, tracked: false, go: 'hourly' });
   }

@@ -3,7 +3,6 @@
 import { formatHM, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 import { completeLine } from './complete.ts';
-import { steady } from './steady.ts';
 import { decksView, hourlyView, planView, snapshot } from './view.ts';
 
 export function vesselBrief(s: State, b: Baseline, nowMin: number): string[] {
@@ -48,8 +47,8 @@ export function traces(s: State, b: Baseline): Trace[] {
     { key: 'ha', title: 'H.A. (hourly average)', lines: p.ha == null ? ['Unknown: no counted hours yet.'] : [`Field ${n(s.field)} ÷ ${p.countedHours} counted hour${p.countedHours === 1 ? '' : 's'} = ${n(Math.round(p.ha))}/hr.`, 'Every counted hour counts as a whole hour, including the short pre-break hour.'] },
     { key: 'pace', title: 'Pace', lines: p.pace == null ? ['Unknown: no productive time known (a short hour needs its stoppage time).'] : [`${n(p.prodCount)} autos in the hours with known minutes ÷ ${(p.prodMin / 60).toFixed(2)} productive hr = ${n(Math.round(p.pace))}/hr.`, 'Pre-break hours count only the minutes worked before stoppage.'] },
     { key: 'eta', title: 'ETA (FORECAST)', lines: s.vesselRemaining === 0 ? ['Nothing remaining, so there is no forecast.']
-      : steady(s, b).etaAbs == null || s.eta.rate == null ? [`Unknown: ${s.eta.reason ?? 'not enough data'}.`]
-      : (() => { const st = steady(s, b), e = st.etaAbs!; return [`${n(st.remaining ?? 0)} ${s.vesselRemaining == null ? 'field balance' : st.carry ? 'estimated aboard' : 'remaining'} ÷ ${n(Math.round(s.eta.rate!))}/hr (average pace of the last ${s.eta.hoursUsed} hour${s.eta.hoursUsed === 1 ? '' : 's'} with a known pace) → ${formatHM(e % 1440)}${e >= 1440 ? ` on Day ${Math.floor(e / 1440) + 1}` : ''}.`,
+      : s.steady.etaAbs == null || s.eta.rate == null ? [`Unknown: ${s.eta.reason ?? 'not enough data'}.`]
+      : (() => { const st = s.steady, e = st.etaAbs!; return [`${n(st.remaining ?? 0)} ${s.vesselRemaining == null ? 'field balance' : st.carry ? 'estimated aboard' : 'remaining'} ÷ ${n(Math.round(s.eta.rate!))}/hr (average pace of the last ${s.eta.hoursUsed} hour${s.eta.hoursUsed === 1 ? '' : 's'} with a known pace) → ${formatHM(e % 1440)}${e >= 1440 ? ` on Day ${Math.floor(e / 1440) + 1}` : ''}.`,
         ...(st.carry ? [`The deck counts are older than the last logged hour, so about ${n(st.carry.cars)} cars cleared in the ${st.carry.sinceMin} working minutes between are taken off the ${n(s.vesselRemaining!)} counted (an estimate; vessel remaining stays ${n(s.vesselRemaining!)}).`] : []),
         'Steps over each scheduled 1-hour break and the clear-by before it, and rolls into Day 2 at the next-day start.', 'A forecast: never marked complete automatically.']; })() },
     { key: 'clearby', title: 'Clear-by', lines: [`Breaks at ${b.breaks.join(' and ')}, 1 hour each. Clear-by is a fixed time before the break: Northside 15 min, Southside 30 min (Appendix C).`, 'It is not computed from travel times, and it is applied once (a stop time you give is used as given).'] },

@@ -4,7 +4,7 @@
 // shift end minus the stop for the side it ends on; later days start at the next-day start time.
 import type { Destination } from './baseline.ts';
 import { preBreak, SAFETY_MEETING, type Period } from './production.ts';
-import { parseHM, toAbs, fromAbs, type OpTime, type Reject } from './time.ts';
+import { parseHM, toAbs, fromAbs, formatHM, type OpTime, type Reject } from './time.ts';
 
 const DAY = 1440, BREAK_MIN = 60;
 
@@ -127,6 +127,32 @@ export function carriedRemaining(i: { remaining: number | null; rate: number | n
   if (since < NOW_EST_MIN_MIN) return null;
   const cars = Math.round((i.rate * since) / 60), remaining = i.remaining - cars;
   return cars > 0 && remaining > 0 ? { remaining, cars, sinceMin: Math.round(since) } : null;
+}
+
+// The steady finish (see carriedRemaining): the finish the screens show. `deckSaves` is when each deck's numbers were last saved
+// (null = a time that could not be read); a deck never saved is not in the list. `shiftEndAbs` is Day 1's logged end of shift.
+// Inputs the forecast already used are passed in, so this is one more step of the same forecast, never a second model.
+export type Steady = { etaAbs: number | null; remaining: number | null; carry: { cars: number; sinceMin: number } | null };
+export function steadyFinish(i: { vesselRemaining: number | null; fieldBalance: number | null; forecast: { etaAbs: number | null; rate: number | null; fromAbs: number | null };
+  periods: Period[]; schedule: Schedule; ops: Ops; deckSaves: (number | null)[]; shiftEndAbs: number | null }): Steady {
+  const base: Steady = { etaAbs: i.forecast.etaAbs, remaining: i.vesselRemaining ?? i.fieldBalance, carry: null };
+  if (i.vesselRemaining == null || i.vesselRemaining === 0) return base; // the field balance is already as new as the hourly counts
+  if (!i.deckSaves.length || i.deckSaves.some((x) => x == null)) return base; // a save whose time can't be read: leave the forecast as it is
+  const from = i.forecast.fromAbs, asOf = Math.max(...(i.deckSaves as number[]));
+  let schedule = i.schedule;
+  if (from != null && Math.floor(from / DAY) !== Math.floor(asOf / DAY)) {
+    // Across the night: only Day 1 to Day 2, and only when Day 1's end is known (planned, or the logged end of shift). A logged end
+    // with no known side stops the longer 30 min before it, so the carry can only come out smaller.
+    if (Math.floor(asOf / DAY) !== 0 || Math.floor(from / DAY) !== 1) return base;
+    if (!schedule.shiftEnd) {
+      if (i.shiftEndAbs == null || i.shiftEndAbs >= DAY) return base;
+      schedule = { ...schedule, shiftEnd: formatHM(i.shiftEndAbs), shiftEndStopMin: Math.max(SHIFT_END_STOP_MIN.N, SHIFT_END_STOP_MIN.S) };
+    }
+  }
+  const c = carriedRemaining({ remaining: i.vesselRemaining, rate: i.forecast.rate, deckAsOfAbs: asOf, fromAbs: from, schedule });
+  if (!c) return base;
+  const e = eta({ remaining: c.remaining, basis: 'vessel', periods: i.periods, schedule, ops: i.ops });
+  return { etaAbs: e.etaAbs, remaining: c.remaining, carry: { cars: c.cars, sinceMin: c.sinceMin } };
 }
 
 // Productive hours between two times, skipping breaks and clear-by windows.
