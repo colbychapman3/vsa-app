@@ -48,6 +48,8 @@ import { Vessels } from './src/app/screens/Vessels.tsx';
 import { Sidebar } from './src/app/screens/Sidebar.tsx';
 import { Settings } from './src/app/screens/Settings.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
+import { siriPrefill } from './src/app/siri.ts';
+import { takeSiriPending } from './modules/vsa-intents/index.ts';
 
 const DEMO = 'TEST-GLOVIS-101';
 const glovis = glovisJson as Baseline;
@@ -131,6 +133,16 @@ export default function App() {
     const a = answerAfterSave(was, now, vessel.baseline, minutesNow(), done);
     return a.changed ? { ok: true, text: answerText(a), answer: a } : { ok: true, text: done };
   }, [vessel]);
+
+  // Siri (Colby, 2026-10-11): a count said to Siri opens the Log filled in, once, on the hour that's due; Save is still his.
+  // Taken only when a vessel is open and nothing else is, so it is never used up behind a sheet.
+  const hasVessel = vessel != null;
+  useEffect(() => {
+    if (!hasVessel || openAny) return;
+    const p = siriPrefill(takeSiriPending(), Date.now());
+    if (!p) return;
+    setNotice(null); setPrefill(p); before.current = latest.current; setLogOpen(true);
+  }, [fg, hasVessel, openAny]);
 
   // Plan reminders: notifications tapped open Plan; the schedule is replaced whenever the vessel's state changes or the app returns.
   const openPlan = useRef<() => void>(() => {});

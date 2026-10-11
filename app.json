@@ -53,7 +53,8 @@
           "isAccessMediaLocationEnabled": false
         }
       ],
-      "./plugins/withoutPush.js"
+      "./plugins/withoutPush.js",
+      "./plugins/withLogIntent.js"
     ],
     "extra": {
       "eas": {
