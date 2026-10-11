@@ -1,4 +1,4 @@
-// Est. completion history (Colby, 2026-10-08): the ETA after each logged hour, as a line or as bars of how far it moved, with a
+// Finish history (Colby, 2026-10-08): the ETA after each logged hour, as a line or as bars of how far it moved, with a
 // plus/minus line per hour. Rebuilt from the log (src/app/etaHistory.ts); nothing here is stored or calculated by the screen.
 import { useMemo, useState } from 'react';
 import Svg, { Circle, G, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
@@ -17,7 +17,7 @@ export function EtaHistory({ state, baseline, nowMin, isTest, onClose }: { state
   const pts = useMemo(() => etaHistory(baseline, state.log.events, state.operationId), [baseline, state.log.events, state.operationId]);
   const v = snapshot(state, baseline, nowMin);
   return (
-    <Sheet title="Est. completion history" isTest={isTest} onClose={onClose}>
+    <Sheet title="Finish history" isTest={isTest} onClose={onClose}>
       <Tag kind="FORECAST" />
       <Label>HOW THIS IS WORKED OUT</Label>
       {v.eta.notes.map((n) => <Body key={n}>{n}</Body>)}
@@ -48,7 +48,7 @@ function LineChart({ pts }: { pts: EtaPoint[] }) {
   const y = (v: number) => H - PAD - ((v - lo) / span) * (H - 2 * PAD);
   const dots = pts.map((p, i) => ({ p, i })).filter(({ p }) => p.etaAbs != null);
   return (
-    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} accessibilityLabel="Line chart of the estimated completion time after each logged hour">
+    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} accessibilityLabel="Line chart of the forecast finish after each logged hour">
       <Line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke={color.line} strokeWidth={1} />
       <SvgText x={2} y={y(hi) + 4} fontSize={11} fill={color.muted}>{clock(hi)}</SvgText>
       {hi !== lo && <SvgText x={2} y={y(lo) + 4} fontSize={11} fill={color.muted}>{clock(lo)}</SvgText>}
@@ -65,7 +65,7 @@ function BarChart({ pts }: { pts: EtaPoint[] }) {
   const max = Math.max(1, ...moves.map(({ p }) => Math.abs(p.deltaMin!)));
   const mid = (H - PAD) / 2 + 6, half = (H - PAD) / 2 - 18, bw = Math.min(28, (W - 2 * PAD) / pts.length - 6);
   return (
-    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} accessibilityLabel="Bar chart of how many minutes the estimated completion moved at each logged hour">
+    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} accessibilityLabel="Bar chart of how many minutes the forecast finish moved at each logged hour">
       <Line x1={PAD} y1={mid} x2={W - PAD} y2={mid} stroke={color.line} strokeWidth={1} />
       {moves.map(({ p, i }) => {
         const d = p.deltaMin!, h = (Math.abs(d) / max) * half, x = xAt(i, pts.length) - bw / 2;

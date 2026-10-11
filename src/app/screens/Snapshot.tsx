@@ -14,12 +14,13 @@ import { BannerView, Body, u } from './ui.tsx';
 
 type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'decks' | 'plan') => void; onTrack: (b: Banner) => void;
   isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void;
-  layout: Layout; onLayout: (l: Layout) => void; onHistory: () => void };
+  layout: Layout; onLayout: (l: Layout) => void; onHistory: () => void; answerOpen?: boolean };
 
-export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice, layout, onLayout, onHistory }: Props) {
+export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice, layout, onLayout, onHistory, answerOpen }: Props) {
   const f = useType();
   const v = snapshot(state, baseline, nowMin);
-  const now = nowLine(state, baseline, nowMin);
+  const line = nowLine(state, baseline, nowMin);
+  const now = answerOpen && line?.tone === 'calm' ? null : line; // the answer card above already says nothing needs him
 
   return (
     <View>

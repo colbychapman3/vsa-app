@@ -49,7 +49,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   const errorAt = (where: 'hour' | 'break' | 'other') => (err && err.where === where ? <ErrorBox text={err.text} /> : null);
 
   const modes: { value: Mode; label: string }[] = [
-    { value: 'hour', label: 'Hourly count' },
+    { value: 'hour', label: 'Hourly' },
     { value: 'deck', label: 'Deck' },
     { value: 'hh', label: 'H/H' },
     { value: 'issue', label: 'Discrepancy' },
