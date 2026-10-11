@@ -87,8 +87,37 @@ export function eta(input: { remaining: number; basis: 'vessel' | 'field'; perio
   return { ...out, reason: 'Beyond two days at this pace' };
 }
 
+// The forecast's schedule from the baseline and the plan. One builder, so the forecast and the live estimate never disagree.
+export function scheduleOf(
+  b: { start: string; breaks: string[]; destinations: Pick<Destination, 'clearBy'>[] },
+  plan: { shiftEnd: string | null; nextStart: string | null; shiftEndSide?: 'N' | 'S' | null },
+  actualStarts: Record<number, string>,
+): Schedule {
+  return { dayStart: b.start, nextStart: plan.nextStart, shiftEnd: plan.shiftEnd, breaks: b.breaks, clearByMin: vesselClearBy(b.destinations),
+    ...(plan.shiftEndSide ? { shiftEndStopMin: SHIFT_END_STOP_MIN[plan.shiftEndSide] } : {}), ...(Object.keys(actualStarts).length ? { actualStarts } : {}) };
+}
+
+// LIVE ESTIMATE between counts (Colby, 2026-10-11: "1. fill the gaps between counts"). The same anchor and rate as the forecast:
+// remaining at the end of the last logged hour, minus the forecast pace over the productive minutes since. Always an estimate,
+// never a count; it never replaces the remaining number and never goes below zero. Quiet when the count is fresh, and it stops
+// guessing when the last count is too old to lean on.
+export const NOW_EST_MIN_MIN = 10;   // under this many productive minutes since the anchor, the last count is current
+export const NOW_EST_MAX_MIN = 120;  // over this many, too stale to project; ask for a count instead
+export function nowEstimate(i: { remaining: number | null; rate: number | null; fromAbs: number | null; nowAbs: number; schedule: Schedule; phase: 'working' | 'break' | 'shift_end' }):
+  { est: number; sinceMin: number; rate: number } | { est: null; reason: string; stale?: boolean } {
+  if (i.remaining == null) return { est: null, reason: 'Remaining is unknown.' };
+  if (i.remaining === 0) return { est: null, reason: 'Nothing remaining.' };
+  if (i.phase !== 'working') return { est: null, reason: i.phase === 'break' ? 'On break: no production to estimate.' : 'Shift ended: no production to estimate.' };
+  if (i.rate == null || !(i.rate > 0) || i.fromAbs == null) return { est: null, reason: 'Needs a recent pace.' };
+  const since = productiveMinutes(i.schedule, i.fromAbs, i.nowAbs);
+  if (since < NOW_EST_MIN_MIN) return { est: null, reason: 'The last count is current.' };
+  if (since > NOW_EST_MAX_MIN) return { est: null, reason: 'No count in over 2 working hours. Log one to estimate again.', stale: true };
+  return { est: Math.max(0, Math.round(i.remaining - (i.rate * since) / 60)), sinceMin: Math.round(since), rate: i.rate };
+}
+
 // Productive hours between two times, skipping breaks and clear-by windows.
-function productiveMinutes(s: Schedule, from: number, to: number): number {
+export function productiveMinutes(s: Schedule, from: number, to: number): number {
+  if (!(to > from)) return 0;
   let total = 0;
   for (let d = Math.floor(from / DAY); d <= Math.floor(to / DAY); d++) {
     for (const [a, z] of windows(s, d)) total += Math.max(0, Math.min(z, to) - Math.max(a, from));

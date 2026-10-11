@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, scheduleOf, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -224,7 +224,19 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     brands: s.brands.length > 1 ? brandTableOf(s) : [],
     unsplitNote: s.brands.length > 1 && s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,
   };
+  // Live estimate between counts (Colby, 2026-10-11): the forecast's own pace carried from the last logged hour to now.
+  // A line under the number, labeled an estimate; the number itself stays the last count.
+  const actual = Object.fromEntries(Object.entries(s.dayStarts).filter(([, d]) => d.actual != null).map(([k, d]) => [Number(k), d.actual!]));
+  const ne = nowEstimate({ remaining: known ? s.vesselRemaining : s.fieldBalance, rate: s.eta.rate, fromAbs: s.eta.fromAbs, nowAbs,
+    schedule: scheduleOf(b, s.plan, actual), phase: s.ops.phase });
+  const about = (n: number) => (n >= 50 ? Math.round(n / 5) * 5 : n); // no false precision on a guess
+  const estimate: { tone: 'muted' | 'orange'; text: string; sub: string | null; forecast: boolean } | null = ne.est != null
+    ? (ne.est === 0
+      ? { tone: 'orange', text: 'May be finishing now (est.)', sub: 'Log a count or update the decks to confirm.', forecast: true }
+      : { tone: 'muted', text: `About ${fmt(about(ne.est))} left now (est.)`, sub: `${ne.sinceMin} working min since the last count, at ${Math.round(ne.rate)}/hr`, forecast: true })
+    : ne.stale ? { tone: 'orange', text: 'No count in over 2 working hours', sub: 'Log one to estimate again.', forecast: false } : null;
   const hero = {
+    estimate,
     label: known ? 'VESSEL REMAINING' : 'FIELD BALANCE',
     value: fmt(known ? s.vesselRemaining : s.fieldBalance),
     of: `of ${fmt(s.start)} autos · ${pct == null ? '—' : pct.toFixed(1)}%${known ? ' complete' : ''}`,

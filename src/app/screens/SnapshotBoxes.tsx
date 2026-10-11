@@ -145,6 +145,15 @@ function HeroBox({ v }: { v: V }) {
       </View>
       {h.value === '—' ? <Big size={112} style={{ color: heroColor }}>{h.value}</Big> : <FillNumber size={112} pct={h.pct} fill={heroColor}>{h.value}</FillNumber>}
       <Body style={{ fontSize: 17 }}>{h.of}</Body>
+      {h.estimate && (
+        <View style={{ gap: 4 }}>
+          <View style={[u.secH, { justifyContent: 'flex-start', gap: 8 }]}>
+            {h.estimate.forecast && <Tag kind="FORECAST" />}
+            <Text style={{ flexShrink: 1, fontFamily: f.bodySemi, fontSize: 17, color: h.estimate.tone === 'orange' ? color.oInk : color.ink }}>{h.estimate.text}</Text>
+          </View>
+          {h.estimate.sub && <Note>{h.estimate.sub}</Note>}
+        </View>
+      )}
       <Bar pct={h.pct} />
       <View style={u.secH}>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barLeft}</Text>
