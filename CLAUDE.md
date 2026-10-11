@@ -26,6 +26,7 @@ Plan: `ROADMAP.md` (its **Now** block is the current status; this file does not 
 - `src/engine/` pure rules engine (no UI, storage or AI). `src/engine/terminal.ts` is the terminal directory: Appendix C sides/cutoffs and Appendix D berth miles.
 - `src/storage/` SQLite store, schema, migrations, backup. `src/app/` view model (`view.ts`), entry builders, AI glue, screens (`src/app/screens/`).
 - `modules/vsa-text/` local Expo module: Apple Vision text with word positions (Swift in `modules/vsa-text/ios/`). `plugins/withoutPush.js` config plugin.
+- Siri ("Log a count in VSA", 2026-10-11): the App Intent is `plugins/ios/VsaLogCountIntent.swift`, put in the app target by `plugins/withLogIntent.js` (App Intents are only found in the app target); `modules/vsa-intents/` hands the spoken count to the app once; `src/app/siri.ts` drops a count older than 10 minutes. It only opens the Log filled in; Save stays Colby's.
 - `tests/` node:test suite; `tests/fixtures/` real-paperwork fixtures (Hector Highway 10A) and the event replay.
 - Generated files, never hand-edited: `assets/knowledge/index.json` (run `node scripts/build-knowledge.mjs` after changing `docs/knowledge-src/`), `src/app/map/data.ts` and `assets/terminal-map.jpg` (run `node scripts/export-map.mjs` after updating `docs/reference/terminal-map.html` or `terminal-map-edits.json`).
 
@@ -146,6 +147,6 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 
 ## Gotchas
 
-- **Native source must be committed.** EAS uploads skip anything `.gitignore` excludes. Only the root `/ios/` and `/android/` folders are generated; `modules/*/ios/` is source. A bare `ios/` rule hid the Swift reader, so build #7 shipped without it (2026-10-05). `tests/native.test.ts` now fails if that happens again. After each store build, confirm the module names (e.g. `VsaText`) appear in the build log before the phone check.
+- **Native source must be committed.** EAS uploads skip anything `.gitignore` excludes. Only the root `/ios/` and `/android/` folders are generated; `modules/*/ios/` is source. A bare `ios/` rule hid the Swift reader, so build #7 shipped without it (2026-10-05). `tests/native.test.ts` now fails if that happens again. After each store build, confirm the module names (`VsaText`, `VsaIntents`, and `VsaLogCountIntent.swift` in the app target) appear in the build log before the phone check.
 - **Large generated files** (`package-lock.json`, `docs/reference/terminal-map.html`, `assets/knowledge/index.json`, `dist/`) are blocked from reading in `.claude/settings.json`; change them only through their scripts.
 - **Paperwork photos and fixtures** contain VINs and booking numbers: commit new ones only with Colby's OK (rule 6).

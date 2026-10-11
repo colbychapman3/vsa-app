@@ -6,7 +6,7 @@
 //   - the Swift text reader is committed and Expo's autolinking finds the VsaText pod;
 //   - generated files (knowledge index, map data and image) match what their scripts produce now;
 //   - app.json / eas.json basics for a TestFlight build are valid.
-// It does NOT compile Swift: after each store build, confirm VsaText appears in the EAS build log.
+// It does NOT compile Swift: after each store build, confirm VsaText, VsaIntents and VsaLogCountIntent appear in the EAS build log.
 // Run:  npm run verify:native   (verify:release runs typecheck, tests and the iOS bundle first)
 import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -54,17 +54,22 @@ try {
     const info = plist ? readFileSync(plist, 'utf8') : '';
     check(info.includes('NSCameraUsageDescription') && info.includes('NSPhotoLibraryUsageDescription'), 'camera and photo permission texts are present');
     check(!info.includes('NSMicrophoneUsageDescription'), 'no microphone permission text');
+    const pbx = files.find((f) => f.endsWith('project.pbxproj'));
+    check(files.some((f) => /[\\/]VsaLogCountIntent\.swift$/.test(f)) && !!pbx && readFileSync(pbx, 'utf8').includes('VsaLogCountIntent.swift in Sources'), 'the Siri command is compiled into the app target (plugins/withLogIntent.js)');
   }
 
   // Native source: committed, and discovered by Expo's autolinking.
-  const swift = ['modules/vsa-text/ios/VsaText.podspec', 'modules/vsa-text/ios/VsaTextModule.swift'];
+  const swift = ['modules/vsa-text/ios/VsaText.podspec', 'modules/vsa-text/ios/VsaTextModule.swift',
+    'modules/vsa-intents/ios/VsaIntents.podspec', 'modules/vsa-intents/ios/VsaIntentsModule.swift', 'plugins/ios/VsaLogCountIntent.swift'];
   if (existsSync(join(root, '.git'))) {
-    const tracked = run(root, 'git', ['ls-files', 'modules/vsa-text/ios']).split(/\r?\n/);
+    const tracked = run(root, 'git', ['ls-files', 'modules', 'plugins/ios']).split(/\r?\n/);
     for (const f of swift) check(tracked.includes(f), `${f} is committed`, 'a .gitignore rule may hide it; EAS only uploads committed files');
   }
   const linked = JSON.parse(run(tmp, 'npx', ['expo-modules-autolinking', 'resolve', '--platform', 'apple', '--json']));
   const vsa = (linked.modules ?? []).find((m) => m.packageName === 'vsa-text');
   check(!!vsa?.pods?.some((p) => p.podName === 'VsaText') && !!vsa?.modules?.some((m) => m.class === 'VsaTextModule'), 'autolinking finds the VsaText pod and VsaTextModule');
+  const intents = (linked.modules ?? []).find((m) => m.packageName === 'vsa-intents');
+  check(!!intents?.pods?.some((p) => p.podName === 'VsaIntents') && !!intents?.modules?.some((m) => m.class === 'VsaIntentsModule'), 'autolinking finds the VsaIntents pod and VsaIntentsModule');
 } catch (e) {
   check(false, 'verification ran to the end', String(e.stderr || e.message).split('\n').slice(0, 6).join(' | '));
 } finally {
@@ -72,4 +77,4 @@ try {
 }
 
 if (failures.length) { console.error(`\n${failures.length} check(s) failed. Do not build.`); process.exit(1); }
-console.log('\nAll native and release checks passed. Still confirm VsaText in the EAS build log after the build.');
+console.log('\nAll native and release checks passed. Still confirm VsaText, VsaIntents and VsaLogCountIntent in the EAS build log after the build.');
