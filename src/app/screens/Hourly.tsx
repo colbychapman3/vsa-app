@@ -99,7 +99,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
             {r.shortUnset && <Note style={{ color: color.oInk, fontWeight: '600' }}>{r.short}</Note>}
           </View>
         )}
-        {r.delta && !r.deltaPaced && <Note style={{ color: color.gInk }}>{r.delta.replace(' vs prior hour', '')}</Note>}
+        {r.delta && !r.deltaPaced && <Note style={{ color: r.delta.startsWith('−') ? color.oInk : color.gInk }}>{r.delta.replace(' vs prior hour', '')}</Note>}
         {r.hhTags.map((t) => <Note key={t} style={{ color: color.blue }}>{t}</Note>)}
         {r.corrected && (
           <View style={s.tagRow}>
