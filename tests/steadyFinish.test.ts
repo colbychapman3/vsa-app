@@ -45,14 +45,15 @@ async function setup(tc: { after: (fn: () => Promise<void>) => void }) {
   tc.after(async () => { await store.close(); rmSync(dir, { recursive: true, force: true }); });
   assert.ok((await store.createVessel({ operationId: OP, baseline: glovis, isTest: true })).ok);
   let state = (await store.load(OP) as { state: State }).state;
-  const ctx = (): E.Ctx => ({ operationId: OP, opDate: '2026-09-21', offset: '-04:00', recordedAt: '2026-09-21T20:00:00-04:00', state });
+  let clock = '20:00'; // the phone clock at save (processing time)
+  const ctx = (): E.Ctx => ({ operationId: OP, opDate: '2026-09-21', offset: '-04:00', recordedAt: `2026-09-21T${clock}:00-04:00`, state });
   const ok = async (evs: VsaEvent[] | Reject) => {
     assert.ok(Array.isArray(evs), JSON.stringify(evs));
     const r = await store.append(OP, evs as VsaEvent[]);
     assert.ok(r.ok, JSON.stringify(r));
     if (r.ok) state = r.state;
   };
-  return { ctx, ok, get state() { return state; } };
+  return { ctx, ok, get state() { return state; }, set clock(v: string) { clock = v; } };
 }
 
 // Every deck complete except D9, whose count is entered at 08:30 (so the ship's remaining is known).
@@ -92,10 +93,26 @@ test('a deck update newer than the last hour needs no carry', async (tc) => {
   assert.equal(st.etaAbs, s.state.eta.etaAbs);
 });
 
-test('a deck saved with no event time has an unknown age: the forecast is left as it is, not guessed', async (tc) => {
-  const s = await setup(tc);
+async function noTimeDecks(s: Awaited<ReturnType<typeof setup>>) {
   for (const d of glovis.decks) if (d.id !== 'D9') await s.ok(E.deckEvents(s.ctx(), { deck: d.id, status: 'complete', skipped: false, hatchRemaining: {}, deckRemaining: null, time: null }));
   await s.ok(E.deckEvents(s.ctx(), { deck: 'D9', status: 'active', skipped: false, hatchRemaining: { H4: 24, H3: 123, H2: 103, H1: 69 }, deckRemaining: null, time: null }));
+}
+
+test('a deck saved with no event time: its save time bounds its age, so the carry can only be smaller', async (tc) => {
+  const s = await setup(tc);
+  s.clock = '08:40';
+  await noTimeDecks(s);
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 100 }));
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '09:00', count: 100 }));
+  const st = steady(s.state, glovis);
+  assert.equal(st.carry?.sinceMin, 80); // 08:40 to the end of the 09-10 hour
+  assert.equal(s.state.vesselRemaining, 319);
+});
+
+test('a save time after the last logged hour means nothing to carry: the forecast is left as it is', async (tc) => {
+  const s = await setup(tc);
+  s.clock = '20:00';
+  await noTimeDecks(s);
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 100 }));
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '09:00', count: 100 }));
   const st = steady(s.state, glovis);

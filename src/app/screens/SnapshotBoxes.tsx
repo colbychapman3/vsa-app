@@ -51,10 +51,10 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
     case 'field': return wrap(<FieldBox v={v} />);
     case 'eta': return (
       <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
-        accessibilityLabel="Estimated completion forecast. Tap for its history" accessibilityHint="Long press to move or hide this box">
+        accessibilityLabel="Finish, forecast. Tap for its history" accessibilityHint="Long press to move or hide this box">
         <View style={[u.card, s.tile, s.tileFc, v.eta.dashed && s.dashed]}>
           <Tag kind="FORECAST" />
-          <Label>EST. COMPLETION</Label>
+          <Label>FINISH</Label>
           {v.eta.day && <Body semi style={{ fontSize: 20 }}>{v.eta.day}</Body>}
           <Big size={40}>{v.eta.value}</Big>
           <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for history ›</Text>
@@ -185,7 +185,7 @@ function HeroBox({ v }: { v: V }) {
             </Text>
           </View>
         ))}
-        {h.gapNote && <Note style={{ color: color.oInk, fontWeight: '600' }}>{h.gapNote}</Note>}
+        {h.gapNote && <Note style={{ color: color.muted }}>{h.gapNote}</Note>}
         {h.unknownNote && <Note>{h.unknownNote}</Note>}
       </View>
     </Card>

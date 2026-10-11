@@ -4,7 +4,7 @@ export const BOXES = ['hero', 'ship', 'field', 'eta', 'ha', 'brands', 'side', 'v
 export type BoxId = (typeof BOXES)[number];
 export const TABS = ['snap', 'plan', 'hourly', 'decks'] as const;
 export type BoxTab = (typeof TABS)[number];
-export const BOX_TITLE: Record<BoxId, string> = { hero: 'Vessel remaining', ship: 'The ship (decks and hatches)', field: 'Field record', eta: 'Est. completion', ha: 'Avg hourly (H.A.)', brands: 'Remaining by brand', side: 'Side split', vessel: 'Vessel notes and cards' };
+export const BOX_TITLE: Record<BoxId, string> = { hero: 'Vessel remaining', ship: 'The ship (decks and hatches)', field: 'Field record', eta: 'Finish (forecast)', ha: 'Avg hourly (H.A.)', brands: 'Remaining by brand', side: 'Side split', vessel: 'Vessel notes and cards' };
 export const TAB_TITLE: Record<BoxTab, string> = { snap: 'Snapshot', plan: 'Plan', hourly: 'Hourly', decks: 'Decks' };
 export const PINNED: readonly BoxId[] = ['hero']; // a vessel balance is never hidden
 

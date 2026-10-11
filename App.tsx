@@ -392,7 +392,7 @@ export default function App() {
                   </View>
                 )}
                 {tab === 'snap'
-                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice}
+                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice} answerOpen={!!notice?.answer}
                       layout={layout} onLayout={changeLayout} onHistory={() => { setNotice(null); setSheet('eta'); }} />
                   : <>
                     {/* Snapshot boxes Colby moved to this tab sit at its top. */}
