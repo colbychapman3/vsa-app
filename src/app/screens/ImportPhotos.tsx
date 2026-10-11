@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { listImports, photoUri } from '../evidenceFiles.ts';
-import { color } from '../theme.ts';
+import { bcolor, color } from '../theme.ts';
 import { Card, InfoNote, Note, SectionHead, u } from './ui.tsx';
 
 export function ImportPhotos({ vesselId }: { vesselId: string }) {
@@ -32,7 +32,7 @@ export function ImportPhotos({ vesselId }: { vesselId: string }) {
 
 const s = StyleSheet.create({
   full: { width: '100%', height: 420, backgroundColor: color.soft, borderRadius: 8 },
-  thumb: { width: 76, height: 76, borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: color.line },
-  on: { borderColor: color.ink },
+  thumb: { width: 76, height: 76, borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: bcolor.line },
+  on: { borderColor: bcolor.ink },
   img: { width: '100%', height: '100%' },
 });

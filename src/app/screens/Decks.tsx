@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { State } from '../../storage/store.ts';
 import { decksRemaining, decksView } from '../view.ts';
-import { color, useType } from '../theme.ts';
+import { bcolor, color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
 import { Body, Card, Chip, InfoNote, Note, Pill, SectionHead, Seg, u } from './ui.tsx';
 
@@ -72,15 +72,15 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
 
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
-  lowAlert: { backgroundColor: color.rBg, borderBottomWidth: 3, borderBottomColor: color.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
+  lowAlert: { backgroundColor: color.rBg, borderBottomWidth: 3, borderBottomColor: bcolor.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
   strip: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 16 },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8, minHeight: 56 },
-  rowLine: { borderTopWidth: 1, borderTopColor: color.row },
+  rowLine: { borderTopWidth: 1, borderTopColor: bcolor.row },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dnBox: { width: 56 },
   dn: { fontSize: 26, color: color.ink },
   hm: { fontSize: 17 },
-  accBadge: { backgroundColor: color.rBg, color: color.rInk, borderWidth: 1, borderColor: color.red },
+  accBadge: { backgroundColor: color.rBg, color: color.rInk, borderWidth: 1, borderColor: bcolor.red },
   badge: { alignSelf: 'flex-start', marginTop: 4, fontSize: 12, color: color.onBlue, backgroundColor: color.red, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
   rn: { marginLeft: 'auto', textAlign: 'right', flexShrink: 1 },
   indent: { paddingLeft: 68 },

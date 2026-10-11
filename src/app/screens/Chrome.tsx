@@ -3,7 +3,7 @@
 import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { color, elev, TAP, useType } from '../theme.ts';
+import { bcolor, color, elev, TAP, useType } from '../theme.ts';
 
 export type Tab = 'snap' | 'decks' | 'hourly' | 'plan';
 
@@ -112,19 +112,19 @@ const s = StyleSheet.create({
   chipLive: { backgroundColor: color.green, color: color.card },
   sub: { fontSize: 14, color: color.headMuted, flexShrink: 1 },
   vesselBtn: { minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  menuBtn: { width: TAP, height: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
+  menuBtn: { width: TAP, height: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.headMuted, alignItems: 'center', justifyContent: 'center' },
   vesselRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  mapBtn: { minHeight: 44, minWidth: 52, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1.5, borderColor: color.headMuted, alignItems: 'center', justifyContent: 'center' },
+  mapBtn: { minHeight: 44, minWidth: 52, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1.5, borderColor: bcolor.headMuted, alignItems: 'center', justifyContent: 'center' },
   mapText: { fontSize: 14, color: color.headInk },
   h1: { fontSize: 32, color: color.headInk },
   tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8, ...elev.raised, shadowOffset: { width: 0, height: -3 } },
   tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 4, borderTopWidth: 3, borderTopColor: 'transparent' },
-  tabOn: { borderTopColor: color.accent },
+  tabOn: { borderTopColor: bcolor.accent },
   tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%' },
   tabLabel: { fontSize: 12, flexShrink: 1 },
   badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 11, overflow: 'hidden' },
   fab: { position: 'absolute', right: 16, minHeight: 60, paddingHorizontal: 28, borderRadius: 999, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 8, ...elev.raised },
-  ask: { position: 'absolute', left: 16, width: 60, height: 60, borderRadius: 30, backgroundColor: color.card, borderWidth: 1.5, borderColor: color.line, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, ...elev.raised },
+  ask: { position: 'absolute', left: 16, width: 60, height: 60, borderRadius: 30, backgroundColor: color.card, borderWidth: 1.5, borderColor: bcolor.line, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, ...elev.raised },
   askText: { color: color.ink, fontSize: 16 },
   fabText: { color: color.onAction, fontSize: 19 },
 });

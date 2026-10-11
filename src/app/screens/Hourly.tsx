@@ -6,7 +6,7 @@ import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
-import { color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
+import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
 import { Bar, Big, Body, Card, Chip, FlipTile, InfoNote, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
@@ -95,7 +95,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
         <Bar small pct={r.barPct} />
         {r.short && (
           <View style={s.tagRow}>
-            <Text style={[s.tag, { borderColor: color.orange, color: color.oInk, fontFamily: f.bodySemi }]}>SHORT HOUR</Text>
+            <Text style={[s.tag, { borderColor: bcolor.orange, color: color.oInk, fontFamily: f.bodySemi }]}>SHORT HOUR</Text>
             {r.shortUnset && <Note style={{ color: color.oInk, fontWeight: '600' }}>{r.short}</Note>}
           </View>
         )}
@@ -103,7 +103,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
         {r.hhTags.map((t) => <Note key={t} style={{ color: color.blue }}>{t}</Note>)}
         {r.corrected && (
           <View style={s.tagRow}>
-            <Text style={[s.tag, { borderColor: color.blue, color: color.blue, fontFamily: f.bodySemi }]}>CORRECTED</Text>
+            <Text style={[s.tag, { borderColor: bcolor.blue, color: color.blue, fontFamily: f.bodySemi }]}>CORRECTED</Text>
             <Note>{r.corrected}</Note>
           </View>
         )}
@@ -143,15 +143,15 @@ function SvgPoint({ x, y, count, short, xLabel, baseY }: { x: number; y: number;
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
   stats: { flexDirection: 'row', gap: 12 },
-  warn: { backgroundColor: color.oBg, borderBottomWidth: 3, borderBottomColor: color.orange, borderRadius: 12, padding: 12, gap: 2 },
+  warn: { backgroundColor: color.oBg, borderBottomWidth: 3, borderBottomColor: bcolor.orange, borderRadius: 12, padding: 12, gap: 2 },
   tr: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  tdLine: { borderTopWidth: 1, borderTopColor: color.row, paddingTop: 8 },
+  tdLine: { borderTopWidth: 1, borderTopColor: bcolor.row, paddingTop: 8 },
   th: { flex: 1, fontSize: 12, letterSpacing: 0.7, color: color.muted },
   td: { flex: 1 },
   num: { textAlign: 'right' },
   dayHead: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: color.soft, fontSize: 13, color: color.ink },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8 },
-  rowLine: { borderTopWidth: 1, borderTopColor: color.row },
+  rowLine: { borderTopWidth: 1, borderTopColor: bcolor.row },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   tag: { fontSize: 11, letterSpacing: 0.9, borderWidth: 1.5, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
 });

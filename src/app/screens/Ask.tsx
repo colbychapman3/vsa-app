@@ -13,7 +13,7 @@ import { answer, DOCS_FILE, documentsFile, handoffPrompt, QUESTION_FILE, parseAc
 import { addNoteEvents, type Ctx } from '../entries.ts';
 import { hourOptions } from '../view.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { bcolor, color, TAP, useType } from '../theme.ts';
 import type { HourPrefill } from './LogSheet.tsx';
 import { Body, Card, ErrorBox, Go, Note, Seg, Sheet, Tag, u, InfoNote } from './ui.tsx';
 
@@ -59,7 +59,7 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
         {QUICK.map((x) => {
           const on = picked === x.label;
           return (
-            <Pressable key={x.label} onPress={() => quick(x.label, x.ask)} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: color.ink, backgroundColor: on ? color.ink : color.card }, pressed && u.pressed]}
+            <Pressable key={x.label} onPress={() => quick(x.label, x.ask)} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: bcolor.ink, backgroundColor: on ? color.ink : color.card }, pressed && u.pressed]}
               accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={x.label}>
               <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: on ? color.bg : color.ink }} numberOfLines={1}>{x.label}</Text>
             </Pressable>
@@ -120,7 +120,7 @@ function AnswerCard({ a, onShow }: { a: Answer; onShow: (w: Where) => void }) {
       </View>
       {a.lines.map((l, i) => <Body key={i} semi={i === 0}>{l}</Body>)}
       {a.passages?.map((p, i) => (
-        <View key={i} style={{ gap: 4, borderTopWidth: 1, borderTopColor: color.line, paddingTop: 8 }}>
+        <View key={i} style={{ gap: 4, borderTopWidth: 1, borderTopColor: bcolor.line, paddingTop: 8 }}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{p.cite}</Text>
           {p.flag ? <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.oInk }}>{p.flag}</Text> : null}
           <Text style={{ fontFamily: f.body, fontSize: 15, color: color.ink, lineHeight: 21 }}>{p.text}</Text>

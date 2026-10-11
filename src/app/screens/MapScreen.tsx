@@ -8,7 +8,7 @@ import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAP, type Pt } from '../map/data.ts';
 import { CHIPS, FEATURES, card, featureAt, highlighted, measure, pathD, type ChipId, type Feature } from '../map/model.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { bcolor, color, TAP, useType } from '../theme.ts';
 import { Go, InfoNote, Note } from './ui.tsx';
 
 const KIND_COLOR = { zone: color.mapZone, site: color.mapSite, yard: color.mapYard, oem: color.mapOem, point: color.ink } as const;
@@ -205,7 +205,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
 
         {measuring ? (
           <>
-            <View style={{ position: 'absolute', left: 12, right: 12, top: insets.top + 8, backgroundColor: color.card, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, padding: 10 }} pointerEvents="none">
+            <View style={{ position: 'absolute', left: 12, right: 12, top: insets.top + 8, backgroundColor: color.card, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.line, padding: 10 }} pointerEvents="none">
               <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit>{m ? m.text : 'Tap points on the map'}</Text>
               <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.oInk }} numberOfLines={1} adjustsFontSizeToFit>{m ? `${m.label[0].toUpperCase()}${m.label.slice(1)}` : 'Map estimate, not a route distance'}</Text>
             </View>
@@ -229,7 +229,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
           <View style={[s.panel, { paddingBottom: insets.bottom + 12, maxHeight: '42%' }]}>
             <ScrollView contentContainerStyle={{ gap: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 22, height: 22, borderRadius: 6, backgroundColor: KIND_COLOR[sel.kind], borderWidth: 1, borderColor: color.ink }} />
+                <View style={{ width: 22, height: 22, borderRadius: 6, backgroundColor: KIND_COLOR[sel.kind], borderWidth: 1, borderColor: bcolor.ink }} />
                 <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flex: 1 }} numberOfLines={1} adjustsFontSizeToFit>{c.title}</Text>
                 <Pressable onPress={() => setSel(null)} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close card"><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
               </View>
@@ -266,22 +266,22 @@ function Pin({ x, y, text, lm, sel, small }: { x: number; y: number; text: strin
 const s = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 6 },
   title: { flex: 1, fontSize: 30, color: color.ink },
-  btn: { minHeight: TAP, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
-  btnOn: { backgroundColor: color.ink, borderColor: color.ink },
+  btn: { minHeight: TAP, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
+  btnOn: { backgroundColor: color.ink, borderColor: bcolor.ink },
   x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
   strip: { flexGrow: 0 },
   stripIn: { gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
-  chip: { minHeight: TAP, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: color.ink, borderColor: color.ink },
+  chip: { minHeight: TAP, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
+  chipOn: { backgroundColor: color.ink, borderColor: bcolor.ink },
   area: { flex: 1, overflow: 'hidden', backgroundColor: color.head },
   ctl: { position: 'absolute', right: 12, bottom: 12, gap: 10 },
-  round: { width: TAP, height: TAP, borderRadius: TAP / 2, backgroundColor: color.card, borderWidth: 1.5, borderColor: color.ink, alignItems: 'center', justifyContent: 'center' },
+  round: { width: TAP, height: TAP, borderRadius: TAP / 2, backgroundColor: color.card, borderWidth: 1.5, borderColor: bcolor.ink, alignItems: 'center', justifyContent: 'center' },
   rt: { fontSize: 28, color: color.ink, lineHeight: 32 },
   pillSmall: { fontSize: 9, paddingHorizontal: 3, paddingVertical: 0, borderRadius: 4 },
-  pill: { maxWidth: 180, textAlign: 'center', fontSize: 12, color: color.ink, backgroundColor: color.card, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden', borderWidth: 1, borderColor: color.line },
-  pillLm: { backgroundColor: color.head, color: color.headInk, borderColor: color.head },
+  pill: { maxWidth: 180, textAlign: 'center', fontSize: 12, color: color.ink, backgroundColor: color.card, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden', borderWidth: 1, borderColor: bcolor.line },
+  pillLm: { backgroundColor: color.head, color: color.headInk, borderColor: bcolor.head },
   pillSel: { backgroundColor: color.accent, color: color.onAccent },
-  panel: { backgroundColor: color.card, borderTopWidth: 1, borderTopColor: color.line, paddingHorizontal: 16, paddingTop: 12, gap: 8 },
-  kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: color.soft },
-  flag: { fontSize: 14, color: color.oInk, backgroundColor: color.oBg, borderWidth: 1.5, borderColor: color.orange, borderRadius: 10, padding: 10, overflow: 'hidden' },
+  panel: { backgroundColor: color.card, borderTopWidth: 1, borderTopColor: bcolor.line, paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: bcolor.soft },
+  flag: { fontSize: 14, color: color.oInk, backgroundColor: color.oBg, borderWidth: 1.5, borderColor: bcolor.orange, borderRadius: 10, padding: 10, overflow: 'hidden' },
 });

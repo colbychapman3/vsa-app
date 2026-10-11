@@ -1,7 +1,7 @@
 // Field record box: the same layout as the vessel hero (Colby, 2026-10-08). The big count fills with the share counted.
 import { StyleSheet, Text, View } from 'react-native';
 import type { snapshot } from '../view.ts';
-import { color, useType } from '../theme.ts';
+import { bcolor, color, useType } from '../theme.ts';
 import { Bar, Body, Card, FillNumber, InfoNote, Label, Note, u } from './ui.tsx';
 
 export function FieldBox({ v }: { v: ReturnType<typeof snapshot> }) {
@@ -48,5 +48,5 @@ export function FieldBox({ v }: { v: ReturnType<typeof snapshot> }) {
 }
 
 const s = StyleSheet.create({
-  hr: { borderTopWidth: 1, borderTopColor: color.soft, marginTop: 6, paddingTop: 12, gap: 8 },
+  hr: { borderTopWidth: 1, borderTopColor: bcolor.soft, marginTop: 6, paddingTop: 12, gap: 8 },
 });

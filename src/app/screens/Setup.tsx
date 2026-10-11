@@ -13,7 +13,7 @@ import { readGamePlanPages } from '../gamePlan.ts';
 import { brandFor, readDischargeSummary } from '../dischargeSummary.ts';
 import type { Page } from '../layout.ts';
 import { readPhotos } from '../ai.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { bcolor, color, TAP, useType } from '../theme.ts';
 import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, u, InfoNote } from './ui.tsx';
 
 const STEPS = ['Vessel', 'Start', 'Cargo to destinations', 'Decks', 'Load list', 'Review'];
@@ -270,7 +270,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
                       const mi = terminalInfo(d.name, v.berth)?.mi;
                       return (
                         <Pressable key={d.name} onPress={() => { setAlloc(i, { destination: d.name }); setOpenDrop(null); }} accessibilityRole="button"
-                          style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: color.row }, pressed && { opacity: 0.6 }]}>
+                          style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: bcolor.row }, pressed && { opacity: 0.6 }]}>
                           <Text style={{ fontFamily: f.bodyMedium, fontSize: 17, color: color.ink, flexShrink: 1 }}>{d.name}</Text>
                           <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}>{mi == null ? '' : `${mi.toFixed(2)} mi`}</Text>
                         </Pressable>
@@ -326,7 +326,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
               ) : (
                 <>
                   {d.hatches.map((h, hi) => (
-                    <View key={h.h} style={{ gap: 8, borderTopWidth: 1, borderTopColor: color.row, paddingTop: 10 }}>
+                    <View key={h.h} style={{ gap: 8, borderTopWidth: 1, borderTopColor: bcolor.row, paddingTop: 10 }}>
                       <Body semi>Hatch {h.h}</Body>
                       {h.items.map((it, ii) => (
                         <View key={ii} style={{ gap: 6 }}>
@@ -473,7 +473,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
                     const on = keep.includes(line);
                     return (
                       <Pressable key={line} onPress={() => setKeep(on ? keep.filter((x) => x !== line) : [...keep, line])} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
-                        style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: color.row }, pressed && { opacity: 0.6 }]}>
+                        style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: bcolor.row }, pressed && { opacity: 0.6 }]}>
                         <Text style={{ fontFamily: f.bodySemi, fontSize: 22, color: color.ink }}>{on ? '☑' : '☐'}</Text>
                         <Body style={{ flexShrink: 1 }}>{line}</Body>
                       </Pressable>

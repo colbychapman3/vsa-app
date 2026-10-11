@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
 import { BOX_TITLE, boxesFor, defaultLayout, moveBox, PINNED, reorder, setHidden, moveToTab, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { bcolor, color, TAP, useType } from '../theme.ts';
 import { Body, Card, Go, InfoNote, Note, Seg, u } from './ui.tsx';
 
 type Where = BoxTab | 'hidden';
@@ -71,7 +71,7 @@ function Row({ id, layout, rowH, onMeasure, onLayout, latest }: { id: BoxId; lay
 function Step({ label, a11y, disabled, onPress, f }: { label: string; a11y: string; disabled: boolean; onPress: () => void; f?: string }) {
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={a11y}
-      style={({ pressed }) => [{ width: TAP, height: TAP, borderRadius: 12, borderWidth: 1, borderColor: color.line, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.35 : 1 }, pressed && u.pressed]}>
+      style={({ pressed }) => [{ width: TAP, height: TAP, borderRadius: 12, borderWidth: 1, borderColor: bcolor.line, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.35 : 1 }, pressed && u.pressed]}>
       <Text style={{ fontSize: 20, color: color.ink, fontFamily: f }}>{label}</Text>
     </Pressable>
   );

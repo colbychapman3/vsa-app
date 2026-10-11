@@ -7,7 +7,7 @@ import type { State } from '../../storage/store.ts';
 import { snapshot } from '../view.ts';
 import { shipView, HATCH_SLOTS, type Seg } from '../ship.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
-import { color, HA_COLOR, TAP, useType } from '../theme.ts';
+import { bcolor, color, HA_COLOR, TAP, useType } from '../theme.ts';
 import { VesselCards, type Save } from './Plan.tsx';
 import { FieldBox } from './FieldBox.tsx';
 import { Bar, Big, Body, Card, FillNumber, FlipTile, InfoNote, Label, Note, SectionHead, Tag, u } from './ui.tsx';
@@ -229,20 +229,20 @@ const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
   moved: { paddingHorizontal: 20, paddingTop: 16, gap: 16 },
   clerk: { fontSize: 12, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1.5, overflow: 'hidden' },
-  clerkOk: { backgroundColor: color.gBg, color: color.gInk, borderColor: color.green },
-  clerkBad: { backgroundColor: color.rBg, color: color.rInk, borderColor: color.red },
+  clerkOk: { backgroundColor: color.gBg, color: color.gInk, borderColor: bcolor.green },
+  clerkBad: { backgroundColor: color.rBg, color: color.rInk, borderColor: bcolor.red },
   err: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 10 },
-  hr: { borderTopWidth: 1, borderTopColor: color.soft, marginTop: 6, paddingTop: 12, gap: 8 },
+  hr: { borderTopWidth: 1, borderTopColor: bcolor.soft, marginTop: 6, paddingTop: 12, gap: 8 },
   grid2: { flexDirection: 'row', gap: 12 },
   tile: { flex: 1, padding: 16, gap: 6 },
-  tileFc: { borderWidth: 2, borderColor: color.orange },
+  tileFc: { borderWidth: 2, borderColor: bcolor.orange },
   dashed: { borderStyle: 'dashed' },
   haRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, paddingTop: 4 },
   link: { fontSize: 13, color: color.blue, marginTop: 2 },
   sec: { gap: 10 },
   banner: { backgroundColor: color.head, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8 },
-  rowLine: { borderTopWidth: 1, borderTopColor: color.row },
+  rowLine: { borderTopWidth: 1, borderTopColor: bcolor.row },
   split: { flexDirection: 'row', height: 16, borderRadius: 8, overflow: 'hidden', gap: 3 },
   heroRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
   finish: { alignItems: 'flex-end', maxWidth: '42%', paddingBottom: 6 },
@@ -256,7 +256,7 @@ const s = StyleSheet.create({
   deckLabel: { fontSize: 12 },
   segs: { flex: 1, flexDirection: 'row', gap: 3, alignSelf: 'stretch' },
   seg: { flex: 1, borderRadius: 4, overflow: 'hidden', minHeight: 22 },
-  segUnknown: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: color.deckMuted, backgroundColor: 'transparent' },
+  segUnknown: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: bcolor.deckMuted, backgroundColor: 'transparent' },
   segFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: color.deckFill },
   hatchHead: { flex: 1, textAlign: 'center', fontSize: 10, color: color.deckMuted },
   deckRightBox: { width: 70, alignItems: 'flex-end' },

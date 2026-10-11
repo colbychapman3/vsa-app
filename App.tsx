@@ -22,7 +22,7 @@ import type { Built } from './src/app/setup.ts';
 import { saveBatch, shareAndMark, type SaveResult } from './src/app/session.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/app/view.ts';
-import { applyAppearance, asAppearance, color, fontFiles, fonts, FontContext, setSunPalette, SunContext, type AppearanceMode } from './src/app/theme.ts';
+import { applyAppearance, asAppearance, bcolor, color, fontFiles, fonts, FontContext, setSunPalette, SunContext, type AppearanceMode } from './src/app/theme.ts';
 import { asSun, sunFamilies } from './src/app/sun.ts';
 import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
@@ -460,12 +460,12 @@ const s = StyleSheet.create({
   scroll: { paddingBottom: 180 },
   pad: { padding: 20 },
   note: { fontSize: 15, color: color.muted },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, borderBottomWidth: 1, borderBottomColor: color.line },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, borderBottomWidth: 1, borderBottomColor: bcolor.line },
   noticeText: { flex: 1, fontSize: 15, paddingVertical: 10 },
-  noticeAction: { minHeight: 56, minWidth: 88, maxWidth: 130, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: color.ink, borderRadius: 10 },
+  noticeAction: { minHeight: 56, minWidth: 88, maxWidth: 130, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: bcolor.ink, borderRadius: 10 },
   dismiss: { minWidth: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   ok: { backgroundColor: color.gBg },
-  doneBar: { backgroundColor: color.gBg, borderColor: color.green, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, minHeight: 56, justifyContent: 'center' },
+  doneBar: { backgroundColor: color.gBg, borderColor: bcolor.green, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, minHeight: 56, justifyContent: 'center' },
   errBar: { backgroundColor: color.rBg },
   err: { color: color.rInk, backgroundColor: color.rBg, padding: 12, borderRadius: 10 },
 });

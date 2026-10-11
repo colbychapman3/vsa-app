@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, TextInput } from 'react-native';
 import indexJson from '../../../assets/knowledge/index.json';
 import { search, segments, snippet, type Chunk, type KnowledgeIndex } from '../knowledge/search.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { bcolor, color, TAP, useType } from '../theme.ts';
 import { Card, Go, Note, Sheet, u, InfoNote } from './ui.tsx';
 
 const INDEX = indexJson as unknown as KnowledgeIndex;
@@ -33,7 +33,7 @@ export function Search({ isTest, onClose }: { isTest: boolean; onClose: () => vo
           <Go ghost label="‹ Results" onPress={() => setOpen(null)} />
           <Card style={[u.pad, { gap: 10 }]}>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>{open.cite}</Text>
-            {open.flag ? <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.oInk, backgroundColor: color.oBg, borderColor: color.orange, borderWidth: 1.5, borderRadius: 8, padding: 8, overflow: 'hidden' }}>{open.flag}</Text> : null}
+            {open.flag ? <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.oInk, backgroundColor: color.oBg, borderColor: bcolor.orange, borderWidth: 1.5, borderRadius: 8, padding: 8, overflow: 'hidden' }}>{open.flag}</Text> : null}
             <Marked text={open.text} toks={r.tokens} style={body} />
           </Card>
           {src ? <Note>{src.note}</Note> : null}

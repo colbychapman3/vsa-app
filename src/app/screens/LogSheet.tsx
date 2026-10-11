@@ -9,7 +9,7 @@ import * as E from '../entries.ts';
 import { deckSheet, decksView, hourOptions } from '../view.ts';
 import { DeckForm } from './DeckSheet.tsx';
 import { EvidenceForm } from './EvidenceForm.tsx';
-import { color, TAP, useType } from '../theme.ts';
+import { bcolor, color, TAP, useType } from '../theme.ts';
 import { Body, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Mode = 'hour' | 'deck' | 'hh' | 'issue' | 'photo';
@@ -202,7 +202,7 @@ function DeckList({ state, onOpenDeck }: { state: State; onOpenDeck: (id: string
   return (
     <View style={u.card}>
       {decksView(state).rows.map((r, i) => (
-        <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} style={({ pressed }) => [s.deckRow, i > 0 && { borderTopWidth: 1, borderTopColor: color.row }, pressed && u.pressed]} accessibilityRole="button">
+        <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} style={({ pressed }) => [s.deckRow, i > 0 && { borderTopWidth: 1, borderTopColor: bcolor.row }, pressed && u.pressed]} accessibilityRole="button">
           <Text style={{ fontFamily: f.display, fontSize: 24, flexBasis: 64, flexShrink: 1, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text>
           <Body style={{ color: color.muted }}>{r.pill}</Body>
           <Text style={{ marginLeft: 'auto', fontFamily: f.display, fontSize: 22, color: color.ink }}>{r.remaining}<Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> of {r.start}</Text></Text>
@@ -376,5 +376,5 @@ const s = StyleSheet.create({
   back: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 24 },
   row2: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   deckRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
-  hr: { borderTopWidth: 1, borderTopColor: color.soft, paddingTop: 14, gap: 14 },
+  hr: { borderTopWidth: 1, borderTopColor: bcolor.soft, paddingTop: 14, gap: 14 },
 });

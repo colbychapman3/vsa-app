@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
-import { color, elev, TAP, useEdge, useSun, useType } from '../theme.ts';
+import { bcolor, color, elev, TAP, useEdge, useSun, useType } from '../theme.ts';
 
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[u.card, useEdge(), style]}>{children}</View>;
@@ -192,7 +192,7 @@ export function BannerView({ banner, onTrack, onGo }: { banner: Banner; onTrack?
 }
 
 export const u = StyleSheet.create({
-  card: { backgroundColor: color.card, borderWidth: 1, borderColor: color.line, borderRadius: 16, ...elev.card },
+  card: { backgroundColor: color.card, borderWidth: 1, borderColor: bcolor.line, borderRadius: 16, ...elev.card },
   pad: { paddingVertical: 18, paddingHorizontal: 20 },
   lbl: { fontSize: 13, letterSpacing: 0.8, color: color.muted },
   body: { fontSize: 15, color: color.ink },
@@ -214,11 +214,11 @@ export const u = StyleSheet.create({
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
   tap: { minHeight: TAP },
   pressed: { opacity: 0.6 },
-  input: { minHeight: TAP, borderWidth: 1.5, borderColor: color.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
-  segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  segOn: { backgroundColor: color.ink, borderColor: color.ink, ...elev.raised },
+  input: { minHeight: TAP, borderWidth: 1.5, borderColor: bcolor.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
+  segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  segOn: { backgroundColor: color.ink, borderColor: bcolor.ink, ...elev.raised },
   goBtn: { minHeight: 58, borderRadius: 999, backgroundColor: color.action, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, ...elev.raised },
-  ghostBtn: { minHeight: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: color.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, ...elev.card },
+  ghostBtn: { minHeight: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, ...elev.card },
   x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, ...elev.card, alignItems: 'center', justifyContent: 'center' },
   errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 12, fontSize: 14, overflow: 'hidden' },
 });

@@ -7,7 +7,7 @@ import { operationDate, parseHM, type Baseline, type DeckStatus, type Reject, ty
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { deckSheet, STATUS_PILL } from '../view.ts';
-import { color, useType } from '../theme.ts';
+import { bcolor, color, useType } from '../theme.ts';
 import { DeckPhotoTypes, PhotoPages, type PhotoView } from './DeckPhotoTypes.tsx';
 import { Body, Chip, ErrorBox, Field, Go, InfoNote, Label, Note, Pill, Seg, Sheet, TimeField } from './ui.tsx';
 
@@ -126,7 +126,7 @@ const s = StyleSheet.create({
   sum: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   rule: { height: 2, backgroundColor: color.ink, opacity: 0.15 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
-  box: { width: 28, height: 28, borderRadius: 6, borderWidth: 2, borderColor: color.ink, alignItems: 'center', justifyContent: 'center' },
+  box: { width: 28, height: 28, borderRadius: 6, borderWidth: 2, borderColor: bcolor.ink, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: color.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cell: { flexBasis: '47%', flexGrow: 1 },

@@ -6,7 +6,7 @@ import type { State } from '../../storage/store.ts';
 import { snapshot, type Banner } from '../view.ts';
 import { nowLine } from '../now.ts';
 import type { Layout } from '../snapshotLayout.ts';
-import { color, useType } from '../theme.ts';
+import { bcolor, color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
 import type { Save } from './Plan.tsx';
 import { Boxes } from './SnapshotBoxes.tsx';
@@ -60,14 +60,14 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
 }
 
 const s = StyleSheet.create({
-  strip: { backgroundColor: color.card, borderBottomWidth: 1, borderBottomColor: color.line, paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
+  strip: { backgroundColor: color.card, borderBottomWidth: 1, borderBottomColor: bcolor.line, paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   stripRight: { marginLeft: 'auto', fontSize: 14, color: color.muted, flexShrink: 1, textAlign: 'right' },
   issues: { backgroundColor: color.oBg },
   // The Now line: the one thing worth knowing right now (navy when a count is due, hi-vis orange for a warning).
   now: { marginHorizontal: 20, marginTop: 16, marginBottom: -4, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
   nowWarn: { backgroundColor: color.action },
   nowDue: { backgroundColor: color.head },
-  nowCalm: { backgroundColor: color.card, borderWidth: 1, borderColor: color.line },
+  nowCalm: { backgroundColor: color.card, borderWidth: 1, borderColor: bcolor.line },
   nowText: { flex: 1, fontSize: 15, lineHeight: 20 },
   issueDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.orange, color: color.onOrange, textAlign: 'center', fontSize: 12, lineHeight: 18, overflow: 'hidden' },
 });

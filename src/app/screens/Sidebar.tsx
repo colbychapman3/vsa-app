@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, Animated, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { VesselRow } from '../../storage/vessels.ts';
-import { color, SCRIM, TAP, useType } from '../theme.ts';
+import { bcolor, color, SCRIM, TAP, useType } from '../theme.ts';
 import { sidebarVessels } from '../view.ts';
 import { Chip, Go } from './ui.tsx';
 
@@ -72,11 +72,11 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings }:
 }
 
 const s = StyleSheet.create({
-  panel: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: color.bg, borderRightWidth: 1, borderRightColor: color.line, paddingHorizontal: 16, gap: 12 },
+  panel: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: color.bg, borderRightWidth: 1, borderRightColor: bcolor.line, paddingHorizontal: 16, gap: 12 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
   sec: { fontSize: 13, letterSpacing: 0.8, color: color.muted },
-  row: { minHeight: TAP, borderRadius: 14, borderWidth: 1, borderColor: color.line, backgroundColor: color.card, paddingVertical: 10, paddingHorizontal: 14, gap: 4, justifyContent: 'center' },
-  rowOn: { borderColor: color.ink, borderWidth: 2 },
+  row: { minHeight: TAP, borderRadius: 14, borderWidth: 1, borderColor: bcolor.line, backgroundColor: color.card, paddingVertical: 10, paddingHorizontal: 14, gap: 4, justifyContent: 'center' },
+  rowOn: { borderColor: bcolor.ink, borderWidth: 2 },
   chips: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
 });

@@ -10,7 +10,7 @@ import * as E from '../entries.ts';
 import { dropUnsavedPhoto, keepPhoto, photoExists, photoUri } from '../evidenceFiles.ts';
 import { aiStatus, ocrAvailable, pickLibraryPhotos, readPhotos, tidyNote } from '../ai.ts';
 import { vinCandidates, type VinCandidate } from '../../engine/scan.ts';
-import { color, useType } from '../theme.ts';
+import { bcolor, color, useType } from '../theme.ts';
 import { TYPE_ICON } from '../view.ts';
 import { Body, ErrorBox, Go, Label, Note, Seg, TimeField, u } from './ui.tsx';
 
@@ -295,6 +295,6 @@ const s = StyleSheet.create({
   thumb: { width: '100%', height: 160, borderRadius: 10, backgroundColor: color.soft },
   mini: { width: 72, height: 72, borderRadius: 8, backgroundColor: color.soft },
   vin: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
-  card: { gap: 4, padding: 12, borderWidth: 1, borderColor: color.line, borderRadius: 12, backgroundColor: color.card, minHeight: 56 },
+  card: { gap: 4, padding: 12, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card, minHeight: 56 },
   edit: { fontSize: 13, color: color.blue, alignSelf: 'flex-end' },
 });

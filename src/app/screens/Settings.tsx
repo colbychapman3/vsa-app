@@ -6,7 +6,7 @@ import type { VesselRow } from '../../storage/vessels.ts';
 import { aiStatus, AI_STATUS_TEXT } from '../ai.ts';
 import { makeQuiet, type Quiet } from '../assistant.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
-import { APPEARANCES, color, sunPaletteLoaded, useType, type AppearanceMode } from '../theme.ts';
+import { APPEARANCES, appearanceLoaded, bcolor, color, sunPaletteLoaded, useType, type AppearanceMode } from '../theme.ts';
 import { Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
 import { CustomizeSnapshot } from './CustomizeSnapshot.tsx';
 import type { Layout } from '../snapshotLayout.ts';
@@ -47,7 +47,7 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, su
       <InfoNote><Note>Light is the sun-readable default. Night is for night shifts. Auto follows your iPhone.</Note></InfoNote>
       <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Standard' }, { value: 'on', label: 'Extra visible' }]} value={sun ? 'on' : 'off'} onChange={(v) => onSun(v === 'on')} />
       <InfoNote><Note>Extra visible: black text, a darker page so cards stand out, bold outlines and larger labels, for direct sun and gloves.</Note></InfoNote>
-      {sun !== sunPaletteLoaded && <Note>The new colors show after you close VSA and open it again.</Note>}
+      {(sun !== sunPaletteLoaded || (appearanceLoaded !== null && appearance !== appearanceLoaded)) && <Note>The new colors show after you close VSA and open it again.</Note>}
 
       <SectionHead title="Paperwork photos" />
       <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Don’t keep' }, { value: 'on', label: 'Keep on this phone' }]} value={keepPhotos ? 'on' : 'off'} onChange={(v) => onKeepPhotos(v === 'on')} />
@@ -145,7 +145,7 @@ function BackupPicker({ rows, onExportVessel }: { rows: VesselRow[]; onExportVes
         const on = picked.includes(r.operationId);
         return (
           <Pressable key={r.operationId} onPress={() => toggle(r.operationId)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={r.name}
-            style={({ pressed }) => [u.ghostBtn, { flexDirection: 'row', justifyContent: 'flex-start', gap: 12 }, on && { borderColor: color.ink, borderWidth: 2 }, pressed && u.pressed]}>
+            style={({ pressed }) => [u.ghostBtn, { flexDirection: 'row', justifyContent: 'flex-start', gap: 12 }, on && { borderColor: bcolor.ink, borderWidth: 2 }, pressed && u.pressed]}>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 20, color: color.ink }}>{on ? '☑' : '☐'}</Text>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.name}</Text>
             <Chip text={r.isTest ? 'TEST' : 'LIVE'} tone={r.isTest ? 'orange' : 'plain'} />

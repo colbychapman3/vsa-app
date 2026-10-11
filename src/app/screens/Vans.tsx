@@ -7,7 +7,7 @@ import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { readPhotos, ocrAvailable } from '../ai.ts';
 import { vanView } from '../view.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { bcolor, color, TAP, useType } from '../theme.ts';
 import type { Save } from './Plan.tsx';
 import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, Sheet, TimeField, u, InfoNote } from './ui.tsx';
 
@@ -32,7 +32,7 @@ export function Vans({ state, baseline, isTest, save, onNotice }: {
       <Pressable onPress={() => setWhich(v.exists ? { k: 'list' } : { k: 'create', more: false })} accessibilityRole="button"
         accessibilityLabel={v.exists ? `Van list. ${v.header}. Open the list` : 'Van list. Not created yet. Create it'}
         style={({ pressed }) => [pressed && u.pressed]}>
-        <Card style={[u.pad, { gap: 8, minHeight: TAP }, v.alert ? { borderWidth: 2, borderColor: color.red } : null]}>
+        <Card style={[u.pad, { gap: 8, minHeight: TAP }, v.alert ? { borderWidth: 2, borderColor: bcolor.red } : null]}>
           <SectionHead title="Van list" right={v.exists ? v.header : undefined} />
           {!v.exists ? (
             <Note>No van list for this ship yet. Tap to choose how many vans were checked out.</Note>
@@ -73,7 +73,7 @@ function VanRowView({ r, onOpen }: { r: Row; onOpen: () => void }) {
   const f = useType();
   return (
     <Pressable onPress={onOpen} disabled={r.removed} accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.status}. Edit`}
-      style={({ pressed }) => [{ minHeight: TAP, gap: 4, paddingVertical: 10, borderTopWidth: 1, borderTopColor: color.row, opacity: r.removed ? 0.5 : 1 }, pressed && u.pressed]}>
+      style={({ pressed }) => [{ minHeight: TAP, gap: 4, paddingVertical: 10, borderTopWidth: 1, borderTopColor: bcolor.row, opacity: r.removed ? 0.5 : 1 }, pressed && u.pressed]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <Text style={{ fontFamily: f.display, fontSize: 24, color: color.ink }}>{r.title}</Text>
         <Chip text={r.status} tone={r.statusKey === 'out' ? 'orange' : 'plain'} />
@@ -115,7 +115,7 @@ function CreateSheet({ more, state, isTest, save, onClose }: { more: boolean; st
           </Pressable>
           {open && Array.from({ length: room }, (_, i) => i + 1).map((k) => (
             <Pressable key={k} onPress={() => { setN(k); setOpen(false); }} accessibilityRole="button"
-              style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: color.row }, pressed && u.pressed]}>
+              style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: bcolor.row }, pressed && u.pressed]}>
               <Text style={{ fontFamily: f.bodyMedium, fontSize: 18, color: color.ink }}>{k}</Text>
             </Pressable>
           ))}

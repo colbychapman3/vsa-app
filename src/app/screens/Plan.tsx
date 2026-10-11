@@ -11,7 +11,7 @@ import { saveToCameraRoll } from '../evidenceFiles.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
 import { reportStatus } from '../complete.ts';
-import { color, TAP, useType } from '../theme.ts';
+import { bcolor, color, TAP, useType } from '../theme.ts';
 import { Vans } from './Vans.tsx';
 import { ImportPhotos } from './ImportPhotos.tsx';
 import { Big, Body, Card, Chip, Collapse, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
@@ -66,7 +66,7 @@ export function Plan({ vesselId, state, baseline, isTest, save, backup, reports,
   return (
     <View style={s.main}>
       {(v.heights.pending.length > 0 || v.heights.confirmed.length > 0) && (
-        <Card style={[u.pad, { gap: 10 }, v.heights.pending.length > 0 && { borderWidth: 2, borderColor: color.red }]}>
+        <Card style={[u.pad, { gap: 10 }, v.heights.pending.length > 0 && { borderWidth: 2, borderColor: bcolor.red }]}>
           <SectionHead title="Confirm deck heights" right={v.heights.pending.length ? `${v.heights.pending.length} to confirm` : 'All confirmed'} />
           {v.heights.pending.length > 0 && <Note>These decks can be set below 1.85 m, where shuttle vans can’t drive on. Pick each deck’s actual setting.</Note>}
           {v.heights.pending.map((d) => (
@@ -548,7 +548,7 @@ function ReportRow({ title, sub, busy, onPress }: { title: string; sub: string; 
   const f = useType();
   return (
     <Pressable onPress={onPress} disabled={busy} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`}
-      style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: color.line, borderRadius: 12, backgroundColor: color.card }, (pressed || busy) && u.pressed]}>
+      style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card }, (pressed || busy) && u.pressed]}>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{busy ? 'Preparing report…' : title}</Text>
         <Note>{sub}</Note>
@@ -578,12 +578,12 @@ function NotesSheet({ isTest, reports, onClose }: { isTest: boolean; reports: Re
 
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
-  logRow: { minHeight: 56, justifyContent: 'center', gap: 2, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: color.row },
+  logRow: { minHeight: 56, justifyContent: 'center', gap: 2, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: bcolor.row },
   edit: { fontSize: 13, color: color.blue, alignSelf: 'flex-end' },
-  pending: { gap: 8, paddingVertical: 10, borderTopWidth: 1, borderTopColor: color.row },
+  pending: { gap: 8, paddingVertical: 10, borderTopWidth: 1, borderTopColor: bcolor.row },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  issue: { gap: 6, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color.row },
+  issue: { gap: 6, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: bcolor.row },
   split: { flexDirection: 'row', height: 16, borderRadius: 8, overflow: 'hidden', gap: 3 },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 6 },
-  rowLine: { borderTopWidth: 1, borderTopColor: color.row },
+  rowLine: { borderTopWidth: 1, borderTopColor: bcolor.row },
 });

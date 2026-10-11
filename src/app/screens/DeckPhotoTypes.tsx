@@ -8,7 +8,7 @@ import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { photoExists, photoUri, saveToCameraRoll } from '../evidenceFiles.ts';
 import { deckPhotoTypes, TYPE_ICON, typePage } from '../view.ts';
-import { color, useType } from '../theme.ts';
+import { bcolor, color, useType } from '../theme.ts';
 import { EvidenceForm } from './EvidenceForm.tsx';
 import { Body, Chip, ErrorBox, Field, Go, Label, Note, Seg, u } from './ui.tsx';
 
@@ -169,13 +169,13 @@ function TypePage({ state, save, deckId, deckLabel, type, setView, back }: {
 
 const s = StyleSheet.create({
   back: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 24 },
-  typeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 14, borderWidth: 1, borderColor: color.line, borderRadius: 12, backgroundColor: color.card },
-  card: { gap: 6, padding: 12, borderWidth: 1, borderColor: color.line, borderRadius: 12, backgroundColor: color.card },
+  typeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 14, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card },
+  card: { gap: 6, padding: 12, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
   cell: { width: '31%', aspectRatio: 1 },
   img: { width: '100%', height: '100%', borderRadius: 8, backgroundColor: color.soft },
   gone: { alignItems: 'center', justifyContent: 'center' },
-  tick: { position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: color.ink, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
+  tick: { position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
   tickOn: { backgroundColor: color.ink },
   edit: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-end' },
   full: { width: '100%', aspectRatio: 3 / 4, maxHeight: 640, borderRadius: 12, backgroundColor: color.ink },

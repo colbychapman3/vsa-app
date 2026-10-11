@@ -1,7 +1,7 @@
 // Design B "Ship Plan" (Colby, 2026-10-11): Schibsted Grotesk for numbers, headings and text, DM Mono for small
 // labels and times. Light (steel grey and navy) plus a Night palette; values in palette.ts.
 import { createContext, useContext } from 'react';
-import { Appearance, DynamicColorIOS, Platform, Settings as DeviceSettings, useColorScheme, type ColorValue } from 'react-native';
+import { Appearance, DynamicColorIOS, Platform, Settings as DeviceSettings, type ColorValue } from 'react-native';
 import { light, night, sunLight, type Token } from './palette.ts';
 // One import per weight: the packages' index files require every weight and style (32 files, 4.8 MB) into the app bundle.
 import { SchibstedGrotesk_400Regular } from '@expo-google-fonts/schibsted-grotesk/400Regular';
@@ -22,6 +22,16 @@ export function setSunPalette(on: boolean) { try { if (Platform.OS === 'ios') De
 const day = sunPaletteLoaded ? sunLight : light;
 const make = (k: Token): ColorValue => (Platform.OS === 'ios' ? DynamicColorIOS({ light: day[k], dark: night[k] }) : day[k]);
 export const color = Object.fromEntries((Object.keys(light) as Token[]).map((k) => [k, make(k)])) as Record<Token, ColorValue>;
+
+// iOS paints a border with the phone's own Light/Dark, not the app's forced one (a dynamic color on a border resolves with the
+// system setting), so with the phone in Light and VSA on Night every outline came out in its Light value. Outlines therefore use
+// plain colors for the scheme the app started in; the choice is mirrored in the iPhone's preferences like Extra visible. Auto
+// follows the phone, where the dynamic colors are already right, so it keeps them.
+const MODE_KEY = 'vsa.appearance';
+const readMode = () => { try { return Platform.OS === 'ios' ? (DeviceSettings.get(MODE_KEY) as string | null) : null; } catch { return null; } };
+export const appearanceLoaded = readMode();
+const fixed = appearanceLoaded === 'night' ? night : appearanceLoaded === 'light' ? day : null;
+export const bcolor: Record<Token, ColorValue> = fixed ? (Object.fromEntries((Object.keys(light) as Token[]).map((k) => [k, fixed[k]])) as Record<Token, ColorValue>) : color;
 
 // Settings > Appearance. Light is the default; Auto follows the iPhone. Applied at startup, before the first screen.
 export type AppearanceMode = 'light' | 'night' | 'auto';
@@ -78,9 +88,4 @@ export const useType = () => useContext(FontContext);
 // Extra visible: 2 pt ink borders and a point more on running text. Families are stepped in App.tsx through sunFamilies().
 export const SunContext = createContext(false);
 export const useSun = () => useContext(SunContext);
-// Border colors are fixed on the layer, and iOS resolves a dynamic color there with the phone's own Light/Dark, not the app's
-// forced Night, so Extra visible's black outline vanished on the dark page. The outline is therefore picked from the app's scheme.
-export function useEdge() {
-  const sun = useSun(), dark = useColorScheme() === 'dark';
-  return sun ? { borderWidth: 2, borderColor: dark ? night.ink : (sunPaletteLoaded ? sunLight : light).ink } : null;
-}
+export const useEdge = () => (useSun() ? { borderWidth: 2, borderColor: bcolor.ink } : null);
