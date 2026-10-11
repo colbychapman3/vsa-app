@@ -120,9 +120,9 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       const s = fromIso(p.period_start, opDate), z = fromIso(p.period_end, opDate);
       if ('error' in s) return fail(s.error, id);
       if ('error' in z) return fail(z.error, id);
-      // Hours follow the day's start time (Colby chose A): 07:30 starts give 07:30–08:30 hours.
-      // An hour may not run through a break start: the last hour before a break is short and
-      // ends at the break (owner decision: a 07:30 day logs 11:30–12:00).
+      // New hours are clock hours (Colby, 2026-10-10; the picker offers only those). Logs from before that decision may hold
+      // hours that follow a 07:30 start (07:30–08:30 ... 11:30–12:00); they still replay as stored.
+      // An hour may not run through a break start: the last hour before a break is short and ends at the break.
       const sMin = parseHM(s.hm)!, len = toAbs(z)! - toAbs(s)!;
       const crossed = baseline.breaks.map((b) => parseHM(b)!).find((b) => sMin < b && b < sMin + 60);
       if (crossed != null) {
@@ -456,13 +456,17 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     Object.assign(h, { hourDrivers: own, drivers: own ?? day, driversFrom: own != null ? 'hour' : day != null ? 'day' : null });
     const bad = checkHour(h, brandNames, baseline.breaks);
     if (bad) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: ${bad.error}`);
-    // A late start: only the minutes from the actual start count. An hour with no such minutes can't hold a count.
+    // Hours are clock hours (Colby, 2026-10-10: the chief clerk records 07-08, 08-09, ...). Only the minutes from the day's start
+    // count: the actual (late) start if recorded, else the planned start (a 07:30 start works 30 minutes of the 07-08 hour).
+    // H.A. still counts the hour as one nominal hour. An hour with no such minutes can't hold a count.
     const actual = dayActual.get(h.day);
-    const late = actual ? Math.min(60, Math.max(0, parseHM(actual.hm)! - parseHM(h.start)!)) : 0;
+    const startHm = actual?.hm ?? plannedStart(h.day);
+    const late = Math.min(60, Math.max(0, (parseHM(startHm) ?? 0) - parseHM(h.start)!));
     if (late > 0) {
       const worked = isShort(h.start, baseline.breaks) ? h.stopMin ?? 60 : 60;
-      if (worked - late <= 0 && h.count > 0) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: Day ${h.day} work started at ${actual!.hm}, so this hour has no productive time and can't have a count above 0. Log the count in the hour work actually started, or correct the day's start time.`);
+      if (worked - late <= 0 && h.count > 0) return fail(`Hour ${eventTimeLabel({ day: h.day, hm: h.start })}: Day ${h.day} work started at ${formatHM(parseHM(startHm)!)}, so this hour has no productive time and can't have a count above 0. Log the count in the hour work actually started, or correct the day's start time.`);
       h.lateMin = late;
+      if (!actual) h.startNote = `Day started ${formatHM(parseHM(startHm)!)}`;
     }
     if (h.start === SAFETY_MEETING.start && plannedStart(h.day) === SAFETY_MEETING.start) h.safetyMin = SAFETY_MEETING.min;
     const { key: _key, ...entry } = h;

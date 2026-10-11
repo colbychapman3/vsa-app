@@ -590,18 +590,19 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
 
 // ---------- Log sheet: hour picker (tracker logSheet) ----------
 
-// Hours for the current day follow the day's start time. Hours that would run through a
-// break start are left out (the engine refuses them). Default: the hour after the last
-// one logged today, skipping the break hour; otherwise the first open hour.
+// Hours are clock hours, as the chief clerk records them (Colby, 2026-10-10): 07-08, 08-09, ... 11-12, break, 13-14, ... 23-00,
+// whatever time the day starts (a 07:30 start logs its first 30 minutes in 07-08). The 1-hour break hours are not offered.
+// Default: the hour after the last one logged today, skipping the break hour; otherwise the first open hour.
 export function hourOptions(s: State, b: Baseline) {
   const day = s.ops.day;
   const breaks = b.breaks.map((x) => parseHM(x)!);
-  const dayStart = parseHM(day > 1 ? s.plan.nextStart ?? b.start : b.start)!;
+  const dayStart = Math.floor(parseHM(day > 1 ? s.plan.nextStart ?? b.start : b.start)! / 60) * 60;
   const logged = new Set(s.periods.filter((p) => p.day === day).map((p) => p.start));
   const hours: { start: string; end: string; short: boolean; logged: boolean }[] = [];
   for (let m = dayStart; m <= 23 * 60; m += 60) {
+    if (breaks.includes(m)) continue; // the break hour (12-13, 18-19)
     const start = formatHM(m);
-    const cut = breaks.find((x) => m < x && x < m + 60); // a break inside the hour: it runs to the break and is the short hour
+    const cut = breaks.find((x) => m < x && x < m + 60); // a break that is not on the hour: the hour runs to it
     hours.push({ start, end: formatHM(cut ?? m + 60), short: cut != null || breaks.includes(m + 60), logged: logged.has(start) });
     if (cut != null) m = cut; // resume after the break hour
   }

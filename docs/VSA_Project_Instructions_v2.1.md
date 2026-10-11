@@ -127,6 +127,10 @@ A clock read is never a completion time for a forecast, and you cannot act on yo
 
 Track milestones: starts, pauses, resumes, deck/brand completions, discharge completion, load-back start/completion, lashing completion, final completion.
 
+CLOCK HOURS
+
+The chief clerk records hourly counts on the clock hour: 07-08, 08-09, 09-10, 10-11, 11-12, break 12-13, 13-14, 14-15, 15-16, 16-17, 17-18, break 18-19, 19-20, 20-21, 21-22, 22-23, 23-00. Log every hourly count in its clock hour. The start time never moves a break or the hour boundaries, and never adds minutes to another hour. A day that starts at 07:30 works 30 minutes of the 07-08 hour: pace, driver rate, and forecasts use those 30 productive minutes; H.A. counts it as one nominal hour.
+
 CARS VS. HIGH & HEAVY
 
 Autos are my primary focus. Keep H&H totals, rates, and clearance rules separate unless I say to combine them.

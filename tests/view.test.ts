@@ -272,19 +272,22 @@ test('deck sheet opens pre-filled with the current counts (Colby chose A)', () =
   assert.deepEqual(done.prefill, { hatches: {}, deck: null }); // not Active/Paused: boxes start blank
 });
 
-test('hour picker: follows the day start, skips break-crossing hours, defaults after the last logged hour', () => {
+test('hour picker: clock hours from the hour the day starts in, no break hours, defaults after the last logged hour', () => {
   const s = demo(); // hours logged 08:00–11:00 and 13:00–14:00 on Day 1
   const h = hourOptions(s, glovis);
   assert.equal(h.hours[0].start, '08:00');
   assert.deepEqual(h.hours.find((x) => x.start === '11:00'), { start: '11:00', end: '12:00', short: true, logged: true });
   assert.equal(h.defaultStart, '15:00');
+  // Colby, 2026-10-10: the break hours (12-13, 18-19) are not offered; the clerk's hours run to 23-00.
+  assert.deepEqual(h.hours.map((x) => x.start), ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '19:00', '20:00', '21:00', '22:00', '23:00']);
+  assert.equal(h.hours.at(-1)!.end, '00:00');
   const empty = hourOptions(state([]), glovis);
   assert.equal(empty.defaultStart, '08:00');
-  // 07:30 start: the hour that would cross noon runs 11:30–12:00 as the short pre-break hour.
+  // 07:30 start: hours stay on the clock (07-08 first, 11-12 the pre-break hour); never 07:30–08:30 or 11:30–12:00.
   const half = hourOptions(state([]), { ...glovis, start: '07:30' });
-  assert.deepEqual(half.hours.find((x) => x.start === '11:30'), { start: '11:30', end: '12:00', short: true, logged: false });
-  assert.deepEqual(half.hours.map((x) => x.start).slice(0, 6), ['07:30', '08:30', '09:30', '10:30', '11:30', '13:00']);
-  assert.equal(half.hours[0].start, '07:30');
+  assert.deepEqual(half.hours.map((x) => x.start).slice(0, 6), ['07:00', '08:00', '09:00', '10:00', '11:00', '13:00']);
+  assert.deepEqual(half.hours.find((x) => x.start === '11:00'), { start: '11:00', end: '12:00', short: true, logged: false });
+  assert.equal(half.defaultStart, '07:00');
   // After 11:00 is logged, the default skips the 12:00 break hour.
   const morning = state(toEvents({ name: 'x', hourly: MORNING }, OP));
   assert.equal(hourOptions(morning, glovis).defaultStart, '13:00');
