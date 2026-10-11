@@ -289,11 +289,13 @@ function ShiftSheet({ state, baseline, isTest, save, onClose }: { isTest: boolea
   const [mode, setMode] = useState<'one' | 'two'>(state.plan.shiftEnd ? 'two' : 'one');
   const [end, setEnd] = useState(state.plan.shiftEnd ?? '');
   const [next, setNext] = useState(state.plan.nextStart ?? baseline.start);
+  const [side, setSide] = useState<'N' | 'S' | null>(state.plan.shiftEndSide ?? null);
   const [error, setError] = useState<string | null>(null);
   const submit = async () => {
     if (mode === 'two' && parseHM(end.trim()) == null) return setError('Enter when Day 1 ends (HH:MM).');
     if (mode === 'two' && parseHM(next.trim()) == null) return setError('Enter when the next day starts (HH:MM).');
-    const r = await save((c) => E.shiftSettingsEvents(c, mode === 'two' ? end.trim().padStart(5, '0') : null, next.trim().padStart(5, '0')));
+    if (mode === 'two' && side == null) return setError('Pick the side Day 1 ends on: Northside or Southside.');
+    const r = await save((c) => E.shiftSettingsEvents(c, mode === 'two' ? end.trim().padStart(5, '0') : null, next.trim().padStart(5, '0'), mode === 'two' ? side : null));
     if (r.ok) onClose('Shift settings saved.'); else setError(r.error);
   };
   return (
@@ -303,6 +305,13 @@ function ShiftSheet({ state, baseline, isTest, save, onClose }: { isTest: boolea
         {mode === 'two' && <Field label="Day 1 shift ends" value={end} onChange={setEnd} keyboard="numbers-and-punctuation" maxLength={5} />}
         {mode === 'two' && <Field label="Day 2 starts" value={next} onChange={setNext} keyboard="numbers-and-punctuation" maxLength={5} />}
       </View>
+      {mode === 'two' && (
+        <View style={{ gap: 8 }}>
+          <Label>DAY 1 ENDS ON WHICH SIDE?</Label>
+          <Seg columns={2} value={side} onChange={setSide} options={[{ value: 'N', label: 'Northside (−15)' }, { value: 'S', label: 'Southside (−30)' }]} />
+          <InfoNote><Note>The forecast stops that many minutes before the shift end.</Note></InfoNote>
+        </View>
+      )}
       {error && <ErrorBox text={error} />}
       <Go label="Save shift settings" onPress={submit} />
     </Sheet>

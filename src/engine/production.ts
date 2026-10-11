@@ -16,6 +16,8 @@ export type HourEntry = {
   safetyMin?: number;                  // minutes of this hour in the 07:00 safety meeting; absent = 0
   startNote?: string;                  // why lateMin is set when the day's planned start is inside this hour (a 07:30 start)
   was?: number[];                     // earlier values of this hour's total, oldest first (corrections)
+  shiftEndMin?: number;                // minutes worked before a recorded shift end inside this hour (end − the side's stop); absent = none
+  shiftEndNote?: string;               // the shift end and side behind shiftEndMin, for the screen
 };
 
 export type Period = HourEntry & {
@@ -50,8 +52,12 @@ export function buildPeriods(entries: HourEntry[], breaks: string[]): Period[] {
   let prevP: number | null = null, prevS = false, prevD = 1;
   return sorted.map((h) => {
     if (h.day !== prevD) { prevP = null; prevS = false; prevD = h.day; }
-    const short = isShort(h.start, breaks);
-    const worked = short ? (typeof h.stopMin === 'number' ? h.stopMin : null) : 60;
+    const breakShort = isShort(h.start, breaks);
+    // The hour a shift ends in is short too (Colby, 2026-10-10): work stops at the named side's minutes before the shift end.
+    // A pre-break hour keeps its own stop time.
+    const endShort = !breakShort && typeof h.shiftEndMin === 'number';
+    const short = breakShort || endShort;
+    const worked = breakShort ? (typeof h.stopMin === 'number' ? h.stopMin : null) : endShort ? h.shiftEndMin! : 60;
     // Production starts at the later of the actual start and the meeting's end: the two overlap, never add.
     const late = h.lateMin ?? 0, safety = h.safetyMin ?? 0;
     const min = worked == null ? null : Math.max(0, worked - Math.max(late, safety));
@@ -62,6 +68,7 @@ export function buildPeriods(entries: HourEntry[], breaks: string[]): Period[] {
     if (safety > late) p.reason = SAFETY_MEETING.reason;
     else if (late > 0 && h.startNote) p.reason = h.startNote;
     prevP = pace; prevS = short;
+    if (endShort && h.shiftEndNote) p.reason = h.shiftEndNote; // the shift end explains this hour's minutes
     return p;
   });
 }

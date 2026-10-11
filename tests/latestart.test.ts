@@ -157,9 +157,9 @@ test('replay of the stored log rebuilds the same state', async (tc) => {
 
 test('Day 2 late start: ETA resumes from the actual start, still FORECAST', async (tc) => {
   const s = await setup(tc);
-  await s.ok(E.shiftSettingsEvents(s.ctx(), '17:00', '08:00'));
+  await s.ok(E.shiftSettingsEvents(s.ctx(), '17:00', '08:00', 'N'));
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 250 }));
-  await s.ok(E.endShiftEvents(s.ctx(), t('17:00')));
+  await s.ok(E.endShiftEvents(s.ctx(), t('17:00'), 'N'));
   const planned = s.state.eta.etaAbs!;
   await s.ok(E.dayStartEvents(s.ctx(), 2, '09:30', 'Late vessel'));
   assert.equal(s.state.eta.label, 'FORECAST');

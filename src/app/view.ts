@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, TYPE_LABEL, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -558,7 +558,7 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
     },
     forecast: {
       breaks: `${b.breaks.map((x) => formatHM(parseHM(x)!)).join(' and ')} · 1 hour each`,
-      dayEnd: s.plan.shiftEnd ?? 'Works until finished',
+      dayEnd: s.plan.shiftEnd == null ? 'Works until finished' : `${s.plan.shiftEnd}${s.plan.shiftEndSide ? ` · ${s.plan.shiftEndSide === 'S' ? 'Southside' : 'Northside'} (last cars ${formatHM(parseHM(s.plan.shiftEnd)! - SHIFT_END_STOP_MIN[s.plan.shiftEndSide])})` : ''}`,
       nextStart: s.plan.nextStart ?? b.start,
     },
     destinations: {

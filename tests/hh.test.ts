@@ -128,7 +128,7 @@ test('no closing time: the pass ends with the shift and says so; a real complete
   const s = await setup(tc);
   await s.save(E.hhMarkerEvents(s.ctx(), 'started', T('13:00')));
   assert.equal(s.state.hh.status, 'active'); // shift end not logged yet: still active
-  await s.save(E.endShiftEvents(s.ctx(), T('17:00')));
+  await s.save(E.endShiftEvents(s.ctx(), T('17:00'), 'N'));
   const p = s.state.hh.passes[0];
   assert.deepEqual([p.end, p.endAbs, p.endedWithShift], [null, 17 * 60, true]);
   assert.equal(s.state.hh.status, 'endedWithShift');
@@ -141,7 +141,7 @@ test('no closing time: the pass ends with the shift and says so; a real complete
 test('a pass the shift closed does not block the next day: a start after the shift end is a new pass', async (tc) => {
   const s = await setup(tc);
   await s.save(E.hhMarkerEvents(s.ctx(), 'started', T('15:00')));
-  await s.save(E.endShiftEvents(s.ctx(), T('17:00')));
+  await s.save(E.endShiftEvents(s.ctx(), T('17:00'), 'N'));
   await s.save(E.nextDayEvents(s.ctx(), T('07:30', 2)));
   await s.save(E.hhMarkerEvents(s.ctx(), 'started', T('08:00', 2)));
   assert.deepEqual(s.state.hh.passes.map((p) => [p.endedWithShift, p.endAbs]), [[true, 17 * 60], [false, null]]);

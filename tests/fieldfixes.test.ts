@@ -89,7 +89,7 @@ test('workday drivers: Day 2 uses its own setting (Day 1 = 70, Day 2 = 50)', asy
   await s.ok(E.workdayDriversEvents(s.ctx(), 1, 70));
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 245 }));
   await s.ok(E.workdayDriversEvents(s.ctx(), 2, 50));
-  await s.ok(E.endShiftEvents(s.ctx(), t('17:00')));
+  await s.ok(E.endShiftEvents(s.ctx(), t('17:00'), 'N'));
   await s.ok(E.nextDayEvents(s.ctx(), t('08:00', 2)));
   assert.deepEqual(s.state.drivers, { n: 50, src: 'Day 2 setting' }); // not Day 1's 70
   await s.ok(E.hourEvents(s.ctx(), { day: 2, start: '08:00', count: 150 }));
@@ -182,7 +182,7 @@ test('break log: add a missed break later; overlap refused; it can be fixed or r
 
 test('break log: shift changes are shown but not editable here; a break with a value is refused', async (tc) => {
   const s = await setup(tc);
-  await s.ok(E.endShiftEvents(s.ctx(), t('17:00')));
+  await s.ok(E.endShiftEvents(s.ctx(), t('17:00'), 'N'));
   const shift = s.state.breakLog[0];
   assert.equal(shift.kind, 'shift');
   assert.deepEqual(planView(s.state, glovis).breakLog, [{ label: 'Shift', value: 'Shift end 17:00 · in progress' }]);
