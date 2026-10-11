@@ -14,6 +14,7 @@ export type HourEntry = {
   stopMin?: number | null;             // productive minutes in a short pre-break hour (30 or 45)
   lateMin?: number;                    // minutes of this hour before the day's actual (late) start; absent = 0
   safetyMin?: number;                  // minutes of this hour in the 07:00 safety meeting; absent = 0
+  startNote?: string;                  // why lateMin is set when the day's planned start is inside this hour (a 07:30 start)
   was?: number[];                     // earlier values of this hour's total, oldest first (corrections)
 };
 
@@ -59,6 +60,7 @@ export function buildPeriods(entries: HourEntry[], breaks: string[]): Period[] {
     const deltaPct = prevP && pace != null ? ((pace - prevP) / prevP) * 100 : null;
     const p: Period = { ...h, short, min, pace, delta, deltaPct, deltaPaced: short || prevS };
     if (safety > late) p.reason = SAFETY_MEETING.reason;
+    else if (late > 0 && h.startNote) p.reason = h.startNote;
     prevP = pace; prevS = short;
     return p;
   });
