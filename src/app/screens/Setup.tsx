@@ -1,7 +1,7 @@
 // New-vessel setup (protocol §11.1), one step per screen. Start from a photo of the APS game plan cover page
 // (spec phase-6e: deterministic reader, no AI), type it in, or import a baseline file. Nothing is saved until Review.
 // All checks live in src/app/setup.ts and src/app/gamePlan.ts; this only lays out the questions.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MutableRefObject } from 'react';
 import { Pressable, Share, Text, TextInput, View } from 'react-native';
 import type { Reject } from '../../engine/index.ts';
 import { TERMINAL, terminalInfo } from '../../engine/terminal.ts';
@@ -9,6 +9,7 @@ import {
   buildBaseline, deckFromDraft, emptyDeck, groupAllocations, HATCHES, importBaseline, loadListCheck, mergeGamePlan, verificationFor,
   type Allocation, type Built, type DeckDraft, type HhEntry, type SetupForm,
 } from '../setup.ts';
+import { blankDraft, type SetupDraft } from '../setupDraft.ts';
 import { readGamePlanPages } from '../gamePlan.ts';
 import { brandFor, readDischargeSummary } from '../dischargeSummary.ts';
 import type { Page } from '../layout.ts';
@@ -25,33 +26,42 @@ const n = (x: number) => x.toLocaleString('en-US');
 type GameRead = { filled: string[]; problems: string[]; notes: string[]; extras: string[]; scans: Page[]; decks: number; autos: number | null; hhTotal: number | null };
 
 // Content only: it lives inside the New vessel sheet, so there is never a second modal (iOS freezes on stacked modals).
-export function Setup({ isTest, setIsTest, onKey, onCreate }: {
+export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft(), snap, onDraft }: {
   isTest: boolean; setIsTest: (t: boolean) => void; onKey: (k: string) => void;
+  initial?: SetupDraft; snap?: MutableRefObject<SetupDraft | null>; onDraft?: (d: SetupDraft) => void; // a resumed draft in; the current answers out (the sheet asks before closing)
   onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[], photos: string[]) => Promise<{ ok: true } | Reject>;
 }) {
   const f = useType();
-  const [mode, setMode] = useState<'start' | 'form' | 'paste'>('start');
-  const [step, setStep] = useState(0);
-  const [v, setV] = useState({ vessel: '', date: '', port: '', berth: '', start: '08:00', drivers: '' });
+  const [mode, setMode] = useState<'start' | 'form' | 'paste'>(initial.mode);
+  const [step, setStep] = useState(initial.step);
+  const [v, setV] = useState(initial.v);
   const set = (k: keyof typeof v) => (x: string) => setV({ ...v, [k]: x });
-  const [allocs, setAllocs] = useState<Allocation[]>([blank()]);
-  const [decks, setDecks] = useState<DeckDraft[]>([]);
-  const [hh, setHh] = useState<HhEntry[]>([]);
-  const [load, setLoad] = useState<Record<string, string>>({});
-  const [loadHh, setLoadHh] = useState('');
-  const [override, setOverride] = useState(false);
-  const [imported, setImported] = useState<Built | null>(null);
-  const [paste, setPaste] = useState('');
+  const [allocs, setAllocs] = useState<Allocation[]>(initial.allocs);
+  const [decks, setDecks] = useState<DeckDraft[]>(initial.decks);
+  const [hh, setHh] = useState<HhEntry[]>(initial.hh);
+  const [load, setLoad] = useState<Record<string, string>>(initial.load);
+  const [loadHh, setLoadHh] = useState(initial.loadHh);
+  const [override, setOverride] = useState(initial.override);
+  const [imported, setImported] = useState<Built | null>(() => { if (!initial.imported) return null; const r = importBaseline(initial.paste, initial.isTest); return r.ok ? r : null; });
+  const [paste, setPaste] = useState(initial.paste);
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [kept, setKept] = useState<string[]>([]); // temporary copies of the paperwork photos read here; saved with the vessel only if Settings says keep
   const [sumMsg, setSumMsg] = useState<string | null>(null); // what the last discharge summary photo filled, or why not
   const [openDrop, setOpenDrop] = useState<number | null>(null);
-  const [read, setRead] = useState<GameRead | null>(null);
+  const [read, setRead] = useState<GameRead | null>(initial.read ? { ...initial.read, scans: [] } : null);
   const [failed, setFailed] = useState<{ text: string; scans: Page[] } | null>(null);
-  const [confirmed, setConfirmed] = useState<number[]>([]);
-  const [keep, setKeep] = useState<string[]>([]);
+  const [confirmed, setConfirmed] = useState<number[]>(initial.confirmed);
+  const [keep, setKeep] = useState<string[]>(initial.keep);
+
+  // The sheet reads this when the user tries to close: the answers so far, as text only (no photos).
+  if (snap) snap.current = {
+    isTest, mode: imported ? 'paste' : mode, step, imported: !!imported, v, allocs, decks, hh, load, loadHh, override, paste, keep, confirmed,
+    read: read ? { filled: read.filled, problems: read.problems, notes: read.notes, extras: read.extras, decks: read.decks, autos: read.autos, hhTotal: read.hhTotal } : null,
+  };
+
+  useEffect(() => { if (snap?.current) onDraft?.(snap.current); }); // every render: the autosaver only acts on a real change
 
   useEffect(() => { setAck(false); setOpenDrop(null); onKey(`${step}${imported ? 'i' : ''}${mode}`); }, [step, imported, mode, onKey]);
 
@@ -216,7 +226,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate }: {
           </Body>
           <InfoNote><Note>Not on the game plan: berth, planned start{read.filled.includes('drivers') ? '' : ', drivers'}, deck heights, counts per hatch.</Note></InfoNote>
           {read.problems.map((p) => <Text key={p} style={[u.note, { color: color.oInk, fontFamily: f.body }]}>• {p}</Text>)}
-          <Go ghost label="Share what was read" onPress={() => shareRead(read.scans)} />
+          {read.scans.length > 0 && <Go ghost label="Share what was read" onPress={() => shareRead(read.scans)} />}
           <Go ghost label="Start over with another photo" onPress={startOver} />
         </Card>
       )}
