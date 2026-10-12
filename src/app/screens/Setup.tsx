@@ -23,6 +23,8 @@ import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, u, InfoN
 const STEPS = ['Vessel', 'Start', 'Cargo to destinations', 'Decks', 'Load list', 'Review'];
 const LAST = STEPS.length - 1;
 const blank = (): Allocation => ({ brand: '', autos: '', destination: '' });
+// A refused file shows its first 3 problems, not a wall of them (Colby, 2026-10-12).
+const fewErrors = (e: string[]) => [...e.slice(0, 3), ...(e.length > 3 ? [`…and ${e.length - 3} more.`] : [])].join('\n');
 const BERTHS = [{ value: '1', label: 'Berth 1' }, { value: '2', label: 'Berth 2' }, { value: '3', label: 'Berth 3' }];
 const SOURCE = 'Game plan photo (APS cover page)';
 const n = (x: number) => x.toLocaleString('en-US');
@@ -210,14 +212,14 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
             if (p.ok === false) { setError(p.error); return; }
             setPaste(p.text);
             const r = importBaseline(p.text, isTest);
-            if (r.ok) { setImported(r); setStep(LAST); } else setError(r.errors.join('\n'));
+            if (r.ok) { setImported(r); setStep(LAST); } else setError(fewErrors(r.errors));
           }} />
           <TextInput value={paste} onChangeText={setPaste} multiline autoCorrect={false} autoCapitalize="none" accessibilityLabel="Baseline file text"
             placeholder="Paste here" placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' }]} />
           <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
           <Go label="Review the baseline" disabled={paste.trim() === ''} onPress={() => {
             const r = importBaseline(paste, isTest);
-            if (r.ok) { setError(null); setImported(r); setStep(LAST); } else setError(r.errors.join('\n'));
+            if (r.ok) { setError(null); setImported(r); setStep(LAST); } else setError(fewErrors(r.errors));
           }} />
           <Go ghost label="Back" onPress={() => { setError(null); setMode('start'); }} />
           {error && <ErrorBox text={error} />}

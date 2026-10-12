@@ -75,6 +75,22 @@ test('setup refuses: no name, bad date/start, no decks, two current heights; war
   assert.match(low.warnings[0], /D1 is set to 1\.70 m, below 1\.85 m/);
 });
 
+test('import: another app\'s file gets one plain line; missing breaks, sides and cutoffs come from protocol and Appendix C', () => {
+  const other = importBaseline(JSON.stringify({ destinations: [{ name: 'Site 4' }], rows: [1, 2] }), true);
+  assert.ok(!other.ok);
+  assert.equal(other.errors.length, 1);
+  assert.match(other.errors[0], /isn’t a VSA baseline/);
+  const bare = structuredClone(glovis) as any;
+  delete bare.breaks;
+  bare.destinations = bare.destinations.map((d: any) => ({ name: d.name === 'Zone 3' ? 'Zone 3 (Kia)' : d.name, autos: d.autos }));
+  const r = importBaseline(JSON.stringify(bare), true);
+  assert.ok(r.ok, r.ok ? '' : r.errors.join(' | '));
+  assert.deepEqual(r.baseline.breaks, glovis.breaks);
+  assert.deepEqual(r.baseline.destinations.map((d) => [d.side, d.clearBy]), glovis.destinations.map((d: any) => [d.side, d.clearBy]));
+  // A stated side that is wrong is still refused, never replaced.
+  assert.ok(!importBaseline(JSON.stringify({ ...glovis, destinations: [{ ...glovis.destinations[0], side: 'X' }] }), true).ok);
+});
+
 test('setup refuses a deck whose number was not read (a bare "D")', () => {
   const r = buildBaseline(form({ decks: [{ label: 'D', heights: [], hatches: [] }] }));
   assert.ok(!r.ok);

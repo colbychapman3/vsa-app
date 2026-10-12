@@ -107,6 +107,16 @@ export function importBaseline(text: string, isTest: boolean): Built {
   const e: string[] = [];
   if (!b || typeof b !== 'object' || Array.isArray(b)) return { ok: false, errors: ['This is not a vessel baseline (expected a JSON object).'] };
   if (b.format === 'vsa-log') return { ok: false, errors: ['This is a VSA log backup, not a baseline. Restore it from Plan › Backup.'] };
+  // Another app's file (Colby, 2026-10-12: a wall of 30 errors told him nothing): one plain line instead.
+  if (typeof b.vessel !== 'string' && !Array.isArray(b.decks)) return { ok: false, errors: ['This file isn’t a VSA baseline: it has no vessel name and no decks. Nothing was loaded. Use Type it in, or a game plan photo.'] };
+  // Breaks are fixed by protocol and sides and cutoffs come from the terminal directory (Appendix C), as in typed setup:
+  // a file that leaves them out gets them; one that states a different value is still refused below.
+  if (b.breaks === undefined) b.breaks = [...BREAKS];
+  if (Array.isArray(b.destinations)) b.destinations = b.destinations.map((d: any) => {
+    if (!d || typeof d.name !== 'string' || (d.side !== undefined && d.clearBy !== undefined)) return d;
+    const t = terminalInfo(d.name.trim(), b.berth ?? '') ?? terminalInfo(d.name.replace(/\s*\(.*\)\s*$/, '').trim(), b.berth ?? '');
+    return t ? { ...d, side: d.side ?? t.side, clearBy: d.clearBy ?? t.clearBy } : d;
+  });
   for (const k of ['vessel', 'date', 'start'] as const) if (typeof b[k] !== 'string' || !b[k].trim()) e.push(`Baseline is missing "${k}".`);
   if (!Array.isArray(b.decks) || !b.decks.length) e.push('Baseline is missing "decks".');
   if (JSON.stringify(b.breaks) !== JSON.stringify(BREAKS)) e.push(`Breaks must be ${BREAKS.join(' and ')} (fixed by protocol).`);
