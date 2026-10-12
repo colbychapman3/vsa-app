@@ -103,7 +103,7 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
 
       <Card style={[u.pad, { gap: 8 }]}>
         <Note>{REMINDER_STATUS_TEXT[reminders]}</Note>
-        {reminders === 'ask' && <Go ghost label="Turn on reminders" onPress={onEnableReminders} />}
+        {reminders === 'ask' && <Go ghost label="Allow notifications" onPress={onEnableReminders} />}
       </Card>
       <InfoNote><Note>Answers come from the same numbers as the screens and from the loaded documents, never from a guess. Try “log 140 at 10:00”, “note: …” or “new vessel”.</Note></InfoNote>
     </Sheet>

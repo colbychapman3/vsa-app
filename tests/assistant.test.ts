@@ -6,7 +6,7 @@ import { project } from '../src/engine/index.ts';
 import { checkNoteTidy } from '../src/engine/proposal.ts';
 import type { State } from '../src/storage/store.ts';
 import type { KnowledgeIndex } from '../src/app/knowledge/search.ts';
-import { alerts, answer, checkIntent, documentsFile, findZone, handoffPrompt, makeQuiet, parseAction, quietFromText, quietToText, reminderPlan, routeQuestion } from '../src/app/assistant.ts';
+import { alerts, answer, checkIntent, documentsFile, findZone, handoffPrompt, parseAction, routeQuestion } from '../src/app/assistant.ts';
 import { snapshot } from '../src/app/view.ts';
 import { glovis, toEvents, SCENARIOS, OP } from './scenarios.ts';
 
@@ -148,30 +148,11 @@ test('actions: values come only from the typed text', () => {
   assert.equal(parseAction('what is the pace'), null);
 });
 
-test('alerts and reminders list open alerts; none → nothing scheduled', () => {
+test('alerts list open alerts; none → empty', () => {
   const s = working();
-  const a = alerts(s, glovis);
-  assert.ok(a.length > 0);
-  const p = reminderPlan(s, glovis, 9 * 60, true)!;
-  assert.match(p.text, new RegExp(`^TEST · ${a.length} Plan alerts? open: `));
-  assert.equal(p.atMin[0], 25);
-  assert.equal(reminderPlan(s, glovis, 9 * 60, false)!.text.startsWith('TEST'), false);
+  assert.ok(alerts(s, glovis).length > 0);
   const calm = { ...s, issues: [], decks: s.decks.map((d) => ({ ...d, height: { ...d.height, level: d.height.level === 'soft' ? 'ok' : d.height.level } })) } as unknown as State;
   assert.equal(alerts(calm, glovis).length, 0);
-  assert.equal(reminderPlan(calm, glovis, 9 * 60, true), null);
-});
-
-test('reminders pause in the 12:00 and 18:00 breaks, stop on a break or at shift end', () => {
-  const s = working();
-  const p = reminderPlan(s, glovis, 11 * 60 + 20, false)!; // 11:45, then 12:10–12:55 skipped, resumes 13:00+
-  const clock = p.atMin.map((m) => 11 * 60 + 20 + m);
-  assert.ok(clock.includes(11 * 60 + 45));
-  assert.ok(!clock.some((t) => t >= 12 * 60 && t < 13 * 60));
-  assert.ok(clock.some((t) => t >= 13 * 60));
-  assert.ok(!reminderPlan({ ...s, ops: { ...s.ops, onBreak: true } } as State, glovis, 12 * 60 + 10, false));
-  assert.equal(reminderPlan({ ...s, ops: { ...s.ops, shiftEnded: true } } as State, glovis, 17 * 60, false), null);
-  const ends = reminderPlan({ ...s, plan: { ...s.plan, shiftEnd: '15:00' } } as State, glovis, 14 * 60, false)!;
-  assert.deepEqual(ends.atMin, [25, 50]); // 14:25, 14:50; 15:15 is after shift end
 });
 
 test('hand-off message: instructions, the question, the screens\' facts and cited passages; name only when included; no ids or paths', () => {
@@ -212,31 +193,6 @@ test('documents file: every passage, grouped by document with its citation, plus
   for (const d of new Set(INDEX.chunks.map((c) => c.doc))) assert.ok(md.includes(`## ${d}`), d);
   assert.match(md, /protocol wins on any difference/);
   assert.match(md, /Do not use these for lashing or any other math/);
-});
-
-test('quiet hours: no reminder inside the window (also across midnight); other reminders stay', () => {
-  const s = working();
-  const at = (q: { from: string; to: string } | null) => reminderPlan(s, glovis, 8 * 60, false, 20, q)!.atMin.map((m) => 8 * 60 + m);
-  const base = at(null);
-  const quiet = at({ from: '09:00', to: '10:00' });
-  assert.ok(base.some((t) => t >= 540 && t < 600));
-  assert.ok(!quiet.some((t) => t >= 540 && t < 600));
-  assert.ok(quiet.length < base.length && quiet.some((t) => t >= 600));
-  const wrap = at({ from: '22:00', to: '09:30' }); // wraps midnight: 08:00-09:30 is quiet
-  assert.ok(!wrap.some((t) => t < 570));
-});
-
-test('quiet hours text round-trips and rejects bad values', () => {
-  assert.deepEqual(quietFromText(quietToText({ from: '22:00', to: '06:00' })), { from: '22:00', to: '06:00' });
-  for (const bad of [null, '', '22:00', '25:00-06:00', '22:00-22:00', 'a-b']) assert.equal(quietFromText(bad), null);
-});
-
-test('quiet hours input is normalised (6:00 becomes 06:00) and equal times are refused by minute value', () => {
-  assert.deepEqual(makeQuiet('6:00', '22:00'), { ok: true, quiet: { from: '06:00', to: '22:00' } });
-  assert.deepEqual(quietFromText(quietToText((makeQuiet('6:00', '22:00') as { quiet: { from: string; to: string } }).quiet)), { from: '06:00', to: '22:00' });
-  assert.equal(makeQuiet('6:00', '06:00').ok, false);
-  assert.equal(makeQuiet('25:00', '06:00').ok, false);
-  assert.equal(makeQuiet('', '06:00').ok, false);
 });
 
 test('document text is evidence, never instructions: text that gives orders cannot become an action or add a number', () => {

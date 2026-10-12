@@ -1,5 +1,5 @@
 // Assistant (Phase 6d), pure. Routes a typed question to one fixed intent, fills the answer from the same view
-// model the screens use, parses the three confirmable actions, and plans the 25-minute Plan reminders.
+// model the screens use, parses the three confirmable actions, and plans the three moment-based reminders.
 // The on-device model (if any) may only pick an intent from this list; it never writes an answer or a number.
 import { formatHM, gassingAlert, parseHM, type Baseline } from '../engine/index.ts';
 import { TERMINAL, terminalInfo } from '../engine/terminal.ts';
@@ -222,48 +222,86 @@ export function parseAction(text: string): Action | null {
 }
 
 // ---------- Reminders ----------
-export const REMINDER_MIN = 25;
-export type ReminderPlan = { text: string; atMin: number[] }; // minutes from now, one notification each
-
-// Quiet hours (Settings): no reminder while the clock is inside the window, which may wrap midnight (22:00 to 06:00).
-export type Quiet = { from: string; to: string };
-export const quietToText = (q: Quiet) => `${q.from}-${q.to}`;
-export function quietFromText(t: string | null): Quiet | null {
-  const m = /^(\d{2}:\d{2})-(\d{2}:\d{2})$/.exec(t ?? '');
-  return m && parseHM(m[1]) != null && parseHM(m[2]) != null && m[1] !== m[2] ? { from: m[1], to: m[2] } : null;
-}
-// Validates two typed times and stores them as HH:MM; equal times (by minutes, so 6:00 equals 06:00) would mean no window.
-export function makeQuiet(from: string, to: string): { ok: true; quiet: Quiet } | { ok: false; error: string } {
-  const a = parseHM(from), b = parseHM(to);
-  if (a == null || b == null) return { ok: false, error: 'Enter both times as HH:MM, for example 22:00 and 06:00.' };
-  if (a === b) return { ok: false, error: 'The two times are the same, so there would be no quiet window.' };
-  return { ok: true, quiet: { from: formatHM(a), to: formatHM(b) } };
-}
-const inQuiet = (t: number, q: Quiet | null) => {
-  if (!q) return false;
-  const a = parseHM(q.from)!, b = parseHM(q.to)!;
-  if (a === b) return false;
-  return a < b ? t >= a && t < b : t >= a || t < b;
+// Three moment-based reminders (Colby, 2026-10-11), each tied to something that would cost him if missed. Quiet by default.
+// Pure: the clock comes in as `now`; the result is absolute fire times (epoch ms) that reminders.ts hands to expo-notifications.
+export type ReminderKind = 'count' | 'deck' | 'break';
+export type ReminderSwitches = Record<ReminderKind, boolean>;
+export const REMINDERS_ALL_ON: ReminderSwitches = { count: true, deck: true, break: true };
+export type ReminderTab = 'log' | 'plan' | 'snap';
+export type PlannedReminder = { kind: ReminderKind; at: number; title: string; body: string; tab: ReminderTab };
+export type ReminderInput = {
+  s: State; b: Baseline; now: Date; isTest: boolean;
+  open?: boolean;              // false = this vessel is not the one open on the phone (a TEST vessel then gets nothing)
+  archived?: boolean;
+  on?: ReminderSwitches;       // Settings › Notifications; default all on
 };
+const BREAK_LEN = 60, COUNT_GRACE = 5, BREAK_WARN = 5, DECK_LEAD = 60, DECK_CLEAR_BY = 15; // DECK_CLEAR_BY is paceWatch's own (later) Northside cutoff
 
-// Reminders resume when work resumes: skipped inside the scheduled breaks, none after shift end or on a break now.
-// Only the rest of today is planned (re-planned whenever the app opens or the vessel changes).
-export function reminderPlan(s: State, b: Baseline, nowMin: number, isTest: boolean, max = 20, quiet: Quiet | null = null): ReminderPlan | null {
-  const a = alerts(s, b, nowMin);
-  if (!a.length || s.ops.onBreak || s.ops.shiftEnded) return null;
-  const end = s.plan.shiftEnd ? parseHM(s.plan.shiftEnd) : null;
-  const breaks = b.breaks.map((x) => parseHM(x)!).filter((x) => x != null);
-  const atMin: number[] = [];
-  for (let k = 1; k <= max; k++) {
-    const t = nowMin + k * REMINDER_MIN;
-    if (t >= 1440 || (end != null && t >= end)) break;
-    if (breaks.some((x) => t >= x && t < x + 60) || inQuiet(t, quiet)) continue;
-    atMin.push(k * REMINDER_MIN);
+const hh = (m: number) => formatHM(m);
+const hourLabel = (h: number) => `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
+
+// What to schedule for the rest of today (re-plan whenever state, switches or the app's foreground state change; the caller
+// cancels everything else). Unknown times schedule nothing. A reminder is never in the past.
+export function reminderPlan(i: ReminderInput): PlannedReminder[] {
+  const { s, b, now, isTest } = i, on = i.on ?? REMINDERS_ALL_ON;
+  if (s.completed || i.archived || (isTest && i.open === false) || s.ops.shiftEnded || s.ops.phase === 'shift_end') return [];
+  const nowMs = now.getTime(), nowMin = now.getHours() * 60 + now.getMinutes();
+  const at = (min: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, min).getTime();
+  const tag = isTest ? 'TEST · ' : '';
+  const day = s.ops.day;
+  const end = day === 1 && s.plan.shiftEnd ? parseHM(s.plan.shiftEnd) : null; // the shift end is a Day 1 setting; Day 2's is not known
+  const breaks = b.breaks.map((x) => parseHM(x)).filter((x): x is number => x != null);
+  const out: PlannedReminder[] = [];
+  const add = (r: PlannedReminder, minute: number) => {
+    if (r.at <= nowMs || minute >= 1440 || (end != null && minute >= end)) return;
+    out.push(r);
+  };
+
+  if (on.count) {
+    const ds = s.dayStarts?.[day], start = ds ? parseHM(ds.actual ?? ds.planned) : null;
+    if (start != null) {
+      const logged = new Set(s.periods.filter((p) => p.day === day).map((p) => Math.floor(parseHM(p.start)! / 60)));
+      for (let h = 0; h <= 22; h++) {
+        const due = (h + 1) * 60 + COUNT_GRACE; // HH:05 after the hour ends
+        if (start >= (h + 1) * 60 || logged.has(h) || breaks.some((x) => x < (h + 1) * 60 && x + BREAK_LEN > h * 60)) continue; // not started yet / counted / a break hour
+        add({ kind: 'count', at: at(due), tab: 'log', title: `${tag}Count due`,
+          body: `${b.vessel}: no hourly count logged for ${hourLabel(h)}. Tap to open Log.` }, due);
+      }
+    }
   }
-  if (!atMin.length) return null;
-  const labels = a.map((x) => (x.length > 40 ? `${x.slice(0, 39)}…` : x));
-  return { text: `${isTest ? 'TEST · ' : ''}${a.length} Plan alert${a.length === 1 ? '' : 's'} open: ${labels.join(', ')}`, atMin };
+
+  if (on.deck) {
+    const watch = paceWatch(s, b, nowMin), brk = breaks.filter((x) => x > nowMin).sort((x, y) => x - y)[0];
+    if (watch.length && brk != null) {
+      const t = brk - DECK_CLEAR_BY - DECK_LEAD;
+      add({ kind: 'deck', at: at(t), tab: 'plan', title: `${tag}Deck may miss the cutoff`,
+        body: `FORECAST from the ${hh(nowMin)} pace, an estimate: ${watch.join(' ')} Break ${hh(brk)}. Tap for Plan.` }, t);
+    }
+  }
+
+  if (on.break) {
+    const dayBase = (day - 1) * 1440;
+    const logged = s.breakLog.filter((x) => x.kind !== 'shift');
+    const openStart = s.ops.onBreak && s.ops.breakStart ? parseHM(s.ops.breakStart) : null; // the logged start of the break in progress
+    if (openStart != null) {
+      const t = openStart + BREAK_LEN - BREAK_WARN;
+      add({ kind: 'break', at: at(t), tab: 'snap', title: `${tag}Break ending`,
+        body: `${b.vessel}: the break that started ${hh(openStart)} (logged) ends at ${hh(openStart + BREAK_LEN)}. Tap for Snapshot.` }, t);
+    }
+    for (const x of breaks) { // the other scheduled breaks today, unless one is already logged (taken, ended early or skipped)
+      const near = (m: number) => m > x - BREAK_LEN && m < x + BREAK_LEN;
+      if (logged.some((l) => near(l.startAbs - dayBase)) || (openStart != null && near(openStart))) continue;
+      const t = x + BREAK_LEN - BREAK_WARN;
+      add({ kind: 'break', at: at(t), tab: 'snap', title: `${tag}Break ending`,
+        body: `${b.vessel}: ESTIMATE, no break start logged. If it started at the scheduled ${hh(x)}, it ends at ${hh(x + BREAK_LEN)}. Tap for Snapshot.` }, t);
+    }
+  }
+  return out.sort((x, y) => x.at - y.at);
 }
+
+// Settings › Notifications switches are stored one pref each ('0' = off); anything else, or nothing stored, is on.
+export const switchPref = (k: ReminderKind) => `remind:${k}`;
+export const switchFromPref = (v: string | null) => v !== '0';
 
 // ---------- Hand-off to the user's own AI app ----------
 

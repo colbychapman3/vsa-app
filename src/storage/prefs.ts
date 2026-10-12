@@ -1,4 +1,4 @@
-// Small app-wide choices from Settings (appearance, reminder quiet hours, keep import photos).
+// Small app-wide choices from Settings (appearance, reminder switches, keep import photos).
 // Local settings table; never part of a vessel's official record.
 import type { Db } from './db.ts';
 
