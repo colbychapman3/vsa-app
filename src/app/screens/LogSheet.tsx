@@ -11,7 +11,7 @@ import { deckSheet, decksView, hourOptions } from '../view.ts';
 import { DeckForm } from './DeckSheet.tsx';
 import { EvidenceForm } from './EvidenceForm.tsx';
 import { bcolor, color, TAP, useType } from '../theme.ts';
-import { Body, ErrorBox, Field, Go, InfoNote, KeyboardSave, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
+import { Body, Collapse, ErrorBox, Field, Go, InfoNote, KeyboardSave, Label, Note, Panel, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Mode = 'hour' | 'deck' | 'hh' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
@@ -53,7 +53,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
     { value: 'hour', label: 'Hourly' },
     { value: 'deck', label: 'Deck' },
     { value: 'hh', label: 'H/H' },
-    { value: 'issue', label: 'Discrepancy' },
+    { value: 'issue', label: 'Issue' },
     { value: 'photo', label: 'Photo' },
   ];
 
@@ -68,7 +68,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
   }
   return (
     <Sheet title="Log" isTest={isTest} onClose={() => onClose()}>
-          <Seg options={modes} value={mode} onChange={(m) => { setMode(m); setErr(null); }} />
+          <Seg columns={5} options={modes} value={mode} onChange={(m) => { setMode(m); setErr(null); }} />
           {mode === 'hour' && phase !== 'working' && <BreakBox baseline={baseline} state={state} run={runAt('break')} now={now} timeOf={timeOf} setError={setErrorAt('break')} />}
           {mode === 'hour' && phase !== 'working' && errorAt('break')}
           {mode === 'hour' && <HourForm state={state} baseline={baseline} run={runAt('hour')} setError={setErrorAt('hour')} prefill={prefill} nowMin={nowMin} />}
@@ -116,6 +116,8 @@ function HourForm({ state, baseline, run, setError, prefill, nowMin }: { state: 
   // The clerk's text, pasted or dictated (assistant step 2): read by rules, each hour only fills this form; Save stays Colby's.
   const [clerk, setClerk] = useState('');
   const [clerkRead, setClerkRead] = useState<ClerkRead | null>(null);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [allHours, setAllHours] = useState(false);
   const f = useType();
 
   const pick = (h: string) => {
@@ -154,66 +156,95 @@ function HourForm({ state, baseline, run, setError, prefill, nowMin }: { state: 
       `Saved ${hour}–${endHM}: ${c.toLocaleString('en-US')} autos.`);
   };
 
+  // Four hours around the one picked (the due hour by default); "All hours" shows the whole day.
+  const from = Math.max(0, Math.min(Math.max(0, opts.hours.findIndex((h) => h.start === hour)) - 2, opts.hours.length - 4));
+  const near = opts.hours.slice(from, from + 4);
+  const shown = allHours ? opts.hours : near;
+  const split = Object.values(brands).reduce((t, v) => t + (/^\d+$/.test(v.trim()) ? Number(v.trim()) : 0), 0);
+  const c0 = num(count);
+
   return (
     <View style={{ gap: 14 }}>
-      <Label>From the clerk's text (optional)</Label>
-      <TextInput value={clerk} onChangeText={(t) => { setClerk(t); setClerkRead(null); }} multiline autoCorrect={false} accessibilityLabel="Clerk's text"
-        placeholder={'Paste or dictate, like "10-11 245"'} placeholderTextColor={color.muted}
-        style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 56, paddingTop: 12, textAlignVertical: 'top' }]} />
-      {clerk.trim() !== '' && !clerkRead && <Go ghost label="Read it" onPress={() => setClerkRead(readClerkText(clerk, opts.hours, nowMin))} />}
-      {clerkRead && (
-        <View style={{ gap: 8 }}>
-          {clerkRead.found.length === 0 && <Note>No hour and count could be read. Type them below.</Note>}
-          {clerkRead.found.map((x) => (
-            <Go key={x.start} ghost label={`Fill in ${x.start.slice(0, 2)}–${String((+x.start.slice(0, 2) + 1) % 24).padStart(2, '0')}: ${x.count.toLocaleString('en-US')}${x.note ? ` (${x.note})` : ''}`}
-              onPress={() => { pick(x.start); setCount(String(x.count)); }} />
+      <Panel title={day > 1 ? `Hour · Day ${day}` : 'Hour'} right={`${hour}–${endHM}${existing ? ' · logged' : ''}`}>
+        <Seg columns={4} value={hour} onChange={pick}
+          options={shown.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' ✓' : ''}` }))} />
+        <View style={s.links}>
+          {opts.hours.length > 4 ? <Link label={allHours ? 'Fewer hours' : 'All hours'} onPress={() => setAllHours(!allHours)} /> : <View />}
+          <Link label={pasteOpen ? 'Hide clerk’s text' : 'Paste clerk’s text'} onPress={() => setPasteOpen(!pasteOpen)} />
+        </View>
+        {pasteOpen && (
+          <View style={{ gap: 8 }}>
+            <TextInput value={clerk} onChangeText={(t) => { setClerk(t); setClerkRead(null); }} multiline autoCorrect={false} accessibilityLabel="Clerk's text"
+              placeholder={'Paste or dictate, like "10-11 245"'} placeholderTextColor={color.muted}
+              style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 56, paddingTop: 12, textAlignVertical: 'top' }]} />
+            {clerk.trim() !== '' && !clerkRead && <Go ghost label="Read it" onPress={() => setClerkRead(readClerkText(clerk, opts.hours, nowMin))} />}
+            {clerkRead && clerkRead.found.length === 0 && <Note>No hour and count could be read. Type them below.</Note>}
+            {clerkRead?.found.map((x) => (
+              <Go key={x.start} ghost label={`Fill in ${x.start.slice(0, 2)}–${String((+x.start.slice(0, 2) + 1) % 24).padStart(2, '0')}: ${x.count.toLocaleString('en-US')}${x.note ? ` (${x.note})` : ''}`}
+                onPress={() => { pick(x.start); setCount(String(x.count)); setPasteOpen(false); }} />
+            ))}
+            {clerkRead?.notRead.map((t) => <Note key={t}>Not read: {t}</Note>)}
+          </View>
+        )}
+        {short && (
+          <View style={{ gap: 8 }}>
+            <Label wrap>Before the break: when did production stop?</Label>
+            <Seg columns={2} value={stop} onChange={setStop}
+              options={stopChoices(hour).map((m) => ({ value: m, label: `Stopped ${formatHM(parseHM(hour)! + m)}` }))} />
+          </View>
+        )}
+      </Panel>
+
+      <Panel title="Count">
+        <View style={s.row2}>
+          <Field label="Autos" value={count} onChange={setCount} accessoryId="hour-save" />
+          <Field label="Drivers" placeholder={dayDrivers != null ? String(dayDrivers) : 'optional'} value={drivers} onChange={setDrivers} accessoryId="hour-save" />
+        </View>
+        {state.hh.passes.some((p) => p.end && p.end.abs >= (day - 1) * 1440 + parseHM(hour)! - 60 && p.end.abs < (day - 1) * 1440 + parseHM(hour)! + 60) && <Note>H/H finished near this hour. If drivers moved to cars, enter this hour’s driver count.</Note>}
+        {existing && count.trim() === '0' && <Note>0 saves a real hour with nothing counted. Wrong hour? Use Remove below.</Note>}
+        <InfoNote><Note>The count for this hour only, not the running total.{dayDrivers == null ? ' Set the day’s drivers once in Plan › Labor instead of every hour.' : ` Drivers left empty means the day’s ${dayDrivers}.`} Re-entering an hour replaces it and keeps the old value.</Note></InfoNote>
+      </Panel>
+
+      {state.brands.length > 0 && (
+        <Panel title="By brand" right={split > 0 ? `${split.toLocaleString('en-US')}${c0 != null && !Number.isNaN(c0) ? ` of ${c0.toLocaleString('en-US')}` : ''}` : 'optional'}>
+          {state.brands.map((b, i) => (
+            <View key={b.name} style={[s.brandRow, i > 0 && { borderTopWidth: 1, borderTopColor: bcolor.row }]}>
+              <Text style={{ flex: 1, fontFamily: f.bodySemi, fontSize: 17, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{b.name}</Text>
+              <TextInput value={brands[b.name] ?? ''} onChangeText={(v) => setBrands((x) => ({ ...x, [b.name]: v }))} keyboardType="number-pad" inputAccessoryViewID="hour-save"
+                accessibilityLabel={`${b.name} this hour`} maxLength={5} style={[u.input, s.brandBox, { fontFamily: f.bodyMedium }]} />
+            </View>
           ))}
-          {clerkRead.notRead.map((t) => <Note key={t}>Not read: {t}</Note>)}
-          {clerkRead.found.length > 0 && <Note>Check the hour and count, then Save. Nothing is saved until you do.</Note>}
-        </View>
+        </Panel>
       )}
-      {day > 1 && <Label>Day {day}</Label>}
-      <Seg columns={4} value={hour} onChange={pick}
-        options={opts.hours.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' ✓' : ''}` }))} />
-      <Note>{`${hour}–${endHM}`}{existing ? ' · already logged: saving a change keeps the old value' : ''}</Note>
-      <View style={s.row2}>
-        <Field label="Autos this hour" value={count} onChange={setCount} accessoryId="hour-save" />
-        <Field label="Drivers" note={dayDrivers != null ? `(if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} accessoryId="hour-save" />
-      </View>
-      {state.hh.passes.some((p) => p.end && p.end.abs >= (day - 1) * 1440 + parseHM(hour)! - 60 && p.end.abs < (day - 1) * 1440 + parseHM(hour)! + 60) && <Note>H/H completed near this hour. Drivers changed? If some moved to cars, enter this hour’s driver count; leave it empty if nothing changed.</Note>}
-      {dayDrivers == null && <InfoNote><Note>Tip: set the day’s drivers once in Plan › Labor instead of every hour.</Note></InfoNote>}
-      <Label>Split by brand (optional)</Label>
-      <View style={s.row2}>
-        {state.brands.map((b) => <Field key={b.name} label={b.name} value={brands[b.name] ?? ''} onChange={(v) => setBrands((x) => ({ ...x, [b.name]: v }))} accessoryId="hour-save" />)}
-      </View>
-      {short && (
-        <View style={{ gap: 8 }}>
-          <Label wrap>Pre-break hour · when did production stop?</Label>
-          <Seg columns={2} value={stop} onChange={setStop}
-            options={stopChoices(hour).map((m) => ({ value: m, label: `Stopped ${formatHM(parseHM(hour)! + m)}` }))} />
-        </View>
-      )}
+
       {existing && (
-        <View style={{ gap: 8 }}>
-          <Label>Reason for the change</Label>
+        <Panel title="Reason for the change">
           <Seg columns={2} value={reason} onChange={setReason} options={[...E.REASONS, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
           {reason === 'Other' && <Field label="Reason" value={other} onChange={setOther} keyboard="default" maxLength={120} accessoryId="hour-save" />}
-        </View>
+        </Panel>
       )}
-      {existing && count.trim() === '0' && <Note>A 0 here saves a real hour with nothing counted. If this was the wrong hour, use Remove this hour below instead.</Note>}
-      <InfoNote><Note>Enter the count for that hour only, not the running total. Re-entering an hour replaces it and keeps the old value.</Note></InfoNote>
+
       <Go label="Save hourly count" onPress={submit} />
       <KeyboardSave id="hour-save" label="Save hourly count" onPress={submit} />
+
       {existing && (
-        <View style={{ gap: 8 }}>
-          <Label>Logged the wrong hour?</Label>
+        <Collapse title="Logged the wrong hour?">
           <Seg columns={2} value={rmReason} onChange={setRmReason} options={[...E.HOUR_REMOVE_REASONS, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
           {rmReason === 'Other' && <Field label="Reason" value={rmOther} onChange={setRmOther} keyboard="default" maxLength={120} />}
           <Go ghost label={`Remove the ${hour} hour`} onPress={removeHour} />
           <InfoNote><Note>The hour leaves the record and the averages. Its values stay in the log, marked removed.</Note></InfoNote>
-        </View>
+        </Collapse>
       )}
     </View>
+  );
+}
+
+function Link({ label, onPress }: { label: string; onPress: () => void }) {
+  const f = useType();
+  return (
+    <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center' }, pressed && u.pressed]}>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -245,7 +276,7 @@ function BreakBox(p: { baseline: Baseline; state: State; run: Run; now: () => st
   return (
     <View style={[u.card, u.pad, { gap: 12 }]}>
       <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
-        <Text style={[u.h2, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
+        <Text style={{ fontFamily: f.displaySemi, fontSize: 17, color: color.ink, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
         <Text style={{ marginLeft: 'auto', fontSize: 17, color: color.blue }}>{open ? '▴' : '▾'}</Text>
       </Pressable>
       {open && <BreakForm {...p} />}
@@ -407,7 +438,10 @@ function IssueForm({ run, now, timeOf, setError }: { run: Run; now: () => string
 
 const s = StyleSheet.create({
   back: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 24 },
-  row2: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  row2: { flexDirection: 'row', gap: 10 },
+  links: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  brandBox: { width: 104, fontSize: 20, textAlign: 'right' },
   deckRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   hr: { borderTopWidth: 1, borderTopColor: bcolor.soft, paddingTop: 14, gap: 14 },
 });

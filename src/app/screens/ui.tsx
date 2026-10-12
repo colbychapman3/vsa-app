@@ -99,6 +99,21 @@ export function Tag({ kind }: { kind: 'FORECAST' | 'CALCULATED' }) {
   return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, sun && { fontSize: 13 }, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{kind === 'FORECAST' ? 'Forecast' : 'Calculated'}</Text>;
 }
 
+// A titled card: one part of a form or screen, so each section has a clear start and end (Colby, 2026-10-12: the Log read
+// like one run-on sentence). Same card, padding and title size everywhere.
+export function Panel({ title, right, children }: { title: string; right?: string; children: ReactNode }) {
+  const f = useType(), edge = useEdge();
+  return (
+    <View style={[u.card, u.pad, edge, { gap: 12 }]}>
+      <View style={u.secH}>
+        <Text style={{ fontFamily: f.displaySemi, fontSize: 17, color: color.ink, flexShrink: 1 }}>{title}</Text>
+        {right ? <Text style={[u.secRight, { fontFamily: f.body }]}>{right}</Text> : null}
+      </View>
+      {children}
+    </View>
+  );
+}
+
 // A card whose body is hidden until the header is tapped (Colby, 2026-10-08: the math-behind-the-engine cards stay out of the way).
 export function Collapse({ title, right, open: startOpen = false, children }: { title: string; right?: string; open?: boolean; children: ReactNode }) {
   const f = useType();
@@ -107,7 +122,7 @@ export function Collapse({ title, right, open: startOpen = false, children }: { 
     <View style={[u.card, u.pad, { gap: 10 }]}>
       <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={`${title}. ${open ? 'Hide' : 'Show'}`}
         style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
-        <Text style={[u.h2, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
+        <Text style={{ fontFamily: f.displaySemi, fontSize: 17, color: color.ink, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
         {right ? <Text style={[u.secRight, { fontFamily: f.body, marginLeft: 'auto' }]}>{right}</Text> : <View style={{ marginLeft: 'auto' }} />}
         <Text style={{ fontSize: 17, color: color.blue }}>{open ? '▴' : '▾'}</Text>
       </Pressable>
