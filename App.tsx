@@ -15,6 +15,10 @@ import { openStore, type State, type Store } from './src/storage/store.ts';
 import { dropVesselPhotos, keepImports } from './src/app/evidenceFiles.ts';
 import { deleteVessel, getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, type VesselRow } from './src/storage/vessels.ts';
 import { getPref, setPref } from './src/storage/prefs.ts';
+import { addFeedback, listFeedback, setFeedbackReason } from './src/storage/feedback.ts';
+import { feedbackKey, feedbackSummary, type Feedback, type FeedbackWhere } from './src/app/feedback.ts';
+import { updateMessage } from './src/app/update.ts';
+import type { NotUsefulProps } from './src/app/screens/NotUseful.tsx';
 import type { DraftStore } from './src/app/setupDraft.ts';
 import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
 import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceReportKind } from './src/app/evidenceReport.ts';
@@ -97,6 +101,7 @@ export default function App() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   // Finished ships teach the next one (Phase 5): read when a sheet that uses them opens. A vessel that cannot load is skipped.
   const [results, setResults] = useState<ShipResult[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
   useEffect(() => {
     if (sheet !== 'lessons' && sheet !== 'complete' && sheet !== 'eta' && sheet !== 'new') return;
     let live = true;
@@ -107,6 +112,7 @@ export default function App() {
         if (r.ok && r.state.ok) { const x = shipResult(v.operationId, r.state, r.baseline, v.isTest); if (x) out.push(x); }
       }
       if (live) setResults(out);
+      if (live && sheet === 'lessons') setFeedback(await listFeedback(dbRef.current!));
     })().catch(() => { /* history is a help, never a blocker */ });
     return () => { live = false; };
   }, [sheet]);
@@ -173,7 +179,20 @@ export default function App() {
       if (to === 'log') { setPrefill(undefined); before.current = latest.current; setLogOpen(true); }
     };
   });
-  useEffect(() => { void reminderStatus().then(setRemind); return installHandlers((to) => openReminder.current(to)); }, []);
+  // "Not useful?" (assistant step 4): one tap kept on this phone with where and what was shown; a reason may follow. Never in the log.
+  const vesselRef = useRef<Loaded | null>(null);
+  vesselRef.current = vessel;
+  const notUsefulFor = (where: FeedbackWhere, text: string): NotUsefulProps => ({
+    onTap: async () => {
+      const v = vesselRef.current;
+      if (!v || !dbRef.current) return null;
+      try { const at = recordedNow(); const key = feedbackKey(v.id, at); await addFeedback(dbRef.current, { key, at, vesselId: v.id, isTest: v.isTest, where, text, reason: null }); return key; } catch { return null; }
+    },
+    onReason: (key, reason) => { if (dbRef.current) void setFeedbackReason(dbRef.current, key, reason).catch(() => {}); },
+  });
+  const notUsefulRef = useRef(notUsefulFor);
+  notUsefulRef.current = notUsefulFor;
+  useEffect(() => { void reminderStatus().then(setRemind); return installHandlers((to) => openReminder.current(to), (text) => { void notUsefulRef.current('reminder', text).onTap(); }); }, []);
   useEffect(() => {
     if (!vessel) { void syncReminders([]); return; } // no open vessel: no reminders
     const archived = rows.find((r) => r.operationId === vessel.id)?.archived ?? false;
@@ -396,7 +415,7 @@ export default function App() {
           {vessel ? (
             <>
               <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onMenu={openMenu} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
-              {notice?.answer && <AnswerCard answer={notice.answer} onDismiss={() => setNotice(null)} />}
+              {notice?.answer && <AnswerCard key={notice.answer.head} answer={notice.answer} onDismiss={() => setNotice(null)} notUseful={notUsefulFor('answer', answerText(notice.answer))} />}
               {notice && !notice.answer && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>
@@ -419,10 +438,11 @@ export default function App() {
                           <Text style={[s.noticeText, { color: color.gInk }]}>Vessel complete{clockOf(vessel.state.completed.time) ? ` at ${clockOf(vessel.state.completed.time)}` : ''}{vessel.state.completed.override ? ' · with open items' : ''} · tap for closeout</Text>
                         </Pressable>
                       : showMarkComplete(vessel.state) && <Go ghost label={vessel.state.completed ? 'Marked complete, but remaining is not 0: review' : 'Closeout'} onPress={() => setSheet('complete')} />}
+                    <Go ghost label="Send update" onPress={() => { void Share.share({ message: updateMessage(vessel.state, vessel.baseline, minutesNow(), vessel.isTest) }); }} />
                   </View>
                 )}
                 {tab === 'snap'
-                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice} answerOpen={!!notice?.answer}
+                  ? <Snapshot notUseful={(t) => notUsefulFor('now', t)} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice} answerOpen={!!notice?.answer}
                       layout={layout} onLayout={changeLayout} onHistory={() => { setNotice(null); setSheet('eta'); }} />
                   : <>
                     {/* Snapshot boxes Colby moved to this tab sit at its top. */}
@@ -438,7 +458,7 @@ export default function App() {
               <LogButton onPress={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }} />
               <AskButton onPress={() => { setNotice(null); setSheet('ask'); }} />
               {logOpen && (
-                <LogSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} prefill={prefill}
+                <LogSheet nowMin={nowMin} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} prefill={prefill}
                   onClose={(done) => { setLogOpen(false); if (done) setNotice(answered(done)); else before.current = null; }} />
               )}
               {deckOpen && (
@@ -448,7 +468,7 @@ export default function App() {
               {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} drafts={draftStore} history={{ live: pastLive, test: pastTest }} />}
               {sheet === 'complete' && <CloseoutSheet lessons={vessel.isTest ? pastTest : pastLive} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} onShare={(message) => { void Share.share({ title: `${vessel.state.vessel} answer sheet`, message }); }} onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} onGo={openTab} />}
               {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} lessons={vessel.isTest ? pastTest : pastLive} onClose={() => setSheet(null)} />}
-              {sheet === 'lessons' && <Lessons live={pastLive} test={pastTest} startTest={vessel.isTest} onClose={() => setSheet(null)} />}
+              {sheet === 'lessons' && <Lessons live={pastLive} test={pastTest} liveNos={feedbackSummary(feedback, false)} testNos={feedbackSummary(feedback, true)} startTest={vessel.isTest} onClose={() => setSheet(null)} />}
               {sheet === 'settings' && (
                 <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)} layout={layout} onLayout={changeLayout}
                   sun={sun} onSun={(v) => { setSun(v); setSunPalette(v); void setPrefSafe('sun', v ? '1' : '0'); }}

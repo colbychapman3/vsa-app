@@ -2,7 +2,8 @@
 // Forms only: entries.ts builds the events and App.save() stores them; the engine's
 // exact message is shown if anything is refused, and nothing is saved.
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { readClerkText, type ClerkRead } from '../clerkText.ts';
 import { formatHM, operationDate, parseHM, suggestedStop, type Baseline, type OpTime, type Reject, type Side, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
@@ -14,14 +15,14 @@ import { Body, ErrorBox, Field, Go, InfoNote, KeyboardSave, Label, Note, Reasons
 
 export type Mode = 'hour' | 'deck' | 'hh' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
-type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode; prefill?: HourPrefill };
+type Props = { state: State; baseline: Baseline; isTest: boolean; save: Save; onClose: (done?: string) => void; initial?: Mode; prefill?: HourPrefill; nowMin: number };
 // From the assistant: a count and hour that were typed. Shown in the form; nothing is saved until Save is tapped.
 export type HourPrefill = { count: number; start: string | null };
 
 // '' → null (blank); digits → number; anything else → NaN (refused with a message).
 const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN);
 
-export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'hour', prefill }: Props) {
+export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'hour', prefill, nowMin }: Props) {
   const f = useType();
   const [deck, setDeck] = useState<string | null>(null); // a deck opened from Deck mode, shown in this same sheet
   const [mode, setMode] = useState<Mode>((initial as string) === 'break' ? 'hour' : initial);
@@ -70,7 +71,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
           <Seg options={modes} value={mode} onChange={(m) => { setMode(m); setErr(null); }} />
           {mode === 'hour' && phase !== 'working' && <BreakBox baseline={baseline} state={state} run={runAt('break')} now={now} timeOf={timeOf} setError={setErrorAt('break')} />}
           {mode === 'hour' && phase !== 'working' && errorAt('break')}
-          {mode === 'hour' && <HourForm state={state} baseline={baseline} run={runAt('hour')} setError={setErrorAt('hour')} prefill={prefill} />}
+          {mode === 'hour' && <HourForm state={state} baseline={baseline} run={runAt('hour')} setError={setErrorAt('hour')} prefill={prefill} nowMin={nowMin} />}
           {mode === 'hour' && errorAt('hour')}
           {mode === 'hour' && phase === 'working' && <BreakBox baseline={baseline} state={state} run={runAt('break')} now={now} timeOf={timeOf} setError={setErrorAt('break')} />}
           {mode === 'hour' && phase === 'working' && errorAt('break')}
@@ -88,7 +89,7 @@ type TimeOf = (v: string, d?: number) => OpTime | null | 'bad';
 
 // ---------- Hourly count ----------
 
-function HourForm({ state, baseline, run, setError, prefill }: { state: State; baseline: Baseline; run: Run; setError: (e: string | null) => void; prefill?: HourPrefill }) {
+function HourForm({ state, baseline, run, setError, prefill, nowMin }: { state: State; baseline: Baseline; run: Run; setError: (e: string | null) => void; prefill?: HourPrefill; nowMin: number }) {
   const opts = hourOptions(state, baseline);
   const day = opts.day;
   const logged = new Map(state.periods.filter((p) => p.day === day).map((p) => [p.start, p]));
@@ -112,6 +113,10 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
   const [other, setOther] = useState('');
   const [rmReason, setRmReason] = useState<string | null>(null); // why a wrongly logged hour is taken back
   const [rmOther, setRmOther] = useState('');
+  // The clerk's text, pasted or dictated (assistant step 2): read by rules, each hour only fills this form; Save stays Colby's.
+  const [clerk, setClerk] = useState('');
+  const [clerkRead, setClerkRead] = useState<ClerkRead | null>(null);
+  const f = useType();
 
   const pick = (h: string) => {
     const p = logged.get(h);
@@ -151,6 +156,22 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
 
   return (
     <View style={{ gap: 14 }}>
+      <Label>FROM THE CLERK'S TEXT (OPTIONAL)</Label>
+      <TextInput value={clerk} onChangeText={(t) => { setClerk(t); setClerkRead(null); }} multiline autoCorrect={false} accessibilityLabel="Clerk's text"
+        placeholder={'Paste or dictate, like "10-11 245"'} placeholderTextColor={color.muted}
+        style={[u.input, { fontFamily: f.body, fontSize: 16, minHeight: 56, paddingTop: 12, textAlignVertical: 'top' }]} />
+      {clerk.trim() !== '' && !clerkRead && <Go ghost label="Read it" onPress={() => setClerkRead(readClerkText(clerk, opts.hours, nowMin))} />}
+      {clerkRead && (
+        <View style={{ gap: 8 }}>
+          {clerkRead.found.length === 0 && <Note>No hour and count could be read. Type them below.</Note>}
+          {clerkRead.found.map((x) => (
+            <Go key={x.start} ghost label={`Fill in ${x.start.slice(0, 2)}–${String((+x.start.slice(0, 2) + 1) % 24).padStart(2, '0')}: ${x.count.toLocaleString('en-US')}${x.note ? ` (${x.note})` : ''}`}
+              onPress={() => { pick(x.start); setCount(String(x.count)); }} />
+          ))}
+          {clerkRead.notRead.map((t) => <Note key={t}>Not read: {t}</Note>)}
+          {clerkRead.found.length > 0 && <Note>Check the hour and count, then Save. Nothing is saved until you do.</Note>}
+        </View>
+      )}
       {day > 1 && <Label>DAY {day}</Label>}
       <Seg columns={4} value={hour} onChange={pick}
         options={opts.hours.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' ✓' : ''}` }))} />

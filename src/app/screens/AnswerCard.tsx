@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Answer, Delta } from '../answer.ts';
 import { bcolor, color, elev, TAP, useType } from '../theme.ts';
 import { Big, Label } from './ui.tsx';
+import { NotUseful, type NotUsefulProps } from './NotUseful.tsx';
 
 export function answerText(a: Answer): string {
   const figs = a.figs.map((f) => `${f.k}${f.tag === 'FORECAST' ? ' (estimate)' : ''} ${f.v}${f.d ? `, ${f.d.text}` : ''}`).join('. ');
@@ -13,7 +14,7 @@ export function answerText(a: Answer): string {
 
 const deltaColor = (d: Delta) => (d.good === true ? color.gInk : d.good === false ? color.oInk : color.muted);
 
-export function AnswerCard({ answer, onDismiss }: { answer: Answer; onDismiss: () => void }) {
+export function AnswerCard({ answer, onDismiss, notUseful }: { answer: Answer; onDismiss: () => void; notUseful?: NotUsefulProps }) {
   const f = useType();
   return (
     <View style={s.wrap} accessible accessibilityLabel={answerText(answer)}>
@@ -40,6 +41,7 @@ export function AnswerCard({ answer, onDismiss }: { answer: Answer; onDismiss: (
         </View>
       ))}
       {answer.quiet && <Text style={[s.quiet, { fontFamily: f.body }]}>{answer.quiet}</Text>}
+      {notUseful && <NotUseful {...notUseful} />}
     </View>
   );
 }

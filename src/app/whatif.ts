@@ -110,3 +110,25 @@ export function paceWatch(s: State, b: Baseline, nowMin: number): string[] {
   }
   return out;
 }
+
+// Advice (assistant step 3, Colby 2026-10-12): for each deck the pace watch flags, how many drivers the last per-driver rate says
+// would clear it by the cutoff. A FORECAST with its math; it never changes anything, and Colby decides.
+export function paceAdvice(s: State, b: Baseline, nowMin: number): string[] {
+  const pace = s.production.pace, brk = breakMins(b).find((x) => x > nowMin);
+  if (pace == null || brk == null || s.ops.phase !== 'working') return [];
+  const left = (brk - 15 - nowMin) / 60;
+  if (left <= 0) return [];
+  const p = [...s.periods].reverse().find((x) => x.driverRate.rate != null && typeof x.drivers === 'number');
+  const out: string[] = [];
+  for (const d of s.decks) {
+    if (d.status !== 'active' || d.rem == null || d.rem === 0) continue;
+    const need = d.rem / left;
+    if (pace >= need) continue;
+    if (!p) { out.push(`${d.label}: no per-driver rate yet, so no driver advice (an hour needs its drivers and minutes).`); continue; }
+    const rate = p.driverRate.rate!, cur = p.drivers as number, want = Math.ceil(need / rate), more = want - cur;
+    out.push(more > 0
+      ? `FORECAST: about ${more} more driver${more === 1 ? '' : 's'} (${want} at ${rate.toFixed(2)} per driver per hr, the ${p.start} rate) would clear ${d.label}'s ${n(d.rem)} by ${formatHM(brk - 15)}${b.destinations.some((x) => x.side === 'S') ? ` (Southside cars stop ${formatHM(brk - 30)})` : ''}. Assumes the whole pace goes to this deck.`
+      : `${d.label}: at the ${p.start} rate, ${cur} drivers should already clear it by ${formatHM(brk - 15)}; the pace is running below that rate.`);
+  }
+  return out;
+}

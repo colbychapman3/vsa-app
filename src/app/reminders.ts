@@ -32,15 +32,23 @@ export async function enableReminders(): Promise<ReminderStatus> {
 
 // Notifications shown while the app is open are fine (they say what the Plan and Log already show). A tap opens the place it names.
 const isTab = (x: unknown): x is ReminderTab => x === 'log' || x === 'plan' || x === 'snap';
-export function installHandlers(onOpen: (tab: ReminderTab) => void): () => void {
+// A reminder carries a "Not useful" button (assistant step 4); tapping it opens the app and records the no.
+export const NOT_USEFUL_ACTION = 'not-useful';
+const CATEGORY = 'vsa-reminder';
+export function installHandlers(onOpen: (tab: ReminderTab) => void, onNotUseful: (text: string) => void = () => {}): () => void {
   const n = load();
   if (!n) return () => {};
   const tabOf = (r: { notification: { request: { content: { data?: Record<string, unknown> } } } } | null) => { const t = r?.notification.request.content.data?.tab; return isTab(t) ? t : 'plan'; };
   try {
     n.setNotificationHandler({ handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }) });
-    const sub = n.addNotificationResponseReceivedListener((r) => onOpen(tabOf(r)));
+    void n.setNotificationCategoryAsync(CATEGORY, [{ identifier: NOT_USEFUL_ACTION, buttonTitle: 'Not useful', options: { opensAppToForeground: true } }]).catch(() => {});
+    const handle = (r: Parameters<Parameters<typeof n.addNotificationResponseReceivedListener>[0]>[0]) => {
+      if (r.actionIdentifier === NOT_USEFUL_ACTION) { const c = r.notification.request.content; onNotUseful([c.title, c.body].filter(Boolean).join(': ')); return; }
+      onOpen(tabOf(r));
+    };
+    const sub = n.addNotificationResponseReceivedListener(handle);
     const last = n.getLastNotificationResponse();
-    if (last) onOpen(tabOf(last)); // the app was opened by tapping one
+    if (last) handle(last); // the app was opened by tapping one
     return () => sub.remove();
   } catch { return () => {}; }
 }
@@ -61,7 +69,7 @@ async function run(plan: PlannedReminder[]): Promise<void> {
     if (!plan.length || !(await n.getPermissionsAsync()).granted) return;
     for (const r of plan) {
       await n.scheduleNotificationAsync({
-        content: { title: r.title, body: r.body, data: { tab: r.tab, kind: r.kind } },
+        content: { title: r.title, body: r.body, data: { tab: r.tab, kind: r.kind }, categoryIdentifier: CATEGORY },
         trigger: { type: n.SchedulableTriggerInputTypes.DATE, date: new Date(r.at) },
       });
     }

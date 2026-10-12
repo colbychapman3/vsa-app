@@ -38,9 +38,17 @@ After each hourly count or deck save: remaining, the H.A. change, how far the ET
 - Beside the forecast, never changing it: Finish history and Closeout show the past forecast bias; Setup's watch list shows how long these autos would take at past pace, labeled history.
 - Isolation: TEST teaches only TEST, LIVE only LIVE; no other ship's cargo, counts or times enter a record.
 
+## Assistant steps 1 to 4 (Colby, 2026-10-12, after the "is it an assistant?" review)
+Approved as "do all these". No server, no cost, no rule change. Colby's frame: first prove the tracker is easy and accurate on two parallel live ships; these four are the first moves toward an assistant inside today's limits.
+1. **Send update** (`src/app/update.ts`, Snapshot button): the superintendent's message (field count of starting, remaining or unknown with the field balance, FORECAST finish, next break with each side's stop time, the pace-watch outlook, H&H left out), handed to Messages through the share sheet.
+2. **The clerk's text** (`src/app/clerkText.ts`, Log › hourly count): paste or dictate ("10-11 245", "245 for 9 to 10", "8 to 9 212, 9 to 10 230"). Fixed rules only. "1-2" or "8-9" resolve to a working hour already started, preferring the one not logged; otherwise "not read" with the reason. Each hour only fills the form; Save stays Colby's.
+3. **Advice** (`paceAdvice` in `whatif.ts`, under the Now line): when the pace watch fires, the drivers the last per-driver rate says would clear the deck by the cutoff, labeled FORECAST with its math and assumption; nothing without a driver rate.
+4. **"Not useful?"** (`NotUseful.tsx`, `src/app/feedback.ts`, `src/storage/feedback.ts`): one tap on the answer card, the Now line, or a reminder's "Not useful" button; optional reason. Kept on the phone (settings table), not in any vessel's log; counted in Lessons, LIVE and TEST apart.
+Tests: `tests/assistSteps.test.ts`.
+
 ## Other decisions recorded 2026-10-12
 - Vessel delete is a permanent feature (stays after go-live); a LIVE vessel still needs a current saved copy.
-- Option 5 (counts that arrive on their own): no parking scans, the clerk records on paper, vans not GPS-tracked, scans exist at Gate 2, APS approves access. Next: ask APS whether Gate 2 scans can give an hourly count without VINs. Nothing built.
+- Option 5 (counts that arrive on their own) is closed: no parking scans; the clerk records on paper; vans are not GPS-tracked; Gate 2 does not scan cars (IAP checks TWIC badges only, nothing reported); counts arrive by radio, calls and texts.
 
 ## Tests
 `tests/setupDraft`, `deckListOrder`, `importFile`, `vesselComplete`, `reminders`, `closeout`, `prep`, `history` (plus the existing suites). Replay hashes unchanged.
