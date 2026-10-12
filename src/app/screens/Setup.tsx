@@ -12,6 +12,7 @@ import {
 } from '../setup.ts';
 import { blankDraft, type SetupDraft } from '../setupDraft.ts';
 import { readGamePlanPages } from '../gamePlan.ts';
+import { doubts, shipCard, watchList } from '../prep.ts';
 import { brandFor, readDischargeSummary } from '../dischargeSummary.ts';
 import type { Page } from '../layout.ts';
 import { readPhotos } from '../ai.ts';
@@ -55,6 +56,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
   const [failed, setFailed] = useState<{ text: string; scans: Page[] } | null>(null);
   const [confirmed, setConfirmed] = useState<number[]>(initial.confirmed);
   const [keep, setKeep] = useState<string[]>(initial.keep);
+  const [fieldByField, setFieldByField] = useState(false); // after a photo read the ship card comes first; this opens the step-by-step questions instead
 
   // The sheet reads this when the user tries to close: the answers so far, as text only (no photos).
   if (snap) snap.current = {
@@ -124,7 +126,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
         decks: m.drafts.decks.length, autos: res.plan.autosTotal, hhTotal: res.plan.hhTotal });
       setKeep(res.plan.notes); // notes-area lines start ticked; Colby can untick them at Review
       if (read) { setLoad({}); setLoadHh(''); setOverride(false); } // a new read starts its load list check over
-      setConfirmed([]); setStep(0); setMode('form');
+      setConfirmed([]); setFieldByField(false); setStep(0); setMode('form');
     } catch (e) {
       setError(`Could not read the photo: ${(e as Error).message}`);
     } finally { setBusy(false); }
@@ -150,7 +152,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
   const shareRead = (scans: Page[]) => { void Share.share({ message: JSON.stringify({ kind: 'VSA game plan read', scans }) }); };
   const startOver = () => {
     setV({ vessel: '', date: '', port: '', berth: '', start: '08:00', drivers: '' }); setAllocs([blank()]); setDecks([]); setHh([]);
-    setLoad({}); setLoadHh(''); setOverride(false); setRead(null); setFailed(null); setKeep([]); setConfirmed([]); setStep(0); setMode('start');
+    setLoad({}); setLoadHh(''); setOverride(false); setRead(null); setFailed(null); setKeep([]); setConfirmed([]); setFieldByField(false); setStep(0); setMode('start');
   };
 
   const STEP_FIELDS: Record<number, string[]> = { 0: ['vessel', 'date', 'port'], 1: ['drivers'], 2: ['destinations'], 3: ['decks'] };
@@ -221,11 +223,44 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
         </View>
       )}
 
-      {(mode === 'form' || imported) && (
+      {(mode === 'form' || imported) && !(read && !fieldByField && step === 0 && !imported) && (
         <Note>{imported ? 'Imported baseline: check every value, then save.' : step === LAST ? `Step ${LAST + 1} of ${LAST + 1}: Review. Check everything, then save.` : `Step ${step + 1} of ${LAST + 1}: ${STEPS[step]}. Nothing is saved until Review.`}</Note>
       )}
 
-      {mode === 'form' && !imported && step === 0 && read && (
+      {mode === 'form' && !imported && step === 0 && read && !fieldByField && (() => {
+        const b = typed();
+        const d = doubts({ built: b, gamePlanAutos: read.autos, problems: read.problems, berth: v.berth, decks });
+        const c = b.ok ? shipCard(b, hhKnown) : null;
+        const blocking = d.some((x) => x.blocks);
+        return (
+          <View style={{ gap: 12 }}>
+            {c && (
+              <Card style={[u.pad, { gap: 6 }]}>
+                <SectionHead title={v.vessel || 'The ship'} />
+                <Body semi>{n(c.total)} autos · {c.decks} deck{c.decks === 1 ? '' : 's'}</Body>
+                {c.destinations.map((x) => <Body key={x.name}>{x.name} · {x.side === 'N' ? 'Northside' : 'Southside'}{x.autos != null ? ` · ${n(x.autos)}` : ''}</Body>)}
+                <Body>{c.southPct == null ? 'Southside share: unknown (a destination has no count)' : `Southside share: ${n(c.southAutos!)} autos (${c.southPct}%)`}</Body>
+                {c.hh != null && <Note>High & Heavy {n(c.hh)} (own ledger, not in the autos)</Note>}
+              </Card>
+            )}
+            <Body semi>{d.length === 0 ? 'Nothing is in doubt.' : d.length === 1 ? 'One thing is in doubt:' : `${d.length} things are in doubt:`}</Body>
+            {d.map((x) => (
+              <Card key={x.id} style={[u.pad, { gap: 8 }]}>
+                <Text style={[u.note, { color: x.kind === 'missing' ? color.ink : color.oInk, fontFamily: f.bodyMedium }]}>{x.text}</Text>
+                {x.ask === 'berth' && <Seg options={BERTHS} value={v.berth || null} onChange={set('berth')} />}
+                {x.ask && x.ask !== 'berth' && <Field label="Deck height (m)" note="optional" value={decks[x.ask.height]?.current ?? ''} onChange={(t) => { const k = (x.ask as { height: number }).height; setDeck(k, { ...decks[k], current: t }); }} keyboard="numbers-and-punctuation" />}
+              </Card>
+            ))}
+            <Field label="Planned start" note="HH:MM · not on the paperwork" value={v.start} onChange={set('start')} keyboard="numbers-and-punctuation" />
+            {error && <ErrorBox text={error} />}
+            <Go label="Looks right: load list" disabled={blocking} onPress={() => { setError(null); setConfirmed([0, 1, 2, 3]); setStep(4); }} />
+            <Go ghost label="Check every field one by one" onPress={() => setFieldByField(true)} />
+            <Go ghost label="Start over with another photo" onPress={startOver} />
+          </View>
+        );
+      })()}
+
+      {mode === 'form' && !imported && step === 0 && read && fieldByField && (
         <Card style={[u.pad, { gap: 8 }]}>
           <SectionHead title="Read from the game plan" />
           <Body>
@@ -241,7 +276,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
         </Card>
       )}
 
-      {mode === 'form' && !imported && step === 0 && (
+      {mode === 'form' && !imported && step === 0 && !(read && !fieldByField) && (
         <View style={{ gap: 12 }}>
           {tag}
           <Field label="Vessel name" value={v.vessel} onChange={set('vessel')} keyboard="default" />
@@ -499,6 +534,12 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
                       </Pressable>
                     );
                   })}
+                </Card>
+              )}
+              {!imported && (
+                <Card style={[u.pad, { gap: 6 }]}>
+                  <SectionHead title="What the app will watch today" />
+                  {watchList(built, { hhExists: hh.length > 0 }).map((l) => <Body key={l}>• {l}</Body>)}
                 </Card>
               )}
               {error && <ErrorBox text={error} />}
