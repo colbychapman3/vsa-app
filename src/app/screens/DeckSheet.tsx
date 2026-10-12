@@ -9,7 +9,7 @@ import * as E from '../entries.ts';
 import { deckSheet, STATUS_PILL } from '../view.ts';
 import { bcolor, color, useType } from '../theme.ts';
 import { DeckPhotoTypes, PhotoPages, type PhotoView } from './DeckPhotoTypes.tsx';
-import { Body, Chip, ErrorBox, Field, Go, InfoNote, Label, Note, Pill, Seg, Sheet, TimeField } from './ui.tsx';
+import { Body, Chip, ErrorBox, Field, Go, InfoNote, KeyboardSave, Label, Note, Pill, Seg, Sheet, TimeField } from './ui.tsx';
 
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 
@@ -100,20 +100,21 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
               <View style={s.grid}>
                 {d.hatches.map((h, i) => (
                   <View key={h.h} style={s.cell}>
-                    <Field label={`${h.h} · of ${h.qty ?? '—'}`} note={v.hatches[i].brands} value={hatches[h.h] ?? ''} onChange={(x) => setHatches((m) => ({ ...m, [h.h]: x }))} />
+                    <Field label={`${h.h} · of ${h.qty ?? '—'}`} note={v.hatches[i].brands} value={hatches[h.h] ?? ''} onChange={(x) => setHatches((m) => ({ ...m, [h.h]: x }))} accessoryId="deck-save" />
                   </View>
                 ))}
               </View>
-              <Field label="Or deck total remaining" value={total} onChange={setTotal} />
+              <Field label="Or deck total remaining" value={total} onChange={setTotal} accessoryId="deck-save" />
             </>
           ) : (
             <InfoNote><Note>{status === 'complete' ? 'Complete sets remaining to 0 and records the cleared brands.' : status === 'notStarted' ? 'Not started keeps the full count.' : 'Unknown: remaining is unknown until counted.'}</Note></InfoNote>
           )}
 
-          <TimeField label="Time of this update" value={t} onChange={setT}
+          <TimeField accessoryId="deck-save" label="Time of this update" value={t} onChange={setT}
             onNow={() => { const n = E.nowOpTime(operationDate(baseline)!, new Date()); if (n) setT(n.hm); else setError('The phone’s date is before this operation’s Day 1.'); }} />
           {error && <ErrorBox text={error} />}
           <Go label="Save deck update" onPress={submit} />
+          <KeyboardSave id="deck-save" label="Save deck update" onPress={submit} />
           <DeckPhotoTypes state={state} deckId={d.id} onOpen={(t) => setPv({ kind: 'type', type: t })} onAdd={() => setPv({ kind: 'add', type: null })} />
         </View>
   );

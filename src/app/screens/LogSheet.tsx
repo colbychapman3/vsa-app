@@ -10,7 +10,7 @@ import { deckSheet, decksView, hourOptions } from '../view.ts';
 import { DeckForm } from './DeckSheet.tsx';
 import { EvidenceForm } from './EvidenceForm.tsx';
 import { bcolor, color, TAP, useType } from '../theme.ts';
-import { Body, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
+import { Body, ErrorBox, Field, Go, InfoNote, KeyboardSave, Label, Note, Reasons, Seg, Sheet, TimeField, u } from './ui.tsx';
 
 export type Mode = 'hour' | 'deck' | 'hh' | 'issue' | 'photo';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
@@ -156,14 +156,14 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
         options={opts.hours.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' ✓' : ''}` }))} />
       <Note>{`${hour}–${endHM}`}{existing ? ' · already logged: saving a change keeps the old value' : ''}</Note>
       <View style={s.row2}>
-        <Field label="Autos this hour" value={count} onChange={setCount} />
-        <Field label="Drivers" note={dayDrivers != null ? `(if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} />
+        <Field label="Autos this hour" value={count} onChange={setCount} accessoryId="hour-save" />
+        <Field label="Drivers" note={dayDrivers != null ? `(if not ${dayDrivers})` : '(optional)'} value={drivers} onChange={setDrivers} accessoryId="hour-save" />
       </View>
       {state.hh.passes.some((p) => p.end && p.end.abs >= (day - 1) * 1440 + parseHM(hour)! - 60 && p.end.abs < (day - 1) * 1440 + parseHM(hour)! + 60) && <Note>H/H completed near this hour. Drivers changed? If some moved to cars, enter this hour’s driver count; leave it empty if nothing changed.</Note>}
       {dayDrivers == null && <InfoNote><Note>Tip: set the day’s drivers once in Plan › Labor instead of every hour.</Note></InfoNote>}
       <Label>SPLIT BY BRAND (OPTIONAL)</Label>
       <View style={s.row2}>
-        {state.brands.map((b) => <Field key={b.name} label={b.name} value={brands[b.name] ?? ''} onChange={(v) => setBrands((x) => ({ ...x, [b.name]: v }))} />)}
+        {state.brands.map((b) => <Field key={b.name} label={b.name} value={brands[b.name] ?? ''} onChange={(v) => setBrands((x) => ({ ...x, [b.name]: v }))} accessoryId="hour-save" />)}
       </View>
       {short && (
         <View style={{ gap: 8 }}>
@@ -176,12 +176,13 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
         <View style={{ gap: 8 }}>
           <Label>REASON FOR THE CHANGE</Label>
           <Seg columns={2} value={reason} onChange={setReason} options={[...E.REASONS, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
-          {reason === 'Other' && <Field label="Reason" value={other} onChange={setOther} keyboard="default" maxLength={120} />}
+          {reason === 'Other' && <Field label="Reason" value={other} onChange={setOther} keyboard="default" maxLength={120} accessoryId="hour-save" />}
         </View>
       )}
       {existing && count.trim() === '0' && <Note>A 0 here saves a real hour with nothing counted. If this was the wrong hour, use Remove this hour below instead.</Note>}
       <InfoNote><Note>Enter the count for that hour only, not the running total. Re-entering an hour replaces it and keeps the old value.</Note></InfoNote>
       <Go label="Save hourly count" onPress={submit} />
+      <KeyboardSave id="hour-save" label="Save hourly count" onPress={submit} />
       {existing && (
         <View style={{ gap: 8 }}>
           <Label>LOGGED THE WRONG HOUR?</Label>
@@ -246,13 +247,19 @@ function BreakForm({ baseline, state, run, now, timeOf, setError }: { baseline: 
     void run((c) => build(c, at), done(at));
   };
 
+  const startDay = () => go(t, day + 1, E.nextDayEvents, () => `Day ${day + 1} started.`);
+  const breakEnd = () => go(t, day, E.breakEndEvents, (at) => `Break ended${at ? ` at ${at.hm}` : ''}.`);
+  const breakStart = () => go(t, day, E.breakStartEvents, (at) => `Break started${at ? ` at ${at.hm}` : ''}.`);
+  const endShift = () => go(end, day, (c, at) => E.endShiftEvents(c, at, side), () => 'End of shift logged. Reconcile ship and field.');
+
   if (phase === 'shift_end') {
     return (
       <View style={{ gap: 14 }}>
         <Note>Shift ended at {state.ops.shiftEnd}. Reconcile first, then start the next day.</Note>
-        <TimeField required label={`Day ${day + 1} starts at`} value={t} onChange={setT} onNow={fill(setT)}
+        <TimeField required accessoryId="brk-day" label={`Day ${day + 1} starts at`} value={t} onChange={setT} onNow={fill(setT)}
           hint={parseHM(t.trim()) != null ? `Day ${day + 1} hours will run from ${t.trim().padStart(5, '0')}.` : undefined} />
-        <Go label={`Start Day ${day + 1}`} onPress={() => go(t, day + 1, E.nextDayEvents, () => `Day ${day + 1} started.`)} />
+        <Go label={`Start Day ${day + 1}`} onPress={startDay} />
+        <KeyboardSave id="brk-day" label={`Start Day ${day + 1}`} onPress={startDay} />
       </View>
     );
   }
@@ -260,8 +267,9 @@ function BreakForm({ baseline, state, run, now, timeOf, setError }: { baseline: 
     return (
       <View style={{ gap: 14 }}>
         <Note>On break since {state.ops.breakStart}.</Note>
-        <TimeField required label="Back to work at" value={t} onChange={setT} onNow={fill(setT)} />
-        <Go label="Log break end" onPress={() => go(t, day, E.breakEndEvents, (at) => `Break ended${at ? ` at ${at.hm}` : ''}.`)} />
+        <TimeField required accessoryId="brk-back" label="Back to work at" value={t} onChange={setT} onNow={fill(setT)} />
+        <Go label="Log break end" onPress={breakEnd} />
+        <KeyboardSave id="brk-back" label="Log break end" onPress={breakEnd} />
       </View>
     );
   }
@@ -274,13 +282,15 @@ function BreakForm({ baseline, state, run, now, timeOf, setError }: { baseline: 
             options={hoursDone.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}–${h.end.slice(0, 2)}${h.end.endsWith(':00') ? '' : h.end.slice(2)}` }))} />
         </View>
       )}
-      <TimeField required label="Break started at" value={t} onChange={setT} onNow={fill(setT)} />
-      <Go label="Log break start" onPress={() => go(t, day, E.breakStartEvents, (at) => `Break started${at ? ` at ${at.hm}` : ''}.`)} />
+      <TimeField required accessoryId="brk-start" label="Break started at" value={t} onChange={setT} onNow={fill(setT)} />
+      <Go label="Log break start" onPress={breakStart} />
+      <KeyboardSave id="brk-start" label="Log break start" onPress={breakStart} />
       <View style={s.hr}>
-        <TimeField required label="Shift ended at" value={end} onChange={setEnd} onNow={fill(setEnd)} />
+        <TimeField required accessoryId="brk-end" label="Shift ended at" value={end} onChange={setEnd} onNow={fill(setEnd)} />
         <Label>ENDED ON WHICH SIDE?</Label>
         <Seg columns={2} value={side} onChange={setSide} options={[{ value: 'N', label: 'Northside (−15)' }, { value: 'S', label: 'Southside (−30)' }]} />
-        <Go ghost label="Log end of shift" onPress={() => go(end, day, (c, at) => E.endShiftEvents(c, at, side), () => 'End of shift logged. Reconcile ship and field.')} />
+        <Go ghost label="Log end of shift" onPress={endShift} />
+        <KeyboardSave id="brk-end" label="Log end of shift" onPress={endShift} />
         <InfoNote><Note>Starts end-of-shift reconciliation. No cars should be in transit. The last hour counts only the minutes before the stop: Northside 15 min, Southside 30 min before the end.</Note></InfoNote>
       </View>
     </View>
@@ -358,16 +368,18 @@ function HhForm({ state, run, now, timeOf, setError }: { state: State; run: Run;
 function IssueForm({ run, now, timeOf, setError }: { run: Run; now: () => string | null; timeOf: TimeOf; setError: (e: string | null) => void }) {
   const [text, setText] = useState('');
   const [t, setT] = useState('');
+  const add = () => {
+    const at = timeOf(t);
+    if (at === 'bad') return setError('Enter the time as HH:MM.');
+    void run((c) => E.openDiscrepancyEvents(c, text, at), 'Added to open discrepancies.');
+  };
   return (
     <View style={{ gap: 14 }}>
-      <Field label="What doesn’t match" value={text} onChange={setText} keyboard="default" maxLength={200} />
-      <TimeField label="Noticed at" value={t} onChange={setT} onNow={() => { const n = now(); if (n) setT(n); }} />
+      <Field label="What doesn’t match" value={text} onChange={setText} keyboard="default" maxLength={200} accessoryId="issue-add" />
+      <TimeField accessoryId="issue-add" label="Noticed at" value={t} onChange={setT} onNow={() => { const n = now(); if (n) setT(n); }} />
       <InfoNote><Note>Stays on the open list until someone marks it resolved.</Note></InfoNote>
-      <Go label="Add to open discrepancies" onPress={() => {
-        const at = timeOf(t);
-        if (at === 'bad') return setError('Enter the time as HH:MM.');
-        void run((c) => E.openDiscrepancyEvents(c, text, at), 'Added to open discrepancies.');
-      }} />
+      <Go label="Add to open discrepancies" onPress={add} />
+      <KeyboardSave id="issue-add" label="Add to open discrepancies" onPress={add} />
     </View>
   );
 }

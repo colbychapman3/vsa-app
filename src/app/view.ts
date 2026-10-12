@@ -347,6 +347,12 @@ export function hatchChip(h: { h: string; qty: number | null; rem: number | null
   return `${h.h} ${h.items.map((i) => i.brand).join(' + ')} · ${left.text}`;
 }
 
+// Deck lists show the deck being worked first (Colby, Phase 0): Active, then Paused, then Not started (Unknown with it), then Complete.
+// Display order only: state.decks keeps its own order. Inside a group the existing order is kept (Array.sort is stable).
+const LIST_RANK: Record<string, number> = { active: 0, paused: 1, complete: 3 };
+export const deckListRank = (status: string): number => LIST_RANK[status] ?? 2;
+export const orderForList = <T extends { status: string }>(rows: T[]): T[] => [...rows].sort((a, b) => deckListRank(a.status) - deckListRank(b.status));
+
 export function decksView(s: State) {
   const low = s.decks.filter(isLow).map((d) => ({
     id: d.id,
@@ -354,7 +360,7 @@ export function decksView(s: State) {
     sub: `${d.height.confirmed ? `Confirmed ${d.height.confirmed.time}` : 'Per stow plan'} · ${d.rem == null ? 'remaining count needed' : `${fmt(d.rem)} autos remaining`}`,
   }));
   const unconfirmed = s.decks.filter(isUnconfirmed).length;
-  const rows = s.decks.map((d) => ({
+  const rows = orderForList(s.decks).map((d) => ({
     id: d.id,
     label: d.label,
     pill: pill(d),
