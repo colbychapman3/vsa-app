@@ -49,7 +49,7 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, o
   );
 
   return (
-    <View style={StyleSheet.absoluteFill} accessibilityViewIsModal>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 2 }]} accessibilityViewIsModal>{/* above the header (zIndex 1), which hid Vessels, ✕ and New vessel */}
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: SCRIM }]} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close menu" />
       <Animated.View style={[s.panel, { width: w, paddingTop: 0, paddingBottom: insets.bottom + 12, transform: [{ translateX: x }] }]}>
         <View style={{ height: insets.top, backgroundColor: color.head, marginHorizontal: -16 }} />{/* dark strip under the status bar, as in the header */}

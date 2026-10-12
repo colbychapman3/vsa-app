@@ -373,7 +373,7 @@ export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn
         keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
           <View style={u.secH}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
-              {isTest && <Text style={{ fontFamily: f.bodySemi, fontSize: 12, backgroundColor: color.accent, color: color.onAccent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' }}>TEST</Text>}
+              {isTest && <Text style={{ flexShrink: 0, fontFamily: f.bodySemi, fontSize: 12, backgroundColor: color.accent, color: color.onAccent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' }}>TEST</Text>}
               <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }}>{title}</Text>
             </View>
             <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
