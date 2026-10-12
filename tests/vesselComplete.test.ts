@@ -129,3 +129,37 @@ test('Reports status chip: INTERIM, ready to close, COMPLETE, and COMPLETE with 
   await o.ok(E.completeVesselEvents(o.ctx(), 'Remaining cars not ours'));
   assert.deepEqual(reportStatus(o.state), { text: 'COMPLETE · open items', tone: 'orange' });
 });
+
+// Phase 0: the Snapshot button shows only when closeout is near.
+import { nearZeroLimit, showMarkComplete } from '../src/app/complete.ts';
+const sc = (o: Partial<Parameters<typeof showMarkComplete>[0]> = {}) => ({ start: 1000, vesselRemaining: 500, completed: null, decks: [{ status: 'active' }, { status: 'complete' }], ...o });
+test('mark-complete button: threshold is 5% of start, rounded up, at least 1', () => {
+  assert.equal(nearZeroLimit(1000), 50);
+  assert.equal(nearZeroLimit(1969), 99); // 98.45 rounds up
+  assert.equal(nearZeroLimit(10), 1); // tiny ship
+  assert.equal(nearZeroLimit(1), 1);
+  assert.equal(nearZeroLimit(20000), 1000); // huge ship
+});
+test('mark-complete button: unknown remaining hides it; 0, at the limit show it; just above hides it', () => {
+  assert.equal(showMarkComplete(sc({ vesselRemaining: null })), false);
+  assert.equal(showMarkComplete(sc({ vesselRemaining: 500 })), false);
+  assert.equal(showMarkComplete(sc({ vesselRemaining: 51 })), false);
+  assert.equal(showMarkComplete(sc({ vesselRemaining: 50 })), true);
+  assert.equal(showMarkComplete(sc({ vesselRemaining: 0 })), true);
+  assert.equal(showMarkComplete(sc({ start: 10, vesselRemaining: 2 })), false);
+  assert.equal(showMarkComplete(sc({ start: 10, vesselRemaining: 1 })), true);
+  assert.equal(showMarkComplete(sc({ start: 20000, vesselRemaining: 1000 })), true);
+  assert.equal(showMarkComplete(sc({ start: 20000, vesselRemaining: 1001 })), false);
+  assert.equal(showMarkComplete(sc({ start: 0, vesselRemaining: 0 })), false);
+});
+test('mark-complete button: every deck complete shows it even with remaining not 0 or unknown', () => {
+  const all = [{ status: 'complete' }, { status: 'complete' }];
+  assert.equal(showMarkComplete(sc({ decks: all, vesselRemaining: 400 })), true);
+  assert.equal(showMarkComplete(sc({ decks: all, vesselRemaining: null })), true);
+  assert.equal(showMarkComplete(sc({ decks: [] })), false);
+});
+test('mark-complete button: a marked or reopened vessel keeps its state; day 2 early on stays hidden', () => {
+  assert.equal(showMarkComplete(sc({ completed: { override: true } })), true); // done bar / review state
+  assert.equal(showMarkComplete(sc({ completed: { override: false }, vesselRemaining: 300 })), true);
+  assert.equal(showMarkComplete(sc({ vesselRemaining: 900 })), false); // two-day ship after day 1: still hidden
+});

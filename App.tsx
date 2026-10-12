@@ -31,7 +31,7 @@ import { Snapshot } from './src/app/screens/Snapshot.tsx';
 import { Boxes } from './src/app/screens/SnapshotBoxes.tsx';
 import { EtaHistory } from './src/app/screens/EtaHistory.tsx';
 import { CompleteSheet } from './src/app/screens/CompleteSheet.tsx';
-import { completionDue, completionStale, clockOf } from './src/app/complete.ts';
+import { completionDue, completionStale, clockOf, showMarkComplete } from './src/app/complete.ts';
 import { defaultLayout, layoutText, parseLayout, type Layout } from './src/app/snapshotLayout.ts';
 import { anySheetOpen, Go } from './src/app/screens/ui.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
@@ -394,7 +394,7 @@ export default function App() {
                       ? <Pressable onPress={() => setSheet('complete')} accessibilityRole="button" style={({ pressed }) => [s.doneBar, pressed && { opacity: 0.6 }]}>
                           <Text style={[s.noticeText, { color: color.gInk }]}>Vessel complete{clockOf(vessel.state.completed.time) ? ` at ${clockOf(vessel.state.completed.time)}` : ''}{vessel.state.completed.override ? ' · with open items' : ''} · tap to reopen</Text>
                         </Pressable>
-                      : <Go ghost label={vessel.state.completed ? 'Marked complete, but remaining is not 0: review' : 'Mark vessel complete'} onPress={() => setSheet('complete')} />}
+                      : showMarkComplete(vessel.state) && <Go ghost label={vessel.state.completed ? 'Marked complete, but remaining is not 0: review' : 'Mark vessel complete'} onPress={() => setSheet('complete')} />}
                   </View>
                 )}
                 {tab === 'snap'
@@ -445,7 +445,7 @@ export default function App() {
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
               {sheet === 'search' && <Search isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
-              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} />}
+              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} onComplete={() => { setDrawer(false); setSheet('complete'); }} />}
             </>
           ) : (
             <View style={s.pad}>
