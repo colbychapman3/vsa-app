@@ -65,7 +65,7 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, o
           {list('Test vessels', test)}
           {live.length + test.length === 0 && <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}>No vessels yet. Tap New vessel.</Text>}
         </ScrollView>
-        {canComplete && <Go ghost label="Complete this vessel…" onPress={onComplete} />}
+        {canComplete && <Go ghost label="Closeout…" onPress={onComplete} />}
         <Go ghost label="Settings" onPress={onSettings} />
       </Animated.View>
     </View>
