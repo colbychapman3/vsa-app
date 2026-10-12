@@ -4,10 +4,10 @@ import { Pressable, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import type { VesselRow } from '../../storage/vessels.ts';
 import { aiStatus, AI_STATUS_TEXT } from '../ai.ts';
-import { makeQuiet, type Quiet, type ReminderKind, type ReminderSwitches } from '../assistant.ts';
+import { type ReminderKind, type ReminderSwitches } from '../assistant.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
 import { APPEARANCES, appearanceLoaded, bcolor, color, sunPaletteLoaded, useType, type AppearanceMode } from '../theme.ts';
-import { Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
+import { Body, Card, Chip, Go, InfoNote, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
 import { CustomizeSnapshot } from './CustomizeSnapshot.tsx';
 import type { Layout } from '../snapshotLayout.ts';
 
@@ -21,14 +21,13 @@ const NOTIFY_ROWS: { kind: ReminderKind; title: string; note: string }[] = [
 
 const APPEARANCE_LABEL: Record<AppearanceMode, string> = { light: 'Light', night: 'Night', auto: 'Auto' };
 
-export function Settings({ isTest, rows, currentId, appearance, onAppearance, sun, onSun, keepPhotos, onKeepPhotos, reminders, notify, onNotify, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
+export function Settings({ isTest, rows, currentId, appearance, onAppearance, sun, onSun, keepPhotos, onKeepPhotos, reminders, notify, onNotify, onEnableReminders, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
   sun: boolean; onSun: (v: boolean) => void;
   keepPhotos: boolean; onKeepPhotos: (v: boolean) => void;
   layout: Layout; onLayout: (l: Layout) => void;
   isTest: boolean; rows: VesselRow[]; currentId: string;
   appearance: AppearanceMode; onAppearance: (m: AppearanceMode) => void;
   reminders: ReminderStatus; notify: ReminderSwitches; onNotify: (k: ReminderKind, on: boolean) => void; onEnableReminders: () => void;
-  quiet: Quiet | null; onQuiet: (q: Quiet | null) => void;
   onArchive: (id: string, archived: boolean) => void;
   onDelete: (id: string) => void;
   onExportVessel: (id: string) => Promise<ExportResult>;
@@ -73,7 +72,6 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, su
           <Seg<'on' | 'off'> options={[{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} value={notify[r.kind] ? 'on' : 'off'} columns={2} onChange={(v) => onNotify(r.kind, v === 'on')} />
         </Card>
       ))}
-      {reminders === 'on' && <QuietHours quiet={quiet} onQuiet={onQuiet} />}
       <InfoNote><Note>Nothing else is sent. The Plan tab always shows every alert, whatever is switched off here.</Note></InfoNote>
 
       <SectionHead title="Back up vessels" />
@@ -89,31 +87,6 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, su
       <SectionHead title="About" />
       <Body>Version {version} · Build {build}</Body>
     </Sheet>
-  );
-}
-
-// Quiet hours: no reminders while the clock is inside the window (it may wrap midnight, e.g. 22:00 to 06:00).
-function QuietHours({ quiet, onQuiet }: { quiet: Quiet | null; onQuiet: (q: Quiet | null) => void }) {
-  const [from, setFrom] = useState(quiet?.from ?? '');
-  const [to, setTo] = useState(quiet?.to ?? '');
-  const [error, setError] = useState<string | null>(null);
-  const save = () => {
-    const r = makeQuiet(from, to);
-    if (!r.ok) return setError(r.error);
-    setError(null); setFrom(r.quiet.from); setTo(r.quiet.to); onQuiet(r.quiet);
-  };
-  return (
-    <Card style={[u.pad, { gap: 10 }]}>
-      <Body semi>Quiet hours</Body>
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <Field label="From" value={from} onChange={setFrom} placeholder="22:00" keyboard="numbers-and-punctuation" maxLength={5} />
-        <Field label="To" value={to} onChange={setTo} placeholder="06:00" keyboard="numbers-and-punctuation" maxLength={5} />
-      </View>
-      {error && <ErrorBox text={error} />}
-      <Go label="Save quiet hours" onPress={save} />
-      {quiet && <Go ghost label="Turn quiet hours off" onPress={() => { setFrom(''); setTo(''); setError(null); onQuiet(null); }} />}
-      <Note>{quiet ? `Quiet from ${quiet.from} to ${quiet.to}.` : 'Off: reminders can come at any hour.'}</Note>
-    </Card>
   );
 }
 

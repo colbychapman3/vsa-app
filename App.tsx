@@ -34,7 +34,7 @@ import { defaultLayout, layoutText, parseLayout, type Layout } from './src/app/s
 import { anySheetOpen, Go } from './src/app/screens/ui.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
 import { Ask } from './src/app/screens/Ask.tsx';
-import { quietFromText, quietToText, reminderPlan, REMINDERS_ALL_ON, switchFromPref, switchPref, type Quiet, type ReminderKind, type ReminderSwitches } from './src/app/assistant.ts';
+import { reminderPlan, REMINDERS_ALL_ON, switchFromPref, switchPref, type ReminderKind, type ReminderSwitches } from './src/app/assistant.ts';
 import { enableReminders, installHandlers, reminderStatus, syncReminders, type ReminderStatus } from './src/app/reminders.ts';
 import { answerAfterSave, type Answer } from './src/app/answer.ts';
 import { AnswerCard, answerText } from './src/app/screens/AnswerCard.tsx';
@@ -85,7 +85,6 @@ export default function App() {
   const [sun, setSun] = useState(false); // Extra visible (Settings): heavier type, 2 pt borders
   const [layout, setLayout] = useState<Layout>(defaultLayout()); // which Snapshot boxes show where (a per-phone preference)
   const [notify, setNotify] = useState<ReminderSwitches>(REMINDERS_ALL_ON); // Settings › Notifications: one switch per reminder
-  const [quiet, setQuiet] = useState<Quiet | null>(null);
   const [remind, setRemind] = useState<ReminderStatus>('ask');
   const [fg, setFg] = useState(0); // bumps when the app returns to the foreground, to re-plan reminders
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
@@ -157,8 +156,8 @@ export default function App() {
   useEffect(() => {
     if (!vessel) { void syncReminders([]); return; } // no open vessel: no reminders
     const archived = rows.find((r) => r.operationId === vessel.id)?.archived ?? false;
-    void syncReminders(remind === 'on' ? reminderPlan({ s: vessel.state, b: vessel.baseline, now: new Date(), isTest: vessel.isTest, open: true, archived, on: notify, quiet }) : []);
-  }, [vessel, remind, fg, notify, quiet, rows]);
+    void syncReminders(remind === 'on' ? reminderPlan({ s: vessel.state, b: vessel.baseline, now: new Date(), isTest: vessel.isTest, open: true, archived, on: notify }) : []);
+  }, [vessel, remind, fg, notify, rows]);
 
   // Load a vessel from its stored log and make it the open one. Nothing from another vessel stays in memory.
   const openVessel = useCallback(async (id: string) => {
@@ -189,9 +188,8 @@ export default function App() {
           setSun(sunPref); setSunPalette(sunPref);
           setKeepPhotos((await getPref(dbRef.current, 'keepImports')) === '1');
           setNotify({ count: switchFromPref(await getPref(dbRef.current, switchPref('count'))), deck: switchFromPref(await getPref(dbRef.current, switchPref('deck'))), break: switchFromPref(await getPref(dbRef.current, switchPref('break'))) });
-          setQuiet(quietFromText(await getPref(dbRef.current, 'quiet')));
           setLayout(parseLayout(await getPref(dbRef.current, 'snapshotLayout')));
-        } catch { applyAppearance('light'); /* defaults: Light, reminders on, no quiet hours */ }
+        } catch { applyAppearance('light'); /* defaults: Light, reminders on */ }
         const all = await store.current.listVessels();
         if (!all.length) {
           const c = await store.current.createVessel({ operationId: DEMO, baseline: glovis, isTest: true });
@@ -433,7 +431,6 @@ export default function App() {
                   appearance={appearance} onAppearance={(m) => { setAppearance(m); applyAppearance(m); void setPrefSafe('appearance', m); }}
                   reminders={remind} notify={notify} onNotify={(k: ReminderKind, v: boolean) => { setNotify((n) => ({ ...n, [k]: v })); void setPrefSafe(switchPref(k), v ? '1' : '0'); }}
                   onEnableReminders={async () => setRemind(await enableReminders())}
-                  quiet={quiet} onQuiet={(q) => { setQuiet(q); void setPrefSafe('quiet', q ? quietToText(q) : ''); }}
                   onArchive={async (id, a) => { try { await setArchived(dbRef.current!, id, a); await refreshRows(); if (a) void offerCopyOnArchive(id); } catch (e) { setNotice({ ok: false, text: `Not archived: ${(e as Error).message}` }); } }}
                   onDelete={deleteOne}
                   onExportVessel={exportVessel} />

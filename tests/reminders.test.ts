@@ -111,12 +111,6 @@ test('switches: each reminder can be turned off on its own; all off schedules no
   assert.equal(switchPref('break'), 'remind:break');
 });
 
-test('quiet hours still silence a reminder whose time falls inside the window', () => {
-  const s = counted(8, 9, 10, 11, 13)(base());
-  const p = plan(s, T(15, 0), { quiet: { from: '20:00', to: '23:30' } });
-  assert.deepEqual(times(p, 'count'), ['15:05', '16:05', '17:05', '18:05']);
-});
-
 // ---------- Deck won't make the cutoff ----------
 test('deck: one FORECAST reminder an hour before the clear-by when the watch rule already warns; opens Plan', () => {
   const s = deckRem(base(), 900); // 900 left on D9 at 246/hr cannot clear before 11:45

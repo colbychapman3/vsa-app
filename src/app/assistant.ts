@@ -234,30 +234,8 @@ export type ReminderInput = {
   open?: boolean;              // false = this vessel is not the one open on the phone (a TEST vessel then gets nothing)
   archived?: boolean;
   on?: ReminderSwitches;       // Settings › Notifications; default all on
-  quiet?: Quiet | null;
 };
 const BREAK_LEN = 60, COUNT_GRACE = 5, BREAK_WARN = 5, DECK_LEAD = 60, DECK_CLEAR_BY = 15; // DECK_CLEAR_BY is paceWatch's own (later) Northside cutoff
-
-// Quiet hours (Settings): no reminder while the clock is inside the window, which may wrap midnight (22:00 to 06:00).
-export type Quiet = { from: string; to: string };
-export const quietToText = (q: Quiet) => `${q.from}-${q.to}`;
-export function quietFromText(t: string | null): Quiet | null {
-  const m = /^(\d{2}:\d{2})-(\d{2}:\d{2})$/.exec(t ?? '');
-  return m && parseHM(m[1]) != null && parseHM(m[2]) != null && m[1] !== m[2] ? { from: m[1], to: m[2] } : null;
-}
-// Validates two typed times and stores them as HH:MM; equal times (by minutes, so 6:00 equals 06:00) would mean no window.
-export function makeQuiet(from: string, to: string): { ok: true; quiet: Quiet } | { ok: false; error: string } {
-  const a = parseHM(from), b = parseHM(to);
-  if (a == null || b == null) return { ok: false, error: 'Enter both times as HH:MM, for example 22:00 and 06:00.' };
-  if (a === b) return { ok: false, error: 'The two times are the same, so there would be no quiet window.' };
-  return { ok: true, quiet: { from: formatHM(a), to: formatHM(b) } };
-}
-const inQuiet = (t: number, q: Quiet | null) => {
-  if (!q) return false;
-  const a = parseHM(q.from)!, b = parseHM(q.to)!;
-  if (a === b) return false;
-  return a < b ? t >= a && t < b : t >= a || t < b;
-};
 
 const hh = (m: number) => formatHM(m);
 const hourLabel = (h: number) => `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
@@ -275,7 +253,7 @@ export function reminderPlan(i: ReminderInput): PlannedReminder[] {
   const breaks = b.breaks.map((x) => parseHM(x)).filter((x): x is number => x != null);
   const out: PlannedReminder[] = [];
   const add = (r: PlannedReminder, minute: number) => {
-    if (r.at <= nowMs || minute >= 1440 || (end != null && minute >= end) || inQuiet(minute, i.quiet ?? null)) return;
+    if (r.at <= nowMs || minute >= 1440 || (end != null && minute >= end)) return;
     out.push(r);
   };
 

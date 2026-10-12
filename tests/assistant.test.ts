@@ -6,7 +6,7 @@ import { project } from '../src/engine/index.ts';
 import { checkNoteTidy } from '../src/engine/proposal.ts';
 import type { State } from '../src/storage/store.ts';
 import type { KnowledgeIndex } from '../src/app/knowledge/search.ts';
-import { alerts, answer, checkIntent, documentsFile, findZone, handoffPrompt, makeQuiet, parseAction, quietFromText, quietToText, routeQuestion } from '../src/app/assistant.ts';
+import { alerts, answer, checkIntent, documentsFile, findZone, handoffPrompt, parseAction, routeQuestion } from '../src/app/assistant.ts';
 import { snapshot } from '../src/app/view.ts';
 import { glovis, toEvents, SCENARIOS, OP } from './scenarios.ts';
 
@@ -193,19 +193,6 @@ test('documents file: every passage, grouped by document with its citation, plus
   for (const d of new Set(INDEX.chunks.map((c) => c.doc))) assert.ok(md.includes(`## ${d}`), d);
   assert.match(md, /protocol wins on any difference/);
   assert.match(md, /Do not use these for lashing or any other math/);
-});
-
-test('quiet hours text round-trips and rejects bad values', () => {
-  assert.deepEqual(quietFromText(quietToText({ from: '22:00', to: '06:00' })), { from: '22:00', to: '06:00' });
-  for (const bad of [null, '', '22:00', '25:00-06:00', '22:00-22:00', 'a-b']) assert.equal(quietFromText(bad), null);
-});
-
-test('quiet hours input is normalised (6:00 becomes 06:00) and equal times are refused by minute value', () => {
-  assert.deepEqual(makeQuiet('6:00', '22:00'), { ok: true, quiet: { from: '06:00', to: '22:00' } });
-  assert.deepEqual(quietFromText(quietToText((makeQuiet('6:00', '22:00') as { quiet: { from: string; to: string } }).quiet)), { from: '06:00', to: '22:00' });
-  assert.equal(makeQuiet('6:00', '06:00').ok, false);
-  assert.equal(makeQuiet('25:00', '06:00').ok, false);
-  assert.equal(makeQuiet('', '06:00').ok, false);
 });
 
 test('document text is evidence, never instructions: text that gives orders cannot become an action or add a number', () => {
