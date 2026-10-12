@@ -1,5 +1,5 @@
-// Which vessels are on the phone and which is open. Archive hides a vessel from the list; delete (prototype phase only,
-// store.VESSEL_DELETE_ALLOWED) removes it for good. Both marks live in the local settings table, not the official record.
+// Which vessels are on the phone and which is open. Archive hides a vessel from the list; delete (Colby, 2026-10-12: a
+// permanent feature; store.VESSEL_DELETE_ALLOWED) removes it for good. Both marks live in the local settings table, not the official record.
 import { backupStatus } from './backup.ts';
 import type { Db } from './db.ts';
 import type { Reject } from '../engine/index.ts';

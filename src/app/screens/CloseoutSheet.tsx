@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Baseline, Reject, VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
-import { answerSheet, coachList, scorecard, slowedNote, SLOWED_QUESTION, tickNote, type Row, type TickKey } from '../closeout.ts';
+import { answerSheet, coachList, scorecard, slowedNote, SLOWED_QUESTION, type Row } from '../closeout.ts';
 import * as E from '../entries.ts';
 import { biasLine, type Lessons } from '../history.ts';
 import { bcolor, color, TAP, useType } from '../theme.ts';
@@ -15,15 +15,16 @@ import { Body, Card, Go, Note, SectionHead, Sheet, u } from './ui.tsx';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 type Tab = 'decks' | 'hourly' | 'snap';
 
-export function CloseoutSheet({ state, baseline, isTest, notes, onNote, save, onShare, onClose, onGo, lessons }: {
-  state: State; baseline: Baseline; isTest: boolean; notes: Record<string, string>; onNote: (section: string, text: string) => Promise<void>;
+export function CloseoutSheet({ state, baseline, isTest, save, onShare, onClose, onGo, lessons }: {
+  state: State; baseline: Baseline; isTest: boolean;
   save: Save; onShare: (text: string) => void; onClose: (done?: string) => void; onGo: (tab: Tab) => void; lessons?: Lessons | null;
 }) {
   const f = useType();
   const [mark, setMark] = useState(false);
   const [slow, setSlow] = useState(slowedNote(state)?.text ?? '');
   const [slowErr, setSlowErr] = useState<string | null>(null);
-  const list = useMemo(() => coachList(state, notes), [state, notes]);
+  const list = useMemo(() => coachList(state), [state]);
+  const [tickErr, setTickErr] = useState<string | null>(null);
   const score = useMemo(() => scorecard(state, baseline), [state, baseline]);
   if (mark) return <CompleteSheet state={state} isTest={isTest} save={save} onClose={onClose} onGo={onGo} />;
 
@@ -33,12 +34,12 @@ export function CloseoutSheet({ state, baseline, isTest, notes, onNote, save, on
     void save((c) => E.slowedEvents(c, slow, SLOWED_QUESTION)).then((r) => setSlowErr(r.ok ? null : r.error));
   };
   const open = list.rows.filter((r) => !r.ok), done = list.rows.filter((r) => r.ok);
-  const sheetText = () => answerSheet(state, baseline, { isTest, notes, closeout: list });
+  const sheetText = () => answerSheet(state, baseline, { isTest, closeout: list });
 
   const row = (r: Row) => (
     <Pressable key={r.id} accessibilityRole={r.kind === 'tick' ? 'checkbox' : 'button'} accessibilityState={r.kind === 'tick' ? { checked: r.ok } : undefined}
       accessibilityLabel={`${r.label}. ${r.detail}`}
-      onPress={() => { if (r.kind === 'tick') void onNote(tickNote(r.id as TickKey), r.ok ? '' : '1'); else if (r.go) { onClose(); onGo(r.go); } }}
+      onPress={() => { if (r.kind === 'tick') void save((c) => E.closeoutCheckEvents(c, r.id, !r.ok)).then((x) => setTickErr(x.ok ? null : x.error)); else if (r.go) { onClose(); onGo(r.go); } }}
       disabled={r.kind === 'check' && (r.ok || !r.go)}
       style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: bcolor.row }, pressed && u.pressed]}>
       <View style={{ width: 32, height: 32, borderRadius: r.kind === 'tick' ? 6 : 16, borderWidth: 2, borderColor: r.ok ? color.green : color.orange, backgroundColor: r.ok ? color.green : color.card, alignItems: 'center', justifyContent: 'center' }}>
@@ -58,6 +59,7 @@ export function CloseoutSheet({ state, baseline, isTest, notes, onNote, save, on
         <Note>{list.clear ? 'Everything on the list is closed. Send the answer sheet, then mark the vessel complete.' : 'Open items first, the ones that would hurt most if forgotten at the top.'}</Note>
       </Card>
 
+      {tickErr && <Note style={{ color: color.rInk }}>{tickErr}</Note>}
       <View>
         {open.map(row)}
         {done.length > 0 && <SectionHead title="Closed" />}
@@ -87,7 +89,7 @@ export function CloseoutSheet({ state, baseline, isTest, notes, onNote, save, on
 
       <Go label="Send the answer sheet" onPress={() => { saveSlow(); onShare(sheetText()); }} />
       <Go ghost label={state.completed ? 'Completion mark…' : 'Mark the vessel complete…'} onPress={() => { saveSlow(); setMark(true); }} />
-      <Note>The answer sheet goes to the superintendent and/or the operations manager: pick who in the share sheet. Ticks are kept on this phone with the report notes; your line is kept with the vessel and read for trends on later ships.</Note>
+      <Note>The answer sheet goes to the superintendent and/or the operations manager: pick who in the share sheet. Ticks and your line are kept in the vessel's log, so they go with the export; your line is read for trends on later ships.</Note>
     </Sheet>
   );
 }

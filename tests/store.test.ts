@@ -43,7 +43,7 @@ test('schema: a database newer than the app is refused, not touched', async (t) 
   await db.close();
 });
 
-test('delete vessel (prototype phase): removes the vessel, its events and its local marks, and nothing of another vessel', async (t) => {
+test('delete vessel (permanent feature): removes the vessel, its events and its local marks, and nothing of another vessel', async (t) => {
   const db = openNodeDb(tempFile(t));
   const store = await openStore(db);
   for (const id of ['TEST-A', 'TEST-B']) assert.ok((await store.createVessel({ operationId: id, baseline: { ...glovis, vessel: id }, isTest: true })).ok);

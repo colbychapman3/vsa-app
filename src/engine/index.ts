@@ -64,6 +64,9 @@ export function dayStartProblem(day: number, hm: string, planned: string, firstB
 }
 
 // Baseline dates are "M/D/YYYY" (tracker) or "YYYY-MM-DD".
+// Closeout items only Colby can confirm (Phase 3, 2026-10-12). Field vs decks and discrepancies are worked out, not ticked.
+export const CLOSEOUT_CHECKS = ['loadback', 'lashing', 'vans', 'photos', 'hh'];
+
 export function operationDate(b: Baseline): string | null {
   const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(b.date);
   if (us) return `${us[3]}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
@@ -104,6 +107,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const vanList: VanSlot[] = [];
   const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
   let completed: { time: string; override: boolean; reason: string | null; blockers: string[] } | null = null; // vessel marked complete by Colby (last mark wins; a reopen clears it)
+  const checks = new Map<string, boolean>(); // closeout items Colby ticked (Phase 3); last tick or untick wins
   let recStart = 0; // sequence of the latest break/shift-end start
   const lastDeckEvent: Record<string, string> = {}; // for naming the event in whole-sheet errors
   const deckSave: Record<string, number | null> = {}; // deck → when its numbers were last saved (reported time, else the save's processing time as an upper bound)
@@ -293,6 +297,16 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
           if (!why) return fail(`Event ${id}: reopening the vessel needs a reason.`, id);
           completed = null;
         }
+        continue;
+      }
+      case 'closeout_check': {
+        // A closeout item only Colby can see (load-back closed, vans gassed...): ticked or unticked, with its time in the log.
+        if (e.event_type !== 'status_change') return fail(`Event ${id}: a closeout check must be a status change.`, id);
+        if (sc.workstream !== 'operation') return fail(`Event ${id}: a closeout check belongs to the operation.`, id);
+        if (p.count_kind !== 'not_applicable') return fail(`Event ${id}: a closeout check must not be a count kind (count_kind not_applicable).`, id);
+        if (!CLOSEOUT_CHECKS.includes(p.check as string)) return fail(`Event ${id}: closeout check "${String(p.check)}" is not one of ${CLOSEOUT_CHECKS.join(', ')}.`, id);
+        if (p.value !== 'checked' && p.value !== 'unchecked') return fail(`Event ${id}: a closeout check must be "checked" or "unchecked".`, id);
+        checks.set(p.check as string, p.value === 'checked');
         continue;
       }
       case 'hh_phase': {
@@ -544,6 +558,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     plan,
     issues: [...issues.values()],
     ...(completed ? { completed } : {}), // only when marked, so logs that never were keep their exact output
+    ...(checks.size ? { closeoutChecks: Object.fromEntries(checks) as Record<string, boolean> } : {}), // same: only when any was ticked
     notes: noteList, // creation order; removed ones stay, flagged
     evidence: evidenceList, // creation order; removed ones stay, flagged
     vans: vanList, // slot order; removed ones stay, flagged

@@ -54,7 +54,7 @@ function builder(ctx: Ctx) {
     workstream?: 'auto_discharge' | 'operation'; deck?: string | null; hatch?: string | null; commodity?: string | null;
     at?: OpTime | null; period?: [string, string] | null; reason?: string | null; supersedes?: string | null; inputs?: string[];
     provenance?: VsaEvent['provenance']; cause?: string | null;
-    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData; van?: VanData; blockers?: string[]; side?: 'N' | 'S' }; // plan_note / evidence / van / vessel_complete fields
+    extra?: { title?: string | null; source?: 'typed' | 'photo-read'; photo?: string | null; evidence?: EvidenceData; van?: VanData; blockers?: string[]; side?: 'N' | 'S'; check?: string }; // plan_note / evidence / van / vessel_complete / closeout_check fields
   }) => {
     const id = `${ctx.operationId}-${seq}`;
     out.push({
@@ -218,6 +218,14 @@ export function completeVesselEvents(ctx: Ctx, reason: string | null): VsaEvent[
   if (open.length && !why) return reject(`Open items: ${open.join(' ')} Pick a reason to mark the vessel complete anyway.`);
   const { add, out } = builder(ctx);
   add({ type: 'status_change', metric: 'vessel_complete', value: 'completed', workstream: 'operation', reason: open.length ? why : null, extra: { blockers: open } });
+  return out;
+}
+
+// Tick or untick a closeout item (Phase 3). Kept in the log, so it travels with the export; the last one wins.
+export function closeoutCheckEvents(ctx: Ctx, check: string, on: boolean): VsaEvent[] | Reject {
+  if ((ctx.state.closeoutChecks?.[check] ?? false) === on) return [];
+  const { add, out } = builder(ctx);
+  add({ type: 'status_change', metric: 'closeout_check', value: on ? 'checked' : 'unchecked', workstream: 'operation', extra: { check } });
   return out;
 }
 

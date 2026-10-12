@@ -12,8 +12,8 @@ type Row = { operation_id: string; name: string; is_test: number; baseline_json:
 // Reference baselines that may only ever be loaded as TEST. Names are compared with case,
 // spaces and punctuation removed, so "GLOVIS  Condor-101" is still caught.
 const TEST_ONLY = ['gloviscondor101'];
-// Vessel delete is allowed while the app is in its prototype phase and every vessel is TEST (Colby, 2026-10-05). Set this to
-// false before go-live: vessels are then permanent again, as the append-only rule says (see ROADMAP backlog).
+// Vessel delete (Colby, 2026-10-05; made permanent 2026-10-12: it stays after go-live). Only through deleteVessel below; a LIVE
+// vessel needs a current saved copy first. The flag stays as the single switch if that decision is ever reversed.
 export const VESSEL_DELETE_ALLOWED = true;
 const squash = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 const reject = (error: string): Reject => ({ ok: false, error });

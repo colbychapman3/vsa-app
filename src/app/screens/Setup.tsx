@@ -469,6 +469,9 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
                 {read?.autos != null && !imported && (
                   <Body style={{ color: built.total === read.autos ? color.gInk : color.rInk }}>Game plan TOTAL {n(read.autos)}: {built.total === read.autos ? 'decks match ✓' : `decks add to ${n(built.total)} (difference ${n(Math.abs(built.total - read.autos))})`}</Body>
                 )}
+                {(() => { const c = shipCard(built, typeof built.baseline.hhTotal === 'number' ? built.baseline.hhTotal : hhKnown); return (
+                  <Body>{c.decks} deck{c.decks === 1 ? '' : 's'} · {c.destinations.length} destination{c.destinations.length === 1 ? '' : 's'} · {c.southPct == null ? 'Southside share unknown' : `Southside ${n(c.southAutos!)} autos (${c.southPct}%)`}</Body>
+                ); })()}
                 <Body>ID {built.operationId} · {isTest ? 'TEST' : 'LIVE'}</Body>
               </Card>
               <Card style={[u.pad, { gap: 6 }]}>
@@ -537,10 +540,10 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
                   })}
                 </Card>
               )}
-              {!imported && (
+              {(
                 <Card style={[u.pad, { gap: 6 }]}>
                   <SectionHead title="What the app will watch today" />
-                  {watchList(built, { hhExists: hh.length > 0 }).map((l) => <Body key={l}>• {l}</Body>)}
+                  {watchList(built, { hhExists: imported ? Array.isArray(built.baseline.hh) && built.baseline.hh.length > 0 : hh.length > 0 }).map((l) => <Body key={l}>• {l}</Body>)}
                   {history && historyLine(isTest ? history.test : history.live, built.total) && <Note>{historyLine(isTest ? history.test : history.live, built.total)}</Note>}
                 </Card>
               )}

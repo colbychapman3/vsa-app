@@ -47,7 +47,7 @@ CREATE TRIGGER vessels_no_replace BEFORE INSERT ON vessels
 // V3: small local settings (last export of each vessel's log). Not part of the official record.
 const V3 = `CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);`;
 
-// V4: vessel delete, allowed during the prototype phase only (Colby, 2026-10-05; VESSEL_DELETE_ALLOWED in store.ts).
+// V4: vessel delete (Colby, 2026-10-05; permanent since 2026-10-12; VESSEL_DELETE_ALLOWED in store.ts).
 // The delete triggers stay: a delete is refused unless the same transaction first wrote that vessel's 'deleting:' marker
 // (store.deleteVessel does, and removes it). So no stray statement or bug can delete history; only the one guarded path can.
 const V4 = `

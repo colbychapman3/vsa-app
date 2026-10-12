@@ -1,7 +1,7 @@
 // Photo files live only in the app's document folder (evidence/<vesselId>/<eventId>.jpg), never in the camera roll.
 // The event stores the relative path; the full path is resolved here because the folder's full path can change
 // when the app is updated. Full size is kept; nothing is deleted except a copy that failed to save and, in the
-// prototype phase, the whole folder of a vessel that was deleted.
+// delete feature, the whole folder of a vessel that was deleted.
 import { Directory, File, Paths } from 'expo-file-system';
 
 // Copy the camera's temporary file into the app folder. Rejects with a plain message if it can't. File.copy returns

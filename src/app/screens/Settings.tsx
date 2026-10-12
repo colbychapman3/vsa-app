@@ -142,7 +142,7 @@ function BackupPicker({ rows, onExportVessel }: { rows: VesselRow[]; onExportVes
   );
 }
 
-// Delete is two taps (the second says so), beside Archive. Prototype-phase only (store.VESSEL_DELETE_ALLOWED).
+// Delete is two taps (the second says so), beside Archive. Permanent feature (Colby, 2026-10-12; store.VESSEL_DELETE_ALLOWED).
 function DeleteButton({ onDelete }: { onDelete: () => void }) {
   const [sure, setSure] = useState(false);
   return <Go ghost label={sure ? 'Tap again to delete' : 'Delete'} onPress={() => { if (sure) { setSure(false); onDelete(); } else setSure(true); }} />;
@@ -170,7 +170,7 @@ function ArchiveList({ rows, currentId, onArchive, onDelete }: { rows: VesselRow
         </View>
       ))}
       <InfoNote><Note>Archive hides a vessel from the menu. Its record stays on the phone and can be unarchived here.</Note></InfoNote>
-      <InfoNote><Note>Tap Delete twice to delete a vessel. A deleted vessel and its photos cannot be brought back, except from a saved copy. The open vessel can't be deleted. Deleting is on during the prototype phase only.</Note></InfoNote>
+      <InfoNote><Note>Tap Delete twice to delete a vessel. A deleted vessel and its photos cannot be brought back, except from a saved copy. The open vessel can't be deleted, and a LIVE vessel needs a saved copy first.</Note></InfoNote>
     </View>
   );
 }

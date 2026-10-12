@@ -82,3 +82,18 @@ test('watch list: both sides named, unknown heights keep fit checks off, low dec
   assert.ok(watchList(built, { hhExists: false }).some((l) => /Low deck for shuttle vans \(under 1.85 m\): D10 1.80 m/.test(l)));
   assert.ok(!watchList(built, { hhExists: false }).some((l) => /High & Heavy/.test(l)));
 });
+
+test('an imported baseline (Glovis Condor 101, TEST) gets the same ship summary and watch list', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { importBaseline } = await import('../src/app/setup.ts');
+  const text = readFileSync(new URL('../docs/reference/glovis-condor-101-baseline.json', import.meta.url), 'utf8');
+  const b = importBaseline(text, true);
+  assert.ok(b.ok, b.ok ? '' : b.errors.join('\n'));
+  if (!b.ok) return;
+  const c = shipCard(b, null);
+  assert.equal(c.total, 1969);
+  assert.ok(c.decks > 0);
+  const w = watchList(b, { hhExists: false });
+  assert.match(w[0], /^Clear-by/);
+  assert.ok(w.some((l) => /Planned start/.test(l)));
+});

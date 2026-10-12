@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import type { VsaEvent, Reject } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
-import { actualFinishAbs, answerSheet, coachList, scorecard, SLOWED_QUESTION, tickNote, TICKS } from '../src/app/closeout.ts';
+import { actualFinish, actualFinishAbs, answerSheet, coachList, scorecard, SLOWED_QUESTION, TICKS } from '../src/app/closeout.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
 
@@ -43,11 +43,11 @@ async function setup(tc: { after: (fn: () => Promise<void>) => void }) {
 }
 
 
-const allTicked = Object.fromEntries(TICKS.map((t) => [tickNote(t.key), '1']));
+const tickAll = async (s: { ctx: () => E.Ctx; ok: (e: VsaEvent[] | Reject) => Promise<void> }) => { for (const t of TICKS) await s.ok(E.closeoutCheckEvents(s.ctx(), t.key, true)); };
 
 test('a new vessel is not clear: field vs decks is open and every tick is open', async (tc) => {
   const s = await setup(tc);
-  const c = coachList(s.state, {});
+  const c = coachList(s.state);
   assert.equal(c.clear, false);
   assert.equal(c.rows.length, 2 + TICKS.length);
   assert.equal(c.rows[1].ok, true); // nothing is open yet
@@ -60,29 +60,42 @@ test('a new vessel is not clear: field vs decks is open and every tick is open',
 test('finished and square, but unticked items still keep the vessel from being clear', async (tc) => {
   const s = await setup(tc);
   await s.finish();
-  const c = coachList(s.state, {});
+  const c = coachList(s.state);
   assert.equal(c.rows.find((r) => r.id === 'decks')!.ok, true);
   assert.equal(c.rows.find((r) => r.id === 'issues')!.ok, true);
   assert.equal(c.left, TICKS.length);
   assert.equal(c.clear, false);
-  const partly = coachList(s.state, { [tickNote('loadback')]: '1' });
-  assert.equal(partly.left, TICKS.length - 1);
+  await s.ok(E.closeoutCheckEvents(s.ctx(), 'loadback', true));
+  assert.equal(coachList(s.state).left, TICKS.length - 1);
 });
 
-test('all green and all ticked is clear; a blank or "0" tick is not a tick', async (tc) => {
+test('all green and all ticked is clear; an untick reopens it; ticks are in the log and a repeat writes nothing', async (tc) => {
   const s = await setup(tc);
   await s.finish();
-  assert.equal(coachList(s.state, allTicked).clear, true);
-  assert.equal(coachList(s.state, { ...allTicked, [tickNote('vans')]: '' }).clear, false);
-  assert.equal(coachList(s.state, { ...allTicked, [tickNote('vans')]: '0' }).clear, false);
+  await tickAll(s);
+  assert.equal(coachList(s.state).clear, true);
+  assert.deepEqual(E.closeoutCheckEvents(s.ctx(), 'vans', true), []); // already ticked
+  await s.ok(E.closeoutCheckEvents(s.ctx(), 'vans', false));
+  assert.equal(coachList(s.state).clear, false);
+  assert.equal(s.state.closeoutChecks!.vans, false);
+  assert.ok(s.state.log.events.some((e) => e.payload.metric === 'closeout_check' && e.payload.check === 'vans' && e.payload.value === 'unchecked'));
+});
+
+test('the engine refuses a closeout check it does not know, and one with a bad value', async (tc) => {
+  const s = await setup(tc);
+  const bad = E.closeoutCheckEvents(s.ctx(), 'coffee', true) as VsaEvent[];
+  await s.refused(bad, /closeout check "coffee" is not one of loadback, lashing, vans, photos, hh/);
+  const odd = (E.closeoutCheckEvents(s.ctx(), 'vans', true) as VsaEvent[]).map((e) => ({ ...e, payload: { ...e.payload, value: 'maybe' } }));
+  await s.refused(odd, /must be "checked" or "unchecked"/);
 });
 
 test('an open discrepancy is its own open row and points at the Snapshot', async (tc) => {
   const s = await setup(tc);
   await s.finish();
+  await tickAll(s);
   const evs = E.openDiscrepancyEvents(s.ctx(), 'Count differs from the clerk', null);
   await s.ok(evs);
-  const row = coachList(s.state, allTicked).rows.find((r) => r.id === 'issues')!;
+  const row = coachList(s.state).rows.find((r) => r.id === 'issues')!;
   assert.equal(row.ok, false);
   assert.match(row.detail, /1 open discrepancy/);
   assert.equal(row.go, 'snap');
@@ -90,9 +103,21 @@ test('an open discrepancy is its own open row and points at the Snapshot', async
 
 test('actual finish is the end of the last counted hour, and unknown until the vessel is at 0', async (tc) => {
   const s = await setup(tc);
-  assert.equal(actualFinishAbs(s.state), null);
+  assert.equal(actualFinishAbs(s.state, glovis), null);
   await s.finish();
-  assert.equal(actualFinishAbs(s.state), 17 * 60); // last hour 16:00-17:00
+  assert.equal(actualFinishAbs(s.state, glovis), 17 * 60); // last hour 16:00-17:00; the decks were saved at 20:00, after it
+});
+
+test('the deck save that took the ship to 0 gives the finish when it falls inside the last counted hour', async (tc) => {
+  const s = await setup(tc);
+  const hrs = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+  let left = s.state.start;
+  for (const [i, h] of hrs.entries()) { const c = i === hrs.length - 1 ? left : Math.min(left, 245); await s.ok(E.hourEvents(s.ctx(), { day: 1, start: h, count: c, ...(h === '11:00' ? { stopMin: 45 } : {}) })); left -= c; }
+  const decks = s.state.decks;
+  for (const [k, d] of decks.entries()) await s.ok(E.deckEvents(s.ctx(), { deck: d.id, status: 'complete', skipped: false, hatchRemaining: {}, deckRemaining: null, time: k === decks.length - 1 ? { day: 1, hm: '16:40' } : null }));
+  assert.deepEqual(actualFinish(s.state, glovis), { abs: 16 * 60 + 40, from: 'deck' });
+  assert.equal(scorecard(s.state, glovis).actual, '16:40');
+  assert.match(scorecard(s.state, glovis).note!, /when the last deck was saved/);
 });
 
 test('scorecard: unscored before the finish; after it every row is a labeled FORECAST scored against the actual', async (tc) => {
@@ -119,8 +144,8 @@ test('answer sheet: counts, status, finish, open items and the slowed-down line;
   const s = await setup(tc);
   await s.finish();
   await s.ok(E.slowedEvents(s.ctx(), 'Waited on vans at 14:00', SLOWED_QUESTION));
-  const notes = allTicked;
-  const done = answerSheet(s.state, glovis, { isTest: true, notes, closeout: coachList(s.state, notes) });
+  await tickAll(s);
+  const done = answerSheet(s.state, glovis, { isTest: true, closeout: coachList(s.state) });
   assert.match(done, /^TEST · /);
   assert.match(done, /Autos counted in the field: 1,969 of 1,969/);
   assert.match(done, /Vessel remaining: 0/);
@@ -129,15 +154,16 @@ test('answer sheet: counts, status, finish, open items and the slowed-down line;
   assert.match(done, /What slowed you down today\? Waited on vans at 14:00/);
   assert.match(done, /H&H is counted separately/);
   assert.match(done, /Status: INTERIM: ready to close, not confirmed/);
-  const partial = answerSheet(s.state, glovis, { isTest: true, notes: {}, closeout: coachList(s.state, {}) });
+  await s.ok(E.closeoutCheckEvents(s.ctx(), 'loadback', false));
+  const partial = answerSheet(s.state, glovis, { isTest: true, closeout: coachList(s.state) });
   assert.match(partial, /Open items: Load-back closed not confirmed/);
   await s.ok(E.slowedEvents(s.ctx(), '', SLOWED_QUESTION)); // cleared: removed with a reason, kept in the log
-  assert.doesNotMatch(answerSheet(s.state, glovis, { isTest: true, notes: {}, closeout: coachList(s.state, {}) }), /What slowed you down/);
+  assert.doesNotMatch(answerSheet(s.state, glovis, { isTest: true, closeout: coachList(s.state) }), /What slowed you down/);
 });
 
 test('an unfinished vessel has no actual finish; remaining shows as counted, never as a finish', async (tc) => {
   const s = await setup(tc);
-  const sheet = answerSheet(s.state, glovis, { isTest: true, notes: {}, closeout: coachList(s.state, {}) });
+  const sheet = answerSheet(s.state, glovis, { isTest: true, closeout: coachList(s.state) });
   assert.match(sheet, /Vessel remaining: 1,969/);
   assert.match(sheet, /Finish: unknown/);
   assert.doesNotMatch(sheet, /end of the last counted hour/);

@@ -336,7 +336,7 @@ export default function App() {
         [{ text: 'Not now', style: 'cancel' }, { text: 'Save a copy', onPress: () => { void exportVessel(id).then(setNotice); } }]);
     } catch { /* a failed lookup never blocks archiving */ }
   };
-  // Delete a vessel for good (prototype phase). Never the open vessel; a LIVE vessel needs a current copy first.
+  // Delete a vessel for good (permanent feature, Colby 2026-10-12). Never the open vessel; a LIVE vessel needs a current copy first.
   const deleteOne = async (id: string) => {
     if (id === vessel?.id) { setNotice({ ok: false, text: 'The open vessel cannot be deleted. Open another vessel first.' }); return; }
     try {
@@ -446,7 +446,7 @@ export default function App() {
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice(answered(done)); else before.current = null; }} />
               )}
               {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} drafts={draftStore} history={{ live: pastLive, test: pastTest }} />}
-              {sheet === 'complete' && <CloseoutSheet lessons={vessel.isTest ? pastTest : pastLive} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} notes={notes} onNote={reports.onNote} save={save} onShare={(message) => { void Share.share({ title: `${vessel.state.vessel} answer sheet`, message }); }} onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} onGo={openTab} />}
+              {sheet === 'complete' && <CloseoutSheet lessons={vessel.isTest ? pastTest : pastLive} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} onShare={(message) => { void Share.share({ title: `${vessel.state.vessel} answer sheet`, message }); }} onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} onGo={openTab} />}
               {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} lessons={vessel.isTest ? pastTest : pastLive} onClose={() => setSheet(null)} />}
               {sheet === 'lessons' && <Lessons live={pastLive} test={pastTest} startTest={vessel.isTest} onClose={() => setSheet(null)} />}
               {sheet === 'settings' && (
