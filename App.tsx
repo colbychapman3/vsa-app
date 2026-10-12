@@ -19,6 +19,7 @@ import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
 import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceReportKind } from './src/app/evidenceReport.ts';
 import { reducedPhotoData } from './src/app/evidencePhotos.ts';
 import type { Built } from './src/app/setup.ts';
+import { writeCacheFile } from './src/app/exportFile.ts';
 import { saveBatch, shareAndMark, type SaveResult } from './src/app/session.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/app/view.ts';
@@ -229,18 +230,19 @@ export default function App() {
     setNotice(r.ok ? { ok: true, text: 'Added to open discrepancies.' } : { ok: false, text: `Not saved: ${r.error}` });
   }, [save]);
 
-  // One vessel's log to the iOS share sheet; it counts as backed up only if the sheet was used.
+  // One vessel's log as a .vsalog.json file to the iOS share sheet; it counts as backed up only if the sheet was used.
   const exportVessel = async (id: string): Promise<{ ok: boolean; text: string }> => {
     const at = recordedNow();
     return shareAndMark({
       exported: await exportLog(store.current!, id, at),
-      share: async (title, message) => ((await Share.share({ title, message })).action === Share.dismissedAction ? 'dismissed' : 'shared'),
+      writeFile: writeCacheFile,
+      share: async (title, url) => ((await Share.share({ title, url })).action === Share.dismissedAction ? 'dismissed' : 'shared'),
       mark: async (count) => { await markExported(dbRef.current!, id, at, count); if (id === vessel?.id) setBk(await backupStatus(dbRef.current!, id, count)); },
     });
   };
 
-  // Backup: the phone's log is the only official record. Export hands the JSON text to the iOS share
-  // sheet (Save to Files, Messages, Notes...). It counts as exported only if the sheet reports it was used.
+  // Backup: the phone's log is the only official record. Export hands a .vsalog.json file to the iOS share
+  // sheet (Save to Files, AirDrop, Mail...). It counts as exported only if the sheet reports it was used.
   const backup: Backup = {
     ...bk,
     onExport: async () => setNotice(await exportVessel(vessel!.id)),
