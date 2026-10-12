@@ -1,7 +1,8 @@
 // New-vessel setup (protocol §11.1), one step per screen. Start from a photo of the APS game plan cover page
-// (spec phase-6e: deterministic reader, no AI), type it in, or import a baseline file. Nothing is saved until Review.
+// (spec phase-6e: deterministic reader, no AI), choose a file (picture or text), paste text, or type it in. Nothing is saved until Review.
 // All checks live in src/app/setup.ts and src/app/gamePlan.ts; this only lays out the questions.
-import { pickTextFile } from '../importFile.ts';
+import { pickSetupFile } from '../importFile.ts';
+import { readDeckLines } from '../deckLines.ts';
 import { useEffect, useState, type MutableRefObject } from 'react';
 import { Pressable, Share, Text, TextInput, View } from 'react-native';
 import type { Reject } from '../../engine/index.ts';
@@ -11,12 +12,12 @@ import {
   type Allocation, type Built, type DeckDraft, type HhEntry, type SetupForm,
 } from '../setup.ts';
 import { blankDraft, type SetupDraft } from '../setupDraft.ts';
-import { readGamePlanPages } from '../gamePlan.ts';
+import { readGamePlanPages, type GamePlan } from '../gamePlan.ts';
 import { doubts, shipCard, watchList } from '../prep.ts';
 import { historyLine, type Lessons } from '../history.ts';
 import { brandFor, readDischargeSummary } from '../dischargeSummary.ts';
 import type { Page } from '../layout.ts';
-import { readPhotos } from '../ai.ts';
+import { readImages, readPhotos } from '../ai.ts';
 import { bcolor, color, TAP, useType } from '../theme.ts';
 import { Body, Card, Chip, ErrorBox, Field, Go, Note, SectionHead, Seg, u, InfoNote } from './ui.tsx';
 
@@ -59,6 +60,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
   const [failed, setFailed] = useState<{ text: string; scans: Page[] } | null>(null);
   const [confirmed, setConfirmed] = useState<number[]>(initial.confirmed);
   const [keep, setKeep] = useState<string[]>(initial.keep);
+  const [source, setSource] = useState(SOURCE); // what the drafts were read from, for the baseline's sources
   const [fieldByField, setFieldByField] = useState(false); // after a photo read the ship card comes first; this opens the step-by-step questions instead
 
   // The sheet reads this when the user tries to close: the answers so far, as text only (no photos).
@@ -80,7 +82,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
     const form: SetupForm = {
       vessel: v.vessel, date: v.date, port: v.port, berth: v.berth, isTest, start: v.start,
       drivers: v.drivers.trim() === '' ? null : Number(v.drivers),
-      sources: read ? [SOURCE] : [], destinations: g.destinations, decks: ds,
+      sources: read ? [source] : [], destinations: g.destinations, decks: ds,
       ...(hh.length ? { hh } : {}),
       ...(read ? { hhTotal: read.hhTotal } : {}),
     };
@@ -113,26 +115,53 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
   const go = (k: number) => { setError(null); if (k > step && !confirmed.includes(step)) setConfirmed([...confirmed, step]); setStep(k); };
 
   // Game plan photo → positions → reader → drafts. Fills only empty fields; every filled field is tagged until its step is confirmed.
-  const fromPhoto = async (src: 'camera' | 'library') => {
+  const fromPhoto = (src: 'camera' | 'library') => fromImages(() => readPhotos(src, true));
+  const fromImages = async (get: () => Promise<{ scans: Page[]; files: string[] } | null>) => {
     setError(null); setFailed(null); setBusy(true);
     try {
-      const r = await readPhotos(src, true);
+      const r = await get();
       if (!r) return;
       const res = readGamePlanPages(r.scans);
       if (!res.ok) { setFailed({ text: res.error, scans: r.scans }); return; }
-      setKept(r.files); // a new game plan read replaces the earlier pages
-      // A second photo replaces the first read: its values never mix with another page's.
-      const base = read ? { v: { vessel: '', date: '', port: '', drivers: '' }, allocs: [blank()], decks: [] as DeckDraft[] } : { v: { vessel: v.vessel, date: v.date, port: v.port, drivers: v.drivers }, allocs, decks };
-      const m = mergeGamePlan(base, res.plan);
-      setV({ ...v, ...m.drafts.v }); setAllocs(m.drafts.allocs); setDecks(m.drafts.decks); setHh(m.hh);
-      setRead({ filled: m.filled, problems: [...res.plan.problems, ...m.problems], notes: res.plan.notes, extras: res.plan.extras, scans: r.scans,
-        decks: m.drafts.decks.length, autos: res.plan.autosTotal, hhTotal: res.plan.hhTotal });
-      setKeep(res.plan.notes); // notes-area lines start ticked; Colby can untick them at Review
-      if (read) { setLoad({}); setLoadHh(''); setOverride(false); } // a new read starts its load list check over
-      setConfirmed([]); setFieldByField(false); setStep(0); setMode('form');
+      setSource(SOURCE);
+      takePlan(res.plan, r.scans, r.files);
     } catch (e) {
       setError(`Could not read the photo: ${(e as Error).message}`);
     } finally { setBusy(false); }
+  };
+  // Pasted or chosen text: a VSA baseline file is imported as it is; anything else is read as deck lines
+  // ("DK12 H4: 53 BMW, 99 MB = 152 > BMW Field, MBZ") into the same drafts a photo fills.
+  const fromText = (text: string) => {
+    setError(null); setFailed(null);
+    if (/^s*{/.test(text)) {
+      const r = importBaseline(text, isTest);
+      if (r.ok) { setPaste(text); setImported(r); setMode('paste'); setStep(LAST); } else setError(fewErrors(r.errors));
+      return;
+    }
+    const r = readDeckLines(text);
+    if (!r.ok) return setError(r.error);
+    setSource('Game plan summary (pasted text)');
+    takePlan(r.plan, [], []);
+  };
+  const fromFile = async () => {
+    setError(null);
+    const p = await pickSetupFile();
+    if (p.ok === 'cancelled') return;
+    if (p.ok === false) return setError(p.error);
+    if ('image' in p) return fromImages(() => readImages([p.image], true));
+    fromText(p.text);
+  };
+  const takePlan = (plan: GamePlan, scans: Page[], files: string[]) => {
+    setKept(files); // a new game plan read replaces the earlier pages
+    // A second photo replaces the first read: its values never mix with another page's.
+    const base = read ? { v: { vessel: '', date: '', port: '', drivers: '' }, allocs: [blank()], decks: [] as DeckDraft[] } : { v: { vessel: v.vessel, date: v.date, port: v.port, drivers: v.drivers }, allocs, decks };
+    const m = mergeGamePlan(base, plan);
+    setV({ ...v, ...m.drafts.v }); setAllocs(m.drafts.allocs); setDecks(m.drafts.decks); setHh(m.hh);
+    setRead({ filled: m.filled, problems: [...plan.problems, ...m.problems], notes: plan.notes, extras: plan.extras, scans,
+      decks: m.drafts.decks.length, autos: plan.autosTotal, hhTotal: plan.hhTotal });
+    setKeep(plan.notes); // notes-area lines start ticked; Colby can untick them at Review
+    if (read) { setLoad({}); setLoadHh(''); setOverride(false); } // a new read starts its load list check over
+    setConfirmed([]); setFieldByField(false); setStep(0); setMode('form');
   };
   // Discharge summary photo → its printed brand totals → the load list boxes below (empty boxes only; Colby checks them).
   const fromSummary = async (src: 'camera' | 'library', rowBrands: string[]) => {
@@ -182,10 +211,10 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
         <View style={{ gap: 12 }}>
           <Card style={[u.pad, { gap: 10 }]}>
             <SectionHead title="Read the game plan" />
-            <Body>Photograph the APS Working Plan / Game Plan cover page, flat and in focus. Vessel, date, decks, brands and destinations fill in for you to check. Nothing is saved until Review.</Body>
+            <Body>A photo of the game plan cover page, flat and in focus. Everything fills in for you to check; nothing is saved until Review.</Body>
             {busy ? <Note>Reading the game plan…</Note> : (
               <>
-                <Go label="Take a picture of the game plan" onPress={() => fromPhoto('camera')} />
+                <Go label="Take a picture" onPress={() => fromPhoto('camera')} />
                 <Go ghost label="Choose a photo" onPress={() => fromPhoto('library')} />
               </>
             )}
@@ -197,30 +226,24 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
             </>
           )}
           {error && <ErrorBox text={error} />}
-          <Go ghost label="Type it in" onPress={() => { setError(null); setMode('form'); }} />
-          <Go ghost label="Import a baseline file" onPress={() => { setError(null); setMode('paste'); }} />
+          {/* Other ways in, one row each (Colby, 2026-10-12: the old JSON-only import was clunky). Choose a file takes any
+              picture or text file and sends it the right way; Paste text takes deck lines or a VSA file. */}
+          <Card style={[u.pad, { gap: 10 }]}>
+            <SectionHead title="Other ways" />
+            <Go ghost label="Choose a file" onPress={() => { void fromFile(); }} />
+            <Go ghost label="Paste text" onPress={() => { setError(null); setMode('paste'); }} />
+            <Go ghost label="Type it in" onPress={() => { setError(null); setMode('form'); }} />
+          </Card>
         </View>
       )}
 
       {mode === 'paste' && !imported && (
         <View style={{ gap: 12 }}>
-          <InfoNote><Note>Choose a VSA baseline file, or paste its text (for example one prepared for you or saved from another phone). Its text is read as data only.</Note></InfoNote>
-          <Go label="Choose a file" onPress={async () => {
-            setError(null);
-            const p = await pickTextFile();
-            if (p.ok === 'cancelled') return;
-            if (p.ok === false) { setError(p.error); return; }
-            setPaste(p.text);
-            const r = importBaseline(p.text, isTest);
-            if (r.ok) { setImported(r); setStep(LAST); } else setError(fewErrors(r.errors));
-          }} />
-          <TextInput value={paste} onChangeText={setPaste} multiline autoCorrect={false} autoCapitalize="none" accessibilityLabel="Baseline file text"
+          <Body>Paste the deck lines, like “DK12 H4: 53 BMW, 99 MB = 152 &gt; BMW Field, MBZ”. You check everything before it’s saved.</Body>
+          <TextInput value={paste} onChangeText={setPaste} multiline autoCorrect={false} autoCapitalize="none" accessibilityLabel="Pasted text"
             placeholder="Paste here" placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' }]} />
           <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />
-          <Go label="Review the baseline" disabled={paste.trim() === ''} onPress={() => {
-            const r = importBaseline(paste, isTest);
-            if (r.ok) { setError(null); setImported(r); setStep(LAST); } else setError(fewErrors(r.errors));
-          }} />
+          <Go label="Read it" disabled={paste.trim() === ''} onPress={() => fromText(paste)} />
           <Go ghost label="Back" onPress={() => { setError(null); setMode('start'); }} />
           {error && <ErrorBox text={error} />}
         </View>

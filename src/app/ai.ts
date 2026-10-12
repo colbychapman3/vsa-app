@@ -77,12 +77,18 @@ export async function readPhotos(from: 'camera' | 'library', paperwork = false):
     ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 1 })
     : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: 10, quality: 1 });
   if (r.canceled) return null;
+  return readImages(r.assets.map((a) => a.uri), paperwork);
+}
+
+// Pictures already on the phone (the photo picker's copies, or a PNG/JPG/HEIC chosen in Files) → the same read as readPhotos.
+export async function readImages(uris: string[], paperwork = false): Promise<{ pages: string[]; scans: Page[]; files: string[] }> {
+  if (!textReaderAvailable) throw new Error('Text reading is not in this build. Type the values instead.');
   const pages: string[] = [];
   const scans: Page[] = [];
   const files: string[] = [];
-  for (const a of r.assets) {
+  for (const uri of uris) {
     // Vision reads the raw pixels and ignores the photo's rotation tag, so save an upright copy first (temporary, not kept).
-    const upright = await (await ImageManipulator.manipulate(a.uri).renderAsync()).saveAsync({ compress: 1, format: SaveFormat.JPEG });
+    const upright = await (await ImageManipulator.manipulate(uri).renderAsync()).saveAsync({ compress: 1, format: SaveFormat.JPEG });
     const read = await readText(upright.uri, !paperwork);
     // Cells the reader skipped (a row with an amount but no deck): read each closely; same numeral rules as the tiles.
     const more = paperwork ? await readCells(upright.uri, gapCells(read)) : [];
