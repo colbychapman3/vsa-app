@@ -169,7 +169,7 @@ test('screen 04–05: Decks and deck sheet (tracker demo)', () => {
   assert.deepEqual([row('D7').pill, row('D7').low, row('D7').height], ['Skipped', true, { tone: 'red', text: '1.70 m · low deck, no vans' }]);
   assert.deepEqual(row('UPP').height, { tone: 'plain', text: 'Height 1.85 m' });
   assert.deepEqual(row('D12').hatches.map((h) => `${h.h} ${h.text}`), ['H4 Hyundai 87', 'H3 Hyundai 155', 'H2 Hyundai 65 + Kia 78', 'H1 Kia 72']);
-  assert.deepEqual(v.rows.map((r) => r.id), glovis.decks.map((d: { id: string }) => d.id)); // baseline order
+  assert.deepEqual(v.rows.map((r) => r.id).sort(), glovis.decks.map((d: { id: string }) => d.id).sort()); // the same decks; list order is tested in tests/deckListOrder.test.ts
 
   const sh = deckSheet(s.decks.find((d) => d.id === 'D9')!, glovis);
   assert.equal(sh.title, 'D9 · 398 autos');

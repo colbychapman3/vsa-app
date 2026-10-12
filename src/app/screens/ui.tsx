@@ -1,7 +1,7 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, InputAccessoryView, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import type { Banner } from '../view.ts';
 import { bcolor, color, elev, TAP, useEdge, useSun, useType } from '../theme.ts';
 
@@ -225,28 +225,28 @@ export const u = StyleSheet.create({
 
 // ---------- Form parts (tracker .seg, label.f, .go, .ghost, .err) ----------
 
-export function Field({ label, value, onChange, placeholder, keyboard = 'number-pad', note, maxLength }: {
+export function Field({ label, value, onChange, placeholder, keyboard = 'number-pad', note, maxLength, accessoryId }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string;
-  keyboard?: 'number-pad' | 'default' | 'numbers-and-punctuation'; note?: string; maxLength?: number;
+  keyboard?: 'number-pad' | 'default' | 'numbers-and-punctuation'; note?: string; maxLength?: number; accessoryId?: string;
 }) {
   const f = useType(), edge = useEdge();
   return (
     <View style={{ gap: 6, flex: 1 }}>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
-      <TextInput value={value} onChangeText={onChange} placeholder={placeholder} keyboardType={keyboard} maxLength={maxLength}
+      <TextInput value={value} onChangeText={onChange} placeholder={placeholder} keyboardType={keyboard} maxLength={maxLength} inputAccessoryViewID={accessoryId}
         style={[u.input, edge, { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
     </View>
   );
 }
 
 // A time box that starts empty. "Now" fills the phone's time; Colby can still edit it.
-export function TimeField({ label, value, onChange, onNow, required, hint }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void; required?: boolean; hint?: string }) {
+export function TimeField({ label, value, onChange, onNow, required, hint, accessoryId }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void; required?: boolean; hint?: string; accessoryId?: string }) {
   const f = useType();
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <TextInput value={value} onChangeText={onChange} placeholder="HH:MM" keyboardType="numbers-and-punctuation" maxLength={5}
+        <TextInput value={value} onChangeText={onChange} placeholder="HH:MM" keyboardType="numbers-and-punctuation" maxLength={5} inputAccessoryViewID={accessoryId}
           style={[u.input, { flex: 1, fontFamily: f.bodyMedium, fontSize: 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
         <Pressable onPress={onNow} style={[u.ghostBtn, { paddingHorizontal: 20 }]} accessibilityRole="button" accessibilityLabel={`${label}: now`}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>Now</Text>
@@ -298,6 +298,24 @@ export function Go({ label, onPress, ghost, disabled }: { label: string; onPress
       <Text style={{ fontFamily: ghost ? f.bodySemi : f.displaySemi, fontSize: ghost ? 15 : 18, color: ghost ? color.ink : color.onAction }}
         {...(/\s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 })}>{label}</Text>
     </Pressable>
+  );
+}
+
+// The form's main action, riding on top of the iOS keyboard while a box is being typed in (number pads have no Return key).
+// Each box of the form passes the same `accessoryId`. The Save button in the form itself never moves; this is a second way
+// to press the same action. The keyboard is put away first, so an error shows in the form instead of behind the keys.
+export function KeyboardSave({ id, label, onPress }: { id: string; label: string; onPress: () => void }) {
+  const f = useType();
+  if (Platform.OS !== 'ios') return null;
+  return (
+    <InputAccessoryView nativeID={id}>
+      <View style={{ backgroundColor: color.bg, borderTopWidth: 1, borderTopColor: bcolor.soft, paddingHorizontal: 16, paddingVertical: 8 }}>
+        <Pressable onPress={() => { Keyboard.dismiss(); onPress(); }} accessibilityRole="button" accessibilityLabel={label}
+          style={({ pressed }) => [u.goBtn, pressed && { opacity: 0.6 }]}>
+          <Text style={{ fontFamily: f.displaySemi, fontSize: 18, color: color.onAction, textAlign: 'center' }}>{label}</Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
   );
 }
 
