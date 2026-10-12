@@ -25,15 +25,15 @@ export function Search({ isTest, onClose }: { isTest: boolean; onClose: () => vo
   const [open, setOpen] = useState<Chunk | null>(null);
   const r = useMemo(() => search(INDEX, q), [q]);
   const src = open ? INDEX.sources.find((s) => s.doc === open.doc) : null;
-  const body = { fontFamily: f.body, fontSize: 16, color: color.ink, lineHeight: 23 };
+  const body = { fontFamily: f.body, fontSize: 17, color: color.ink, lineHeight: 23 };
   return (
     <Sheet title={open ? 'Passage' : 'Search'} isTest={isTest} onClose={onClose} scrollTopOn={open?.id ?? 'list'}>
       {open ? (
         <>
           <Go ghost label="‹ Results" onPress={() => setOpen(null)} />
           <Card style={[u.pad, { gap: 10 }]}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>{open.cite}</Text>
-            {open.flag ? <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.oInk, backgroundColor: color.oBg, borderColor: bcolor.orange, borderWidth: 1.5, borderRadius: 8, padding: 8, overflow: 'hidden' }}>{open.flag}</Text> : null}
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{open.cite}</Text>
+            {open.flag ? <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.oInk, backgroundColor: color.oBg, borderColor: bcolor.orange, borderWidth: 1.5, borderRadius: 8, padding: 8, overflow: 'hidden' }}>{open.flag}</Text> : null}
             <Marked text={open.text} toks={r.tokens} style={body} />
           </Card>
           {src ? <Note>{src.note}</Note> : null}
@@ -43,7 +43,7 @@ export function Search({ isTest, onClose }: { isTest: boolean; onClose: () => vo
         <>
           <TextInput value={q} onChangeText={setQ} placeholder="Search SOPs, protocol, glossary" placeholderTextColor={color.muted} accessibilityLabel="Search the knowledge pack"
             autoCorrect={false} autoCapitalize="none" returnKeyType="search" clearButtonMode="while-editing"
-            style={[u.input, { fontFamily: f.bodyMedium, fontSize: 18 }]} />
+            style={[u.input, { fontFamily: f.bodyMedium, fontSize: 17 }]} />
           {r.message ? <Card style={[u.pad, { gap: 4 }]}><Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{r.message}</Text><InfoNote><Note>Try other words. The app only answers from the documents in the pack and never guesses.</Note></InfoNote></Card> : null}
           {!r.hits.length && r.related.length > 0 && <InfoNote><Note>Closest passages, not an answer. Check them yourself:</Note></InfoNote>}
           {(r.hits.length ? r.hits : r.related).map((h) => (

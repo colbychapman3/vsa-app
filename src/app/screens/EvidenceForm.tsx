@@ -147,10 +147,10 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
 
   return (
     <View style={{ gap: 14 }}>
-      <Label>PHOTO TYPE</Label>
+      <Label>Photo type</Label>
       <Seg columns={2} value={type} onChange={setType} options={EVIDENCE_TYPES.map((t) => ({ value: t, label: `${TYPE_ICON[t]} ${TYPE_LABEL[t]}` }))} />
 
-      <Label>PHOTO</Label>
+      <Label>Photo</Label>
       {item && !camOn ? (
         <View style={{ gap: 10 }}>
           <Thumb path={item.photo} big />
@@ -180,11 +180,11 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
         </View>
       )}
 
-      <Label>DECK</Label>
+      <Label>Deck</Label>
       <Seg columns={4} value={deck || null} onChange={(d) => { setDeck(d); setHatch(''); }} options={state.decks.map((d) => ({ value: d.id, label: d.label }))} />
       {deck !== '' && (
         <>
-          <Label>HATCH</Label>
+          <Label>Hatch</Label>
           <Seg columns={4} value={hatch || null} onChange={setHatch} options={hatches.map((h) => ({ value: h.h, label: h.h }))} />
         </>
       )}
@@ -193,7 +193,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
 
       {type && needsReason(type) && (
         <>
-      <Label>REASON</Label>
+      <Label>Reason</Label>
       <Seg columns={1} value={reason} onChange={setReason} options={[...EVIDENCE_REASONS, 'Other'].map((r) => ({ value: r as string, label: r === 'Other' ? 'Other…' : r }))} />
       {reason === 'Other' && <Input label="Reason" value={other} onChange={setOther} maxLength={120} />}
         </>
@@ -208,13 +208,13 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
               <Body semi>{v}</Body>
               {c.ok && c.warning && <Note style={{ color: color.oInk }}>Does not pass the check digit; confirm it.</Note>}
             </View>
-            <Pressable onPress={() => setVins(vins.filter((x) => x !== v))} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`Remove VIN ${v}`}><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
+            <Pressable onPress={() => setVins(vins.filter((x) => x !== v))} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel={`Remove VIN ${v}`}><Text style={{ fontSize: 17, color: color.ink }}>✕</Text></Pressable>
           </View>
         );
       })}
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
         <View style={{ flex: 1 }}><Input label="VIN (17 characters)" value={vinText} onChange={setVinText} maxLength={17} caps /></View>
-        <Pressable onPress={addVin} style={[u.ghostBtn, { paddingHorizontal: 18 }]} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>Add VIN</Text></Pressable>
+        <Pressable onPress={addVin} style={[u.ghostBtn, { paddingHorizontal: 18 }]} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>Add VIN</Text></Pressable>
       </View>
       {ocrAvailable() && <Go ghost label="Scan a VIN with the camera" disabled={busy} onPress={scanVin} />}
       {found && (found.length === 0 ? <Note>No VIN found. Type it or scan again.</Note> : (
@@ -232,7 +232,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
       <Note>Typed or scanned exactly as on the car. A VIN is never corrected for you; a check digit that does not pass only warns.</Note>
 
       <View style={{ gap: 6 }}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>Notes (optional)</Text>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>Notes (optional)</Text>
         <TextInput value={notes} onChangeText={(t) => { setNotes(t); setTidy(null); }} multiline accessibilityLabel="Notes" placeholder="Type what you saw" placeholderTextColor={color.muted}
           style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 110, paddingTop: 12, textAlignVertical: 'top' }]} />
       </View>
@@ -240,7 +240,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
       {aiNote && <Note>{aiNote}</Note>}
       {tidy && (
         <View style={{ gap: 8 }}>
-          <Label wrap>SUGGESTED WORDING · CHECK IT</Label>
+          <Label wrap>Suggested wording · check it</Label>
           <Body>{tidy}</Body>
           <Seg options={[{ value: 'mine', label: 'Keep mine' }, { value: 'tidy', label: 'Use this' }]} columns={2} value={null} onChange={(x) => { if (x === 'tidy') setNotes(tidy); setTidy(null); }} />
         </View>
@@ -248,7 +248,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
 
       {item && (
         <>
-          <Label wrap>REASON FOR A CHANGE OR A REMOVAL</Label>
+          <Label wrap>Reason for a change or a removal</Label>
           <Seg columns={2} value={why} onChange={setWhy} options={[...E.EVIDENCE_CHANGE_REASONS, ...E.EVIDENCE_REMOVE_REASONS, 'Other'].map((r) => ({ value: r as string, label: r === 'Other' ? 'Other…' : r }))} />
           {why === 'Other' && <Input label="Reason" value={whyOther} onChange={setWhyOther} maxLength={120} />}
         </>
@@ -277,7 +277,7 @@ function Input({ label, value, onChange, maxLength, caps }: { label: string; val
   const f = useType();
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
       <TextInput value={value} onChangeText={onChange} maxLength={maxLength} accessibilityLabel={label} autoCorrect={false} autoCapitalize={caps ? 'characters' : 'sentences'}
         placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.bodyMedium, fontSize: 17 }]} />
     </View>
@@ -292,7 +292,7 @@ function Thumb({ path, big, small }: { path: string; big?: boolean; small?: bool
 
 const s = StyleSheet.create({
   cam: { width: '100%', aspectRatio: 3 / 4, maxHeight: 460, borderRadius: 12, backgroundColor: color.ink, overflow: 'hidden' },
-  thumb: { width: '100%', height: 160, borderRadius: 10, backgroundColor: color.soft },
+  thumb: { width: '100%', height: 160, borderRadius: 12, backgroundColor: color.soft },
   mini: { width: 72, height: 72, borderRadius: 8, backgroundColor: color.soft },
   vin: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   card: { gap: 4, padding: 12, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card, minHeight: 56 },

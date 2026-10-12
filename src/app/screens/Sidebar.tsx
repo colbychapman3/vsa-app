@@ -1,4 +1,4 @@
-// Left-side menu: New vessel, the vessel list, Settings. An overlay inside the main screen, not a Modal,
+// Left-side menu: New vessel, the vessel list, Send update, Settings. An overlay inside the main screen, not a Modal,
 // so it can never stack on a sheet; New vessel and Settings close it first and then open their own sheet.
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, Animated, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -10,8 +10,8 @@ import { Chip, Go } from './ui.tsx';
 
 const n = (x: number | null) => (x == null ? 'unknown' : x.toLocaleString('en-US'));
 
-export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, onComplete, canComplete, onLessons }: {
-  rows: VesselRow[]; currentId: string; onClose: () => void; onOpen: (id: string) => void; onNew: () => void; onSettings: () => void; onComplete: () => void; canComplete: boolean; onLessons: () => void;
+export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, onComplete, canComplete, onLessons, onUpdate }: {
+  rows: VesselRow[]; currentId: string; onClose: () => void; onOpen: (id: string) => void; onNew: () => void; onSettings: () => void; onComplete: () => void; canComplete: boolean; onLessons: () => void; onUpdate: () => void;
 }) {
   const f = useType();
   const insets = useSafeAreaInsets();
@@ -56,15 +56,16 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, o
         <View style={s.top}>
           <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flex: 1 }} numberOfLines={1}>Vessels</Text>
           <Pressable onPress={onClose} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close menu">
-            <Text style={{ fontSize: 18, color: color.ink }}>✕</Text>
+            <Text style={{ fontSize: 17, color: color.ink }}>✕</Text>
           </Pressable>
         </View>
         <Go label="New vessel" onPress={onNew} />
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 18, paddingVertical: 8 }}>
           {list('Live vessels', live)}
           {list('Test vessels', test)}
-          {live.length + test.length === 0 && <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}>No vessels yet. Tap New vessel.</Text>}
+          {live.length + test.length === 0 && <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted }}>No vessels yet. Tap New vessel.</Text>}
         </ScrollView>
+        <Go ghost label="Send update" onPress={onUpdate} />
         {canComplete && <Go ghost label="Closeout…" onPress={onComplete} />}
         <Go ghost label="Lessons from past ships" onPress={onLessons} />
         <Go ghost label="Settings" onPress={onSettings} />
@@ -77,8 +78,8 @@ const s = StyleSheet.create({
   panel: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: color.bg, borderRightWidth: 1, borderRightColor: bcolor.line, paddingHorizontal: 16, gap: 12 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
-  sec: { fontSize: 13, letterSpacing: 0.8, color: color.muted },
-  row: { minHeight: TAP, borderRadius: 14, borderWidth: 1, borderColor: bcolor.line, backgroundColor: color.card, paddingVertical: 10, paddingHorizontal: 14, gap: 4, justifyContent: 'center' },
+  sec: { fontSize: 13, color: color.muted },
+  row: { minHeight: TAP, borderRadius: 12, borderWidth: 1, borderColor: bcolor.line, backgroundColor: color.card, paddingVertical: 10, paddingHorizontal: 14, gap: 4, justifyContent: 'center' },
   rowOn: { borderColor: bcolor.ink, borderWidth: 2 },
   chips: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
 });

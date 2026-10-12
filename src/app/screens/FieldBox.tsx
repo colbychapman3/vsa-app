@@ -11,7 +11,7 @@ export function FieldBox({ v }: { v: ReturnType<typeof snapshot> }) {
   return (
     <Card style={[u.pad, { gap: 10 }]}>
       <View style={u.secH}>
-        <Label style={{ flexShrink: 1 }}>FIELD RECORD</Label>
+        <Label style={{ flexShrink: 1 }}>Field record</Label>
         <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>official counts</Text>
       </View>
       <FillNumber size={84} pct={h.pct} fill={color.ink}>{h.value}</FillNumber>
@@ -31,11 +31,11 @@ export function FieldBox({ v }: { v: ReturnType<typeof snapshot> }) {
             </Text>
           </View>
         ))}
-        {v.fieldRecord.brands.length > 0 && <Label>FIELD / CLEARED BY BRAND</Label>}
+        {v.fieldRecord.brands.length > 0 && <Label>Field / cleared by brand</Label>}
         {v.fieldRecord.brands.map((b) => (
           <View key={b.name} style={u.kv}>
             <Body semi style={{ maxWidth: '35%' }}>{b.name}</Body>
-            <Text style={{ flex: 1, textAlign: 'right', fontFamily: f.body, fontSize: 14, color: b.diff.tone === 'red' ? color.red : color.ink }}>
+            <Text style={{ flex: 1, textAlign: 'right', fontFamily: f.body, fontSize: 15, color: b.diff.tone === 'red' ? color.red : color.ink }}>
               {b.field} / {b.cleared}{b.diff.text !== '—' && b.diff.text !== '0' ? ` · ${b.diff.text}` : ''}
             </Text>
           </View>

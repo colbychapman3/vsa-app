@@ -143,7 +143,7 @@ The Brain holds past session summaries: decisions, reasons, and open threads acr
 - **Builds:** EAS Build in the cloud (no Mac). Phone checks happen on TestFlight store builds; the `development` profile exists for native debugging. EAS is a paid plan with a monthly build quota, so batch changes into one build per checkpoint.
 - **No paid online AI.** Ask my AI hands questions to Colby's own AI app through the share sheet; no API, no recurring cost (declined 2026-10-01).
 - **Web output:** optional later, for view-only sharing with supervisors.
-- **Field conditions:** readable in direct sun with gloves: large tap targets, high contrast, light hi-vis theme matching the VSA Live tracker, plus Night mode at 7:1 contrast.
+- **Field conditions:** readable in direct sun first (Colby, 2026-10-12: gloves are not a design driver): high contrast, big numbers, 44 pt taps with large Log and Save, light hi-vis theme matching the VSA Live tracker, plus Night mode at 7:1 contrast.
 
 ## Gotchas
 

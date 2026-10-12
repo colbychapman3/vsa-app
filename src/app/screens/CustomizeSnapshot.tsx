@@ -61,7 +61,7 @@ function Row({ id, layout, rowH, onMeasure, onLayout, latest }: { id: BoxId; lay
           <Step label="▲" a11y={`Move ${BOX_TITLE[id]} up`} disabled={hidden || first} onPress={() => nudge(-1)} f={f.bodySemi} />
           <Step label="▼" a11y={`Move ${BOX_TITLE[id]} down`} disabled={hidden || atEnd} onPress={() => nudge(1)} f={f.bodySemi} />
         </View>
-        <Body semi style={{ fontSize: 18 }}>{BOX_TITLE[id]}{pinned ? ' (always shown)' : ''}</Body>
+        <Body semi style={{ fontSize: 17 }}>{BOX_TITLE[id]}{pinned ? ' (always shown)' : ''}</Body>
         <Seg<Where> columns={pinned ? 4 : 3} value={where} onChange={set} options={options} />
       </Card>
     </Animated.View>
@@ -72,7 +72,7 @@ function Step({ label, a11y, disabled, onPress, f }: { label: string; a11y: stri
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityLabel={a11y}
       style={({ pressed }) => [{ width: TAP, height: TAP, borderRadius: 12, borderWidth: 1, borderColor: bcolor.line, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.35 : 1 }, pressed && u.pressed]}>
-      <Text style={{ fontSize: 20, color: color.ink, fontFamily: f }}>{label}</Text>
+      <Text style={{ fontSize: 22, color: color.ink, fontFamily: f }}>{label}</Text>
     </Pressable>
   );
 }

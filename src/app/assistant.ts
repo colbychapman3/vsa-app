@@ -131,7 +131,7 @@ export function answer(i: Intent, s: State, b: Baseline, nowMin: number, index: 
   switch (i.k) {
     case 'remaining': {
       const h = snap().hero;
-      return { title: h.label === 'VESSEL REMAINING' ? 'Vessel remaining' : 'Field balance', lines: [`${h.value} ${h.of}`, ...(h.unknownNote ? [h.unknownNote] : []), ...h.rows.map((r) => `${r.k}: ${r.v}`)], tags: [], where: 'snap' };
+      return { title: h.label, lines: [`${h.value} ${h.of}`, ...(h.unknownNote ? [h.unknownNote] : []), ...h.rows.map((r) => `${r.k}: ${r.v}`)], tags: [], where: 'snap' };
     }
     case 'pace': {
       const ha = snap().ha, hv = hourlyView(s, b), last = hv.rows.at(-1);

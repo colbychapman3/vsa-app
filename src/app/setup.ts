@@ -62,6 +62,7 @@ export function buildBaseline(f: SetupForm): Built {
   const decks: Deck[] = f.decks.map((d, i) => {
     const label = d.label.trim();
     if (!label) errors.push(`Deck ${i + 1} needs a label.`);
+    else if (/^D$/i.test(label)) errors.push(`Deck ${i + 1} is just "D": the deck number was not read. Type it (for example D5).`);
     let id = slug(label) || `DECK-${i + 1}`;
     for (let n = 2; seen.has(id); n++) id = `${slug(label)}-${n}`;
     seen.add(id);

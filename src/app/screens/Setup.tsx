@@ -317,7 +317,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
                 <Body semi>Destination</Body>
                 <Pressable onPress={() => setOpenDrop(openDrop === i ? null : i)} accessibilityRole="button" accessibilityLabel="Choose destination"
                   style={({ pressed }) => [u.input, { minHeight: TAP, justifyContent: 'center' }, pressed && { opacity: 0.6 }]}>
-                  <Text style={{ fontFamily: f.bodyMedium, fontSize: 18, color: a.destination ? color.ink : color.muted }}>{a.destination || 'Choose destination'}  ▾</Text>
+                  <Text style={{ fontFamily: f.bodyMedium, fontSize: 17, color: a.destination ? color.ink : color.muted }}>{a.destination || 'Choose destination'}  ▾</Text>
                 </Pressable>
                 {openDrop === i && (['N', 'S'] as const).map((side) => (
                   <View key={side} style={{ gap: 4 }}>
@@ -328,7 +328,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
                         <Pressable key={d.name} onPress={() => { setAlloc(i, { destination: d.name }); setOpenDrop(null); }} accessibilityRole="button"
                           style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: bcolor.row }, pressed && { opacity: 0.6 }]}>
                           <Text style={{ fontFamily: f.bodyMedium, fontSize: 17, color: color.ink, flexShrink: 1 }}>{d.name}</Text>
-                          <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}>{mi == null ? '' : `${mi.toFixed(2)} mi`}</Text>
+                          <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted }}>{mi == null ? '' : `${mi.toFixed(2)} mi`}</Text>
                         </Pressable>
                       );
                     })}
@@ -372,7 +372,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
                       return (
                         <Pressable key={h} onPress={() => toggleHatch(i, h)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`Hatch ${h}`}
                           style={({ pressed }) => [u.segBtn, { flexBasis: '22%' }, on && u.segOn, pressed && u.pressed]}>
-                          <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: on ? color.bg : color.ink }}>{h}</Text>
+                          <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: on ? color.bg : color.ink }}>{h}</Text>
                         </Pressable>
                       );
                     })}

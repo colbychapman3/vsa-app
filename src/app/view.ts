@@ -138,8 +138,8 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   const nextStart = s.plan.nextStart ?? b.start;
 
   const banners: Banner[] = [];
-  if (s.ops.shiftEnded) banners.push({ tone: 'break', title: 'SHIFT ENDED', sub: `At ${s.ops.shiftEnd} · Day ${s.ops.day + 1} starts ${nextStart}`, trackable: false, tracked: false });
-  else if (s.ops.onBreak) banners.push({ tone: 'break', title: 'ON BREAK', sub: `From ${s.ops.breakStart}`, trackable: false, tracked: false });
+  if (s.ops.shiftEnded) banners.push({ tone: 'break', title: 'Shift ended', sub: `At ${s.ops.shiftEnd} · Day ${s.ops.day + 1} starts ${nextStart}`, trackable: false, tracked: false });
+  else if (s.ops.onBreak) banners.push({ tone: 'break', title: 'On break', sub: `From ${s.ops.breakStart}`, trackable: false, tracked: false });
   if (s.field > s.start) banners.push(alert('red', `Field count exceeds starting cargo by ${fmt(s.field - s.start)}`, `Field ${fmt(s.field)} · Starting ${fmt(s.start)} · Check hourly entries`, 'hourly'));
   if (recon) {
     const v = s.variance;
@@ -243,7 +243,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     : ne.stale ? { tone: 'orange', text: 'No count in over 2 working hours', sub: 'Log one to estimate again.', forecast: false } : null;
   const hero = {
     estimate,
-    label: known ? 'VESSEL REMAINING' : 'FIELD BALANCE',
+    label: known ? 'Vessel remaining' : 'Field balance',
     value: fmt(known ? s.vesselRemaining : s.fieldBalance),
     of: `of ${fmt(s.start)} autos · ${pct == null ? '—' : pct.toFixed(1)}%${known ? ' complete' : ''}`,
     // Under the bar: how many are done (left, under the dark part) and how many to go (right). Both come from the same ledger as the headline.

@@ -75,7 +75,7 @@ function VanRowView({ r, onOpen }: { r: Row; onOpen: () => void }) {
     <Pressable onPress={onOpen} disabled={r.removed} accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.status}. Edit`}
       style={({ pressed }) => [{ minHeight: TAP, gap: 4, paddingVertical: 10, borderTopWidth: 1, borderTopColor: bcolor.row, opacity: r.removed ? 0.5 : 1 }, pressed && u.pressed]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <Text style={{ fontFamily: f.display, fontSize: 24, color: color.ink }}>{r.title}</Text>
+        <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }}>{r.title}</Text>
         <Chip text={r.status} tone={r.statusKey === 'out' ? 'orange' : 'plain'} />
         {r.lasher && <Chip text="Lasher van" />}
         {r.gassed && <Chip text={r.gassed.text} tone={r.gassed.tone === 'red' ? 'red' : 'plain'} />}
@@ -111,12 +111,12 @@ function CreateSheet({ more, state, isTest, save, onClose }: { more: boolean; st
         <>
           <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel="Choose the number of vans"
             style={({ pressed }) => [u.input, { minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
-            <Text style={{ fontFamily: f.bodyMedium, fontSize: 18, color: n != null ? color.ink : color.muted }}>{n != null ? `${n} van${n === 1 ? '' : 's'}` : 'Choose 1 to ' + room}  ▾</Text>
+            <Text style={{ fontFamily: f.bodyMedium, fontSize: 17, color: n != null ? color.ink : color.muted }}>{n != null ? `${n} van${n === 1 ? '' : 's'}` : 'Choose 1 to ' + room}  ▾</Text>
           </Pressable>
           {open && Array.from({ length: room }, (_, i) => i + 1).map((k) => (
             <Pressable key={k} onPress={() => { setN(k); setOpen(false); }} accessibilityRole="button"
               style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: bcolor.row }, pressed && u.pressed]}>
-              <Text style={{ fontFamily: f.bodyMedium, fontSize: 18, color: color.ink }}>{k}</Text>
+              <Text style={{ fontFamily: f.bodyMedium, fontSize: 17, color: color.ink }}>{k}</Text>
             </Pressable>
           ))}
           {error && <ErrorBox text={error} />}
@@ -189,7 +189,7 @@ function EditSheet({ id, opDate, state, isTest, save, onClose }: { id: string; o
       {gassed === 'gassed' && <TimeField label="Gassed at (optional)" value={gassedAt} onChange={setGassedAt} onNow={nowT(setGassedAt)} />}
       {gassed === 'not_gassed' && <Field label="Why not gassed" note="optional" value={gassedNote} onChange={setGassedNote} keyboard="default" maxLength={200} />}
       <View style={{ gap: 6 }}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>Remarks</Text>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>Remarks</Text>
         <TextInput value={remarks} onChangeText={setRemarks} multiline maxLength={300} accessibilityLabel="Remarks" placeholder="Anything about this van" placeholderTextColor={color.muted}
           style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 80, paddingTop: 12, textAlignVertical: 'top' }]} />
       </View>

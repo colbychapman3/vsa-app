@@ -66,17 +66,17 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
           <View style={s.line}>
             <Pill text={v.pill} />
             <Text style={{ marginLeft: 'auto' }} numberOfLines={1}>
-              <Text style={{ fontFamily: f.display, fontSize: 30, color: color.ink }}>{v.remaining}</Text>
-              <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}> remaining</Text>
+              <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }}>{v.remaining}</Text>
+              <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted }}> remaining</Text>
             </Text>
           </View>
           <View style={s.chips}><Chip text={v.height.text} tone={v.height.tone} /><Note>{v.possible}</Note></View>
           {v.split && <Note>Deck split: {v.split}. Counts per hatch are not on the paperwork.</Note>}
           {v.summary.map((r) => (
             <View key={r.h} style={s.sum}>
-              <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink, maxWidth: '45%' }} numberOfLines={1} adjustsFontSizeToFit>{r.h}</Text>
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink, maxWidth: '45%' }} numberOfLines={1} adjustsFontSizeToFit>{r.h}</Text>
               <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>{r.text}</Text>
+                <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{r.text}</Text>
                 <Note>{r.brands}</Note>
               </View>
             </View>
@@ -85,7 +85,7 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
           <InfoNote><Note>Deck heights are confirmed on the Plan tab.</Note></InfoNote>
 
           <View style={s.rule} />
-          <Label>EDIT · STATUS</Label>
+          <Label>Edit · status</Label>
           <Seg options={STATUSES.map((x) => ({ value: x, label: STATUS_PILL[x] }))} value={status} onChange={setStatus} />
           {status === 'notStarted' && (
             <Pressable onPress={() => setSkipped(!skipped)} style={s.check} accessibilityRole="checkbox" accessibilityState={{ checked: skipped }}>
@@ -96,7 +96,7 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
 
           {counted ? (
             <>
-              <Label wrap>REMAINING BY HATCH (H4 → H1) · CLEAR A BOX IF UNKNOWN</Label>
+              <Label wrap>Remaining by hatch (H4 → H1) · clear a box if unknown</Label>
               <View style={s.grid}>
                 {d.hatches.map((h, i) => (
                   <View key={h.h} style={s.cell}>
@@ -127,7 +127,7 @@ const s = StyleSheet.create({
   sum: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   rule: { height: 2, backgroundColor: color.ink, opacity: 0.15 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
-  box: { width: 28, height: 28, borderRadius: 6, borderWidth: 2, borderColor: bcolor.ink, alignItems: 'center', justifyContent: 'center' },
+  box: { width: 28, height: 28, borderRadius: 8, borderWidth: 2, borderColor: bcolor.ink, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: color.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cell: { flexBasis: '47%', flexGrow: 1 },

@@ -183,14 +183,14 @@ export function Plan({ vesselId, state, baseline, isTest, save, backup, reports,
           <Chip text={status.text} tone={status.tone} />
         </View>
         <InfoNote><Note>Each report is a PDF through the share sheet. Unknowns print as unknown. A report is INTERIM until you mark the vessel complete; at 0 remaining it reads “ready to close, not confirmed”.</Note></InfoNote>
-        <Label>SHIFT REPORTS</Label>
+        <Label>Shift reports</Label>
         <ReportRow title="Break / shift-end report" sub="Ship vs field at a break or end of shift" busy={making === 'break'} onPress={() => makeReport('break', () => reports.onReport('break'))} />
         <ReportRow title="Vessel completion report" sub="Totals, notes and open items" busy={making === 'completion'} onPress={() => makeReport('completion', () => reports.onReport('completion'))} />
         <Pressable onPress={() => setNotesOpen(true)} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingLeft: 14 }, pressed && u.pressed]}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>Completion report notes ›</Text>
         </Pressable>
         {/* Photo reports exist only for photo types that have photos. */}
-        {photoTypesPresent(state).length > 0 && <Label>PHOTO REPORTS</Label>}
+        {photoTypesPresent(state).length > 0 && <Label>Photo reports</Label>}
         {photoTypesPresent(state).map((t) => {
           const r = EVIDENCE_REPORTS[t];
           return <ReportRow key={r.kind} title={r.title} sub="Every photo with its details" busy={making === r.kind} onPress={() => makeReport(r.kind, () => reports.onEvidenceReport(r.kind))} />;
@@ -275,7 +275,7 @@ export function VesselCards({ state, baseline, isTest, save, onNotice }: { state
           <Card>
             {v.destinations.rows.map((d, i) => (
               <View key={d.name} style={[s.row, i > 0 && s.rowLine]}>
-                <View style={u.secH}><Body semi style={{ fontSize: 16, flexShrink: 1 }}>{d.name}</Body><Big size={26}>{d.autos}</Big></View>
+                <View style={u.secH}><Body semi style={{ fontSize: 17, flexShrink: 1 }}>{d.name}</Body><Big size={26}>{d.autos}</Big></View>
                 <Note>{d.note}</Note>
               </View>
             ))}
@@ -310,7 +310,7 @@ function ShiftSheet({ state, baseline, isTest, save, onClose }: { isTest: boolea
       </View>
       {mode === 'two' && (
         <View style={{ gap: 8 }}>
-          <Label>DAY 1 ENDS ON WHICH SIDE?</Label>
+          <Label>Day 1 ends on which side?</Label>
           <Seg columns={2} value={side} onChange={setSide} options={[{ value: 'N', label: 'Northside (−15)' }, { value: 'S', label: 'Southside (−30)' }]} />
           <InfoNote><Note>The forecast stops that many minutes before the shift end.</Note></InfoNote>
         </View>
@@ -388,7 +388,7 @@ function StartSheet({ state, baseline, isTest, day: first, save, onClose }: { is
       <Note>Planned start: {cur.planned}. Only a later start can be recorded.</Note>
       <TimeField required label={`Day ${day} work actually started at`} value={time} onChange={setTime} onNow={now} />
       <View style={{ gap: 8 }}>
-        <Label>CAUSE (OPTIONAL)</Label>
+        <Label>Cause (optional)</Label>
         <Seg columns={2} value={cause} onChange={setCause} options={[...E.START_CAUSES, 'Other'].map((r) => ({ value: r as string, label: r === 'Other' ? 'Other…' : r }))} />
         {cause === 'Other' && <Field label="Cause" value={causeOther} onChange={setCauseOther} keyboard="default" maxLength={120} />}
       </View>
@@ -446,7 +446,7 @@ function PlanNoteSheet({ state, baseline, isTest, noteId, save, onClose }: { isT
     <Sheet title={note ? 'Edit note' : 'Add a note'} isTest={isTest} onClose={() => onClose()}>
       <Field label="Title (optional)" value={title} onChange={setTitle} keyboard="default" maxLength={80} />
       <View style={{ gap: 6 }}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>Note</Text>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>Note</Text>
         <TextInput value={text} onChangeText={setText} multiline accessibilityLabel="Note text" placeholder="Type the note" placeholderTextColor={color.muted}
           style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 140, paddingTop: 12, textAlignVertical: 'top' }]} />
       </View>
@@ -465,7 +465,7 @@ function PlanNoteSheet({ state, baseline, isTest, noteId, save, onClose }: { isT
       {note && <Go ghost label="Remove this note" onPress={() => run((c) => E.removeNoteEvents(c, note.id, why()), 'Note removed. It stays in the log, marked removed.')} />}
       {note && note.history.length > 1 && (
         <View style={{ gap: 6 }}>
-          <Label>EARLIER VERSIONS</Label>
+          <Label>Earlier versions</Label>
           {note.history.slice(0, -1).reverse().map((h, i) => <Note key={i}>{h.title ? `${h.title}: ` : ''}{h.text} ({h.at})</Note>)}
         </View>
       )}
@@ -575,7 +575,7 @@ function NotesSheet({ isTest, reports, onClose }: { isTest: boolean; reports: Re
       <Note>Short notes for sections the app has no data for. Empty prints “Not recorded.”</Note>
       {NOTE_SECTIONS.map((sec) => (
         <View key={sec} style={{ gap: 6 }}>
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }}>{sec}</Text>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{sec}</Text>
           <TextInput value={text[sec] ?? ''} onChangeText={(x) => setText({ ...text, [sec]: x })} onEndEditing={() => reports.onNote(sec, text[sec] ?? '')} onBlur={() => reports.onNote(sec, text[sec] ?? '')}
             multiline accessibilityLabel={sec} placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 80, paddingTop: 12, textAlignVertical: 'top' }]} />
         </View>

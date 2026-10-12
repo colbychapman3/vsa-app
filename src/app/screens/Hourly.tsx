@@ -28,7 +28,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
           ))}
         </>}
         back={<View style={{ flex: 1, gap: 6 }}>
-          <Label>HOW THESE ARE WORKED OUT</Label>
+          <Label>How these are worked out</Label>
           <Body semi style={{ color: HA_COLOR }}>H.A.: {v.stats.haNote}. Every logged hour counts as a full hour.</Body>
           <Body semi style={{ color: paceColor }}>Pace: {v.stats.paceNote}. Only the minutes worked count, so the short hour before a break is not held against it.</Body>
           <Body>Total: field count.</Body>
@@ -38,7 +38,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
       {v.unsetShort && (
         <View style={s.warn}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.oInk }}>{v.unsetShort}</Text>
-          <Text style={{ fontFamily: f.body, fontSize: 14, color: color.oInk }}>That hour is left out of pace and ETA until you pick when production stopped.</Text>
+          <Text style={{ fontFamily: f.body, fontSize: 15, color: color.oInk }}>That hour is left out of pace and ETA until you pick when production stopped.</Text>
         </View>
       )}
 
@@ -95,7 +95,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
         <Bar small pct={r.barPct} />
         {r.short && (
           <View style={s.tagRow}>
-            <Text style={[s.tag, { borderColor: bcolor.orange, color: color.oInk, fontFamily: f.bodySemi }]}>SHORT HOUR</Text>
+            <Text style={[s.tag, { borderColor: bcolor.orange, color: color.oInk, fontFamily: f.bodySemi }]}>Short hour</Text>
             {r.shortUnset && <Note style={{ color: color.oInk, fontWeight: '600' }}>{r.short}</Note>}
           </View>
         )}
@@ -103,7 +103,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
         {r.hhTags.map((t) => <Note key={t} style={{ color: color.blue }}>{t}</Note>)}
         {r.corrected && (
           <View style={s.tagRow}>
-            <Text style={[s.tag, { borderColor: bcolor.blue, color: color.blue, fontFamily: f.bodySemi }]}>CORRECTED</Text>
+            <Text style={[s.tag, { borderColor: bcolor.blue, color: color.blue, fontFamily: f.bodySemi }]}>Corrected</Text>
             <Note>{r.corrected}</Note>
           </View>
         )}
@@ -111,7 +111,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
         {r.photos.map((p) => <Note key={p} style={{ color: color.ink }}>Photo: {p}</Note>)}
         {details.length > 0 && (
           <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.blue }}>{open ? 'Hide details ▴' : 'Details ▾'}</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{open ? 'Hide details ▴' : 'Details ▾'}</Text>
           </Pressable>
         )}
         {open && details.map((d) => <Note key={d}>{d}</Note>)}
@@ -146,12 +146,12 @@ const s = StyleSheet.create({
   warn: { backgroundColor: color.oBg, borderBottomWidth: 3, borderBottomColor: bcolor.orange, borderRadius: 12, padding: 12, gap: 2 },
   tr: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tdLine: { borderTopWidth: 1, borderTopColor: bcolor.row, paddingTop: 8 },
-  th: { flex: 1, fontSize: 12, letterSpacing: 0.7, color: color.muted },
+  th: { flex: 1, fontSize: 13, color: color.muted },
   td: { flex: 1 },
   num: { textAlign: 'right' },
   dayHead: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: color.soft, fontSize: 13, color: color.ink },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8 },
   rowLine: { borderTopWidth: 1, borderTopColor: bcolor.row },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  tag: { fontSize: 11, letterSpacing: 0.9, borderWidth: 1.5, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  tag: { fontSize: 13, borderWidth: 1.5, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
 });

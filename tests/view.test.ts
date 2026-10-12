@@ -73,7 +73,7 @@ test('screen 01: Snapshot mid-shift (tracker demo)', () => {
   assert.deepEqual(v.banners, []);
   assert.deepEqual(v.strip, { breakAt: '12:00', clearBy: [{ side: 'North', at: '11:45' }], finish: { ok: false, text: 'Runs past this break (est.)' } }); // Design B: the finish against the cutoff, not the clock time
   assert.equal(v.openIssues, 1);
-  assert.equal(v.hero.label, 'VESSEL REMAINING');
+  assert.equal(v.hero.label, 'Vessel remaining');
   assert.equal(v.hero.value, '512');
   assert.equal(v.hero.of, 'of 1,969 autos · 74.0% complete');
   assert.deepEqual(v.hero.rows, [{ k: 'Ship progress', v: '1,457' }, { k: 'Field record', v: '1,419' }, { k: 'Gap (in transit)', v: '38', sub: 'of 70 drivers' }]);
@@ -110,7 +110,7 @@ test('screen 03: Snapshot at lunch — ship = field, matches clerk', () => {
   const v = snapshot(s, glovis, 12 * 60 + 10);
   assert.equal(subtitles(s, glovis).snap, '9/21/2026 · Field counts through 12:00');
   assert.deepEqual(v.banners.map((b) => [b.tone, b.title, b.sub]), [
-    ['break', 'ON BREAK', 'From 12:00'],
+    ['break', 'On break', 'From 12:00'],
     ['green', 'Break reconciliation: ship and field match', 'Both at 930'],
   ]);
   assert.equal(v.strip, null);
@@ -149,7 +149,7 @@ test('snapshot: reconciliation banners by brand, tracked flag, clerk off, foreca
 test('snapshot: unknown vessel remaining shows field balance, never a number for vessel', () => {
   const s = state(toEvents({ name: 'x', decks: { ...DEMO_DECKS, D9: { status: 'active' } }, hourly: DEMO_HOURS }, OP));
   const v = snapshot(s, glovis, 11 * 60);
-  assert.equal(v.hero.label, 'FIELD BALANCE');
+  assert.equal(v.hero.label, 'Field balance');
   assert.equal(v.hero.value, '556'); // 1,969 − 1,413 field (no correction in this scenario)
   assert.equal(v.hero.unknownNote, 'Vessel remaining unknown · needs a remaining count on D9');
   assert.ok(v.eta.notes.includes('Based on field balance'));

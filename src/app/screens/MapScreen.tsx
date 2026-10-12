@@ -144,7 +144,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
           <Pressable onPress={() => { setSel(null); setPts([]); setReady((x) => !x); }} style={({ pressed }) => [s.btn, ready && s.btnOn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityState={{ selected: ready }} accessibilityLabel="Measure a rough distance on the map">
             <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: ready ? color.bg : color.ink }} numberOfLines={1}>Measure</Text>
           </Pressable>
-          <Pressable onPress={onClose} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close map"><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
+          <Pressable onPress={onClose} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close map"><Text style={{ fontSize: 17, color: color.ink }}>✕</Text></Pressable>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.strip} contentContainerStyle={s.stripIn}>
@@ -197,7 +197,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
               <View style={[s.ctl, measuring && { bottom: insets.bottom + 92 }]}>
                 <Pressable onPress={() => zoomAbout(box.w / 2, box.h / 2, 1.6)} style={({ pressed }) => [s.round, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Zoom in"><Text style={s.rt}>+</Text></Pressable>
                 <Pressable onPress={() => zoomAbout(box.w / 2, box.h / 2, 1 / 1.6)} style={({ pressed }) => [s.round, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Zoom out"><Text style={s.rt}>−</Text></Pressable>
-                <Pressable onPress={fitAll} style={({ pressed }) => [s.round, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Fit the whole map"><Text style={[s.rt, { fontSize: 14, fontFamily: f.bodySemi }]}>Fit</Text></Pressable>
+                <Pressable onPress={fitAll} style={({ pressed }) => [s.round, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Fit the whole map"><Text style={[s.rt, { fontSize: 15, fontFamily: f.bodySemi }]}>Fit</Text></Pressable>
               </View>
             </>
           )}
@@ -218,7 +218,7 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
         ) : ready ? (
           <View style={[s.panel, { paddingBottom: insets.bottom + 12 }]}>
             <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }}>Measure a rough distance</Text>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.oInk }}>Start opens the map full screen. Tap a point at the start, then at every turn.</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.oInk }}>Start opens the map full screen. Tap a point at the start, then at every turn.</Text>
             <InfoNote><Note>Lot outlines and the map scale are approximate (about plus or minus 10%). For route distances use the berth miles on each lot's card.</Note></InfoNote>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}><Go ghost label="Cancel" onPress={() => setReady(false)} /></View>
@@ -229,15 +229,15 @@ export function MapScreen({ onClose }: { onClose: () => void }) {
           <View style={[s.panel, { paddingBottom: insets.bottom + 12, maxHeight: '42%' }]}>
             <ScrollView contentContainerStyle={{ gap: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 22, height: 22, borderRadius: 6, backgroundColor: KIND_COLOR[sel.kind], borderWidth: 1, borderColor: bcolor.ink }} />
+                <View style={{ width: 22, height: 22, borderRadius: 8, backgroundColor: KIND_COLOR[sel.kind], borderWidth: 1, borderColor: bcolor.ink }} />
                 <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flex: 1 }} numberOfLines={1} adjustsFontSizeToFit>{c.title}</Text>
-                <Pressable onPress={() => setSel(null)} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close card"><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
+                <Pressable onPress={() => setSel(null)} style={({ pressed }) => [s.x, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close card"><Text style={{ fontSize: 17, color: color.ink }}>✕</Text></Pressable>
               </View>
               {c.flags.map((t) => <Text key={t} style={[s.flag, { fontFamily: f.bodyMedium }]}>{t}</Text>)}
               {c.rows.map((r) => (
                 <View key={r.k} style={s.kv}>
                   <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted, maxWidth: '45%' }}>{r.k}</Text>
-                  <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink, flex: 1, textAlign: 'right' }}>{r.v}</Text>
+                  <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink, flex: 1, textAlign: 'right' }}>{r.v}</Text>
                 </View>
               ))}
               <Note>{c.foot}</Note>
@@ -265,7 +265,7 @@ function Pin({ x, y, text, lm, sel, small }: { x: number; y: number; text: strin
 
 const s = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 6 },
-  title: { flex: 1, fontSize: 30, color: color.ink },
+  title: { flex: 1, fontSize: 28, color: color.ink },
   btn: { minHeight: TAP, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
   btnOn: { backgroundColor: color.ink, borderColor: bcolor.ink },
   x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
@@ -277,11 +277,11 @@ const s = StyleSheet.create({
   ctl: { position: 'absolute', right: 12, bottom: 12, gap: 10 },
   round: { width: TAP, height: TAP, borderRadius: TAP / 2, backgroundColor: color.card, borderWidth: 1.5, borderColor: bcolor.ink, alignItems: 'center', justifyContent: 'center' },
   rt: { fontSize: 28, color: color.ink, lineHeight: 32 },
-  pillSmall: { fontSize: 9, paddingHorizontal: 3, paddingVertical: 0, borderRadius: 4 },
-  pill: { maxWidth: 180, textAlign: 'center', fontSize: 12, color: color.ink, backgroundColor: color.card, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden', borderWidth: 1, borderColor: bcolor.line },
+  pillSmall: { fontSize: 13, paddingHorizontal: 3, paddingVertical: 0, borderRadius: 8 },
+  pill: { maxWidth: 180, textAlign: 'center', fontSize: 13, color: color.ink, backgroundColor: color.card, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden', borderWidth: 1, borderColor: bcolor.line },
   pillLm: { backgroundColor: color.head, color: color.headInk, borderColor: bcolor.head },
   pillSel: { backgroundColor: color.accent, color: color.onAccent },
   panel: { backgroundColor: color.card, borderTopWidth: 1, borderTopColor: bcolor.line, paddingHorizontal: 16, paddingTop: 12, gap: 8 },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: bcolor.soft },
-  flag: { fontSize: 14, color: color.oInk, backgroundColor: color.oBg, borderWidth: 1.5, borderColor: bcolor.orange, borderRadius: 10, padding: 10, overflow: 'hidden' },
+  flag: { fontSize: 15, color: color.oInk, backgroundColor: color.oBg, borderWidth: 1.5, borderColor: bcolor.orange, borderRadius: 12, padding: 10, overflow: 'hidden' },
 });

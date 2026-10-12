@@ -21,10 +21,10 @@ const INDEX = indexJson as unknown as KnowledgeIndex;
 type Save = (build: (c: Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 type Result = { kind: 'answer'; a: Answer } | { kind: 'action'; action: Action };
 
-export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnableReminders, onShow, onLog, onNewVessel, onClose }: {
+export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnableReminders, onShow, onLog, onNewVessel, onSearch, onClose }: {
   state: State; baseline: Baseline; nowMin: number; isTest: boolean; save: Save;
   reminders: ReminderStatus; onEnableReminders: () => void;
-  onShow: (w: Where) => void; onLog: (p: HourPrefill) => void; onNewVessel: () => void; onClose: (done?: string) => void;
+  onShow: (w: Where) => void; onLog: (p: HourPrefill) => void; onNewVessel: () => void; onSearch: () => void; onClose: (done?: string) => void;
 }) {
   const f = useType();
   const [q, setQ] = useState('');
@@ -53,8 +53,9 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
     <Sheet title="Ask" isTest={isTest} onClose={() => onClose()} scrollTopOn={res ? 'r' : 'q'}>
       <TextInput value={q} onChangeText={(v) => { setQ(v); setRes(null); setPicked(null); }} placeholder="Ask about this vessel, or look something up" placeholderTextColor={color.muted}
         accessibilityLabel="Ask a question" autoCorrect={false} returnKeyType="search" onSubmitEditing={() => run(q)} clearButtonMode="while-editing"
-        style={[u.input, { fontFamily: f.bodyMedium, fontSize: 18 }]} />
+        style={[u.input, { fontFamily: f.bodyMedium, fontSize: 17 }]} />
       <Go label={busy ? 'Looking…' : 'Ask'} disabled={busy || !q.trim()} onPress={() => run(q)} />
+      <Go ghost label="Search the SOPs and protocol" onPress={onSearch} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         {QUICK.map((x) => {
           const on = picked === x.label;
@@ -83,7 +84,7 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
             <Seg options={[{ value: 'out', label: 'Keep out' }, { value: 'in', label: 'Include' }]} columns={2} value={hand.name ? 'in' : 'out'} onChange={(x) => setHand({ ...hand, name: x === 'in' })} />
             <Body semi>Documents</Body>
             <Seg options={[{ value: 'text', label: 'All, in message' }, { value: 'file', label: 'All, as file' }, { value: 'closest', label: 'Closest 3' }]} value={hand.how} onChange={(x) => setHand({ ...hand, how: x })} />
-            <Text selectable style={{ fontFamily: f.body, fontSize: 14, color: color.ink, lineHeight: 20 }}>{shown}</Text>
+            <Text selectable style={{ fontFamily: f.body, fontSize: 15, color: color.ink, lineHeight: 20 }}>{shown}</Text>
             {hand.how !== 'closest' && <InfoNote><Note>Then all {INDEX.chunks.length} passages of the SOP, protocol, glossary and operations reference, quoted as written ({(Math.round(text.length / 1000) * 1000).toLocaleString('en-US')} characters in all).</Note></InfoNote>}
             {hand.how === 'file'
               ? <InfoNote><Note>As a file: attach “{QUESTION_FILE}” in your AI app and say “Answer the question in this file.” Use this if the app refuses a very long message.</Note></InfoNote>
@@ -115,7 +116,7 @@ function AnswerCard({ a, onShow }: { a: Answer; onShow: (w: Where) => void }) {
   return (
     <Card style={[u.pad, { gap: 8 }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <Text style={{ fontFamily: f.display, fontSize: 24, color: color.ink, flexShrink: 1 }}>{a.title}</Text>
+        <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink, flexShrink: 1 }}>{a.title}</Text>
         {a.tags.map((t) => <Tag key={t} kind={t} />)}
       </View>
       {a.lines.map((l, i) => <Body key={i} semi={i === 0}>{l}</Body>)}
@@ -142,7 +143,7 @@ function ActionCard({ action, state, baseline, save, setError, onClose, onLog, o
     const known = action.start != null && hours.some((h) => h.start === action.start);
     return (
       <Card style={[u.pad, { gap: 8 }]}>
-        <Text style={{ fontFamily: f.display, fontSize: 24, color: color.ink }}>Hourly count</Text>
+        <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }}>Hourly count</Text>
         <Body semi>{action.count.toLocaleString('en-US')} autos{action.start ? ` at ${action.start}` : ''}</Body>
         <InfoNote><Note>{action.start == null ? 'No hour was given: pick it in the form.' : known ? 'Opens the hourly form with these values. Nothing is saved until you tap Save there.' : `${action.start} is not an hour that can be logged now: pick the hour in the form.`}</Note></InfoNote>
         <Go label="Open hourly form" onPress={() => { onClose(); onLog({ count: action.count, start: known ? action.start : null }); }} />
@@ -152,7 +153,7 @@ function ActionCard({ action, state, baseline, save, setError, onClose, onLog, o
   if (action.k === 'note') {
     return (
       <Card style={[u.pad, { gap: 8 }]}>
-        <Text style={{ fontFamily: f.display, fontSize: 24, color: color.ink }}>Plan note</Text>
+        <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }}>Plan note</Text>
         <Body>{action.text}</Body>
         <Go label="Add note" onPress={async () => {
           setError(null);
@@ -164,7 +165,7 @@ function ActionCard({ action, state, baseline, save, setError, onClose, onLog, o
   }
   return (
     <Card style={[u.pad, { gap: 8 }]}>
-      <Text style={{ fontFamily: f.display, fontSize: 24, color: color.ink }}>New vessel</Text>
+      <Text style={{ fontFamily: f.display, fontSize: 22, color: color.ink }}>New vessel</Text>
       <InfoNote><Note>Opens the Vessels sheet on New vessel. Nothing is created until you finish setup there.</Note></InfoNote>
       <Go label="Open New vessel" onPress={() => { onClose(); onNewVessel(); }} />
     </Card>

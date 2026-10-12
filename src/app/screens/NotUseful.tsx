@@ -16,7 +16,7 @@ export function NotUseful({ onTap, onReason }: NotUsefulProps) {
   if (!key) return (
     <Pressable onPress={() => { void onTap().then((k) => { if (k) setKey(k); else setDone(true); }); }} accessibilityRole="button" accessibilityLabel="This was not useful"
       style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 12 }, pressed && u.pressed]}>
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.muted, textDecorationLine: 'underline' }}>Not useful?</Text>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.muted, textDecorationLine: 'underline' }}>Not useful?</Text>
     </Pressable>
   );
   return (

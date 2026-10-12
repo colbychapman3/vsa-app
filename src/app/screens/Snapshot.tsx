@@ -15,30 +15,18 @@ import { NotUseful, type NotUsefulProps } from './NotUseful.tsx';
 
 type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'decks' | 'plan') => void; onTrack: (b: Banner) => void;
   isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void;
-  layout: Layout; onLayout: (l: Layout) => void; onHistory: () => void; answerOpen?: boolean; notUseful?: (text: string) => NotUsefulProps };
+  layout: Layout; onLayout: (l: Layout) => void; onHistory: () => void; notUseful?: (text: string) => NotUsefulProps };
 
-export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice, layout, onLayout, onHistory, answerOpen, notUseful }: Props) {
+export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice, layout, onLayout, onHistory, notUseful }: Props) {
   const f = useType();
   const v = snapshot(state, baseline, nowMin);
   const line = nowLine(state, baseline, nowMin);
-  const now = answerOpen && line?.tone === 'calm' ? null : line; // the answer card above already says nothing needs him
+  // Only when something is due or wrong (Colby, 2026-10-12: "Nothing needs your attention" at the top wasn't useful).
+  const now = line?.tone === 'calm' ? null : line;
 
   return (
     <View>
       {v.banners.map((b, i) => <BannerView key={i} banner={b} onTrack={onTrack} onGo={onOpenTab} />)}
-
-      {v.strip && (
-        <View style={s.strip}>
-          <Icon name="clock" />
-          {v.strip.breakAt
-            ? <>
-                <Body semi>Break {v.strip.breakAt}</Body>
-                {/* Design B (Colby, 2026-10-11): clear-by clock times needn't be shown; say whether the finish beats the cutoff. */}
-                {v.strip.finish && <Text style={[s.stripRight, { fontFamily: f.bodySemi, color: v.strip.finish.ok ? color.gInk : color.muted }]}>{v.strip.finish.text}</Text>}
-              </>
-            : null}
-        </View>
-      )}
 
       {v.openIssues > 0 && (
         <Pressable onPress={() => onOpenTab('plan')} style={({ pressed }) => [s.strip, s.issues, pressed && u.pressed]} accessibilityRole="button">
@@ -68,14 +56,14 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
 
 const s = StyleSheet.create({
   strip: { backgroundColor: color.card, borderBottomWidth: 1, borderBottomColor: bcolor.line, paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
-  stripRight: { marginLeft: 'auto', fontSize: 14, color: color.muted, flexShrink: 1, textAlign: 'right' },
+  stripRight: { marginLeft: 'auto', fontSize: 15, color: color.muted, flexShrink: 1, textAlign: 'right' },
   issues: { backgroundColor: color.oBg },
   // The Now line: the one thing worth knowing right now (navy when a count is due, hi-vis orange for a warning).
-  now: { marginHorizontal: 20, marginTop: 16, marginBottom: -4, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
+  now: { marginHorizontal: 20, marginTop: 16, marginBottom: -4, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
   nowWarn: { backgroundColor: color.action },
   nowDue: { backgroundColor: color.head },
   nowCalm: { backgroundColor: color.card, borderWidth: 1, borderColor: bcolor.line },
   nowText: { flex: 1, fontSize: 15, lineHeight: 20 },
   nowMore: { marginHorizontal: 20, marginTop: 10, gap: 4 },
-  issueDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.orange, color: color.onOrange, textAlign: 'center', fontSize: 12, lineHeight: 18, overflow: 'hidden' },
+  issueDot: { width: 18, height: 18, borderRadius: 8, backgroundColor: color.orange, color: color.onOrange, textAlign: 'center', fontSize: 13, lineHeight: 18, overflow: 'hidden' },
 });

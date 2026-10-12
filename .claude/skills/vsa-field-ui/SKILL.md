@@ -1,14 +1,14 @@
 ---
 name: vsa-field-ui
-description: Rules for VSA screen code in src/app/screens and App.tsx — glove-size tap targets, sun-readable contrast, text that never breaks mid-word at large iOS text sizes, and one modal at a time. Use when adding or changing any screen, sheet, tile, label or button.
+description: Rules for VSA screen code in src/app/screens and App.tsx — 44 pt tap targets (large Log and Save), sun-readable contrast, text that never breaks mid-word at large iOS text sizes, and one modal at a time. Use when adding or changing any screen, sheet, tile, label or button.
 ---
 
 # VSA field UI
 
-Colby uses the app on an iPhone 16 Pro, outdoors in Georgia sun, often with gloves and often with large iOS text sizes. Screens are layout only: every value comes from `src/app/view.ts`, every save from `src/app/entries.ts` through `App.save()`. No math in screen code.
+Colby uses the app on an iPhone 16 Pro, outdoors in Georgia sun, often with large iOS text sizes (gloves are rare and not a design driver, Colby 2026-10-12). Screens are layout only: every value comes from `src/app/view.ts`, every save from `src/app/entries.ts` through `App.save()`. No math in screen code.
 
-## Taps (gloves)
-- Anything tappable is at least `TAP` (56 pt, `src/app/theme.ts`) tall; icon-only buttons are 56 × 56.
+## Taps
+- Anything tappable is at least `TAP` (44 pt, `src/app/theme.ts`) tall; icon-only buttons are 44 × 44. Only the main actions (Log, Save: `goBtn`, the Log button) are large.
 - Leave at least 8–12 pt between neighbouring targets.
 - Give pressed feedback (`opacity` ~0.6–0.7) on `Pressable`. Use `Pressable`, not `TouchableOpacity`.
 - Prefer making a whole card or row pressable over a small link inside it.

@@ -43,7 +43,7 @@ export function CloseoutSheet({ state, baseline, isTest, save, onShare, onClose,
       disabled={r.kind === 'check' && (r.ok || !r.go)}
       style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: bcolor.row }, pressed && u.pressed]}>
       <View style={{ width: 32, height: 32, borderRadius: r.kind === 'tick' ? 6 : 16, borderWidth: 2, borderColor: r.ok ? color.green : color.orange, backgroundColor: r.ok ? color.green : color.card, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 18, color: r.ok ? color.onAction : color.oInk }}>{r.ok ? '✓' : r.kind === 'tick' ? '' : '!'}</Text>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: r.ok ? color.onAction : color.oInk }}>{r.ok ? '✓' : r.kind === 'tick' ? '' : '!'}</Text>
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{r.label}</Text>

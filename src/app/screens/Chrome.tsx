@@ -1,5 +1,5 @@
-// The frame around every tab: header, bottom tab bar with badges, floating Log
-// button, and the tracker's icons. Layout only.
+// The frame around every tab: header (menu, vessel, Ask, Map), bottom tab bar with badges and the Log button in its
+// middle (nothing floats over the tiles, Colby 2026-10-12), and the tracker's icons. Layout only.
 import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,15 +29,11 @@ export function Icon({ name, color: c = color.ink, size = 20 }: { name: IconName
   );
 }
 
-export function Header({ isTest, berth, date, vessel, onMenu, onMap, onSearch }: { isTest: boolean; berth: string; date: string; vessel: string; onMenu: () => void; onMap: () => void; onSearch: () => void }) {
+export function Header({ isTest, berth, date, vessel, onMenu, onMap, onAsk }: { isTest: boolean; berth: string; date: string; vessel: string; onMenu: () => void; onMap: () => void; onAsk: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-      <View style={s.headRow}>
-        <Text style={[s.chip, isTest ? s.chipTest : s.chipLive, { fontFamily: f.bodySemi }]}>{isTest ? 'TEST' : 'LIVE'}</Text>
-        <Text style={[s.sub, { fontFamily: f.body, flex: 1, textAlign: 'right' }]} numberOfLines={1}>{date}</Text>
-      </View>
       <View style={s.vesselRow}>
         <Pressable onPress={onMenu} style={({ pressed }) => [s.menuBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Menu: vessels and settings">
           <Icon name="menu" color={color.headInk} size={26} />
@@ -47,9 +43,10 @@ export function Header({ isTest, berth, date, vessel, onMenu, onMap, onSearch }:
         </Pressable>
       </View>
       <View style={s.vesselRow}>
-        <Text style={[s.sub, { fontFamily: f.display, fontSize: 28, color: color.headInk, flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>{berth !== '' ? `Berth ${berth}` : ''}</Text>
-        <Pressable onPress={onSearch} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Search the SOPs and protocol">
-          <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Search</Text>
+        <Text style={[s.chip, { flexShrink: 0 }, isTest ? s.chipTest : s.chipLive, { fontFamily: f.bodySemi }]}>{isTest ? 'TEST' : 'LIVE'}</Text>
+        <Text style={[s.sub, { fontFamily: f.bodySemi, fontSize: 15, color: color.headInk, flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>{[berth !== '' ? `Berth ${berth}` : '', date].filter(Boolean).join(' · ')}</Text>
+        <Pressable onPress={onAsk} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Ask the assistant, or search the SOPs">
+          <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Ask</Text>
         </Pressable>
         <Pressable onPress={onMap} style={({ pressed }) => [s.mapBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Terminal map">
           <Text style={[s.mapText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Map</Text>
@@ -61,70 +58,52 @@ export function Header({ isTest, berth, date, vessel, onMenu, onMap, onSearch }:
 
 const TABS: [Tab, string][] = [['snap', 'Snapshot'], ['decks', 'Decks'], ['hourly', 'Hourly'], ['plan', 'Plan']];
 
-export function TabBar({ tab, onTab, badges }: { tab: Tab; onTab: (t: Tab) => void; badges: Partial<Record<Tab, number>> }) {
+export function TabBar({ tab, onTab, badges, onLog }: { tab: Tab; onTab: (t: Tab) => void; badges: Partial<Record<Tab, number>>; onLog: () => void }) {
   const f = useType();
   const insets = useSafeAreaInsets();
+  const item = ([id, label]: [Tab, string]) => {
+    const on = tab === id, n = badges[id] ?? 0;
+    return (
+      <Pressable key={id} onPress={() => onTab(id)} style={({ pressed }) => [s.tab, on && s.tabOn, pressed && { opacity: 0.6 }]} accessibilityRole="tab" accessibilityState={{ selected: on }}
+        accessibilityLabel={n ? `${label}, ${n} to check` : label}>
+        <Icon name={id} color={on ? color.accent : color.headMuted} />
+        <View style={s.tabLabelRow}>
+          <Text style={[s.tabLabel, { color: on ? color.accent : color.headMuted, fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
+          {n > 0 && <Text style={[s.badge, { fontFamily: f.bodySemi }]}>{n}</Text>}
+        </View>
+      </Pressable>
+    );
+  };
   return (
     <View style={[s.tabs, { paddingBottom: insets.bottom + 8 }]}>
-      {TABS.map(([id, label]) => {
-        const on = tab === id, n = badges[id] ?? 0;
-        return (
-          <Pressable key={id} onPress={() => onTab(id)} style={({ pressed }) => [s.tab, on && s.tabOn, pressed && { opacity: 0.6 }]} accessibilityRole="tab" accessibilityState={{ selected: on }}
-            accessibilityLabel={n ? `${label}, ${n} to check` : label}>
-            <Icon name={id} color={on ? color.accent : color.headMuted} />
-            <View style={s.tabLabelRow}>
-              <Text style={[s.tabLabel, { color: on ? color.accent : color.headMuted, fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
-              {n > 0 && <Text style={[s.badge, { fontFamily: f.bodySemi }]}>{n}</Text>}
-            </View>
-          </Pressable>
-        );
-      })}
+      {TABS.slice(0, 2).map(item)}
+      <Pressable onPress={onLog} style={({ pressed }) => [s.log, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Log an entry">
+        <Icon name="plus" color={color.onAction} />
+        <Text style={[s.logText, { fontFamily: f.displaySemi }]}>Log</Text>
+      </Pressable>
+      {TABS.slice(2).map(item)}
     </View>
-  );
-}
-
-export function LogButton({ onPress }: { onPress: () => void }) {
-  const f = useType();
-  const insets = useSafeAreaInsets();
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [s.fab, { bottom: insets.bottom + 84 }, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Log an entry">
-      <Icon name="plus" color={color.onAction} />
-      <Text style={[s.fabText, { fontFamily: f.displaySemi }]}>Log</Text>
-    </Pressable>
-  );
-}
-
-export function AskButton({ onPress }: { onPress: () => void }) {
-  const f = useType();
-  const insets = useSafeAreaInsets();
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [s.ask, { bottom: insets.bottom + 84 }, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Ask the assistant">
-      <Text style={[s.askText, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>Ask</Text>
-    </Pressable>
   );
 }
 
 const s = StyleSheet.create({
   header: { backgroundColor: color.head, paddingHorizontal: 20, paddingBottom: 16, gap: 6, zIndex: 1, ...elev.raised },
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  chip: { fontSize: 12, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' },
+  chip: { fontSize: 13, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
   chipTest: { backgroundColor: color.accent, color: color.onAccent },
   chipLive: { backgroundColor: color.green, color: color.card },
-  sub: { fontSize: 14, color: color.headMuted, flexShrink: 1 },
+  sub: { fontSize: 15, color: color.headMuted, flexShrink: 1 },
   vesselBtn: { minHeight: TAP, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   menuBtn: { width: TAP, height: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.headMuted, alignItems: 'center', justifyContent: 'center' },
   vesselRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  mapBtn: { minHeight: 44, minWidth: 52, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1.5, borderColor: bcolor.headMuted, alignItems: 'center', justifyContent: 'center' },
-  mapText: { fontSize: 14, color: color.headInk },
-  h1: { fontSize: 32, color: color.headInk },
+  mapBtn: { minHeight: 44, minWidth: 52, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.headMuted, alignItems: 'center', justifyContent: 'center' },
+  mapText: { fontSize: 15, color: color.headInk },
+  h1: { fontSize: 28, color: color.headInk },
   tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8, ...elev.raised, shadowOffset: { width: 0, height: -3 } },
   tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 4, borderTopWidth: 3, borderTopColor: 'transparent' },
   tabOn: { borderTopColor: bcolor.accent },
   tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%' },
-  tabLabel: { fontSize: 12, flexShrink: 1 },
-  badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 11, overflow: 'hidden' },
-  fab: { position: 'absolute', right: 16, minHeight: 60, paddingHorizontal: 28, borderRadius: 999, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 8, ...elev.raised },
-  ask: { position: 'absolute', left: 16, width: 60, height: 60, borderRadius: 30, backgroundColor: color.card, borderWidth: 1.5, borderColor: bcolor.line, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, ...elev.raised },
-  askText: { color: color.ink, fontSize: 16 },
-  fabText: { color: color.onAction, fontSize: 19 },
+  tabLabel: { fontSize: 13, flexShrink: 1 },
+  badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 13, overflow: 'hidden' },
+  log: { alignSelf: 'center', minHeight: 56, paddingHorizontal: 22, borderRadius: 999, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 4, ...elev.raised },
+  logText: { color: color.onAction, fontSize: 17 },
 });

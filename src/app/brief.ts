@@ -9,7 +9,7 @@ export function vesselBrief(s: State, b: Baseline, nowMin: number): string[] {
   const snap = snapshot(s, b, nowMin), hv = hourlyView(s, b), dv = decksView(s), pv = planView(s, b);
   const out: string[] = [];
   const h = snap.hero;
-  out.push(`- ${h.label === 'VESSEL REMAINING' ? 'Vessel remaining' : 'Field balance'}: ${h.value} ${h.of}${h.unknownNote ? ` (${h.unknownNote})` : ''}`);
+  out.push(`- ${h.label}: ${h.value} ${h.of}${h.unknownNote ? ` (${h.unknownNote})` : ''}`);
   for (const r of h.rows) out.push(`  - ${r.k}: ${r.v}`);
   out.push('- Ledgers: autos, High & Heavy, load-back and lashing are separate. H&H is awareness only and never part of the auto counts.');
   out.push(`- Status: ${completeLine(s).text}`);

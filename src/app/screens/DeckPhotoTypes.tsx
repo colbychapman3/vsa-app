@@ -22,13 +22,13 @@ export function DeckPhotoTypes({ state, deckId, onOpen, onAdd }: { state: State;
   const types = deckPhotoTypes(state, deckId);
   return (
     <View style={{ gap: 10 }}>
-      <Label>{`PHOTOS (${types.reduce((n, t) => n + t.photos, 0)})`}</Label>
+      <Label>{`Photos (${types.reduce((n, t) => n + t.photos, 0)})`}</Label>
       {types.map((t) => (
         <Pressable key={t.type} onPress={() => onOpen(t.type)} accessibilityRole="button" accessibilityLabel={`${t.label}, ${plural(t.photos, 'photo')}. Open`}
           style={({ pressed }) => [s.typeRow, pressed && u.pressed]}>
           <Chip text={`${t.icon} ${t.label}`} tone={t.tone} />
           <Body semi style={{ marginLeft: 'auto' }}>{plural(t.photos, 'photo')}</Body>
-          <Text style={{ fontSize: 18, color: color.muted }}>›</Text>
+          <Text style={{ fontSize: 17, color: color.muted }}>›</Text>
         </Pressable>
       ))}
       {types.length === 0 && <Note>No photos on this deck yet.</Note>}
@@ -123,7 +123,7 @@ function TypePage({ state, save, deckId, deckLabel, type, setView, back }: {
   return (
     <View style={{ gap: 14 }}>
       {back(deckLabel, null)}
-      <Body semi style={{ fontSize: 20 }}>{TYPE_ICON[type]} {label} · {deckLabel}</Body>
+      <Body semi style={{ fontSize: 22 }}>{TYPE_ICON[type]} {label} · {deckLabel}</Body>
       <Note>{plural(files.length, 'photo')} in {plural(page.length, 'incident')}.</Note>
       <Go label="Add photos" disabled={busy} onPress={() => setView({ kind: 'add', type })} />
       {files.length > 0 && <Go ghost label="Save these photos to camera roll" disabled={busy} onPress={toRoll} />}
@@ -144,7 +144,7 @@ function TypePage({ state, save, deckId, deckLabel, type, setView, back }: {
               return (
                 <Pressable key={p} onPress={() => (picking ? toggle(i.id, p) : setView({ kind: 'full', type, uri: p }))} accessibilityRole={picking ? 'checkbox' : 'button'}
                   accessibilityState={picking ? { checked: on } : undefined} accessibilityLabel={picking ? 'Select photo' : 'Open photo full size'} style={({ pressed }) => [s.cell, pressed && u.pressed]}>
-                  {photoExists(p) ? <Image source={{ uri: photoUri(p) }} style={s.img} resizeMode="cover" /> : <View style={[s.img, s.gone]}><Text style={{ fontSize: 11, color: color.oInk }}>missing</Text></View>}
+                  {photoExists(p) ? <Image source={{ uri: photoUri(p) }} style={s.img} resizeMode="cover" /> : <View style={[s.img, s.gone]}><Text style={{ fontSize: 13, color: color.oInk }}>missing</Text></View>}
                   {picking && <View style={[s.tick, on && s.tickOn]}>{on && <Text style={{ color: color.bg, fontWeight: '700' }}>✓</Text>}</View>}
                 </Pressable>
               );
@@ -156,7 +156,7 @@ function TypePage({ state, save, deckId, deckLabel, type, setView, back }: {
 
       {picking && (
         <View style={{ gap: 10 }}>
-          <Label wrap>{`REASON FOR REMOVING ${total ? plural(total, 'PHOTO') : 'THE SELECTED PHOTOS'}`}</Label>
+          <Label wrap>{`Reason for removing ${total ? plural(total, 'photo') : 'the selected photos'}`}</Label>
           <Seg columns={2} value={reason} onChange={setReason} options={[...E.PHOTO_REMOVE_REASONS, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
           {reason === 'Other' && <Field label="Reason" value={other} onChange={setOther} keyboard="default" maxLength={120} />}
           <Go label={total ? `Remove ${plural(total, 'photo')}` : 'Select photos first'} disabled={busy || total === 0} onPress={remove} />
@@ -175,7 +175,7 @@ const s = StyleSheet.create({
   cell: { width: '31%', aspectRatio: 1 },
   img: { width: '100%', height: '100%', borderRadius: 8, backgroundColor: color.soft },
   gone: { alignItems: 'center', justifyContent: 'center' },
-  tick: { position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
+  tick: { position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 12, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
   tickOn: { backgroundColor: color.ink },
   edit: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-end' },
   full: { width: '100%', aspectRatio: 3 / 4, maxHeight: 640, borderRadius: 12, backgroundColor: color.ink },

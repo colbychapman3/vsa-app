@@ -70,8 +70,8 @@ export function fonts(loaded: boolean) {
   };
 }
 
-// Gloves: nothing tappable smaller than this (points).
-export const TAP = 56;
+// Apple's minimum: nothing tappable smaller than this (points). The main actions (Log, Save: u.goBtn, the Log button) stay larger.
+export const TAP = 44;
 
 // Depth: soft shadows lift cards and buttons off the page. A black shadow cannot show on the dark Night page, so the shadow
 // color goes clear there and the card border carries the edge (the header and tab bar are the same dark as the page).

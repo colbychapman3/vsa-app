@@ -54,26 +54,28 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
         accessibilityLabel="Finish, forecast. Tap for its history" accessibilityHint="Long press to move or hide this box">
         <View style={[u.card, s.tile, s.tileFc, v.eta.dashed && s.dashed]}>
           <Tag kind="FORECAST" />
-          <Label>FINISH</Label>
-          {v.eta.day && <Body semi style={{ fontSize: 20 }}>{v.eta.day}</Body>}
+          <Label>Finish</Label>
+          {v.eta.day && <Body semi style={{ fontSize: 22 }}>{v.eta.day}</Body>}
           <Big size={40}>{v.eta.value}</Big>
-          <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for history ›</Text>
+          {/* The break line that sat above the tiles (Colby, 2026-10-12: the top strip wasn't useful there). */}
+          {v.strip?.breakAt && <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: v.strip.finish?.ok ? color.gInk : color.muted }}>Break {v.strip.breakAt}{v.strip.finish ? ` · ${v.strip.finish.text}` : ''}</Text>}
+          <Text style={[s.link, { fontFamily: f.bodySemi }]}>History ›</Text>
         </View>
       </Pressable>);
     case 'ha': return (
       <FlipTile style={half ? { flex: 1 } : undefined} cardStyle={s.tile} onLongPress={menu} label="Average hourly. Tap for how it is worked out"
         front={<>
           <Tag kind="CALCULATED" />
-          <Label>AVG HOURLY (H.A.)</Label>
+          <Label>Avg hourly (H.A.)</Label>
           <View style={s.haRow}>
             <Big size={40} style={{ flexShrink: 1, color: HA_COLOR, lineHeight: 48 }}>{v.ha.value}</Big>
-            {v.ha.perHr && <Body style={{ fontSize: 16, marginBottom: 8 }}>/hr</Body>}
+            {v.ha.perHr && <Body style={{ fontSize: 17, marginBottom: 8 }}>/hr</Body>}
           </View>
-          <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap for details</Text>
+          <Text style={[s.link, { fontFamily: f.bodySemi }]}>Details ›</Text>
         </>}
         back={<>
           <Tag kind="CALCULATED" />
-          <Label>HOW THIS IS WORKED OUT</Label>
+          <Label>How this is worked out</Label>
           {v.ha.notes.map((n) => <Body key={n}>{n}</Body>)}
           <InfoNote><Note>H.A. counts every logged hour as a full hour. Pace counts only the minutes worked, so the short hour before a break is not held against it. They match when no hour was cut short. The forecast uses Pace.</Note></InfoNote>
           <Pressable onPress={() => p.onOpenTab('hourly')} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
@@ -95,10 +97,10 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
           {v.brands.rows.map((r, i) => (
             <View key={r.name} style={[s.row, i > 0 && s.rowLine]}>
               <View style={u.secH}>
-                <Body semi style={{ fontSize: 16 }}>{r.name}</Body>
+                <Body semi style={{ fontSize: 17 }}>{r.name}</Body>
                 <Text numberOfLines={1}>
                   <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink }}>{r.remaining}</Text>
-                  <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}> of {r.start}</Text>
+                  <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted }}> of {r.start}</Text>
                 </Text>
               </View>
               {r.pct != null ? <Bar small pct={r.pct} /> : <Note>Remaining unknown</Note>}
@@ -117,7 +119,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
                 {v.side.northPct < 100 && <View style={{ flex: 100 - v.side.northPct, backgroundColor: color.ink }} />}
               </View>}
           <View style={s.grid2}>
-            {([['NORTHSIDE', v.side.north, color.blue], ['SOUTHSIDE', v.side.south, color.ink]] as const).map(([label, col, c]) => (
+            {([['Northside', v.side.north, color.blue], ['Southside', v.side.south, color.ink]] as const).map(([label, col, c]) => (
               <View key={label} style={{ flex: 1, gap: 2 }}>
                 <Label style={{ color: c }}>{label}</Label>
                 <Big size={32}>{col.pct}</Big>
@@ -151,7 +153,7 @@ function HeroBox({ v }: { v: V }) {
         </View>
         {/* Design B: the finish sits beside the number, so "how many and when" is one glance. */}
         <View style={s.finish} accessible accessibilityLabel={`Finish, forecast: ${v.eta.value}${v.eta.day ? `, ${v.eta.day}` : ''}`}>
-          <Text style={[s.mono, { fontFamily: f.mono }]} numberOfLines={1} adjustsFontSizeToFit>FINISH · EST.</Text>
+          <Text style={[s.mono, { fontFamily: f.mono }]} numberOfLines={1} adjustsFontSizeToFit>Finish (est.)</Text>
           <Big size={36}>{v.eta.value}</Big>
           {v.eta.day && <Text style={[s.mono, { fontFamily: f.mono }]}>{v.eta.day}</Text>}
         </View>
@@ -172,7 +174,7 @@ function HeroBox({ v }: { v: V }) {
         <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barRight}</Text>
       </View>
       {h.clerkLine && (
-        <Text style={[{ fontFamily: f.body, fontSize: 14 }, h.clerkLine.tone === 'red' ? s.err : h.clerkLine.tone === 'green' ? { color: color.gInk } : { color: color.muted }]}>
+        <Text style={[{ fontFamily: f.body, fontSize: 15 }, h.clerkLine.tone === 'red' ? s.err : h.clerkLine.tone === 'green' ? { color: color.gInk } : { color: color.muted }]}>
           {h.clerkLine.text}
         </Text>
       )}
@@ -228,10 +230,10 @@ function ShipBox({ state, onOpen }: { state: State; onOpen: () => void }) {
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
   moved: { paddingHorizontal: 20, paddingTop: 16, gap: 16 },
-  clerk: { fontSize: 12, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1.5, overflow: 'hidden' },
+  clerk: { fontSize: 13, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1.5, overflow: 'hidden' },
   clerkOk: { backgroundColor: color.gBg, color: color.gInk, borderColor: bcolor.green },
   clerkBad: { backgroundColor: color.rBg, color: color.rInk, borderColor: bcolor.red },
-  err: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 10 },
+  err: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 12, padding: 10 },
   hr: { borderTopWidth: 1, borderTopColor: bcolor.soft, marginTop: 6, paddingTop: 12, gap: 8 },
   grid2: { flexDirection: 'row', gap: 12 },
   tile: { flex: 1, padding: 16, gap: 6 },
@@ -246,19 +248,19 @@ const s = StyleSheet.create({
   split: { flexDirection: 'row', height: 16, borderRadius: 8, overflow: 'hidden', gap: 3 },
   heroRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
   finish: { alignItems: 'flex-end', maxWidth: '42%', paddingBottom: 6 },
-  mono: { fontSize: 12, letterSpacing: 0.6, color: color.muted },
+  mono: { fontSize: 13, color: color.muted },
   hull: { backgroundColor: color.hull, paddingTop: 14, paddingHorizontal: 14, paddingBottom: 26, gap: 4, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 70, borderBottomRightRadius: 18, minHeight: TAP },
   shipHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 },
   shipTitle: { flexShrink: 1, fontSize: 15, color: color.deckInk },
   shipLink: { fontSize: 15, color: color.deckMuted },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 24 },
   deckLabelBox: { width: 46 },
-  deckLabel: { fontSize: 12 },
+  deckLabel: { fontSize: 13 },
   segs: { flex: 1, flexDirection: 'row', gap: 3, alignSelf: 'stretch' },
-  seg: { flex: 1, borderRadius: 4, overflow: 'hidden', minHeight: 22 },
+  seg: { flex: 1, borderRadius: 8, overflow: 'hidden', minHeight: 22 },
   segUnknown: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: bcolor.deckMuted, backgroundColor: 'transparent' },
   segFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: color.deckFill },
-  hatchHead: { flex: 1, textAlign: 'center', fontSize: 10, color: color.deckMuted },
+  hatchHead: { flex: 1, textAlign: 'center', fontSize: 13, color: color.deckMuted },
   deckRightBox: { width: 70, alignItems: 'flex-end' },
   deckRight: { fontSize: 13 },
 });

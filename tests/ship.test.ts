@@ -32,7 +32,7 @@ test('a complete deck is clear; a ramp or a deck counted as a whole is one band;
     deck('D6', 'active', [['Ramp', 11, null]], 5, 11),
     deck('D3', 'active', [['H2', 50, null], ['H1', 50, null]], null),
   ]);
-  assert.equal(v.rows[0].right, 'clear');
+  assert.equal(v.rows[0].right, '✓ clear');
   assert.ok(v.rows[0].segs.every((g) => g == null || g.fill === 0));
   assert.equal(v.rows[1].segs.length, 1);
   assert.equal(Math.round(v.rows[1].segs[0]!.fill! * 100), 45);

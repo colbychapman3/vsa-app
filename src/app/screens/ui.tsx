@@ -34,7 +34,7 @@ export function Big({ children, size, style }: { children: ReactNode; size: numb
 // `fit`: one line, shrinks to fit (table cells), so a word never splits.
 export function Body({ children, style, semi, fit }: { children: ReactNode; style?: StyleProp<TextStyle>; semi?: boolean; fit?: boolean }) {
   const f = useType(), sun = useSun();
-  return <Text style={[u.body, sun && { fontSize: 16 }, { fontFamily: semi ? f.bodySemi : f.body }, style]} {...(fit ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 } : {})}>{children}</Text>;
+  return <Text style={[u.body, sun && { fontSize: 17 }, { fontFamily: semi ? f.bodySemi : f.body }, style]} {...(fit ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 } : {})}>{children}</Text>;
 }
 
 export function Note({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
@@ -78,7 +78,7 @@ export function InfoNote({ children, label = 'About this' }: { children: ReactNo
     <View style={{ gap: 4 }}>
       <Pressable onPress={() => setOpen(!open)} hitSlop={16} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={open ? 'Hide details' : label}
         style={({ pressed }) => [{ minHeight: 24, minWidth: 24, alignSelf: 'flex-start', justifyContent: 'center' }, pressed && u.pressed]}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.blue }}>{open ? '✕' : 'ⓘ'}</Text>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{open ? '✕' : 'ⓘ'}</Text>
       </Pressable>
       {open && children}
     </View>
@@ -96,7 +96,7 @@ export function Bar({ pct, small }: { pct: number; small?: boolean }) {
 
 export function Tag({ kind }: { kind: 'FORECAST' | 'CALCULATED' }) {
   const f = useType(), sun = useSun();
-  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, sun && { fontSize: 13 }, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{kind}</Text>;
+  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, sun && { fontSize: 13 }, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{kind === 'FORECAST' ? 'Forecast' : 'Calculated'}</Text>;
 }
 
 // A card whose body is hidden until the header is tapped (Colby, 2026-10-08: the math-behind-the-engine cards stay out of the way).
@@ -109,7 +109,7 @@ export function Collapse({ title, right, open: startOpen = false, children }: { 
         style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
         <Text style={[u.h2, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
         {right ? <Text style={[u.secRight, { fontFamily: f.body, marginLeft: 'auto' }]}>{right}</Text> : <View style={{ marginLeft: 'auto' }} />}
-        <Text style={{ fontSize: 16, color: color.blue }}>{open ? '▴' : '▾'}</Text>
+        <Text style={{ fontSize: 17, color: color.blue }}>{open ? '▴' : '▾'}</Text>
       </Pressable>
       {open && children}
     </View>
@@ -128,7 +128,7 @@ export function FillNumber({ children, size, pct, fill }: { children: string; si
   const props = { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.5 } as const;
   return (
     <View accessible accessibilityLabel={`${children}, ${Math.round(p * 100)} percent done`}>
-      <Text {...props} style={[style, { color: color.ink, opacity: sun ? 0.32 : 0.16 }]}>{children}</Text>
+      <Text {...props} style={[style, { color: color.ink, opacity: sun ? 0.6 : 0.55 }]}>{children}</Text>
       <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: H * share, overflow: 'hidden' }}>
         <Text {...props} style={[style, { position: 'absolute', left: 0, right: 0, bottom: 0, height: H, color: fill }]}>{children}</Text>
       </View>
@@ -161,7 +161,7 @@ export function BannerView({ banner, onTrack, onGo }: { banner: Banner; onTrack?
     return (
       <View style={[u.alert, u.alertBreak, { backgroundColor: t.bg, borderBottomColor: t.border }]}>
         <Text style={[u.breakTitle, { fontFamily: f.display, color: t.ink }]}>{banner.title}</Text>
-        <Text style={{ fontFamily: f.body, fontSize: 14, color: t.ink }}>{banner.sub}</Text>
+        <Text style={{ fontFamily: f.body, fontSize: 15, color: t.ink }}>{banner.sub}</Text>
       </View>
     );
   }
@@ -171,13 +171,13 @@ export function BannerView({ banner, onTrack, onGo }: { banner: Banner; onTrack?
         <Pressable onPress={() => onGo(banner.go!)} accessibilityRole="button" accessibilityLabel={`${banner.title}. ${banner.sub}. Open ${banner.go === 'decks' ? 'Decks' : 'Hourly'} to fix it`}
           style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', gap: 2 }, pressed && u.pressed]}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: t.ink }}>{banner.title}</Text>
-          <Text style={{ fontFamily: f.body, fontSize: 14, color: t.ink }}>{banner.sub}</Text>
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: t.ink, textDecorationLine: 'underline' }}>Open {banner.go === 'decks' ? 'Decks' : 'Hourly'} to fix ›</Text>
+          <Text style={{ fontFamily: f.body, fontSize: 15, color: t.ink }}>{banner.sub}</Text>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: t.ink, textDecorationLine: 'underline' }}>Open {banner.go === 'decks' ? 'Decks' : 'Hourly'} to fix ›</Text>
         </Pressable>
       ) : (
         <>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: t.ink }}>{banner.title}</Text>
-          <Text style={{ fontFamily: f.body, fontSize: 14, color: t.ink }}>{banner.sub}</Text>
+          <Text style={{ fontFamily: f.body, fontSize: 15, color: t.ink }}>{banner.sub}</Text>
         </>
       )}
       {banner.trackable && onTrack ? (
@@ -192,35 +192,35 @@ export function BannerView({ banner, onTrack, onGo }: { banner: Banner; onTrack?
 }
 
 export const u = StyleSheet.create({
-  card: { backgroundColor: color.card, borderWidth: 1, borderColor: bcolor.line, borderRadius: 16, ...elev.card },
+  card: { backgroundColor: color.card, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, ...elev.card },
   pad: { paddingVertical: 18, paddingHorizontal: 20 },
-  lbl: { fontSize: 13, letterSpacing: 0.8, color: color.muted },
+  lbl: { fontSize: 13, color: color.muted },
   body: { fontSize: 15, color: color.ink },
   note: { fontSize: 13, lineHeight: 18, color: color.muted },
-  bar: { height: 14, backgroundColor: color.soft, borderRadius: 7, overflow: 'hidden' },
-  barSm: { height: 8, borderRadius: 4 },
-  barFill: { height: '100%', backgroundColor: color.ink, borderRadius: 7 },
-  barFillSm: { backgroundColor: color.blue, borderRadius: 4 },
-  tag: { alignSelf: 'flex-start', maxWidth: '100%', fontSize: 11, letterSpacing: 0.9, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden' },
+  bar: { height: 14, backgroundColor: color.soft, borderRadius: 8, overflow: 'hidden' },
+  barSm: { height: 8, borderRadius: 8 },
+  barFill: { height: '100%', backgroundColor: color.ink, borderRadius: 8 },
+  barFillSm: { backgroundColor: color.blue, borderRadius: 8 },
+  tag: { alignSelf: 'flex-start', maxWidth: '100%', fontSize: 13, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, overflow: 'hidden' },
   tagFc: { backgroundColor: color.orange, color: color.onOrange },
   tagCalc: { backgroundColor: color.soft, color: color.ink },
   secH: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' },
-  h2: { fontSize: 24, color: color.ink },
-  secRight: { fontSize: 14, color: color.muted },
+  h2: { fontSize: 22, color: color.ink },
+  secRight: { fontSize: 15, color: color.muted },
   alert: { paddingVertical: 12, paddingHorizontal: 20, gap: 2, borderBottomWidth: 3 },
   alertBreak: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  breakTitle: { fontSize: 22, letterSpacing: 0.9 },
+  breakTitle: { fontSize: 22 },
   track: { alignSelf: 'flex-start', marginTop: 8, minHeight: TAP, paddingHorizontal: 12, borderWidth: 1.5, borderRadius: 8, justifyContent: 'center' },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
   tap: { minHeight: TAP },
   pressed: { opacity: 0.6 },
-  input: { minHeight: TAP, borderWidth: 1.5, borderColor: bcolor.line, borderRadius: 10, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
-  segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  input: { minHeight: TAP, borderWidth: 1.5, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
+  segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   segOn: { backgroundColor: color.ink, borderColor: bcolor.ink, ...elev.raised },
   goBtn: { minHeight: 58, borderRadius: 999, backgroundColor: color.action, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, ...elev.raised },
   ghostBtn: { minHeight: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, ...elev.card },
   x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, ...elev.card, alignItems: 'center', justifyContent: 'center' },
-  errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 10, padding: 12, fontSize: 14, overflow: 'hidden' },
+  errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 12, padding: 12, fontSize: 15, overflow: 'hidden' },
 });
 
 // ---------- Form parts (tracker .seg, label.f, .go, .ghost, .err) ----------
@@ -232,7 +232,7 @@ export function Field({ label, value, onChange, placeholder, keyboard = 'number-
   const f = useType(), edge = useEdge();
   return (
     <View style={{ gap: 6, flex: 1 }}>
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} keyboardType={keyboard} maxLength={maxLength} inputAccessoryViewID={accessoryId}
         style={[u.input, edge, { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
     </View>
@@ -244,15 +244,15 @@ export function TimeField({ label, value, onChange, onNow, required, hint, acces
   const f = useType();
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <TextInput value={value} onChangeText={onChange} placeholder="HH:MM" keyboardType="numbers-and-punctuation" maxLength={5} inputAccessoryViewID={accessoryId}
-          style={[u.input, { flex: 1, fontFamily: f.bodyMedium, fontSize: 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
+          style={[u.input, { flex: 1, fontFamily: f.bodyMedium, fontSize: 22 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
         <Pressable onPress={onNow} style={[u.ghostBtn, { paddingHorizontal: 20 }]} accessibilityRole="button" accessibilityLabel={`${label}: now`}>
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: color.ink }}>Now</Text>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>Now</Text>
         </Pressable>
       </View>
-      <Text style={{ fontFamily: f.body, fontSize: 12, color: required ? color.ink : color.muted }}>
+      <Text style={{ fontFamily: f.body, fontSize: 13, color: required ? color.ink : color.muted }}>
         {required ? 'Required: type the time or tap Now.' : 'Leave empty if unknown.'}{hint ? ` ${hint}` : ''}
       </Text>
     </View>
@@ -270,7 +270,7 @@ export function Seg<T extends string | number>({ options, value, onChange, colum
         return (
           <Pressable key={String(o.value)} onPress={() => onChange(o.value)} accessibilityRole="radio" accessibilityState={{ selected: on }}
             style={({ pressed }) => [u.segBtn, { flexBasis: `${100 / columns - 2}%` }, edge, on && u.segOn, pressed && u.pressed]}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 14, color: on ? color.bg : color.ink, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{o.label}</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: on ? color.bg : color.ink, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -282,7 +282,7 @@ export function Seg<T extends string | number>({ options, value, onChange, colum
 export function Reasons({ options, value, onChange, other, onOther }: { options: readonly string[]; value: string | null; onChange: (r: string) => void; other: string; onOther: (v: string) => void }) {
   return (
     <View style={{ gap: 8 }}>
-      <Label>REASON</Label>
+      <Label>Reason</Label>
       <Seg columns={2} value={value} onChange={onChange} options={[...options, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
       {value === 'Other' && <Field label="Reason" value={other} onChange={onOther} keyboard="default" maxLength={120} />}
     </View>
@@ -312,7 +312,7 @@ export function KeyboardSave({ id, label, onPress }: { id: string; label: string
       <View style={{ backgroundColor: color.bg, borderTopWidth: 1, borderTopColor: bcolor.soft, paddingHorizontal: 16, paddingVertical: 8 }}>
         <Pressable onPress={() => { Keyboard.dismiss(); onPress(); }} accessibilityRole="button" accessibilityLabel={label}
           style={({ pressed }) => [u.goBtn, pressed && { opacity: 0.6 }]}>
-          <Text style={{ fontFamily: f.displaySemi, fontSize: 18, color: color.onAction, textAlign: 'center' }}>{label}</Text>
+          <Text style={{ fontFamily: f.displaySemi, fontSize: 17, color: color.onAction, textAlign: 'center' }}>{label}</Text>
         </Pressable>
       </View>
     </InputAccessoryView>
@@ -338,7 +338,7 @@ export function Pill({ text }: { text: string }) {
   const f = useType();
   const p = PILL[text] ?? PILL.Unknown;
   return (
-    <Text style={{ fontFamily: f.bodySemi, fontSize: 12, letterSpacing: 0.4, color: p.ink, backgroundColor: p.bg, borderColor: p.border, borderWidth: 1.5,
+    <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: p.ink, backgroundColor: p.bg, borderColor: p.border, borderWidth: 1.5,
       borderStyle: p.dashed ? 'dashed' : 'solid', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' }}>
       {text === 'Complete' ? '✓ ' : ''}{text}
     </Text>
@@ -373,10 +373,10 @@ export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn
         keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
           <View style={u.secH}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
-              {isTest && <Text style={{ flexShrink: 0, fontFamily: f.bodySemi, fontSize: 12, backgroundColor: color.accent, color: color.onAccent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' }}>TEST</Text>}
+              {isTest && <Text style={{ flexShrink: 0, fontFamily: f.bodySemi, fontSize: 13, backgroundColor: color.accent, color: color.onAccent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' }}>TEST</Text>}
               <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }}>{title}</Text>
             </View>
-            <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 18, color: color.ink }}>✕</Text></Pressable>
+            <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 17, color: color.ink }}>✕</Text></Pressable>
           </View>
           {children}
       </ScrollView>

@@ -24,13 +24,13 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
         {v.low.map((d) => (
           <View key={d.id} style={s.lowAlert} accessibilityRole="alert">
             <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.rInk }}>{d.title}</Text>
-            <Text style={{ fontFamily: f.body, fontSize: 14, color: color.rInk }}>{d.sub}</Text>
+            <Text style={{ fontFamily: f.body, fontSize: 15, color: color.rInk }}>{d.sub}</Text>
           </View>
         ))}
         {v.unconfirmed > 0 && (
           <Pressable onPress={onOpenPlan} style={({ pressed }) => [u.card, s.strip, pressed && u.pressed]} accessibilityRole="button">
             <Body semi>{v.unconfirmed} deck height{v.unconfirmed === 1 ? '' : 's'} unconfirmed</Body>
-            <Text style={{ marginLeft: 'auto', fontFamily: f.body, fontSize: 14, color: color.muted }}>Confirm on Plan ›</Text>
+            <Text style={{ marginLeft: 'auto', fontFamily: f.body, fontSize: 15, color: color.muted }}>Confirm on Plan ›</Text>
           </Pressable>
         )}
       </View>
@@ -51,8 +51,8 @@ export function Decks({ state, onOpenDeck, onOpenPlan }: { state: State; onOpenD
               </View>
               <Pill text={r.pill} />
               <Text style={s.rn} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
-                <Text style={{ fontFamily: f.display, fontSize: 26, color: r.status === 'complete' ? color.done : color.ink }}>{r.remaining}</Text>
-                <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}> of {r.start}</Text>
+                <Text style={{ fontFamily: f.display, fontSize: 22, color: r.status === 'complete' ? color.done : color.ink }}>{r.remaining}</Text>
+                <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted }}> of {r.start}</Text>
               </Text>
               <Icon name="chev" color={color.muted} />
             </View>
@@ -78,10 +78,10 @@ const s = StyleSheet.create({
   rowLine: { borderTopWidth: 1, borderTopColor: bcolor.row },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dnBox: { width: 56 },
-  dn: { fontSize: 26, color: color.ink },
+  dn: { fontSize: 22, color: color.ink },
   hm: { fontSize: 17 },
   accBadge: { backgroundColor: color.rBg, color: color.rInk, borderWidth: 1, borderColor: bcolor.red },
-  badge: { alignSelf: 'flex-start', marginTop: 4, fontSize: 12, color: color.onBlue, backgroundColor: color.red, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
+  badge: { alignSelf: 'flex-start', marginTop: 4, fontSize: 13, color: color.onBlue, backgroundColor: color.red, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
   rn: { marginLeft: 'auto', textAlign: 'right', flexShrink: 1 },
   indent: { paddingLeft: 68 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

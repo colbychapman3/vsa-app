@@ -156,10 +156,10 @@ function HourForm({ state, baseline, run, setError, prefill, nowMin }: { state: 
 
   return (
     <View style={{ gap: 14 }}>
-      <Label>FROM THE CLERK'S TEXT (OPTIONAL)</Label>
+      <Label>From the clerk's text (optional)</Label>
       <TextInput value={clerk} onChangeText={(t) => { setClerk(t); setClerkRead(null); }} multiline autoCorrect={false} accessibilityLabel="Clerk's text"
         placeholder={'Paste or dictate, like "10-11 245"'} placeholderTextColor={color.muted}
-        style={[u.input, { fontFamily: f.body, fontSize: 16, minHeight: 56, paddingTop: 12, textAlignVertical: 'top' }]} />
+        style={[u.input, { fontFamily: f.body, fontSize: 17, minHeight: 56, paddingTop: 12, textAlignVertical: 'top' }]} />
       {clerk.trim() !== '' && !clerkRead && <Go ghost label="Read it" onPress={() => setClerkRead(readClerkText(clerk, opts.hours, nowMin))} />}
       {clerkRead && (
         <View style={{ gap: 8 }}>
@@ -172,7 +172,7 @@ function HourForm({ state, baseline, run, setError, prefill, nowMin }: { state: 
           {clerkRead.found.length > 0 && <Note>Check the hour and count, then Save. Nothing is saved until you do.</Note>}
         </View>
       )}
-      {day > 1 && <Label>DAY {day}</Label>}
+      {day > 1 && <Label>Day {day}</Label>}
       <Seg columns={4} value={hour} onChange={pick}
         options={opts.hours.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' ✓' : ''}` }))} />
       <Note>{`${hour}–${endHM}`}{existing ? ' · already logged: saving a change keeps the old value' : ''}</Note>
@@ -182,20 +182,20 @@ function HourForm({ state, baseline, run, setError, prefill, nowMin }: { state: 
       </View>
       {state.hh.passes.some((p) => p.end && p.end.abs >= (day - 1) * 1440 + parseHM(hour)! - 60 && p.end.abs < (day - 1) * 1440 + parseHM(hour)! + 60) && <Note>H/H completed near this hour. Drivers changed? If some moved to cars, enter this hour’s driver count; leave it empty if nothing changed.</Note>}
       {dayDrivers == null && <InfoNote><Note>Tip: set the day’s drivers once in Plan › Labor instead of every hour.</Note></InfoNote>}
-      <Label>SPLIT BY BRAND (OPTIONAL)</Label>
+      <Label>Split by brand (optional)</Label>
       <View style={s.row2}>
         {state.brands.map((b) => <Field key={b.name} label={b.name} value={brands[b.name] ?? ''} onChange={(v) => setBrands((x) => ({ ...x, [b.name]: v }))} accessoryId="hour-save" />)}
       </View>
       {short && (
         <View style={{ gap: 8 }}>
-          <Label wrap>PRE-BREAK HOUR · WHEN DID PRODUCTION STOP?</Label>
+          <Label wrap>Pre-break hour · when did production stop?</Label>
           <Seg columns={2} value={stop} onChange={setStop}
             options={stopChoices(hour).map((m) => ({ value: m, label: `Stopped ${formatHM(parseHM(hour)! + m)}` }))} />
         </View>
       )}
       {existing && (
         <View style={{ gap: 8 }}>
-          <Label>REASON FOR THE CHANGE</Label>
+          <Label>Reason for the change</Label>
           <Seg columns={2} value={reason} onChange={setReason} options={[...E.REASONS, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
           {reason === 'Other' && <Field label="Reason" value={other} onChange={setOther} keyboard="default" maxLength={120} accessoryId="hour-save" />}
         </View>
@@ -206,7 +206,7 @@ function HourForm({ state, baseline, run, setError, prefill, nowMin }: { state: 
       <KeyboardSave id="hour-save" label="Save hourly count" onPress={submit} />
       {existing && (
         <View style={{ gap: 8 }}>
-          <Label>LOGGED THE WRONG HOUR?</Label>
+          <Label>Logged the wrong hour?</Label>
           <Seg columns={2} value={rmReason} onChange={setRmReason} options={[...E.HOUR_REMOVE_REASONS, 'Other'].map((r) => ({ value: r, label: r === 'Other' ? 'Other…' : r }))} />
           {rmReason === 'Other' && <Field label="Reason" value={rmOther} onChange={setRmOther} keyboard="default" maxLength={120} />}
           <Go ghost label={`Remove the ${hour} hour`} onPress={removeHour} />
@@ -225,7 +225,7 @@ function DeckList({ state, onOpenDeck }: { state: State; onOpenDeck: (id: string
     <View style={u.card}>
       {decksView(state).rows.map((r, i) => (
         <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} style={({ pressed }) => [s.deckRow, i > 0 && { borderTopWidth: 1, borderTopColor: bcolor.row }, pressed && u.pressed]} accessibilityRole="button">
-          <Text style={{ fontFamily: f.display, fontSize: 24, flexBasis: 64, flexShrink: 1, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text>
+          <Text style={{ fontFamily: f.display, fontSize: 22, flexBasis: 64, flexShrink: 1, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text>
           <Body style={{ color: color.muted }}>{r.pill}</Body>
           <Text style={{ marginLeft: 'auto', fontFamily: f.display, fontSize: 22, color: color.ink }}>{r.remaining}<Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> of {r.start}</Text></Text>
         </Pressable>
@@ -246,7 +246,7 @@ function BreakBox(p: { baseline: Baseline; state: State; run: Run; now: () => st
     <View style={[u.card, u.pad, { gap: 12 }]}>
       <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
         <Text style={[u.h2, { fontFamily: f.display, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
-        <Text style={{ marginLeft: 'auto', fontSize: 16, color: color.blue }}>{open ? '▴' : '▾'}</Text>
+        <Text style={{ marginLeft: 'auto', fontSize: 17, color: color.blue }}>{open ? '▴' : '▾'}</Text>
       </Pressable>
       {open && <BreakForm {...p} />}
     </View>
@@ -298,7 +298,7 @@ function BreakForm({ baseline, state, run, now, timeOf, setError }: { baseline: 
     <View style={{ gap: 14 }}>
       {hoursDone.length > 0 && (
         <View style={{ gap: 8 }}>
-          <Label>BREAK AFTER WHICH HOUR?</Label>
+          <Label>Break after which hour?</Label>
           <Seg columns={4} value={hoursDone.find((h) => h.end === t.trim())?.start ?? null} onChange={(v) => setT(hoursDone.find((h) => h.start === v)!.end)}
             options={hoursDone.map((h) => ({ value: h.start, label: `${h.start.slice(0, 2)}–${h.end.slice(0, 2)}${h.end.endsWith(':00') ? '' : h.end.slice(2)}` }))} />
         </View>
@@ -308,7 +308,7 @@ function BreakForm({ baseline, state, run, now, timeOf, setError }: { baseline: 
       <KeyboardSave id="brk-start" label="Log break start" onPress={breakStart} />
       <View style={s.hr}>
         <TimeField required accessoryId="brk-end" label="Shift ended at" value={end} onChange={setEnd} onNow={fill(setEnd)} />
-        <Label>ENDED ON WHICH SIDE?</Label>
+        <Label>Ended on which side?</Label>
         <Seg columns={2} value={side} onChange={setSide} options={[{ value: 'N', label: 'Northside (−15)' }, { value: 'S', label: 'Southside (−30)' }]} />
         <Go ghost label="Log end of shift" onPress={endShift} />
         <KeyboardSave id="brk-end" label="Log end of shift" onPress={endShift} />

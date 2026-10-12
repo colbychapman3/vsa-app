@@ -24,7 +24,7 @@ export function shipView(s: State): { rows: ShipRow[]; left: number | null; deck
       : [{ h: d.label, fill: share(d.start, d.rem, complete) }];
     const working = byHatch ? named.filter((h) => !complete && h.rem != null && h.rem > 0).map((h) => h.h) : [];
     const tone: ShipRow['tone'] = complete ? 'clear' : d.rem == null ? 'unknown' : d.status === 'notStarted' ? 'waiting' : 'working';
-    const right = complete ? 'clear' : d.rem == null ? 'count?' : `${n(d.rem)} left`;
+    const right = complete ? '✓ clear' : d.rem == null ? 'count?' : `${n(d.rem)} left`;
     const a11y = complete ? `${d.label}: clear`
       : d.rem == null ? `${d.label}: remaining count needed`
       : `${d.label}: ${n(d.rem)} left${d.status === 'notStarted' ? ', not started' : ''}${working.length ? `, in ${working.join(' and ')}` : ''}`;

@@ -30,7 +30,7 @@ import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src
 import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/app/view.ts';
 import { applyAppearance, asAppearance, bcolor, color, fontFiles, fonts, FontContext, setSunPalette, SunContext, type AppearanceMode } from './src/app/theme.ts';
 import { asSun, sunFamilies } from './src/app/sun.ts';
-import { AskButton, Header, LogButton, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
+import { Header, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
 import { Snapshot } from './src/app/screens/Snapshot.tsx';
 import { Boxes } from './src/app/screens/SnapshotBoxes.tsx';
 import { EtaHistory } from './src/app/screens/EtaHistory.tsx';
@@ -414,7 +414,7 @@ export default function App() {
         <View style={s.page}>
           {vessel ? (
             <>
-              <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onMenu={openMenu} onMap={() => { setNotice(null); setSheet('map'); }} onSearch={() => { setNotice(null); setSheet('search'); }} />
+              <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onMenu={openMenu} onMap={() => { setNotice(null); setSheet('map'); }} onAsk={() => { setNotice(null); setSheet('ask'); }} />
               {notice?.answer && <AnswerCard key={notice.answer.head} answer={notice.answer} onDismiss={() => setNotice(null)} notUseful={notUsefulFor('answer', answerText(notice.answer))} />}
               {notice && !notice.answer && (
                 // Fixed under the header so a save message is never scrolled out of view.
@@ -426,7 +426,7 @@ export default function App() {
                     </Pressable>
                   )}
                   <Pressable onPress={() => setNotice(null)} style={s.dismiss} accessibilityRole="button" accessibilityLabel="Dismiss message">
-                    <Text style={{ fontSize: 18, color: color.ink }}>✕</Text>
+                    <Text style={{ fontSize: 17, color: color.ink }}>✕</Text>
                   </Pressable>
                 </View>
               )}
@@ -438,11 +438,10 @@ export default function App() {
                           <Text style={[s.noticeText, { color: color.gInk }]}>Vessel complete{clockOf(vessel.state.completed.time) ? ` at ${clockOf(vessel.state.completed.time)}` : ''}{vessel.state.completed.override ? ' · with open items' : ''} · tap for closeout</Text>
                         </Pressable>
                       : showMarkComplete(vessel.state) && <Go ghost label={vessel.state.completed ? 'Marked complete, but remaining is not 0: review' : 'Closeout'} onPress={() => setSheet('complete')} />}
-                    <Go ghost label="Send update" onPress={() => { void Share.share({ message: updateMessage(vessel.state, vessel.baseline, minutesNow(), vessel.isTest) }); }} />
                   </View>
                 )}
                 {tab === 'snap'
-                  ? <Snapshot notUseful={(t) => notUsefulFor('now', t)} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice} answerOpen={!!notice?.answer}
+                  ? <Snapshot notUseful={(t) => notUsefulFor('now', t)} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice}
                       layout={layout} onLayout={changeLayout} onHistory={() => { setNotice(null); setSheet('eta'); }} />
                   : <>
                     {/* Snapshot boxes Colby moved to this tab sit at its top. */}
@@ -455,8 +454,6 @@ export default function App() {
                       : <Plan vesselId={vessel.id} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
                   </>}
               </ScrollView>
-              <LogButton onPress={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }} />
-              <AskButton onPress={() => { setNotice(null); setSheet('ask'); }} />
               {logOpen && (
                 <LogSheet nowMin={nowMin} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} prefill={prefill}
                   onClose={(done) => { setLogOpen(false); if (done) setNotice(answered(done)); else before.current = null; }} />
@@ -483,13 +480,13 @@ export default function App() {
               {sheet === 'ask' && (
                 <Ask state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} reminders={remind}
                   onEnableReminders={async () => setRemind(await enableReminders())}
-                  onShow={(w) => openTab(w)} onLog={(p) => { setPrefill(p); before.current = vessel.state; setTimeout(() => setLogOpen(true), 450); }} onNewVessel={() => setTimeout(() => { setNotice(null); setSheet('new'); }, 450)}
+                  onShow={(w) => openTab(w)} onLog={(p) => { setPrefill(p); before.current = vessel.state; setTimeout(() => setLogOpen(true), 450); }} onNewVessel={() => setTimeout(() => { setNotice(null); setSheet('new'); }, 450)} onSearch={() => setTimeout(() => setSheet('search'), 450)}
                   onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} />
               )}
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
               {sheet === 'search' && <Search isTest={vessel.isTest} onClose={() => setSheet(null)} />}
-              <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
-              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} onComplete={() => { setDrawer(false); setSheet('complete'); }} canComplete={vessel.state.completed == null} onLessons={() => { setDrawer(false); setSheet('lessons'); }} />}
+              <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} onLog={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }} />
+              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} onUpdate={() => { setDrawer(false); void Share.share({ message: updateMessage(vessel.state, vessel.baseline, minutesNow(), vessel.isTest) }); }} onComplete={() => { setDrawer(false); setSheet('complete'); }} canComplete={vessel.state.completed == null} onLessons={() => { setDrawer(false); setSheet('lessons'); }} />}
             </>
           ) : (
             <View style={s.pad}>
@@ -506,15 +503,15 @@ export default function App() {
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: color.bg },
-  scroll: { paddingBottom: 180 },
+  scroll: { paddingBottom: 120 },
   pad: { padding: 20 },
   note: { fontSize: 15, color: color.muted },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, borderBottomWidth: 1, borderBottomColor: bcolor.line },
   noticeText: { flex: 1, fontSize: 15, paddingVertical: 10 },
-  noticeAction: { minHeight: 56, minWidth: 88, maxWidth: 130, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: bcolor.ink, borderRadius: 10 },
+  noticeAction: { minHeight: 56, minWidth: 88, maxWidth: 130, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: bcolor.ink, borderRadius: 12 },
   dismiss: { minWidth: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   ok: { backgroundColor: color.gBg },
   doneBar: { backgroundColor: color.gBg, borderColor: bcolor.green, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, minHeight: 56, justifyContent: 'center' },
   errBar: { backgroundColor: color.rBg },
-  err: { color: color.rInk, backgroundColor: color.rBg, padding: 12, borderRadius: 10 },
+  err: { color: color.rInk, backgroundColor: color.rBg, padding: 12, borderRadius: 12 },
 });

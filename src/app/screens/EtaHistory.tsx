@@ -20,19 +20,19 @@ export function EtaHistory({ state, baseline, nowMin, isTest, lessons, onClose }
   return (
     <Sheet title="Finish history" isTest={isTest} onClose={onClose}>
       <Tag kind="FORECAST" />
-      <Label>HOW THIS IS WORKED OUT</Label>
+      <Label>How this is worked out</Label>
       {v.eta.notes.map((n) => <Body key={n}>{n}</Body>)}
       {lessons && biasLine(lessons) && <Note>{biasLine(lessons)} Read it beside the forecast; it does not change it.</Note>}
       <InfoNote><Note>A forecast, not a result: it follows the recent pace, skips the 12:00 and 18:00 breaks, and is never marked complete by itself.</Note></InfoNote>
 
-      <Label>ETA AFTER EACH LOGGED HOUR</Label>
+      <Label>ETA after each logged hour</Label>
       {pts.length === 0
         ? <Note>No hours are logged yet, so there is no history.</Note>
         : <>
             <Seg<'line' | 'bars'> columns={2} value={view} onChange={setView} options={[{ value: 'line', label: 'Line' }, { value: 'bars', label: 'Bars' }]} />
             {view === 'line' ? <LineChart pts={pts} /> : <BarChart pts={pts} />}
             <Note>{view === 'line' ? 'Higher on the chart is a later finish.' : 'Orange bars: the ETA moved later at that hour. Green bars: earlier.'}</Note>
-            <Label>PLUS / MINUS BY HOUR</Label>
+            <Label>Plus / minus by hour</Label>
             {[...pts].reverse().map((p) => <Body key={`${p.day}-${p.hour}`}>{p.text}</Body>)}
             <InfoNote><Note>These lines say what changed. They don’t say why: pace, drivers, breaks and the cargo left all move the ETA.</Note></InfoNote>
           </>}

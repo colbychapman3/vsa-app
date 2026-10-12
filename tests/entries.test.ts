@@ -116,7 +116,7 @@ test('break, clerk, end of shift, next day and shift settings', async (tc) => {
   assert.deepEqual(planView(s.state, glovis).forecast, { breaks: '12:00 and 18:00 · 1 hour each', dayEnd: '17:00 · Northside (last cars 16:45)', nextStart: '07:00' });
   assert.deepEqual(E.shiftSettingsEvents(s.ctx(), '17:00', '07:00', 'N'), { ok: false, error: 'Nothing to save: these shift settings are already set.' });
   await s.ok(E.endShiftEvents(s.ctx(), t('17:00'), 'N'));
-  assert.deepEqual(snapshot(s.state, glovis, 17 * 60 + 5).banners[0], { tone: 'break', title: 'SHIFT ENDED', sub: 'At 17:00 · Day 2 starts 07:00', trackable: false, tracked: false });
+  assert.deepEqual(snapshot(s.state, glovis, 17 * 60 + 5).banners[0], { tone: 'break', title: 'Shift ended', sub: 'At 17:00 · Day 2 starts 07:00', trackable: false, tracked: false });
   await s.ok(E.nextDayEvents(s.ctx(), t('07:00', 2)));
   assert.deepEqual([s.state.ops.day, s.state.ops.phase], [2, 'working']);
   await s.ok(E.hourEvents(s.ctx(), { day: 2, start: '07:00', count: 200 }));

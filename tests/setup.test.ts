@@ -75,6 +75,12 @@ test('setup refuses: no name, bad date/start, no decks, two current heights; war
   assert.match(low.warnings[0], /D1 is set to 1\.70 m, below 1\.85 m/);
 });
 
+test('setup refuses a deck whose number was not read (a bare "D")', () => {
+  const r = buildBaseline(form({ decks: [{ label: 'D', heights: [], hatches: [] }] }));
+  assert.ok(!r.ok);
+  assert.match(r.errors.join(' '), /Deck 1 is just "D"/);
+});
+
 test('LIVE ids never start with TEST-; TEST ids always do', () => {
   const live = buildBaseline(form({ isTest: false }));
   assert.ok(live.ok && !live.operationId.startsWith('TEST-'));
