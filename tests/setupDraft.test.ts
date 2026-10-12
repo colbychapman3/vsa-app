@@ -95,3 +95,72 @@ test('through the real prefs layer: survives a reopened store and never touches 
 });
 
 test('serialize is plain text of the draft', () => { assert.equal(JSON.parse(serializeDraft(typed(), 't')).draft.v.vessel, 'Hector Highway'); });
+
+// ---- autosave ----
+import { AUTOSAVE_MS, createAutosaver } from '../src/app/setupDraft.ts';
+const clock = () => {
+  let t = 0, id = 0; const q = new Map<number, { at: number; fn: () => void }>();
+  return {
+    timers: { set: (fn: () => void, ms: number) => { q.set(++id, { at: t + ms, fn }); return id; }, clear: (h: unknown) => { q.delete(h as number); } },
+    tick: (ms: number) => { t += ms; for (const [i, e] of [...q]) if (e.at <= t) { q.delete(i); e.fn(); } },
+    waiting: () => q.size,
+  };
+};
+const setup = () => { const st = memory(); const c = clock(); const a = createAutosaver(st, c.timers, () => new Date('2026-10-12T12:00:00Z')); return { st, c, a }; };
+const flushAsync = () => new Promise((r) => setImmediate(r));
+
+test('autosave: saves about one second after the last change, not on every keystroke', async () => {
+  const { st, c, a } = setup();
+  const d = typed();
+  a.schedule(d); c.tick(AUTOSAVE_MS - 100);
+  const d2 = { ...d, v: { ...d.v, vessel: 'Hector Highway 10' } };
+  a.schedule(d2); c.tick(AUTOSAVE_MS - 100); await flushAsync();
+  assert.equal(st.m.size, 0); // the wait restarted with the second change
+  c.tick(200); await flushAsync();
+  assert.equal((await loadDraft(st))?.draft.v.vessel, 'Hector Highway 10');
+});
+
+test('autosave: an untouched or emptied form is never saved, and an emptied form cancels the wait', async () => {
+  const { st, c, a } = setup();
+  a.schedule(blankDraft()); assert.equal(c.waiting(), 0);
+  a.schedule(typed()); assert.equal(c.waiting(), 1);
+  a.schedule(blankDraft()); assert.equal(c.waiting(), 0);
+  c.tick(5000); await flushAsync();
+  assert.equal(st.m.size, 0);
+});
+
+test('autosave: same answers again do not restart the wait or write twice; going to background saves now', async () => {
+  const { st, c, a } = setup();
+  const d = typed(); a.schedule(d); c.tick(600); a.schedule({ ...d }); c.tick(500); await flushAsync();
+  assert.equal(st.m.size, 1);
+  st.m.clear(); a.schedule({ ...d }); assert.equal(c.waiting(), 0); // already stored: nothing to do
+  const e = { ...d, isTest: true }; a.schedule(e); await a.flush();
+  assert.equal((await loadDraft(st))?.draft.isTest, true); // TEST flag kept
+  assert.equal(c.waiting(), 0);
+});
+
+test('autosave: after create or discard (settled) nothing is written, even a pending change', async () => {
+  const { st, c, a } = setup();
+  a.schedule(typed()); a.settle(true); c.tick(5000); await flushAsync(); await a.flush();
+  assert.equal(st.m.size, 0);
+  a.schedule(typed()); c.tick(5000); await flushAsync();
+  assert.equal(st.m.size, 0);
+  a.settle(false); a.schedule(typed()); c.tick(1000); await flushAsync(); // e.g. creating failed: autosave resumes
+  assert.equal(st.m.size, 1);
+});
+
+test('autosave: a resumed draft is not rewritten until it changes; a failed write is retried', async () => {
+  const { st, c, a } = setup();
+  const d = typed(); a.seed(d); a.schedule(d); assert.equal(c.waiting(), 0);
+  let fail = true; const flaky: DraftStore = { get: st.get, set: async (k, v) => { if (fail) throw new Error('busy'); await st.set(k, v); } };
+  const b = createAutosaver(flaky, c.timers, () => new Date());
+  b.schedule(d); c.tick(1000); await flushAsync(); assert.equal(st.m.size, 0);
+  fail = false; await b.flush(); b.schedule(d); c.tick(1000); await flushAsync();
+  assert.equal(st.m.size, 1);
+});
+
+test('autosave leaves the close prompt alone: a dirty form is still dirty after it was autosaved', async () => {
+  const { c, a } = setup();
+  const d = typed(); a.schedule(d); c.tick(1000); await flushAsync();
+  assert.equal(isDirty(d), true);
+});

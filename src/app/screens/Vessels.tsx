@@ -1,10 +1,10 @@
 // New vessel: the 5-step Setup inside one sheet. The vessel list lives in the sidebar; archived vessels in Settings.
 // Closing with work typed in asks first (keep working / save draft and close / discard). A saved draft is offered next time.
-import { useEffect, useRef, useState } from 'react';
-import { Text } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Text } from 'react-native';
 import type { Reject } from '../../engine/index.ts';
 import type { Built } from '../setup.ts';
-import { blankDraft, clearDraft, draftLabel, isDirty, loadDraft, saveDraft, type DraftStore, type SetupDraft, type StoredDraft } from '../setupDraft.ts';
+import { blankDraft, clearDraft, createAutosaver, draftLabel, isDirty, loadDraft, saveDraft, type DraftStore, type SetupDraft, type StoredDraft } from '../setupDraft.ts';
 import { color, useType } from '../theme.ts';
 import { Body, Card, Go, Note, SectionHead, Sheet, u } from './ui.tsx';
 import { Setup } from './Setup.tsx';
@@ -23,6 +23,9 @@ export function Vessels({ onCreate, onClose, drafts }: {
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const snap = useRef<SetupDraft | null>(null);
+  const auto = useMemo(() => createAutosaver(drafts, { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>) }, () => new Date()), [drafts]);
+  // Going to the background saves at once; the app may be killed there.
+  useEffect(() => { const sub = AppState.addEventListener('change', (st) => { if (st !== 'active') void auto.flush(); }); return () => sub.remove(); }, [auto]);
   const settled = useRef(false); // true once the user chose save / discard, or the vessel was created: nothing left to rescue
 
   useEffect(() => {
@@ -31,7 +34,7 @@ export function Vessels({ onCreate, onClose, drafts }: {
     return () => { live = false; };
   }, [drafts]);
   // If something else closes the sheet while work is in it (a link, a reminder), keep the work as a draft.
-  useEffect(() => () => { const d = snap.current; if (!settled.current && d && isDirty(d)) void saveDraft(drafts, d, new Date()); }, [drafts]);
+  useEffect(() => () => { const d = snap.current; if (!settled.current && d && isDirty(d)) void saveDraft(drafts, d, new Date()); auto.settle(true); }, [drafts, auto]);
 
   const attemptClose = () => {
     const d = snap.current;
@@ -43,16 +46,16 @@ export function Vessels({ onCreate, onClose, drafts }: {
     settled.current = true; onClose();
   };
   const discard = async () => { await clearDraft(drafts); settled.current = true; onClose(); };
-  const resume = () => { if (!stored) return; setInitial(stored.draft); setNewTest(stored.draft.isTest); setPhase('ready'); };
-  const fresh = async () => { await clearDraft(drafts); setStored(null); setPhase('ready'); };
+  const resume = () => { if (!stored) return; setInitial(stored.draft); auto.seed(stored.draft); setNewTest(stored.draft.isTest); setPhase('ready'); };
+  const fresh = async () => { auto.settle(true); await clearDraft(drafts); auto.settle(false); setStored(null); setPhase('ready'); };
   const create: typeof onCreate = async (b, isTest, notes, photos) => {
     // Creating switches to the new vessel and closes this sheet before onCreate returns, so mark it settled first and undo if it fails.
-    settled.current = true;
+    settled.current = true; auto.settle(true);
     try {
       const r = await onCreate(b, isTest, notes, photos);
-      if (r.ok) await clearDraft(drafts); else settled.current = false;
+      if (r.ok) await clearDraft(drafts); else { settled.current = false; auto.settle(false); }
       return r;
-    } catch (e) { settled.current = false; throw e; }
+    } catch (e) { settled.current = false; auto.settle(false); throw e; }
   };
 
   return (
@@ -76,7 +79,7 @@ export function Vessels({ onCreate, onClose, drafts }: {
           <Note>Discard cannot be undone.</Note>
         </Card>
       )}
-      {phase === 'ready' && <Setup isTest={newTest} setIsTest={setNewTest} onKey={setKey} onCreate={create} initial={initial} snap={snap} />}
+      {phase === 'ready' && <Setup isTest={newTest} setIsTest={setNewTest} onKey={setKey} onCreate={create} initial={initial} snap={snap} onDraft={auto.schedule} />}
     </Sheet>
   );
 }

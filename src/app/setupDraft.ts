@@ -106,3 +106,40 @@ export function draftLabel(s: StoredDraft): string {
   const name = s.draft.v.vessel.trim() || (s.draft.imported ? 'Imported baseline' : 'Vessel not named yet');
   return `${name} · ${s.draft.isTest ? 'TEST' : 'LIVE'}${when}`;
 }
+
+// Autosave: keeps the draft current while the user types, so a killed app or a crash loses nothing.
+// Pure decisions + an injected timer, so it is tested without a phone. It writes the same single draft as "Save draft and close".
+export const AUTOSAVE_MS = 1000;
+export type Timers = { set: (fn: () => void, ms: number) => unknown; clear: (h: unknown) => void };
+export const draftKey = (d: SetupDraft) => JSON.stringify(d);
+
+export function createAutosaver(store: DraftStore, timers: Timers, now: () => Date, delay = AUTOSAVE_MS) {
+  let handle: unknown = null;
+  let pending: SetupDraft | null = null;
+  let lastKey: string | null = null; // what the store already holds (or is about to)
+  let settled = false; // created / discarded: nothing more may be written
+  const stop = () => { if (handle != null) timers.clear(handle); handle = null; };
+  const flush = async (): Promise<void> => {
+    stop();
+    const d = pending; pending = null;
+    if (settled || !d || !isDirty(d)) return; // an untouched or empty form is never saved
+    const k = draftKey(d);
+    if (k === lastKey) return;
+    lastKey = k;
+    const r = await saveDraft(store, d, now());
+    if (!r.ok) lastKey = null; // try again at the next change or background
+  };
+  return {
+    // Call with the current answers on every change; only a real change restarts the wait.
+    schedule(d: SetupDraft) {
+      if (settled || !isDirty(d)) { pending = null; stop(); return; }
+      const k = draftKey(d);
+      if (k === lastKey && pending == null) return;
+      if (pending && draftKey(pending) === k) return;
+      pending = d; stop(); handle = timers.set(() => { void flush(); }, delay);
+    },
+    flush, // the app went to the background: save now
+    seed(d: SetupDraft) { lastKey = draftKey(d); }, // a resumed draft is already stored
+    settle(on: boolean) { settled = on; if (on) { pending = null; stop(); } },
+  };
+}

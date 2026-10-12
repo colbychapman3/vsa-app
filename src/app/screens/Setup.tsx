@@ -26,9 +26,9 @@ const n = (x: number) => x.toLocaleString('en-US');
 type GameRead = { filled: string[]; problems: string[]; notes: string[]; extras: string[]; scans: Page[]; decks: number; autos: number | null; hhTotal: number | null };
 
 // Content only: it lives inside the New vessel sheet, so there is never a second modal (iOS freezes on stacked modals).
-export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft(), snap }: {
+export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft(), snap, onDraft }: {
   isTest: boolean; setIsTest: (t: boolean) => void; onKey: (k: string) => void;
-  initial?: SetupDraft; snap?: MutableRefObject<SetupDraft | null>; // a resumed draft in; the current answers out (the sheet asks before closing)
+  initial?: SetupDraft; snap?: MutableRefObject<SetupDraft | null>; onDraft?: (d: SetupDraft) => void; // a resumed draft in; the current answers out (the sheet asks before closing)
   onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[], photos: string[]) => Promise<{ ok: true } | Reject>;
 }) {
   const f = useType();
@@ -60,6 +60,8 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
     isTest, mode: imported ? 'paste' : mode, step, imported: !!imported, v, allocs, decks, hh, load, loadHh, override, paste, keep, confirmed,
     read: read ? { filled: read.filled, problems: read.problems, notes: read.notes, extras: read.extras, decks: read.decks, autos: read.autos, hhTotal: read.hhTotal } : null,
   };
+
+  useEffect(() => { if (snap?.current) onDraft?.(snap.current); }); // every render: the autosaver only acts on a real change
 
   useEffect(() => { setAck(false); setOpenDrop(null); onKey(`${step}${imported ? 'i' : ''}${mode}`); }, [step, imported, mode, onKey]);
 
