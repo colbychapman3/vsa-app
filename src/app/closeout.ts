@@ -18,10 +18,11 @@ export const TICKS = [
 ] as const;
 export type TickKey = (typeof TICKS)[number]['key'];
 
-// They live with the report notes under these keys (setNote / getNotes); a ticked item holds '1'.
+// Ticks live with the report notes under these keys (setNote / getNotes); a ticked item holds '1'.
 export const tickNote = (k: TickKey) => `closeout:${k}`;
-export const SLOWED_NOTE = 'closeout:slowed';
+// The answer to this question is kept with the vessel itself: a Plan note with this title, so it is in the log and the export.
 export const SLOWED_QUESTION = 'What slowed you down today?';
+export const slowedNote = (s: State) => s.notes.filter((x) => !x.removed && x.title === SLOWED_QUESTION).at(-1) ?? null;
 
 export type Row = { id: string; label: string; detail: string; ok: boolean; kind: 'check' | 'tick'; go?: 'decks' | 'hourly' | 'snap' };
 
@@ -59,7 +60,7 @@ export function actualFinishAbs(s: State): number | null {
 const clock = (abs: number) => `${formatHM(abs % 1440)}${abs >= 1440 ? ` (Day ${Math.floor(abs / 1440) + 1})` : ''}`;
 const errText = (min: number) => min === 0 ? 'on the forecast' : `${Math.abs(min)} min ${min > 0 ? 'later' : 'earlier'} than forecast`;
 
-export type Scorecard = { actual: string | null; rows: { label: string; forecast: string; result: string }[]; note: string | null };
+export type Scorecard = { actual: string | null; rows: { label: string; forecast: string; result: string; signedMin: number }[]; note: string | null };
 
 // How close the forecast came: the first forecast of the day and the last one before the finish, each against the actual finish.
 export function scorecard(s: State, b: Baseline): Scorecard {
@@ -69,7 +70,7 @@ export function scorecard(s: State, b: Baseline): Scorecard {
   const picks = pts.length === 0 ? [] : pts.length === 1 ? [{ p: pts[0], label: `After ${pts[0].hour}` }] : [{ p: pts[0], label: `First forecast, after ${pts[0].hour}` }, { p: pts[pts.length - 1], label: `Last forecast, after ${pts[pts.length - 1].hour}` }];
   const rows = picks.flatMap(({ p, label }) => {
     const e = forecastError({ milestone: 'cars_complete', at: fromAbs(p.etaAbs!) }, { milestone: 'cars_complete', at: fromAbs(act) });
-    return 'signedMin' in e ? [{ label, forecast: `FORECAST ${clock(p.etaAbs!)}`, result: errText(e.signedMin) }] : [];
+    return 'signedMin' in e ? [{ label, forecast: `FORECAST ${clock(p.etaAbs!)}`, result: errText(e.signedMin), signedMin: e.signedMin }] : [];
   });
   return { actual: clock(act), rows, note: rows.length === 0 ? 'No forecast was shown before the finish, so there is nothing to score.' : 'Scored against the end of the last counted hour. Cars only: not H&H, load-back or lashing.' };
 }
@@ -92,7 +93,7 @@ export function answerSheet(s: State, b: Baseline, o: { isTest: boolean; notes: 
   L.push(dmg.length === 0 ? 'Damage and stowage records: none in the app' : `Damage and stowage records: ${dmg.length} (${[...new Set(dmg.map((e) => TYPE_LABEL[e.type]))].join(', ')})`);
   const left = o.closeout.rows.filter((r) => !r.ok);
   L.push(left.length === 0 ? 'Open items: none' : `Open items: ${left.map((r) => (r.kind === 'tick' ? `${r.label} not confirmed` : r.detail)).join(' ')}`);
-  const slow = o.notes[SLOWED_NOTE]?.trim();
+  const slow = slowedNote(s)?.text.trim();
   if (slow) L.push(`${SLOWED_QUESTION} ${slow}`);
   L.push('Counts are the field record; H&H is counted separately and is not included.');
   return L.join('\n');

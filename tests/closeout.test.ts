@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import type { VsaEvent, Reject } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
-import { actualFinishAbs, answerSheet, coachList, scorecard, SLOWED_NOTE, tickNote, TICKS } from '../src/app/closeout.ts';
+import { actualFinishAbs, answerSheet, coachList, scorecard, SLOWED_QUESTION, tickNote, TICKS } from '../src/app/closeout.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
 
@@ -118,7 +118,8 @@ test('scorecard: unscored before the finish; after it every row is a labeled FOR
 test('answer sheet: counts, status, finish, open items and the slowed-down line; H&H never added', async (tc) => {
   const s = await setup(tc);
   await s.finish();
-  const notes = { ...allTicked, [SLOWED_NOTE]: 'Waited on vans at 14:00' };
+  await s.ok(E.slowedEvents(s.ctx(), 'Waited on vans at 14:00', SLOWED_QUESTION));
+  const notes = allTicked;
   const done = answerSheet(s.state, glovis, { isTest: true, notes, closeout: coachList(s.state, notes) });
   assert.match(done, /^TEST · /);
   assert.match(done, /Autos counted in the field: 1,969 of 1,969/);
@@ -130,7 +131,8 @@ test('answer sheet: counts, status, finish, open items and the slowed-down line;
   assert.match(done, /Status: INTERIM: ready to close, not confirmed/);
   const partial = answerSheet(s.state, glovis, { isTest: true, notes: {}, closeout: coachList(s.state, {}) });
   assert.match(partial, /Open items: Load-back closed not confirmed/);
-  assert.doesNotMatch(partial, /What slowed you down/);
+  await s.ok(E.slowedEvents(s.ctx(), '', SLOWED_QUESTION)); // cleared: removed with a reason, kept in the log
+  assert.doesNotMatch(answerSheet(s.state, glovis, { isTest: true, notes: {}, closeout: coachList(s.state, {}) }), /What slowed you down/);
 });
 
 test('an unfinished vessel has no actual finish; remaining shows as counted, never as a finish', async (tc) => {
@@ -139,4 +141,17 @@ test('an unfinished vessel has no actual finish; remaining shows as counted, nev
   assert.match(sheet, /Vessel remaining: 1,969/);
   assert.match(sheet, /Finish: unknown/);
   assert.doesNotMatch(sheet, /end of the last counted hour/);
+});
+
+test('the slowed-down answer is a Plan note in the log: a new answer replaces the old, the same answer writes nothing', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.slowedEvents(s.ctx(), 'Rain at 10:00', SLOWED_QUESTION));
+  await s.ok(E.slowedEvents(s.ctx(), 'Rain at 10:00, then vans short', SLOWED_QUESTION));
+  const live = s.state.notes.filter((x) => !x.removed && x.title === SLOWED_QUESTION);
+  assert.equal(live.length, 1);
+  assert.equal(live[0].text, 'Rain at 10:00, then vans short');
+  assert.deepEqual(live[0].history.map((h) => h.text), ['Rain at 10:00', 'Rain at 10:00, then vans short']);
+  assert.deepEqual(E.slowedEvents(s.ctx(), 'Rain at 10:00, then vans short', SLOWED_QUESTION), []);
+  const clear = E.slowedEvents(s.ctx(), '   ', SLOWED_QUESTION);
+  assert.ok(Array.isArray(clear) && clear.length === 1 && clear[0].event_type === 'note.removed'); // clearing removes it, with a reason
 });

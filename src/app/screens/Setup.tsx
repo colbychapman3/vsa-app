@@ -13,6 +13,7 @@ import {
 import { blankDraft, type SetupDraft } from '../setupDraft.ts';
 import { readGamePlanPages } from '../gamePlan.ts';
 import { doubts, shipCard, watchList } from '../prep.ts';
+import { historyLine, type Lessons } from '../history.ts';
 import { brandFor, readDischargeSummary } from '../dischargeSummary.ts';
 import type { Page } from '../layout.ts';
 import { readPhotos } from '../ai.ts';
@@ -28,8 +29,8 @@ const n = (x: number) => x.toLocaleString('en-US');
 type GameRead = { filled: string[]; problems: string[]; notes: string[]; extras: string[]; scans: Page[]; decks: number; autos: number | null; hhTotal: number | null };
 
 // Content only: it lives inside the New vessel sheet, so there is never a second modal (iOS freezes on stacked modals).
-export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft(), snap, onDraft }: {
-  isTest: boolean; setIsTest: (t: boolean) => void; onKey: (k: string) => void;
+export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft(), snap, onDraft, history }: {
+  isTest: boolean; setIsTest: (t: boolean) => void; onKey: (k: string) => void; history?: { live: Lessons; test: Lessons };
   initial?: SetupDraft; snap?: MutableRefObject<SetupDraft | null>; onDraft?: (d: SetupDraft) => void; // a resumed draft in; the current answers out (the sheet asks before closing)
   onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[], photos: string[]) => Promise<{ ok: true } | Reject>;
 }) {
@@ -540,6 +541,7 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
                 <Card style={[u.pad, { gap: 6 }]}>
                   <SectionHead title="What the app will watch today" />
                   {watchList(built, { hhExists: hh.length > 0 }).map((l) => <Body key={l}>• {l}</Body>)}
+                  {history && historyLine(isTest ? history.test : history.live, built.total) && <Note>{historyLine(isTest ? history.test : history.live, built.total)}</Note>}
                 </Card>
               )}
               {error && <ErrorBox text={error} />}

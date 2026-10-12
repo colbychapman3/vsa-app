@@ -48,6 +48,8 @@ import { Search } from './src/app/screens/Search.tsx';
 import { Plan, type Backup, type Reports } from './src/app/screens/Plan.tsx';
 import { Vessels } from './src/app/screens/Vessels.tsx';
 import { Sidebar } from './src/app/screens/Sidebar.tsx';
+import { Lessons } from './src/app/screens/Lessons.tsx';
+import { lessons, shipResult, type ShipResult } from './src/app/history.ts';
 import { Settings } from './src/app/screens/Settings.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
 import { siriPrefill } from './src/app/siri.ts';
@@ -90,9 +92,26 @@ export default function App() {
   const [remind, setRemind] = useState<ReminderStatus>('ask');
   const [fg, setFg] = useState(0); // bumps when the app returns to the foreground, to re-plan reminders
   const [deckOpen, setDeckOpen] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'new' | 'settings' | 'map' | 'search' | 'ask' | 'eta' | 'complete' | null>(null); // one modal at a time
+  const [sheet, setSheet] = useState<'new' | 'settings' | 'map' | 'search' | 'ask' | 'eta' | 'complete' | 'lessons' | null>(null); // one modal at a time
   const [rows, setRows] = useState<VesselRow[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  // Finished ships teach the next one (Phase 5): read when a sheet that uses them opens. A vessel that cannot load is skipped.
+  const [results, setResults] = useState<ShipResult[]>([]);
+  useEffect(() => {
+    if (sheet !== 'lessons' && sheet !== 'complete' && sheet !== 'eta' && sheet !== 'new') return;
+    let live = true;
+    (async () => {
+      const out: ShipResult[] = [];
+      for (const v of await store.current!.listVessels()) {
+        const r = await store.current!.load(v.operationId);
+        if (r.ok && r.state.ok) { const x = shipResult(v.operationId, r.state, r.baseline, v.isTest); if (x) out.push(x); }
+      }
+      if (live) setResults(out);
+    })().catch(() => { /* history is a help, never a blocker */ });
+    return () => { live = false; };
+  }, [sheet]);
+  const pastLive = useMemo(() => lessons(results, false), [results]);
+  const pastTest = useMemo(() => lessons(results, true), [results]);
 
   // Remaining reaches exactly 0: ask once per vessel "Is the vessel complete?" (never marks it by itself). Asks again only after
   // remaining leaves 0 and comes back (a reopen at 0 does not re-ask). Waits 450 ms for a closing sheet to slide away, and until no
@@ -426,9 +445,10 @@ export default function App() {
                 <DeckSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} deckId={deckOpen} save={save}
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice(answered(done)); else before.current = null; }} />
               )}
-              {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} drafts={draftStore} />}
-              {sheet === 'complete' && <CloseoutSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} notes={notes} onNote={reports.onNote} save={save} onShare={(message) => { void Share.share({ title: `${vessel.state.vessel} answer sheet`, message }); }} onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} onGo={openTab} />}
-              {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} onClose={() => setSheet(null)} />}
+              {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} drafts={draftStore} history={{ live: pastLive, test: pastTest }} />}
+              {sheet === 'complete' && <CloseoutSheet lessons={vessel.isTest ? pastTest : pastLive} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} notes={notes} onNote={reports.onNote} save={save} onShare={(message) => { void Share.share({ title: `${vessel.state.vessel} answer sheet`, message }); }} onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} onGo={openTab} />}
+              {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} lessons={vessel.isTest ? pastTest : pastLive} onClose={() => setSheet(null)} />}
+              {sheet === 'lessons' && <Lessons live={pastLive} test={pastTest} startTest={vessel.isTest} onClose={() => setSheet(null)} />}
               {sheet === 'settings' && (
                 <Settings isTest={vessel.isTest} rows={rows} currentId={vessel.id} onClose={() => setSheet(null)} layout={layout} onLayout={changeLayout}
                   sun={sun} onSun={(v) => { setSun(v); setSunPalette(v); void setPrefSafe('sun', v ? '1' : '0'); }}
@@ -449,7 +469,7 @@ export default function App() {
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
               {sheet === 'search' && <Search isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
-              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} onComplete={() => { setDrawer(false); setSheet('complete'); }} canComplete={vessel.state.completed == null} />}
+              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} onComplete={() => { setDrawer(false); setSheet('complete'); }} canComplete={vessel.state.completed == null} onLessons={() => { setDrawer(false); setSheet('lessons'); }} />}
             </>
           ) : (
             <View style={s.pad}>

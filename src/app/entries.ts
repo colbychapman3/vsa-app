@@ -523,6 +523,16 @@ export function removeNoteEvents(ctx: Ctx, id: string, reason: string | null): V
   return out;
 }
 
+// The closeout answer to "What slowed you down today?" (Phase 5): one Plan note with that title, kept with the vessel.
+// A new answer replaces the earlier one (its text stays in the note's history); an empty answer removes it, with a reason.
+export function slowedEvents(ctx: Ctx, text: string, title: string): VsaEvent[] | Reject {
+  const t = text.trim();
+  const cur = ctx.state.notes.filter((x) => !x.removed && x.title === title).at(-1);
+  if (!cur) return t ? addNoteEvents(ctx, { title, text: t }) : [];
+  if (cur.text === t) return [];
+  return t ? editNoteEvents(ctx, cur.id, { title, text: t }, 'New information') : removeNoteEvents(ctx, cur.id, 'Cleared at closeout');
+}
+
 // ---------- Photo evidence ----------
 
 export const PHOTO_REMOVE_REASONS = ['Taken by mistake', 'Duplicate', 'Wrong vessel'] as const; // plus "Other…"

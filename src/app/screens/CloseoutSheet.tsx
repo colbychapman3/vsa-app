@@ -5,8 +5,9 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Baseline, Reject, VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
-import { answerSheet, coachList, scorecard, SLOWED_NOTE, SLOWED_QUESTION, tickNote, type Row, type TickKey } from '../closeout.ts';
-import type * as E from '../entries.ts';
+import { answerSheet, coachList, scorecard, slowedNote, SLOWED_QUESTION, tickNote, type Row, type TickKey } from '../closeout.ts';
+import * as E from '../entries.ts';
+import { biasLine, type Lessons } from '../history.ts';
 import { bcolor, color, TAP, useType } from '../theme.ts';
 import { CompleteSheet } from './CompleteSheet.tsx';
 import { Body, Card, Go, Note, SectionHead, Sheet, u } from './ui.tsx';
@@ -14,20 +15,25 @@ import { Body, Card, Go, Note, SectionHead, Sheet, u } from './ui.tsx';
 type Save = (build: (c: E.Ctx) => VsaEvent[] | Reject) => Promise<{ ok: true } | Reject>;
 type Tab = 'decks' | 'hourly' | 'snap';
 
-export function CloseoutSheet({ state, baseline, isTest, notes, onNote, save, onShare, onClose, onGo }: {
+export function CloseoutSheet({ state, baseline, isTest, notes, onNote, save, onShare, onClose, onGo, lessons }: {
   state: State; baseline: Baseline; isTest: boolean; notes: Record<string, string>; onNote: (section: string, text: string) => Promise<void>;
-  save: Save; onShare: (text: string) => void; onClose: (done?: string) => void; onGo: (tab: Tab) => void;
+  save: Save; onShare: (text: string) => void; onClose: (done?: string) => void; onGo: (tab: Tab) => void; lessons?: Lessons | null;
 }) {
   const f = useType();
   const [mark, setMark] = useState(false);
-  const [slow, setSlow] = useState(notes[SLOWED_NOTE] ?? '');
+  const [slow, setSlow] = useState(slowedNote(state)?.text ?? '');
+  const [slowErr, setSlowErr] = useState<string | null>(null);
   const list = useMemo(() => coachList(state, notes), [state, notes]);
   const score = useMemo(() => scorecard(state, baseline), [state, baseline]);
   if (mark) return <CompleteSheet state={state} isTest={isTest} save={save} onClose={onClose} onGo={onGo} />;
 
-  const saveSlow = () => { if (slow !== (notes[SLOWED_NOTE] ?? '')) void onNote(SLOWED_NOTE, slow); };
+  // Kept with the vessel (a Plan note in the log), so it travels with the export and teaches the next ships.
+  const saveSlow = () => {
+    if (slow.trim() === (slowedNote(state)?.text ?? '')) return;
+    void save((c) => E.slowedEvents(c, slow, SLOWED_QUESTION)).then((r) => setSlowErr(r.ok ? null : r.error));
+  };
   const open = list.rows.filter((r) => !r.ok), done = list.rows.filter((r) => r.ok);
-  const sheetText = () => answerSheet(state, baseline, { isTest, notes: { ...notes, [SLOWED_NOTE]: slow }, closeout: list });
+  const sheetText = () => answerSheet(state, baseline, { isTest, notes, closeout: list });
 
   const row = (r: Row) => (
     <Pressable key={r.id} accessibilityRole={r.kind === 'tick' ? 'checkbox' : 'button'} accessibilityState={r.kind === 'tick' ? { checked: r.ok } : undefined}
@@ -71,15 +77,17 @@ export function CloseoutSheet({ state, baseline, isTest, notes, onNote, save, on
         </Card>
       )}
       {score.note && <Note>{score.note}</Note>}
+      {lessons && biasLine(lessons) && <Note>{biasLine(lessons)}</Note>}
 
       <SectionHead title={SLOWED_QUESTION} />
       <TextInput value={slow} onChangeText={setSlow} onEndEditing={saveSlow} onBlur={saveSlow} multiline maxLength={300} accessibilityLabel={SLOWED_QUESTION}
         placeholder="One line is enough. Kept with this vessel." placeholderTextColor={color.muted}
         style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 80, paddingTop: 12, textAlignVertical: 'top' }]} />
+      {slowErr && <Note style={{ color: color.rInk }}>{slowErr}</Note>}
 
       <Go label="Send the answer sheet" onPress={() => { saveSlow(); onShare(sheetText()); }} />
       <Go ghost label={state.completed ? 'Completion mark…' : 'Mark the vessel complete…'} onPress={() => { saveSlow(); setMark(true); }} />
-      <Note>The answer sheet goes to the superintendent and/or the operations manager: pick who in the share sheet. Ticks and your line are kept on this phone with the report notes.</Note>
+      <Note>The answer sheet goes to the superintendent and/or the operations manager: pick who in the share sheet. Ticks are kept on this phone with the report notes; your line is kept with the vessel and read for trends on later ships.</Note>
     </Sheet>
   );
 }

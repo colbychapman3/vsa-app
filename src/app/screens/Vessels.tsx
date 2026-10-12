@@ -7,11 +7,13 @@ import type { Built } from '../setup.ts';
 import { blankDraft, clearDraft, createAutosaver, draftLabel, isDirty, loadDraft, saveDraft, type DraftStore, type SetupDraft, type StoredDraft } from '../setupDraft.ts';
 import { color, useType } from '../theme.ts';
 import { Body, Card, Go, Note, SectionHead, Sheet, u } from './ui.tsx';
+import type { Lessons } from '../history.ts';
 import { Setup } from './Setup.tsx';
 
-export function Vessels({ onCreate, onClose, drafts }: {
+export function Vessels({ onCreate, onClose, drafts, history }: {
   onClose: () => void;
   drafts: DraftStore;
+  history?: { live: Lessons; test: Lessons };
   onCreate: (b: Extract<Built, { ok: true }>, isTest: boolean, notes: string[], photos: string[]) => Promise<{ ok: true } | Reject>;
 }) {
   const f = useType();
@@ -79,7 +81,7 @@ export function Vessels({ onCreate, onClose, drafts }: {
           <Note>Discard cannot be undone.</Note>
         </Card>
       )}
-      {phase === 'ready' && <Setup isTest={newTest} setIsTest={setNewTest} onKey={setKey} onCreate={create} initial={initial} snap={snap} onDraft={auto.schedule} />}
+      {phase === 'ready' && <Setup history={history} isTest={newTest} setIsTest={setNewTest} onKey={setKey} onCreate={create} initial={initial} snap={snap} onDraft={auto.schedule} />}
     </Sheet>
   );
 }

@@ -6,13 +6,14 @@ import { formatHM, type Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { etaHistory, type EtaPoint } from '../etaHistory.ts';
 import { snapshot } from '../view.ts';
+import { biasLine, type Lessons } from '../history.ts';
 import { color } from '../theme.ts';
 import { Body, InfoNote, Label, Note, Seg, Sheet, Tag } from './ui.tsx';
 
 const clock = (abs: number) => formatHM(abs % 1440);
 const W = 340, H = 190, PAD = 30;
 
-export function EtaHistory({ state, baseline, nowMin, isTest, onClose }: { state: State; baseline: Baseline; nowMin: number; isTest: boolean; onClose: () => void }) {
+export function EtaHistory({ state, baseline, nowMin, isTest, lessons, onClose }: { state: State; baseline: Baseline; nowMin: number; isTest: boolean; lessons?: Lessons | null; onClose: () => void }) {
   const [view, setView] = useState<'line' | 'bars'>('line');
   const pts = useMemo(() => etaHistory(baseline, state.log.events, state.operationId), [baseline, state.log.events, state.operationId]);
   const v = snapshot(state, baseline, nowMin);
@@ -21,6 +22,7 @@ export function EtaHistory({ state, baseline, nowMin, isTest, onClose }: { state
       <Tag kind="FORECAST" />
       <Label>HOW THIS IS WORKED OUT</Label>
       {v.eta.notes.map((n) => <Body key={n}>{n}</Body>)}
+      {lessons && biasLine(lessons) && <Note>{biasLine(lessons)} Read it beside the forecast; it does not change it.</Note>}
       <InfoNote><Note>A forecast, not a result: it follows the recent pace, skips the 12:00 and 18:00 breaks, and is never marked complete by itself.</Note></InfoNote>
 
       <Label>ETA AFTER EACH LOGGED HOUR</Label>
