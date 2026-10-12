@@ -11,7 +11,7 @@ import * as E from '../src/app/entries.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
 import { vanView } from '../src/app/view.ts';
-import { alerts, reminderPlan } from '../src/app/assistant.ts';
+import { alerts } from '../src/app/assistant.ts';
 
 const OP = 'TEST-VANS';
 
@@ -216,7 +216,7 @@ test('van view: header, counts, gassing tally, history lines newest first; remov
   assert.equal(v.alert, null);
 });
 
-test('the gassing alert joins the Plan alerts and the 25-minute reminders only after the vessel is finished', async (tc) => {
+test('the gassing alert joins the Plan alerts only after the vessel is finished', async (tc) => {
   const s = await setup(tc);
   await s.ok(E.addVanSlotsEvents(s.ctx(), 2));
   await s.ok(E.editVanEvents(s.ctx(), s.id(1), { number: '109' }, null));
@@ -224,8 +224,6 @@ test('the gassing alert joins the Plan alerts and the 25-minute reminders only a
   assert.ok(!alerts(s.state, glovis).some((a) => /not marked gassed/.test(a)), 'vessel still has autos remaining');
   const finished = { ...s.state, vesselRemaining: 0 } as State;
   assert.ok(alerts(finished, glovis).includes('2 vans not marked gassed'));
-  const plan = reminderPlan(finished, glovis, 15 * 60, true);
-  assert.ok(plan && plan.text.includes('2 vans not marked gassed'));
 });
 
 test('review fixes: re-filling a cleared number is a change; photo fill keeps what a slot already holds; parser skips dates, times and gas words', async (tc) => {

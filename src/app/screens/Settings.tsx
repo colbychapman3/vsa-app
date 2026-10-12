@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import type { VesselRow } from '../../storage/vessels.ts';
 import { aiStatus, AI_STATUS_TEXT } from '../ai.ts';
-import { makeQuiet, type Quiet } from '../assistant.ts';
+import { makeQuiet, type Quiet, type ReminderKind, type ReminderSwitches } from '../assistant.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
 import { APPEARANCES, appearanceLoaded, bcolor, color, sunPaletteLoaded, useType, type AppearanceMode } from '../theme.ts';
 import { Body, Card, Chip, ErrorBox, Field, Go, InfoNote, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
@@ -13,15 +13,21 @@ import type { Layout } from '../snapshotLayout.ts';
 
 export type ExportResult = { ok: boolean; text: string };
 
+const NOTIFY_ROWS: { kind: ReminderKind; title: string; note: string }[] = [
+  { kind: 'count', title: 'Count due', note: 'At 5 minutes past the hour, if that working hour still has no count logged. Once per missed hour; gone as soon as you log it.' },
+  { kind: 'deck', title: 'Deck won’t make the cutoff', note: 'About an hour before a break’s clear-by, only if Plan already warns that a deck can’t clear in time at the current pace. A forecast, sent once.' },
+  { kind: 'break', title: 'Break ending', note: 'Five minutes before the 1-hour break ends. Gone if you end the break early.' },
+];
+
 const APPEARANCE_LABEL: Record<AppearanceMode, string> = { light: 'Light', night: 'Night', auto: 'Auto' };
 
-export function Settings({ isTest, rows, currentId, appearance, onAppearance, sun, onSun, keepPhotos, onKeepPhotos, reminders, remindersPaused, onPauseReminders, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
+export function Settings({ isTest, rows, currentId, appearance, onAppearance, sun, onSun, keepPhotos, onKeepPhotos, reminders, notify, onNotify, onEnableReminders, quiet, onQuiet, onArchive, onDelete, onExportVessel, onClose, layout, onLayout }: {
   sun: boolean; onSun: (v: boolean) => void;
   keepPhotos: boolean; onKeepPhotos: (v: boolean) => void;
   layout: Layout; onLayout: (l: Layout) => void;
   isTest: boolean; rows: VesselRow[]; currentId: string;
   appearance: AppearanceMode; onAppearance: (m: AppearanceMode) => void;
-  reminders: ReminderStatus; remindersPaused: boolean; onPauseReminders: (paused: boolean) => void; onEnableReminders: () => void;
+  reminders: ReminderStatus; notify: ReminderSwitches; onNotify: (k: ReminderKind, on: boolean) => void; onEnableReminders: () => void;
   quiet: Quiet | null; onQuiet: (q: Quiet | null) => void;
   onArchive: (id: string, archived: boolean) => void;
   onDelete: (id: string) => void;
@@ -57,14 +63,18 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, su
       <Go ghost label="Customize Snapshot" onPress={() => setCustomize(true)} />
       <InfoNote><Note>Move, hide or send any Snapshot box to Plan, Hourly or Decks. Saved on this phone.</Note></InfoNote>
 
-      <SectionHead title="Plan reminders" />
+      <SectionHead title="Notifications" />
       <Body>{REMINDER_STATUS_TEXT[reminders]}</Body>
-      {reminders === 'ask' && <Go label="Turn on reminders" onPress={onEnableReminders} />}
-      {reminders === 'on' && (
-        <Seg<'on' | 'paused'> options={[{ value: 'on', label: 'Reminders on' }, { value: 'paused', label: 'Paused' }]} value={remindersPaused ? 'paused' : 'on'} columns={2}
-          onChange={(v) => onPauseReminders(v === 'paused')} />
-      )}
+      {reminders === 'ask' && <Go label="Allow notifications" onPress={onEnableReminders} />}
+      {(reminders === 'on' || reminders === 'ask') && NOTIFY_ROWS.map((r) => (
+        <Card key={r.kind} style={[u.pad, { gap: 8 }]}>
+          <Body semi>{r.title}</Body>
+          <Note>{r.note}</Note>
+          <Seg<'on' | 'off'> options={[{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} value={notify[r.kind] ? 'on' : 'off'} columns={2} onChange={(v) => onNotify(r.kind, v === 'on')} />
+        </Card>
+      ))}
       {reminders === 'on' && <QuietHours quiet={quiet} onQuiet={onQuiet} />}
+      <InfoNote><Note>Nothing else is sent. The Plan tab always shows every alert, whatever is switched off here.</Note></InfoNote>
 
       <SectionHead title="Back up vessels" />
       <BackupPicker rows={rows} onExportVessel={onExportVessel} />
