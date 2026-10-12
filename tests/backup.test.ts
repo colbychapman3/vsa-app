@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openStore } from '../src/storage/store.ts';
-import { exportLog, importLog, markExported, backupStatus } from '../src/storage/backup.ts';
+import { logFileName, exportLog, importLog, markExported, backupStatus } from '../src/storage/backup.ts';
 import { sha256Hex } from '../src/storage/sha256.ts';
 import { project, type VsaEvent } from '../src/engine/index.ts';
 import { openNodeDb } from './nodeDb.ts';
@@ -158,4 +158,21 @@ test('backup: importing an older file does not lower the backed-up count; export
   assert.deepEqual(await backupStatus(db, OP, n), { lastAt: NOW, unsaved: 0 });
   // the file held n events; an entry saved while the share sheet was open makes the live count n + 1
   assert.deepEqual(await backupStatus(db, OP, n + 1), { lastAt: NOW, unsaved: 1 });
+});
+
+test('export file name is safe: <vessel>-<date>.vsalog.json', () => {
+  assert.equal(logFileName('HECTOR HIGHWAY 10A', '2026-10-11T08:00:00-04:00'), 'HECTOR-HIGHWAY-10A-2026-10-11.vsalog.json');
+  assert.equal(logFileName('TEST-A/b:c?*é', '2026-10-11T08:00:00-04:00'), 'TEST-A-b-c-e-2026-10-11.vsalog.json');
+  assert.equal(logFileName('///', 'x'), 'vessel-undated.vsalog.json');
+});
+
+test('a log written to a file and read back as text still imports (and so does the old pasted text)', async (t) => {
+  const a = await seeded(t, toEvents(SCENARIOS[0]));
+  const r = await exportLog(a.store, OP, NOW);
+  assert.ok(r.ok);
+  assert.match(r.fileName, /\.vsalog\.json$/);
+  const readBack = Buffer.from(r.text, 'utf8').toString('utf8'); // what a saved .vsalog.json holds
+  const b = await fresh(t);
+  const i = await importLog(b.store, readBack);
+  assert.ok(i.ok);
 });

@@ -34,19 +34,23 @@ export async function saveBatch(a: {
   }
 }
 
-// Share the exported text; it counts as backed up only when the share sheet was actually used.
+// Share the export as a real file (.vsalog.json) through the share sheet; it counts as backed up only when the sheet was actually used.
+// writeFile puts the unchanged JSON text in a file and returns its uri; share opens the sheet on that file.
 export async function shareAndMark(a: {
   exported: { ok: true; text: string; fileName: string; count: number } | Reject;
-  share: (title: string, message: string) => Promise<'shared' | 'dismissed'>;
+  writeFile: (fileName: string, text: string) => Promise<string> | string;
+  share: (title: string, fileUri: string) => Promise<'shared' | 'dismissed'>;
   mark: (count: number) => Promise<void>;
 }): Promise<{ ok: boolean; text: string }> {
   const r = a.exported;
   if (!r.ok) return { ok: false, text: `Not exported: ${r.error}` };
+  let uri: string;
+  try { uri = await a.writeFile(r.fileName, r.text); } catch (e) { return { ok: false, text: `Could not write the backup file: ${(e as Error).message}` }; }
   try {
-    if ((await a.share(r.fileName, r.text)) === 'dismissed') return { ok: true, text: 'Export cancelled. Nothing marked as backed up.' };
+    if ((await a.share(r.fileName, uri)) === 'dismissed') return { ok: true, text: 'Export cancelled. Nothing marked as backed up.' };
   } catch (e) {
     return { ok: false, text: `Not exported: ${(e as Error).message}` };
   }
   await a.mark(r.count);
-  return { ok: true, text: `Shared ${r.count} entries.` };
+  return { ok: true, text: `Shared ${r.count} entries as ${r.fileName}.` };
 }

@@ -57,19 +57,40 @@ test('no vessel loaded: refused with the reason', async () => {
   assert.deepEqual(r, { ok: false, error: 'The vessel is still loading.' });
 });
 
+const wf = async (name: string, _text: string) => `file:///cache/${name}`;
+
 test('a dismissed share sheet is not marked as backed up', async () => {
   let marked = 0;
-  const exported = { ok: true as const, text: '{}', fileName: 'f.json', count: 5 };
-  const dismissed = await shareAndMark({ exported, share: async () => 'dismissed', mark: async () => { marked++; } });
+  const exported = { ok: true as const, text: '{}', fileName: 'f.vsalog.json', count: 5 };
+  const dismissed = await shareAndMark({ exported, writeFile: wf, share: async () => 'dismissed', mark: async () => { marked++; } });
   assert.equal(dismissed.ok, true);
   assert.match(dismissed.text, /Nothing marked as backed up/);
   assert.equal(marked, 0);
-  const used = await shareAndMark({ exported, share: async () => 'shared', mark: async (n) => { marked = n; } });
-  assert.deepEqual(used, { ok: true, text: 'Shared 5 entries.' });
+  const used = await shareAndMark({ exported, writeFile: wf, share: async () => 'shared', mark: async (n) => { marked = n; } });
+  assert.deepEqual(used, { ok: true, text: 'Shared 5 entries as f.vsalog.json.' });
   assert.equal(marked, 5);
-  const failed = await shareAndMark({ exported, share: async () => { throw new Error('boom'); }, mark: async () => { marked = -1; } });
+  const failed = await shareAndMark({ exported, writeFile: wf, share: async () => { throw new Error('boom'); }, mark: async () => { marked = -1; } });
   assert.deepEqual(failed, { ok: false, text: 'Not exported: boom' });
   assert.equal(marked, 5);
-  const bad = await shareAndMark({ exported: { ok: false, error: 'nope' }, share: async () => 'shared', mark: async () => { marked = -1; } });
+  const bad = await shareAndMark({ exported: { ok: false, error: 'nope' }, writeFile: wf, share: async () => 'shared', mark: async () => { marked = -1; } });
   assert.deepEqual(bad, { ok: false, text: 'Not exported: nope' });
+});
+
+test('the file gets the exact JSON text and the share sheet gets that file', async () => {
+  const written: Record<string, string> = {}; let shared = '';
+  const text = '{"format":"vsa-log"}';
+  const r = await shareAndMark({ exported: { ok: true, text, fileName: 'V-2026-10-11.vsalog.json', count: 2 },
+    writeFile: (n, t) => { written[n] = t; return `file:///cache/${n}`; }, share: async (title, uri) => { shared = `${title}|${uri}`; return 'shared'; }, mark: async () => {} });
+  assert.equal(r.ok, true);
+  assert.equal(written['V-2026-10-11.vsalog.json'], text);
+  assert.equal(shared, 'V-2026-10-11.vsalog.json|file:///cache/V-2026-10-11.vsalog.json');
+});
+
+test('a file write failure is reported, the sheet never opens and nothing is marked', async () => {
+  let opened = false, marked = false;
+  const r = await shareAndMark({ exported: { ok: true, text: '{}', fileName: 'f.vsalog.json', count: 1 },
+    writeFile: () => { throw new Error('disk full'); }, share: async () => { opened = true; return 'shared'; }, mark: async () => { marked = true; } });
+  assert.deepEqual(r, { ok: false, text: 'Could not write the backup file: disk full' });
+  assert.equal(opened, false);
+  assert.equal(marked, false);
 });

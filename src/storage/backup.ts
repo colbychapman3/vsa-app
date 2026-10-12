@@ -15,6 +15,13 @@ const checksumV1 = (events: VsaEvent[]) => sha256Hex(JSON.stringify(events));
 const checksumV2 = (operation_id: string, is_test: boolean, baseline: unknown, events: VsaEvent[]) =>
   sha256Hex(JSON.stringify({ operation_id, is_test, baseline, events }));
 
+// <vessel>-<date>.vsalog.json: only letters, digits, dash and underscore survive, so Files/AirDrop/Mail accept the name.
+export function logFileName(id: string, nowIso: string): string {
+  const safe = id.normalize('NFKD').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'vessel';
+  const m = /^\d{4}-\d{2}-\d{2}/.exec(nowIso);
+  return `${safe}-${m ? m[0] : 'undated'}.vsalog.json`;
+}
+
 export async function exportLog(store: Store, id: string, nowIso: string): Promise<{ ok: true; text: string; fileName: string; count: number } | Reject> {
   const r = await store.load(id);
   if (!r.ok) return r;
@@ -25,7 +32,7 @@ export async function exportLog(store: Store, id: string, nowIso: string): Promi
     vessel: { operation_id: id, is_test: r.vessel.isTest, baseline: r.baseline },
     events: r.events, event_count: r.events.length, checksum: checksumV2(id, r.vessel.isTest, r.baseline, r.events),
   };
-  return { ok: true, text: JSON.stringify(file, null, 1), fileName: `vsa-log-${id}.json`, count: r.events.length };
+  return { ok: true, text: JSON.stringify(file, null, 1), fileName: logFileName(id, nowIso), count: r.events.length };
 }
 
 export type ImportResult = { ok: true; operationId: string; kind: 'created' | 'appended' | 'current'; added: number; total: number; exportedAt: string } | Reject;
