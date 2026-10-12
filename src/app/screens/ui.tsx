@@ -342,14 +342,15 @@ export function Chip({ text, tone = 'plain', tall, square }: { text: string; ton
 let sheetsOpen = 0;
 export const anySheetOpen = () => sheetsOpen > 0;
 
-export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn }: { title: string; isTest: boolean; onClose: () => void; children: ReactNode; scrollKey?: string; scrollTopOn?: string }) {
+// guardSwipe: a swipe down is handed to onClose like the ✕ button, so a sheet holding typed work can ask first.
+export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn, guardSwipe }: { title: string; isTest: boolean; onClose: () => void; children: ReactNode; scrollKey?: string; scrollTopOn?: string; guardSwipe?: boolean }) {
   const f = useType();
   const ref = useRef<ScrollView>(null);
   useEffect(() => { sheetsOpen++; return () => { sheetsOpen--; }; }, []);
   // scrollTopOn: go back to the top without remounting the children (a form keeps its typed values).
   useEffect(() => { ref.current?.scrollTo({ y: 0, animated: false }); }, [scrollTopOn]);
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} allowSwipeDismissal={guardSwipe}>
       <ScrollView ref={ref} key={scrollKey} style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }}
         keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
           <View style={u.secH}>

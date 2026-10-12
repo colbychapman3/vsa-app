@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useFonts as loadFonts } from 'expo-font';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Alert, AppState, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { operationDate, type Baseline, type Reject, type VsaEvent } from './src/engine/index.ts';
@@ -15,6 +15,7 @@ import { openStore, type State, type Store } from './src/storage/store.ts';
 import { dropVesselPhotos, keepImports } from './src/app/evidenceFiles.ts';
 import { deleteVessel, getNotes, lastOpened, listRows, setArchived, setLastOpened, setNote, type VesselRow } from './src/storage/vessels.ts';
 import { getPref, setPref } from './src/storage/prefs.ts';
+import type { DraftStore } from './src/app/setupDraft.ts';
 import { buildReport, reportHtml, type ReportKind } from './src/app/report.ts';
 import { buildEvidenceReport, evidenceReportHtml, reportPhotos, type EvidenceReportKind } from './src/app/evidenceReport.ts';
 import { reducedPhotoData } from './src/app/evidencePhotos.ts';
@@ -323,6 +324,8 @@ export default function App() {
   };
   const refreshRows = async () => { try { setRows(await listRows(dbRef.current!, store.current!)); } catch (e) { setNotice({ ok: false, text: `Could not list vessels: ${(e as Error).message}` }); } };
   const setPrefSafe = async (k: string, v: string) => { try { await setPref(dbRef.current!, k, v); } catch (e) { setNotice({ ok: false, text: `Setting not saved: ${(e as Error).message}` }); } };
+  // The New vessel draft lives in the same small settings table as the other choices (never in the events).
+  const draftStore = useMemo<DraftStore>(() => ({ get: (k) => getPref(dbRef.current!, k), set: (k, v) => setPref(dbRef.current!, k, v) }), []);
   const changeLayout = (l: Layout) => { setLayout(l); void setPrefSafe('snapshotLayout', layoutText(l)); };
   const switchTo = async (id: string) => {
     if (saving.current) return setNotice({ ok: false, text: 'Still saving the last entry. Try again.' });
@@ -416,7 +419,7 @@ export default function App() {
                 <DeckSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} deckId={deckOpen} save={save}
                   onClose={(done) => { setDeckOpen(null); if (done) setNotice(answered(done)); else before.current = null; }} />
               )}
-              {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} />}
+              {sheet === 'new' && <Vessels onClose={() => setSheet(null)} onCreate={create} drafts={draftStore} />}
               {sheet === 'complete' && <CompleteSheet state={vessel.state} isTest={vessel.isTest} save={save} onClose={(done) => { setSheet(null); if (done) setNotice({ ok: true, text: done }); }} onGo={openTab} />}
               {sheet === 'eta' && <EtaHistory state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               {sheet === 'settings' && (
