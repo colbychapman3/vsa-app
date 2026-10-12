@@ -10,8 +10,8 @@ import { Chip, Go } from './ui.tsx';
 
 const n = (x: number | null) => (x == null ? 'unknown' : x.toLocaleString('en-US'));
 
-export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, onComplete }: {
-  rows: VesselRow[]; currentId: string; onClose: () => void; onOpen: (id: string) => void; onNew: () => void; onSettings: () => void; onComplete: () => void;
+export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, onComplete, canComplete }: {
+  rows: VesselRow[]; currentId: string; onClose: () => void; onOpen: (id: string) => void; onNew: () => void; onSettings: () => void; onComplete: () => void; canComplete: boolean;
 }) {
   const f = useType();
   const insets = useSafeAreaInsets();
@@ -65,7 +65,7 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, o
           {list('Test vessels', test)}
           {live.length + test.length === 0 && <Text style={{ fontFamily: f.body, fontSize: 14, color: color.muted }}>No vessels yet. Tap New vessel.</Text>}
         </ScrollView>
-        <Go ghost label="Complete this vessel…" onPress={onComplete} />
+        {canComplete && <Go ghost label="Complete this vessel…" onPress={onComplete} />}
         <Go ghost label="Settings" onPress={onSettings} />
       </Animated.View>
     </View>

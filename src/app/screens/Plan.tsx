@@ -1,6 +1,7 @@
 // Plan tab (reference: docs/reference/screens/08). Layout only; values from view.planView().
 // Actions (confirm height, resolve discrepancy, shift settings) save through App.save().
 import { useState } from 'react';
+import { pickTextFile } from '../importFile.ts';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
@@ -518,26 +519,34 @@ function BreakSheet({ state, baseline, isTest, entry, save, onClose }: { isTest:
   );
 }
 
-// Import by paste: copy the exported file's text, paste it here. Nothing is written unless every check passes.
+// Import by file (Files, iCloud, Mail) or by paste. Same checks either way; nothing is written unless every check passes.
 function ImportSheet({ isTest, backup, onClose }: { isTest: boolean; backup: Backup; onClose: (done?: string) => void }) {
   const f = useType();
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const run = async () => {
+  const run = async (body: string = text) => {
     setError(null); setBusy(true);
     try {
-      const r = await backup.onImport(text);
+      const r = await backup.onImport(body);
       if (r.ok) onClose(r.text); else setError(r.error);
     } finally { setBusy(false); }
   };
+  const choose = async () => {
+    setError(null);
+    const p = await pickTextFile();
+    if (p.ok === 'cancelled') return;
+    if (p.ok === false) { setError(p.error); return; }
+    await run(p.text);
+  };
   return (
     <Sheet title="Import vessel log" isTest={isTest} onClose={() => onClose()}>
-      <Note>Paste the full text of an exported vessel log file.</Note>
+      <Go label="Choose a file" disabled={busy} onPress={choose} />
+      <Note>Pick an exported .vsalog.json from Files, or paste its full text below.</Note>
       <TextInput value={text} onChangeText={setText} multiline autoCorrect={false} autoCapitalize="none" accessibilityLabel="Vessel log text"
         placeholder="Paste here" placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' }]} />
       {error && <ErrorBox text={error} />}
-      <Go label="Import" disabled={busy || text.trim() === ''} onPress={run} />
+      <Go ghost label="Import pasted text" disabled={busy || text.trim() === ''} onPress={() => run()} />
     </Sheet>
   );
 }

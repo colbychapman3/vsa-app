@@ -1,6 +1,7 @@
 // New-vessel setup (protocol §11.1), one step per screen. Start from a photo of the APS game plan cover page
 // (spec phase-6e: deterministic reader, no AI), type it in, or import a baseline file. Nothing is saved until Review.
 // All checks live in src/app/setup.ts and src/app/gamePlan.ts; this only lays out the questions.
+import { pickTextFile } from '../importFile.ts';
 import { useEffect, useState, type MutableRefObject } from 'react';
 import { Pressable, Share, Text, TextInput, View } from 'react-native';
 import type { Reject } from '../../engine/index.ts';
@@ -198,7 +199,16 @@ export function Setup({ isTest, setIsTest, onKey, onCreate, initial = blankDraft
 
       {mode === 'paste' && !imported && (
         <View style={{ gap: 12 }}>
-          <InfoNote><Note>Paste a VSA baseline file (for example one prepared for you or saved from another phone). Its text is read as data only.</Note></InfoNote>
+          <InfoNote><Note>Choose a VSA baseline file, or paste its text (for example one prepared for you or saved from another phone). Its text is read as data only.</Note></InfoNote>
+          <Go label="Choose a file" onPress={async () => {
+            setError(null);
+            const p = await pickTextFile();
+            if (p.ok === 'cancelled') return;
+            if (p.ok === false) { setError(p.error); return; }
+            setPaste(p.text);
+            const r = importBaseline(p.text, isTest);
+            if (r.ok) { setImported(r); setStep(LAST); } else setError(r.errors.join('\n'));
+          }} />
           <TextInput value={paste} onChangeText={setPaste} multiline autoCorrect={false} autoCapitalize="none" accessibilityLabel="Baseline file text"
             placeholder="Paste here" placeholderTextColor={color.muted} style={[u.input, { fontFamily: f.body, fontSize: 15, minHeight: 160, paddingTop: 12, textAlignVertical: 'top' }]} />
           <Seg options={modes} columns={2} value={isTest ? 'test' : 'live'} onChange={(x) => setIsTest(x === 'test')} />

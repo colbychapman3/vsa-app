@@ -449,7 +449,7 @@ export default function App() {
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
               {sheet === 'search' && <Search isTest={vessel.isTest} onClose={() => setSheet(null)} />}
               <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} />
-              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} onComplete={() => { setDrawer(false); setSheet('complete'); }} />}
+              {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} onComplete={() => { setDrawer(false); setSheet('complete'); }} canComplete={vessel.state.completed == null} />}
             </>
           ) : (
             <View style={s.pad}>
