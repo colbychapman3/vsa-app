@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, scheduleOf, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, requiredRate, scheduleOf, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -450,6 +450,16 @@ export function hourlyView(s: State, b?: Baseline) {
   const max = Math.max(1, ...s.periods.map((x) => x.count));
   const ph = photoHourNotes(s);
   const multi = s.periods.some((x) => x.day > 1);
+  // Needed rate (Colby, 2026-10-12): what the rest of Day 1 must average to finish by the planned shift end (last cars, after the
+  // shift-end stop). Same remaining and anchor as the forecast. Null when there is no shift end, no anchor or nothing remaining.
+  const needed = (() => {
+    const rem = s.steady.remaining, from = s.eta.fromAbs;
+    if (!b || !s.plan.shiftEnd || rem == null || rem <= 0 || from == null || from >= 1440) return null;
+    const sch = scheduleOf(b, s.plan, Object.fromEntries(Object.entries(s.dayStarts).filter(([, d]) => d.actual != null).map(([k, d]) => [Number(k), d.actual!])));
+    const stopAt = parseHM(s.plan.shiftEnd)! - (sch.shiftEndStopMin ?? sch.clearByMin);
+    const r = requiredRate(rem, { day: 1, hm: formatHM(from) }, { day: 1, hm: formatHM(stopAt) }, sch);
+    return r.rate == null ? { text: `Cannot finish by ${formatHM(stopAt)}: no working time left on Day 1.` } : { text: `Needed to finish by ${formatHM(stopAt)}: ${Math.ceil(r.rate)}/hr (${fmt(rem)} left, ${r.productiveHours.toFixed(1)} working hr)` };
+  })();
   const rows = s.periods.map((x, i) => {
     const start = parseHM(x.start)!;
     return {
@@ -485,7 +495,7 @@ export function hourlyView(s: State, b?: Baseline) {
     unsetShort: p.unsetShort.length ? `Stoppage time not set for ${p.unsetShort.map((x) => `${x}–${formatHM(preBreak(x, s.breaks) ?? parseHM(x)! + 60)}`).join(', ')}` : null,
     brandTable,
     unsplitNote: s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,
-    rows,
+    rows, needed,
     photosNoTime: ph.noTime, photosOutside: ph.outside,
     graph: s.periods.length ? graph(s) : null,
   };

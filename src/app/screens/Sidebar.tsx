@@ -65,10 +65,15 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, o
           {list('Test vessels', test)}
           {live.length + test.length === 0 && <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted }}>No vessels yet. Tap New vessel.</Text>}
         </ScrollView>
-        <Go ghost label="Send update" onPress={onUpdate} />
-        {canComplete && <Go ghost label="Closeout…" onPress={onComplete} />}
-        <Go ghost label="Lessons from past ships" onPress={onLessons} />
-        <Go ghost label="Settings" onPress={onSettings} />
+        {/* One grouped list (Colby, 2026-10-12): short rows with a chevron instead of four buttons. */}
+        <View style={s.list}>
+          {([['Send update', onUpdate], ...(canComplete ? [['Closeout', onComplete] as const] : []), ['Lessons from past ships', onLessons], ['Settings', onSettings]] as const).map(([label, fn], i) => (
+            <Pressable key={label} onPress={fn} accessibilityRole="button" style={({ pressed }) => [s.li, i > 0 && s.liLine, pressed && { opacity: 0.6 }]}>
+              <Text style={{ flex: 1, fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{label}</Text>
+              <Text style={{ fontSize: 17, color: color.muted }}>›</Text>
+            </Pressable>
+          ))}
+        </View>
       </Animated.View>
     </View>
   );
@@ -81,5 +86,8 @@ const s = StyleSheet.create({
   sec: { fontSize: 13, color: color.muted },
   row: { minHeight: TAP, borderRadius: 12, borderWidth: 1, borderColor: bcolor.line, backgroundColor: color.card, paddingVertical: 10, paddingHorizontal: 14, gap: 4, justifyContent: 'center' },
   rowOn: { borderColor: bcolor.ink, borderWidth: 2 },
+  list: { backgroundColor: color.card, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, overflow: 'hidden' },
+  li: { minHeight: TAP, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14 },
+  liLine: { borderTopWidth: 1, borderTopColor: bcolor.soft },
   chips: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
 });

@@ -36,7 +36,7 @@ import { Boxes } from './src/app/screens/SnapshotBoxes.tsx';
 import { EtaHistory } from './src/app/screens/EtaHistory.tsx';
 import { CloseoutSheet } from './src/app/screens/CloseoutSheet.tsx';
 import { completionDue, completionStale, clockOf, showMarkComplete } from './src/app/complete.ts';
-import { defaultLayout, layoutText, parseLayout, type Layout } from './src/app/snapshotLayout.ts';
+import { boxesFor, defaultLayout, layoutText, parseLayout, type Layout } from './src/app/snapshotLayout.ts';
 import { anySheetOpen, Go } from './src/app/screens/ui.tsx';
 import { LogSheet, type HourPrefill } from './src/app/screens/LogSheet.tsx';
 import { Ask } from './src/app/screens/Ask.tsx';
@@ -448,7 +448,7 @@ export default function App() {
                     <Boxes tab={tab} layout={layout} onLayout={changeLayout} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} onNotice={setNotice}
                       onOpenTab={openTab} onHistory={() => { setNotice(null); setSheet('eta'); }} />
                     {tab === 'decks'
-                    ? <Decks state={vessel.state} onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
+                    ? <Decks showShip={!boxesFor(layout, 'decks').includes('ship')} state={vessel.state} onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} baseline={vessel.baseline} />
                       : <Plan vesselId={vessel.id} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}

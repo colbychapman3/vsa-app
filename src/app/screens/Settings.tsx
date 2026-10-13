@@ -1,15 +1,24 @@
 // Settings: app-wide items only. Per-vessel items (Backup of the open vessel, Reports, Labor, Break log) stay in Plan.
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Switch, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import type { VesselRow } from '../../storage/vessels.ts';
 import { aiStatus, AI_STATUS_TEXT } from '../ai.ts';
 import { type ReminderKind, type ReminderSwitches } from '../assistant.ts';
 import { REMINDER_STATUS_TEXT, type ReminderStatus } from '../reminders.ts';
 import { APPEARANCES, appearanceLoaded, bcolor, color, sunPaletteLoaded, useType, type AppearanceMode } from '../theme.ts';
-import { Body, Card, Chip, Go, InfoNote, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
+import { Body, Card, Chip, Go, Note, SectionHead, Seg, Sheet, u } from './ui.tsx';
 import { CustomizeSnapshot } from './CustomizeSnapshot.tsx';
 import type { Layout } from '../snapshotLayout.ts';
+
+function SwitchRow({ label, note, value, onChange }: { label: string; note?: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <View style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 }}>
+      <View style={{ flex: 1, gap: 2 }}><Body semi>{label}</Body>{note && <Note>{note}</Note>}</View>
+      <Switch value={value} onValueChange={onChange} accessibilityLabel={label} />
+    </View>
+  );
+}
 
 export type ExportResult = { ok: boolean; text: string };
 
@@ -47,44 +56,30 @@ export function Settings({ isTest, rows, currentId, appearance, onAppearance, su
   }
   return (
     <Sheet title="Settings" isTest={isTest} onClose={onClose}>
-      <SectionHead title="Appearance" />
+      {/* Grouped rows with switches, one line each (Colby, 2026-10-12); every explanation sits under the row it belongs to. */}
+      <SectionHead title="Look" />
       <Seg<AppearanceMode> options={APPEARANCES.map((m) => ({ value: m, label: APPEARANCE_LABEL[m] }))} value={appearance} onChange={onAppearance} />
-      <InfoNote><Note>Light is the sun-readable default. Night is for night shifts. Auto follows your iPhone.</Note></InfoNote>
-      <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Standard' }, { value: 'on', label: 'Extra visible' }]} value={sun ? 'on' : 'off'} onChange={(v) => onSun(v === 'on')} />
-      <InfoNote><Note>Extra visible: black text, a darker page so cards stand out, bold outlines and larger labels, for direct sun and gloves.</Note></InfoNote>
+      <Card><SwitchRow label="Extra visible (sun)" value={sun} onChange={onSun} /></Card>
+      <Note>Light is the sun-readable default; Auto follows your iPhone. Extra visible: black text, bold outlines, larger labels.</Note>
       {(sun !== sunPaletteLoaded || (appearanceLoaded !== null && appearance !== appearanceLoaded)) && <Note>The new colors show after you close VSA and open it again.</Note>}
+      <Go ghost label="Customize Snapshot ›" onPress={() => setCustomize(true)} />
 
-      <SectionHead title="Paperwork photos" />
-      <Seg<'off' | 'on'> columns={2} options={[{ value: 'off', label: 'Don’t keep' }, { value: 'on', label: 'Keep on this phone' }]} value={keepPhotos ? 'on' : 'off'} onChange={(v) => onKeepPhotos(v === 'on')} />
-      <InfoNote><Note>When on, the game plan and discharge summary pages you photograph in Setup are kept with the new vessel (see Plan). Only the pages read after you turn it on. They stay on this phone and are not in the exported log.</Note></InfoNote>
-
-      <SectionHead title="Snapshot" />
-      <Go ghost label="Customize Snapshot" onPress={() => setCustomize(true)} />
-      <InfoNote><Note>Move, hide or send any Snapshot box to Plan, Hourly or Decks. Saved on this phone.</Note></InfoNote>
-
-      <SectionHead title="Notifications" />
+      <SectionHead title="Reminders" />
       <Body>{REMINDER_STATUS_TEXT[reminders]}</Body>
       {reminders === 'ask' && <Go label="Allow notifications" onPress={onEnableReminders} />}
-      {(reminders === 'on' || reminders === 'ask') && NOTIFY_ROWS.map((r) => (
-        <Card key={r.kind} style={[u.pad, { gap: 8 }]}>
-          <Body semi>{r.title}</Body>
-          <Note>{r.note}</Note>
-          <Seg<'on' | 'off'> options={[{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} value={notify[r.kind] ? 'on' : 'off'} columns={2} onChange={(v) => onNotify(r.kind, v === 'on')} />
-        </Card>
-      ))}
-      <InfoNote><Note>Nothing else is sent. The Plan tab always shows every alert, whatever is switched off here.</Note></InfoNote>
+      {(reminders === 'on' || reminders === 'ask') && (
+        <Card>{NOTIFY_ROWS.map((r) => <SwitchRow key={r.kind} label={r.title} note={r.note} value={notify[r.kind]} onChange={(v) => onNotify(r.kind, v)} />)}</Card>
+      )}
 
-      <SectionHead title="Back up vessels" />
+      <SectionHead title="Paperwork" />
+      <Card><SwitchRow label="Keep game plan photos on this phone" note="Only pages read after you turn it on. Not in the exported log." value={keepPhotos} onChange={onKeepPhotos} /></Card>
+
+      <SectionHead title="Vessels" />
       <BackupPicker rows={rows} onExportVessel={onExportVessel} />
-
-      <SectionHead title="Archive, restore or delete vessels" />
       <ArchiveList rows={rows} currentId={currentId} onArchive={onArchive} onDelete={onDelete} />
 
-      <SectionHead title="On-device AI" />
-      <Body>{AI_STATUS_TEXT[ai]}</Body>
-      <InfoNote><Note>The app works fully without it.</Note></InfoNote>
-
       <SectionHead title="About" />
+      <Card><View style={[u.kv, { padding: 14 }]}><Body>On-device AI</Body><Body semi>{AI_STATUS_TEXT[ai]}</Body></View></Card>
       <Body>Version {version} · Build {build}</Body>
     </Sheet>
   );
@@ -137,7 +132,7 @@ function BackupPicker({ rows, onExportVessel }: { rows: VesselRow[]; onExportVes
       })}
       <Go label={picked.length ? `Back up ${picked.length} selected` : 'Pick vessels to back up'} disabled={!picked.length}
         onPress={() => setQ({ ids: rows.filter((r) => picked.includes(r.operationId)).map((r) => r.operationId), i: 0, results: [] })} />
-      <InfoNote><Note>Each vessel opens its own share sheet, one after another. A vessel counts as backed up only if you use the share sheet.</Note></InfoNote>
+      <Note>Each vessel opens its own share sheet. It counts as backed up only if you use it.</Note>
     </View>
   );
 }
@@ -169,8 +164,7 @@ function ArchiveList({ rows, currentId, onArchive, onDelete }: { rows: VesselRow
           </Card>
         </View>
       ))}
-      <InfoNote><Note>Archive hides a vessel from the menu. Its record stays on the phone and can be unarchived here.</Note></InfoNote>
-      <InfoNote><Note>Tap Delete twice to delete a vessel. A deleted vessel and its photos cannot be brought back, except from a saved copy. The open vessel can't be deleted, and a LIVE vessel needs a saved copy first.</Note></InfoNote>
+      <Note>Archive hides a vessel from the menu; unarchive it here. Delete (two taps) is permanent except from a saved copy; the open vessel can't be deleted, and a LIVE vessel needs a saved copy first.</Note>
     </View>
   );
 }

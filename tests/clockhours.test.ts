@@ -57,3 +57,12 @@ test('an hour before the day starts has no productive time, so it cannot hold a 
   await s.refused(E.hourEvents(s.ctx(), { day: 1, start: '07:00', count: 50 }), /work started at 08:00, so this hour has no productive time/);
   assert.equal(hourOptions(s.state, glovis).hours[0].start, '08:00');
 });
+
+test('needed rate: only with a planned shift end, and it stops before the end by the side’s minutes', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 200 }));
+  assert.equal(hourlyView(s.state, glovis).needed, null);
+  await s.ok(E.shiftSettingsEvents(s.ctx(), '17:00', '08:00', 'N'));
+  const n = hourlyView(s.state, glovis).needed;
+  assert.match(n!.text, /^Needed to finish by 16:45: \d+\/hr \(1,969 left, \d+\.\d working hr\)$/);
+});

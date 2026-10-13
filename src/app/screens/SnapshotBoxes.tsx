@@ -196,7 +196,7 @@ function HeroBox({ v }: { v: V }) {
 
 // Design B: the ship. One band per deck (top deck first), split into hatches H4 → H1; a hatch fills by how much is still
 // aboard. The whole box is one tap target (to Decks), so it stays glove-sized while the bands stay slim.
-function ShipBox({ state, onOpen }: { state: State; onOpen: () => void }) {
+export function ShipBox({ state, onOpen }: { state: State; onOpen: () => void }) {
   const f = useType();
   const v = shipView(state);
   const seg = (g: Seg | null, k: string) => g == null
