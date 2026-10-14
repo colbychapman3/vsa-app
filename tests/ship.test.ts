@@ -5,12 +5,24 @@ import { project } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
 import { shipView } from '../src/app/ship.ts';
 import { nowLine } from '../src/app/now.ts';
+import { needsLook } from '../src/app/view.ts';
 import { glovis, SCENARIOS, toEvents } from './scenarios.ts';
 
 type D = State['decks'][number];
 const deck = (id: string, status: D['status'], hatches: [string, number | null, number | null][], rem: number | null, start = 100) =>
   ({ id, label: id, status, start, rem, hatches: hatches.map(([h, qty, r]) => ({ h, qty, rem: r, items: [] })) }) as unknown as D;
 const ship = (decks: D[]) => shipView({ decks, vesselRemaining: null } as unknown as State);
+
+test('Needs a look lists open discrepancies, low decks with cargo and unconfirmed heights; a clean vessel lists nothing', () => {
+  const d = (id: string, level: string, status = 'active', cur = 1.7) => ({ id, label: id, status, height: { level, current: cur } }) as unknown as D;
+  const st = (decks: D[], open: number) => ({ decks, issues: Array.from({ length: open }, () => ({ status: 'open' })).concat([{ status: 'resolved' }]) }) as unknown as State;
+  assert.deepEqual(needsLook(st([d('D1', 'ok'), d('D2', 'hard', 'complete')], 0)), []);
+  const rows = needsLook(st([d('D3', 'hard'), d('D4', 'soft'), d('D5', 'soft')], 2));
+  assert.deepEqual(rows.map((r) => [r.tone, r.go]), [['orange', 'plan'], ['red', 'decks'], ['orange', 'plan']]);
+  assert.equal(rows[0].text, '2 open discrepancies');
+  assert.match(rows[1].text, /^D3 is a low deck \(1\.70 m\)/);
+  assert.equal(rows[2].text, '2 deck heights unconfirmed: confirm on Plan');
+});
 
 test('a deck working hatches 3 and 2 lights those two sections; 4 and 1 show empty (Colby\'s comment)', () => {
   const r = ship([deck('D8', 'active', [['H4', 115, 0], ['H3', 120, 88], ['H2', 118, 105], ['H1', 117, 0]], 193)]).rows[0];
@@ -72,6 +84,10 @@ test('Now line: a due count, then calm; nothing on a break', () => {
   assert.ok(calm && calm.tone !== 'due', JSON.stringify(calm)); // the hour that just ended is logged
   const due = nowLine(p, glovis, endLast + 70);
   assert.ok(due);
-  if (due.tone === 'due') assert.match(due.text, /^The \d{2}–\d{2} count is due\.$/);
+  if (due.tone === 'due') {
+    assert.match(due.text, /^The \d{2}–\d{2} count is due\.$/);
+    assert.deepEqual(due.action, { label: `Log ${due.text.slice(4, 9)}`, to: 'log' }); // the card carries the tap that answers it
+  }
+  assert.equal(calm.action, undefined); // calm has nothing to tap
   assert.equal(nowLine({ ...p, ops: { ...p.ops, phase: 'break' } } as State, glovis, endLast + 10), null);
 });

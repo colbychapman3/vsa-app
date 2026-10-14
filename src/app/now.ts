@@ -6,15 +6,16 @@ import type { State } from '../storage/store.ts';
 import { hourOptions } from './view.ts';
 import { paceAdvice, paceWatch } from './whatif.ts';
 
-export type NowLine = { tone: 'warn' | 'due' | 'calm'; text: string; advice?: string }; // advice: the driver move, FORECAST, only with a warning
+export type NowAction = { label: string; to: 'log' | 'decks' };
+export type NowLine = { tone: 'warn' | 'due' | 'calm'; text: string; advice?: string; action?: NowAction }; // advice: the driver move, FORECAST, only with a warning; action: the one tap that answers it
 
 export function nowLine(s: State, b: Baseline, nowMin: number): NowLine | null {
   if (s.ops.phase !== 'working' || s.vesselRemaining === 0) return null;
   const watch = paceWatch(s, b, nowMin);
-  if (watch.length) { const a = paceAdvice(s, b, nowMin)[0]; return { tone: 'warn', text: watch[0], ...(a ? { advice: a } : {}) }; }
+  if (watch.length) { const a = paceAdvice(s, b, nowMin)[0]; return { tone: 'warn', text: watch[0], ...(a ? { advice: a } : {}), action: { label: 'See decks', to: 'decks' } }; }
   const opts = hourOptions(s, b);
   const endOf = (h: { start: string; end: string }) => { const a = parseHM(h.start)!, z = parseHM(h.end)!; return z > a ? z : z + 1440; }; // 23–00 ends at midnight
   const due = opts.hours.filter((h) => !h.logged && endOf(h) <= nowMin).at(-1); // the latest hour that has ended without a count
-  if (due && s.ops.day === opts.day) return { tone: 'due', text: `The ${due.start.slice(0, 2)}–${due.end.slice(0, 2)} count is due.` };
+  if (due && s.ops.day === opts.day) { const r = `${due.start.slice(0, 2)}–${due.end.slice(0, 2)}`; return { tone: 'due', text: `The ${r} count is due.`, action: { label: `Log ${r}`, to: 'log' } }; }
   return { tone: 'calm', text: 'Nothing needs your attention right now.' };
 }

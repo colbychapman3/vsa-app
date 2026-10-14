@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { snapshot } from '../view.ts';
+import { traces } from '../brief.ts';
 import { shipView, HATCH_SLOTS, type Seg } from '../ship.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
 import { bcolor, color, HA_COLOR, TAP, useType } from '../theme.ts';
@@ -46,7 +47,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   const wrap = (kids: ReactNode) => <Pressable onLongPress={menu} delayLongPress={450} accessibilityHint="Long press to move or hide this box" style={half ? { flex: 1 } : undefined}>{kids}</Pressable>;
   const f = useType();
   switch (id) {
-    case 'hero': return wrap(<HeroBox v={v} />);
+    case 'hero': return wrap(<HeroBox v={v} state={p.state} baseline={p.baseline} />);
     case 'ship': return wrap(<ShipBox state={p.state} onOpen={() => p.onOpenTab('decks')} />);
     case 'field': return wrap(<FieldBox v={v} />);
     case 'eta': return (
@@ -133,9 +134,12 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   }
 }
 
-function HeroBox({ v }: { v: V }) {
+const HERO_TRACES = ['remaining', 'transit', 'gap', 'eta'];
+
+function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baseline }) {
   const f = useType();
   const h = v.hero;
+  const why = traces(state, baseline).filter((x) => HERO_TRACES.includes(x.key));
   const heroColor = h.clerkBadge ? (h.clerkBadge.ok ? color.green : color.red) : color.ink;
   return (
     <Card style={[u.pad, { gap: 10 }]}>
@@ -190,6 +194,16 @@ function HeroBox({ v }: { v: V }) {
         {h.gapNote && <Note style={{ color: color.muted }}>{h.gapNote}</Note>}
         {h.unknownNote && <Note>{h.unknownNote}</Note>}
       </View>
+      <InfoNote label="How this is worked out">
+        <View style={{ gap: 8 }}>
+          {why.map((x) => (
+            <View key={x.key} style={{ gap: 2 }}>
+              <Body semi>{x.title}</Body>
+              {x.lines.map((l) => <Note key={l}>{l}</Note>)}
+            </View>
+          ))}
+        </View>
+      </InfoNote>
     </Card>
   );
 }
