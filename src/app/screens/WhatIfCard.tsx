@@ -19,25 +19,32 @@ export function WhatIfCard({ state, baseline }: { state: State; baseline: Baseli
   const [heavy, setHeavy] = useState<number | null>(null);
   if (state.vesselRemaining == null || state.vesselRemaining === 0 || state.eta.rate == null) return null; // nothing to project: stay out of the way
   const lv = levers(state, baseline);
-  const factors: Factors = { ...(d != null ? { drivers: d } : {}), ...(south != null ? { south } : {}), ...(heavy != null ? { heavy } : {}) };
+  // Southside starts at the vessel's real share of the autos (Colby, 2026-10-14), not at the forecast's "every car at the Southside
+  // time". The Snapshot forecast keeps the protocol's rule; the difference is said below the finish.
+  const real = lv.south.ofAutos;
+  const southUsed = south ?? real ?? undefined;
+  const factors: Factors = { ...(d != null ? { drivers: d } : {}), ...(southUsed != null ? { south: southUsed } : {}), ...(heavy != null ? { heavy } : {}) };
   const r = scenario(state, baseline, factors);
   const moved = d != null || south != null || heavy != null;
   const pct = (x: number) => `${Math.round(x * 100)}%`;
   const step = (delta: number) => lv.drivers && setD(Math.max(1, Math.min(300, (d ?? lv.drivers.now) + delta)));
-  const chips = (cur: number | null, now: number, on: (v: number | null) => void, label: string) => (
-    <View style={s.chips}>
-      {SHARES.map((v) => {
-        const sel = (cur ?? now) === v, isNow = cur == null && now === v;
-        return (
-          <Pressable key={v} onPress={() => on(v === now ? null : v)} accessibilityRole="button" accessibilityState={{ selected: sel }} accessibilityLabel={`${label} ${pct(v)}${isNow ? ', as now' : ''}`}
-            style={({ pressed }) => [s.chip, sel && s.chipOn, pressed && u.pressed]}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: sel ? color.bg : color.ink }}>{pct(v)}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-  const delta = r.ok ? (r.deltaMin === 0 ? 'Same as the forecast now' : `${Math.abs(r.deltaMin)} min ${r.deltaMin < 0 ? 'earlier' : 'later'} than the forecast now`) : null;
+  const chips = (cur: number | null, now: number | null, on: (v: number | null) => void, label: string, nowName: string) => {
+    const vals = [...new Set([...(now != null ? [now] : []), ...SHARES])].sort((a, b) => a - b);
+    return (
+      <View style={s.chips}>
+        {vals.map((v) => {
+          const sel = (cur ?? now) === v, isNow = v === now;
+          return (
+            <Pressable key={v} onPress={() => on(v === now ? null : v)} accessibilityRole="button" accessibilityState={{ selected: sel }} accessibilityLabel={`${label} ${pct(v)}${isNow ? `, ${nowName}` : ''}`}
+              style={({ pressed }) => [s.chip, sel && s.chipOn, pressed && u.pressed]}>
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: sel ? color.bg : color.ink }}>{pct(v)}{isNow ? ' now' : ''}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  };
+  const delta = r.ok ? (r.deltaMin === 0 ? 'Same as the Snapshot forecast' : `${Math.abs(r.deltaMin)} min ${r.deltaMin < 0 ? 'earlier' : 'later'} than the Snapshot forecast`) : null;
   return (
     <View style={[u.card, u.pad, { gap: 12 }]}>
       <View style={u.secH}>
@@ -68,13 +75,13 @@ export function WhatIfCard({ state, baseline }: { state: State; baseline: Baseli
 
       <View style={s.lever}>
         <Label>Southside share of the cars</Label>
-        {chips(south, lv.south.now, setSouth, 'Southside share')}
-        <Note>{`Now the forecast stops ${Math.round(15 + 15 * lv.south.now)} min before a break${lv.south.ofAutos != null ? `; Southside is ${pct(lv.south.ofAutos)} of this vessel's autos` : ''}.`}</Note>
+        {chips(south, real, setSouth, 'Southside share', "the vessel's share")}
+        <Note>{`${real != null ? `Starts at this vessel's real share: Southside is ${pct(real)} of its autos. ` : ''}The Snapshot forecast stops every car ${Math.round(15 + 15 * lv.south.now)} min before a break.`}</Note>
       </View>
 
       <View style={s.lever}>
         <Label>Heavy cargo (H/H) running, share of the hours left</Label>
-        {lv.heavy ? <>{chips(heavy, lv.heavy.now, setHeavy, 'H/H share')}<Note>Measured from this vessel's own hours with and without H/H. Observed, not proven.</Note></> : <Note>{lv.heavyWhy}</Note>}
+        {lv.heavy ? <>{chips(heavy, lv.heavy.now, setHeavy, 'H/H share', 'as now')}<Note>Measured from this vessel's own hours with and without H/H. Observed, not proven.</Note></> : <Note>{lv.heavyWhy}</Note>}
       </View>
 
       {moved && (
