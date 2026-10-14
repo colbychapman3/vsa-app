@@ -1,0 +1,1005 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-13T00:36:01Z"
+  },
+  "title": "VSA Every Screen",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 260,
+      "w": 393,
+      "h": 1725,
+      "title": "1.1 · Snapshot, calm · 15:04",
+      "radius": 46
+    },
+    "102-Snapshot-something-due.dc.html": {
+      "x": 473,
+      "y": 260,
+      "w": 393,
+      "h": 2143,
+      "title": "1.2 · Snapshot, something due · 15:04",
+      "radius": 46
+    },
+    "103-Decks.dc.html": {
+      "x": 1419,
+      "y": 260,
+      "w": 393,
+      "h": 1789,
+      "title": "1.3 · Decks · 15:04",
+      "radius": 46
+    },
+    "104-Hourly-list.dc.html": {
+      "x": 1892,
+      "y": 260,
+      "w": 393,
+      "h": 1767,
+      "title": "1.4 · Hourly, list · 15:04",
+      "radius": 46
+    },
+    "105-Hourly-graph.dc.html": {
+      "x": 2838,
+      "y": 260,
+      "w": 393,
+      "h": 1375,
+      "title": "1.5 · Hourly, graph · 15:04",
+      "radius": 46
+    },
+    "106-Plan-top.dc.html": {
+      "x": 3311,
+      "y": 260,
+      "w": 393,
+      "h": 1581,
+      "title": "1.6 · Plan, top · 15:04",
+      "radius": 46
+    },
+    "107-Plan-lower.dc.html": {
+      "x": 3784,
+      "y": 260,
+      "w": 393,
+      "h": 1655,
+      "title": "1.7 · Plan, lower · 15:04",
+      "radius": 46
+    },
+    "201-Log-Hourly.dc.html": {
+      "x": 0,
+      "y": 3223,
+      "w": 393,
+      "h": 968,
+      "title": "2.1 · Log › Hourly · 15:04",
+      "radius": 46
+    },
+    "201b-Log-After-Save.dc.html": {
+      "x": 473,
+      "y": 3223,
+      "w": 393,
+      "h": 998,
+      "title": "2.1b · Log › After Save · 15:05",
+      "radius": 46
+    },
+    "202-Log-typing.dc.html": {
+      "x": 946,
+      "y": 3223,
+      "w": 393,
+      "h": 852,
+      "title": "2.2 · Log › typing · 15:04",
+      "radius": 46
+    },
+    "203-Log-All-hours-clerk-s-text.dc.html": {
+      "x": 1419,
+      "y": 3223,
+      "w": 393,
+      "h": 986,
+      "title": "2.3 · Log › All hours + clerk’s text · 15:04",
+      "radius": 46
+    },
+    "204-Log-Break-or-end-of-shift.dc.html": {
+      "x": 1892,
+      "y": 3223,
+      "w": 393,
+      "h": 1042,
+      "title": "2.4 · Log › Break or end of shift · 17:31",
+      "radius": 46
+    },
+    "205-Log-Deck.dc.html": {
+      "x": 2365,
+      "y": 3223,
+      "w": 393,
+      "h": 958,
+      "title": "2.5 · Log › Deck · 15:02",
+      "radius": 46
+    },
+    "206-Log-H-H.dc.html": {
+      "x": 2838,
+      "y": 3223,
+      "w": 393,
+      "h": 759,
+      "title": "2.6 · Log › H/H · 15:10",
+      "radius": 46
+    },
+    "207-Log-Issue.dc.html": {
+      "x": 3311,
+      "y": 3223,
+      "w": 393,
+      "h": 789,
+      "title": "2.7 · Log › Issue · 14:52",
+      "radius": 46
+    },
+    "208-Log-Photo.dc.html": {
+      "x": 3784,
+      "y": 3223,
+      "w": 393,
+      "h": 1104,
+      "title": "2.8 · Log › Photo · 15:15",
+      "radius": 46
+    },
+    "301-Deck-sheet.dc.html": {
+      "x": 0,
+      "y": 5147,
+      "w": 393,
+      "h": 884,
+      "title": "3.1 · Deck sheet · 15:04",
+      "radius": 46
+    },
+    "302-Deck-photos.dc.html": {
+      "x": 946,
+      "y": 5147,
+      "w": 393,
+      "h": 964,
+      "title": "3.2 · Deck photos · 15:04",
+      "radius": 46
+    },
+    "303-Photo-record-VIN-scan.dc.html": {
+      "x": 1419,
+      "y": 5147,
+      "w": 393,
+      "h": 860,
+      "title": "3.3 · Photo record / VIN scan · 15:04",
+      "radius": 46
+    },
+    "401-Ask.dc.html": {
+      "x": 0,
+      "y": 6931,
+      "w": 393,
+      "h": 768,
+      "title": "4.1 · Ask · 15:04",
+      "radius": 46
+    },
+    "402-Ask-my-AI.dc.html": {
+      "x": 473,
+      "y": 6931,
+      "w": 393,
+      "h": 831,
+      "title": "4.2 · Ask my AI · 15:04",
+      "radius": 46
+    },
+    "403-Search.dc.html": {
+      "x": 946,
+      "y": 6931,
+      "w": 393,
+      "h": 686,
+      "title": "4.3 · Search · 15:04",
+      "radius": 46
+    },
+    "501-Menu.dc.html": {
+      "x": 0,
+      "y": 8582,
+      "w": 393,
+      "h": 852,
+      "title": "5.1 · ☰ Menu · 15:04",
+      "radius": 46
+    },
+    "502-Send-update.dc.html": {
+      "x": 473,
+      "y": 8582,
+      "w": 393,
+      "h": 690,
+      "title": "5.2 · Send update · 15:06",
+      "radius": 46
+    },
+    "503-Settings.dc.html": {
+      "x": 946,
+      "y": 8582,
+      "w": 393,
+      "h": 1422,
+      "title": "5.3 · Settings · 15:04",
+      "radius": 46
+    },
+    "504-Customize-Snapshot.dc.html": {
+      "x": 1419,
+      "y": 8582,
+      "w": 393,
+      "h": 1048,
+      "title": "5.4 · Customize Snapshot · 15:04",
+      "radius": 46
+    },
+    "505-Lessons-Insights.dc.html": {
+      "x": 1892,
+      "y": 8582,
+      "w": 393,
+      "h": 958,
+      "title": "5.5 · Lessons & Insights · 15:04",
+      "radius": 46
+    },
+    "601-Finish-history.dc.html": {
+      "x": 0,
+      "y": 10824,
+      "w": 393,
+      "h": 1024,
+      "title": "6.1 · Finish history · 15:04",
+      "radius": 46
+    },
+    "602-Closeout.dc.html": {
+      "x": 473,
+      "y": 10824,
+      "w": 393,
+      "h": 1332,
+      "title": "6.2 · Closeout · 22:41",
+      "radius": 46
+    },
+    "603-Vessel-complete.dc.html": {
+      "x": 946,
+      "y": 10824,
+      "w": 393,
+      "h": 1082,
+      "title": "6.3 · Vessel complete · 22:42",
+      "radius": 46
+    },
+    "701-New-vessel.dc.html": {
+      "x": 0,
+      "y": 12976,
+      "w": 393,
+      "h": 890,
+      "title": "7.1 · New vessel · 06:12",
+      "radius": 46
+    },
+    "702-Game-plan-read.dc.html": {
+      "x": 473,
+      "y": 12976,
+      "w": 393,
+      "h": 882,
+      "title": "7.2 · Game plan read · 06:14",
+      "radius": 46
+    },
+    "703-Paste-text.dc.html": {
+      "x": 946,
+      "y": 12976,
+      "w": 393,
+      "h": 722,
+      "title": "7.3 · Paste text · 06:14",
+      "radius": 46
+    },
+    "704-Step-1-Vessel.dc.html": {
+      "x": 1419,
+      "y": 12976,
+      "w": 393,
+      "h": 852,
+      "title": "7.4 · Step 1 · Vessel · 06:16",
+      "radius": 46
+    },
+    "705-Step-3-Cargo-to-destinations.dc.html": {
+      "x": 1892,
+      "y": 12976,
+      "w": 393,
+      "h": 938,
+      "title": "7.5 · Step 3 · Cargo to destinations · 06:18",
+      "radius": 46
+    },
+    "706-Step-4-Decks.dc.html": {
+      "x": 2365,
+      "y": 12976,
+      "w": 393,
+      "h": 806,
+      "title": "7.6 · Step 4 · Decks · 06:20",
+      "radius": 46
+    },
+    "707-Step-5-Load-list.dc.html": {
+      "x": 2838,
+      "y": 12976,
+      "w": 393,
+      "h": 806,
+      "title": "7.7 · Step 5 · Load list · 06:22",
+      "radius": 46
+    },
+    "708-Step-6-Review.dc.html": {
+      "x": 3311,
+      "y": 12976,
+      "w": 393,
+      "h": 987,
+      "title": "7.8 · Step 6 · Review · 06:24",
+      "radius": 46
+    },
+    "709-Close-this-setup.dc.html": {
+      "x": 3784,
+      "y": 12976,
+      "w": 393,
+      "h": 852,
+      "title": "7.9 · Close this setup? · 06:25",
+      "radius": 46
+    },
+    "801-Vans.dc.html": {
+      "x": 0,
+      "y": 14783,
+      "w": 393,
+      "h": 626,
+      "title": "8.1 · Vans · 15:04",
+      "radius": 46
+    },
+    "802-Van-row.dc.html": {
+      "x": 473,
+      "y": 14783,
+      "w": 393,
+      "h": 832,
+      "title": "8.2 · Van row · 15:04",
+      "radius": 46
+    },
+    "803-Read-the-van-sheet.dc.html": {
+      "x": 946,
+      "y": 14783,
+      "w": 393,
+      "h": 630,
+      "title": "8.3 · Read the van sheet · 15:04",
+      "radius": 46
+    },
+    "804-Paperwork-photos.dc.html": {
+      "x": 1419,
+      "y": 14783,
+      "w": 393,
+      "h": 380,
+      "title": "8.4 · Paperwork photos · 15:04",
+      "radius": 46
+    },
+    "901-Break-end-of-shift.dc.html": {
+      "x": 0,
+      "y": 16435,
+      "w": 393,
+      "h": 1046,
+      "title": "9.1 · Break / end of shift · 18:02",
+      "radius": 46
+    },
+    "902-First-launch.dc.html": {
+      "x": 473,
+      "y": 16435,
+      "w": 393,
+      "h": 852,
+      "title": "9.2 · First launch · 05:50",
+      "radius": 46
+    },
+    "903-Night.dc.html": {
+      "x": 946,
+      "y": 16435,
+      "w": 393,
+      "h": 2147,
+      "title": "9.3 · Night · 21:05",
+      "radius": 46
+    },
+    "102b-Snapshot-break-coming.dc.html": {
+      "x": 946,
+      "y": 260,
+      "w": 393,
+      "h": 1190,
+      "title": "1.2b · Snapshot, break coming · 11:15 (sample)",
+      "radius": 46
+    },
+    "104b-Needed-rate-short.dc.html": {
+      "x": 2365,
+      "y": 260,
+      "w": 393,
+      "h": 440,
+      "title": "1.4b · Needed rate, pace short (example)",
+      "radius": 46
+    },
+    "301b-Deck-After-Save.dc.html": {
+      "x": 473,
+      "y": 5147,
+      "w": 393,
+      "h": 910,
+      "title": "3.1b · Deck sheet, after Save · 15:02 (sample)",
+      "radius": 46
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "102-Snapshot-something-due.dc.html",
+    "102b-Snapshot-break-coming.dc.html",
+    "103-Decks.dc.html",
+    "104-Hourly-list.dc.html",
+    "104b-Needed-rate-short.dc.html",
+    "105-Hourly-graph.dc.html",
+    "106-Plan-top.dc.html",
+    "107-Plan-lower.dc.html",
+    "201-Log-Hourly.dc.html",
+    "201b-Log-After-Save.dc.html",
+    "202-Log-typing.dc.html",
+    "203-Log-All-hours-clerk-s-text.dc.html",
+    "204-Log-Break-or-end-of-shift.dc.html",
+    "205-Log-Deck.dc.html",
+    "206-Log-H-H.dc.html",
+    "207-Log-Issue.dc.html",
+    "208-Log-Photo.dc.html",
+    "301-Deck-sheet.dc.html",
+    "301b-Deck-After-Save.dc.html",
+    "302-Deck-photos.dc.html",
+    "303-Photo-record-VIN-scan.dc.html",
+    "401-Ask.dc.html",
+    "402-Ask-my-AI.dc.html",
+    "403-Search.dc.html",
+    "501-Menu.dc.html",
+    "502-Send-update.dc.html",
+    "503-Settings.dc.html",
+    "504-Customize-Snapshot.dc.html",
+    "505-Lessons-Insights.dc.html",
+    "601-Finish-history.dc.html",
+    "602-Closeout.dc.html",
+    "603-Vessel-complete.dc.html",
+    "701-New-vessel.dc.html",
+    "702-Game-plan-read.dc.html",
+    "703-Paste-text.dc.html",
+    "704-Step-1-Vessel.dc.html",
+    "705-Step-3-Cargo-to-destinations.dc.html",
+    "706-Step-4-Decks.dc.html",
+    "707-Step-5-Load-list.dc.html",
+    "708-Step-6-Review.dc.html",
+    "709-Close-this-setup.dc.html",
+    "801-Vans.dc.html",
+    "802-Van-row.dc.html",
+    "803-Read-the-van-sheet.dc.html",
+    "804-Paperwork-photos.dc.html",
+    "901-Break-end-of-shift.dc.html",
+    "902-First-launch.dc.html",
+    "903-Night.dc.html"
+  ],
+  "notes": {
+    "title1": {
+      "x": 0,
+      "y": 0,
+      "text": "1 · Main tabs",
+      "kind": "title1",
+      "maxW": 4177,
+      "w": 240
+    },
+    "cap1_1": {
+      "x": 0,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Snapshot, calm. Nothing above the number when nothing is due. The FORECAST line under the number is an estimate between counts; the number stays the last count. Long-press any box to move or hide it.\nShip → Decks tab\nH.A. tile flips to “how it’s worked out”\nFinish tile → Finish history\nLong press a box → Move to / Hide"
+    },
+    "cap1_2": {
+      "x": 473,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Snapshot, something due. The Now line appears only when a count is due (navy) or something is wrong (orange), with the driver advice under it.\nDiscrepancy strip → Plan, open items\nNot useful? → one-tap feedback, counted in Lessons & Insights"
+    },
+    "cap1_3": {
+      "x": 1419,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Decks. The ship at full size on top (also on Snapshot), then the deck list with heights, hatch chips and photos.\nA deck on the ship, or a row → Deck sheet slides up\nUnconfirmed heights → Plan › Confirm deck heights\nAll / Remaining filter"
+    },
+    "cap1_4": {
+      "x": 1892,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Hourly, list. Stats tile, the new “needed to finish” rate (approved 2026-10-12), a day timeline, then one row per hour with its bar. Newest first.\nStats tile flips to “how these are worked out”\nList / Graph\nDetails ▾ per hour (minutes, rate per driver, clear-by)"
+    },
+    "cap1_5": {
+      "x": 2838,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Hourly, graph. Pace per hour as a line, H.A. dashed. Ship vs field and the brand table sit below either view."
+    },
+    "cap1_6": {
+      "x": 3311,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Plan, top. Baseline facts, day start, shift end and side, heights to confirm, labor.\nChange start time (late start; old start kept)\nOne / Two days, shift end, side, Save changes\nConfirm a deck height\nVan list → Vans sheet"
+    },
+    "cap1_7": {
+      "x": 3784,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Plan, lower. Open discrepancies, breaks, notes, H/H, reports, backup. Every edit keeps the old value in the log.\nMark resolved\nEdit / add a break or note\nReports open the share sheet\nExport one file / Import adds missing entries only"
+    },
+    "intro1": {
+      "x": 4257,
+      "y": 260,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "Header in two rows (☰, vessel name; LIVE chip, berth and date, Ask, Map). Tab bar: Snapshot, Decks, ＋ Log in the center, Hourly, Plan. Nothing floats over the content."
+    },
+    "about": {
+      "x": 4257,
+      "y": 740,
+      "w": 380,
+      "maxH": 520,
+      "fill": "gray",
+      "text": "Complete set of the app’s screens and sheets in the build #29 / #30 design: one type scale (13 / 15 / 17 / 22 / 28), one card, two buttons, orange only for the action that matters. Screens where you type or tap are shown in more than one state, with their tap targets listed. Sample numbers in the shape of Hera Highway 13A at 15:04 (1,352 autos, 337 left); nothing here is real data. Each phone scrolls. The buttons at the top switch every phone to Night or Extra visible, and outline every tap target.\n\nThe Look tweaks on each screen switch it to Night or Extra visible, or outline its tap targets. The sample VIN is blurred.\n\nNot drawn\niOS system sheets the app opens (share sheet, camera, photo picker, file picker): Apple’s own screens.\nSiri “Log a count in VSA”: it only opens Log › Hourly filled in, shown above.\nLock screen / Dynamic Island, Siri answers, mic: approved for later, not designed yet."
+    },
+    "title2": {
+      "x": 0,
+      "y": 2963,
+      "text": "2 · Log (the most-used sheet)",
+      "kind": "title1",
+      "maxW": 3704,
+      "w": 240
+    },
+    "cap2_1": {
+      "x": 0,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Log › Hourly. The due hour is picked; four hours around it, All hours for the rest. Brand rows are 3 digits wide with a running total.\nType row\nHour chips · All hours · Paste clerk’s text\nAutos, Drivers, one box per brand\nSave hourly count\nBreak or end of shift (closed card)"
+    },
+    "cap2_2": {
+      "x": 946,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Log › typing. The number pad covers the bottom; Save rides on top of it so you never scroll to save. The running total turns green at a match."
+    },
+    "cap2_3": {
+      "x": 1419,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Log › All hours + clerk’s text. The full hour grid and the paste box that fills the count and brands. Text that can’t be read says so and leaves the boxes empty.\nAny hour chip (✓ = correction)\nPaste, Read it"
+    },
+    "cap2_4": {
+      "x": 1892,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Log › Break or end of shift. Start and end a break (time or Now), when production stopped, or end the shift with its side. Shown with the end-of-shift form expanded below for reference.\nBreak start / end / End of shift\nTime box, Now\nStop :30 / :45\nLog break start · Log end of shift"
+    },
+    "cap2_5": {
+      "x": 2365,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Log › Deck. Pick the deck (the one being worked is first), then the shared deck editor.\nDeck chips\nStatus\nRemaining per hatch (refused above its quantity, with the exact overage)\nOr a deck total\nTime / Now · Save deck update"
+    },
+    "cap2_6": {
+      "x": 2838,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Log › H/H. Start and complete markers only; they show on Hourly as blue tags.\nStart / Complete\nTime, Now, optional drivers\nSave · Remove a marker"
+    },
+    "cap2_7": {
+      "x": 3311,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Log › Issue (Discrepancy). Time, reason, a sentence, and whether it stays open on Snapshot and Plan.\nTime / Now\nReason\nText\nOpen-list switch · Save"
+    },
+    "cap2_8": {
+      "x": 3784,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Log › Photo. Photos first, then type, deck and hatch, VIN, reason. A VIN is never corrected for you.\nTake photo / Camera roll / ＋\nType, Deck, Hatch\nVIN, Scan a VIN\nTidy wording (on-device AI, optional)\nSave / Save and add another"
+    },
+    "intro2": {
+      "x": 4257,
+      "y": 3223,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "Opened from ＋ Log. One type row: Hourly, Deck, H/H, Issue, Photo. Each part is a titled card; Save is big and last, and rides above the keyboard."
+    },
+    "title3": {
+      "x": 0,
+      "y": 4887,
+      "text": "3 · Deck sheet and deck photos",
+      "kind": "title1",
+      "maxW": 1812,
+      "w": 240
+    },
+    "cap3_1": {
+      "x": 0,
+      "y": 6191,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Deck sheet. Status, remaining by hatch or as a total, time, Save; photos for the deck.\nStatus\nHatch boxes / deck total\nTime / Now\nSave deck update\nPhotos on this deck\n✕ or swipe down"
+    },
+    "cap3_2": {
+      "x": 946,
+      "y": 6191,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Deck photos. Grouped by type. Tap opens a photo record; Select for saving to the camera roll or removing (asks a reason)."
+    },
+    "cap3_3": {
+      "x": 1419,
+      "y": 6191,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Photo record / VIN scan. Scanned VIN candidates to pick from; a failing check digit is shown, never fixed."
+    },
+    "intro3": {
+      "x": 1892,
+      "y": 5147,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "Tap a deck on the ship or in the list: the sheet slides up over Decks (decision 3: a sheet, not an editor under the ship)."
+    },
+    "title4": {
+      "x": 0,
+      "y": 6671,
+      "text": "4 · Ask, Search and Map (header buttons)",
+      "kind": "title1",
+      "maxW": 1812,
+      "w": 240
+    },
+    "cap4_1": {
+      "x": 0,
+      "y": 7842,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Ask. Type or tap a suggestion; the answer card names its source. Actions like Send update or Log a count open the right sheet.\nQuestion box, suggestion chips\nShow me → the screen it came from\nNot useful?\nSearch · Ask my AI (share sheet)"
+    },
+    "cap4_2": {
+      "x": 473,
+      "y": 7842,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Ask my AI. Shows the exact text first, then the iOS share sheet. No paid online AI."
+    },
+    "cap4_3": {
+      "x": 946,
+      "y": 7842,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Search. Offline search of the protocol, instructions and glossary; quoted, not summarized."
+    },
+    "intro4": {
+      "x": 1892,
+      "y": 6931,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "Ask answers from the same numbers as the screens and from the loaded documents. Search is inside Ask. The Map button opens the app’s existing satellite map, unchanged."
+    },
+    "title5": {
+      "x": 0,
+      "y": 8322,
+      "text": "5 · ☰ Menu, Settings, Send update",
+      "kind": "title1",
+      "maxW": 2285,
+      "w": 240
+    },
+    "cap5_1": {
+      "x": 0,
+      "y": 10084,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "☰ Menu. New vessel on top, vessels by LIVE / TEST, then one list of actions.\nNew vessel\nA vessel card → open it\nSend update · Closeout · Lessons & Insights · Settings\n✕ or tap outside"
+    },
+    "cap5_2": {
+      "x": 473,
+      "y": 10084,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Send update. Drafted from the log; Send opens the iOS share sheet (Messages, Mail, WhatsApp). Also reachable from Ask (“send update”)."
+    },
+    "cap5_3": {
+      "x": 946,
+      "y": 10084,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Settings. Grouped rows with switches; one line of explanation each.\nLight / Night / Auto, Extra visible\nCustomize Snapshot\nReminder switches\nKeep photos\nPick vessels → Back up (one share sheet each)\nArchive / Delete (tap twice)"
+    },
+    "cap5_4": {
+      "x": 1419,
+      "y": 10084,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Customize Snapshot. Reorder, send a box to Plan / Hourly / Decks, or hide it. Saved on this phone."
+    },
+    "cap5_5": {
+      "x": 1892,
+      "y": 10084,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Lessons & Insights. Read-only. Only rates and patterns carry forward; no ship’s cargo, counts or times enter another ship."
+    },
+    "intro5": {
+      "x": 2365,
+      "y": 8582,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "The menu slides in from the left over the app. One grouped list at the bottom (built in d0192c7)."
+    },
+    "title6": {
+      "x": 0,
+      "y": 10564,
+      "text": "6 · Finish history, Closeout, Vessel complete",
+      "kind": "title1",
+      "maxW": 1339,
+      "w": 240
+    },
+    "cap6_1": {
+      "x": 0,
+      "y": 12236,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Finish history. From the Finish tile. How the forecast moved after each hour."
+    },
+    "cap6_2": {
+      "x": 473,
+      "y": 12236,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Closeout. Ticks (each opens what to fix), the forecast scorecard, one question, the answer sheet, and Mark complete last."
+    },
+    "cap6_3": {
+      "x": 946,
+      "y": 12236,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Vessel complete. A clean Yes needs no open items; otherwise “anyway” with a reason. Reopen needs a reason; the log keeps every mark."
+    },
+    "intro6": {
+      "x": 1419,
+      "y": 10824,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "The end of a ship: how the forecast moved, the closeout checklist, and Colby’s complete mark."
+    },
+    "title7": {
+      "x": 0,
+      "y": 12716,
+      "text": "7 · New vessel (setup)",
+      "kind": "title1",
+      "maxW": 4177,
+      "w": 240
+    },
+    "cap7_1": {
+      "x": 0,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "New vessel. Take or choose a photo; or a file, pasted text, or typing. A saved draft offers Resume."
+    },
+    "cap7_2": {
+      "x": 473,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Game plan read. The ship as read, doubts with the exact difference (never a corrected number), and what’s missing."
+    },
+    "cap7_3": {
+      "x": 946,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Paste text. ChatGPT-VSA deck lines. Totals are checked; a mismatch shows the difference. Opens the steps as a draft."
+    },
+    "cap7_4": {
+      "x": 1419,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Step 1 · Vessel. Name, date, LIVE or TEST, berth. Step 2 (Start) is the planned start time, breaks 12:00 and 18:00, and the shift end with its side."
+    },
+    "cap7_5": {
+      "x": 1892,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Step 3 · Cargo to destinations. Pick a destination; side and clear-by come from the terminal directory, never typed."
+    },
+    "cap7_6": {
+      "x": 2365,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Step 4 · Decks. Height, quantity per hatch, brand split per deck. A bare “D” deck name is refused."
+    },
+    "cap7_7": {
+      "x": 2838,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Step 5 · Load list. Typed or read from a photo; mismatches show the exact difference and a choice."
+    },
+    "cap7_8": {
+      "x": 3311,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Step 6 · Review. Everything in one place, notes to carry to Plan, “I have seen this”, then Save. The vessel is created only here."
+    },
+    "cap7_9": {
+      "x": 3784,
+      "y": 14043,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Close this setup? Shown on ✕ with typed values. Discard cannot be undone."
+    },
+    "intro7": {
+      "x": 4257,
+      "y": 12976,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "Photo first. Every path lands on the same six steps (Vessel, Start, Cargo to destinations, Decks, Load list, Review); nothing is saved until Review."
+    },
+    "title8": {
+      "x": 0,
+      "y": 14523,
+      "text": "8 · Vans and paperwork photos",
+      "kind": "title1",
+      "maxW": 1812,
+      "w": 240
+    },
+    "cap8_1": {
+      "x": 0,
+      "y": 15695,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Vans. One row per van: status, driver, gas. Bulk “Mark Back vans gassed”."
+    },
+    "cap8_2": {
+      "x": 473,
+      "y": 15695,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Van row. Edits keep the earlier values; remove keeps it in the log, marked removed."
+    },
+    "cap8_3": {
+      "x": 946,
+      "y": 15695,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Read the van sheet. On-phone text reading; tick what to add."
+    },
+    "cap8_4": {
+      "x": 1419,
+      "y": 15695,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Paperwork photos. From Plan › Baseline status (only when “Keep game plan photos” is on)."
+    },
+    "intro8": {
+      "x": 1892,
+      "y": 14783,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "Opened from Plan. Van checkout and gassing, read from the van sheet photo or typed."
+    },
+    "title9": {
+      "x": 0,
+      "y": 16175,
+      "text": "9 · States: break, end of shift, first launch, Night",
+      "kind": "title1",
+      "maxW": 1339,
+      "w": 240
+    },
+    "cap9_1": {
+      "x": 0,
+      "y": 18662,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Break / end of shift. Ship must equal field, overall and by brand: match green, ship ahead orange, field ahead red. (Overall and brand banners shown together for reference.)"
+    },
+    "cap9_2": {
+      "x": 473,
+      "y": 18662,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "First launch. No sample data; values only from paperwork or Colby."
+    },
+    "cap9_3": {
+      "x": 946,
+      "y": 18662,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Night. Same layout, Night palette (7:1 contrast). Use the Night and Extra visible buttons at the top to see every screen in each."
+    },
+    "intro9": {
+      "x": 1419,
+      "y": 16435,
+      "w": 380,
+      "maxH": 420,
+      "fill": "orange",
+      "text": "The same screens when the ship must equal the field, when nothing is open yet, and at night."
+    },
+    "cap2_1b": {
+      "x": 473,
+      "y": 4407,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Log › After Save. The answer after every Save: what the count changed and the new finish forecast (labeled FORECAST). Silence when nothing moved."
+    },
+    "cap1_2b": {
+      "x": 946,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Snapshot, break coming. 30 min before a break the Now card says when to stop, with a quiet See DK12 button (not peach: nothing to log). Sample numbers, not the Main story. Finish 15:25 is a FORECAST that skips the 11:45 stop and the 12:00 break."
+    },
+    "cap1_4b": {
+      "x": 2365,
+      "y": 2483,
+      "w": 393,
+      "maxH": 360,
+      "fill": "blue",
+      "text": "Needed rate when pace is below it: orange outline, number and tick, and one plain line. Never peach, never FORECAST. Example numbers, not today’s ship."
+    },
+    "cap3_1b": {
+      "x": 473,
+      "y": 6191,
+      "w": 393,
+      "maxH": 360,
+      "fill": "gray",
+      "text": "Deck sheet › After Save. What the deck save changed (ship progress, remaining, percent) and the field gap as in transit. Quiet line when nothing needs attention; peach Update decks only when decks are older than the last logged hour. Sample numbers: DK12 160 → 148."
+    }
+  },
+  "designSystems": [],
+  "attachments": {}
+}

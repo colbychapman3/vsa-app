@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deck sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#14243B}
+.vsa { font-family:'Schibsted Grotesk', system-ui, -apple-system, sans-serif; --bg:#EEF1F4; --card:#FFFFFF; --ink:#0E1A2B; --muted:#3A4B60; --line:#CBD3DC; --soft:#DCE3EC; --row:#F4F6F8;
+  --blue:#1D4ED8; --oBg:#FFF4EB; --oInk:#7C2D12; --orange:#B45309; --red:#B91C1C; --rBg:#FEE2E2; --rInk:#7F1D1D; --green:#15803D; --gBg:#DCFCE7; --gInk:#14532D;
+  --head:#14243B; --headMuted:#C9D6EA; --action:#FFD6A5; --hull:#14243B; --track:#24375A; --clear:#1B2C47; --fill:#3D7BFF; --deckMuted:#A9BAD1;
+  --t-label:13px; --t-body:15px; --t-em:17px; --t-title:22px; --t-display:28px;
+  --r-s:8px; --r-m:12px; --bw:1px; --bw2:1.5px; }
+.vsa.night { --bg:#0A121D; --card:#13202F; --ink:#E8EEF5; --muted:#B5C4D8; --line:#2A3B55; --soft:#1E2F48; --row:#15233A;
+  --blue:#8CB2FF; --oBg:#35210F; --oInk:#FFC999; --orange:#F59E0B; --rBg:#3A1515; --rInk:#FFB4B4; --gBg:#12301D; --gInk:#B8F2CB; --green:#5EE08A;
+  --head:#060D17; --headMuted:#B5C4D8; --hull:#050A12; --track:#1E3354; --clear:#101C2E; --fill:#4C8DFF; }
+.vsa.xv { --bg:#D3DAE2; --ink:#000; --muted:#1F2B38; --line:#0E1A2B; --soft:#B9C4D0; --t-label:15px; --bw:2px; --bw2:2.5px; }
+.vsa.night.xv { --bg:#000; --ink:#fff; --muted:#E0E8F2; --line:#E8EEF5; --soft:#2A3B55; }
+.vsa.showtaps .tap { outline:2px dashed #FF3D7F !important; outline-offset:1px; }
+.vsa, .vsa * { box-sizing:border-box; margin:0; padding:0; }
+.vsa .legend span::before { content:''; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; background:var(--c); }
+.vsa .body::-webkit-scrollbar { display:none; }
+.vsa.night .card { box-shadow:none !important }
+.vsa .sw::after { content:''; position:absolute; right:2px; top:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+.vsa .sw.off::after { right:auto; left:2px; }
+.vsa.night .kbd { background:#2B2B2E !important }
+.vsa.night .kbd div { background:#5A5A5E !important;color:#fff !important }
+.vsa .thumbs i.sel::after { content:'✓'; position:absolute; right:4px; bottom:4px; width:22px; height:22px; border-radius:50%; background:#0A84FF; color:#fff; font-size:13px; display:grid; place-items:center; border:2px solid #fff; }
+
+.vsa { --onOrange:#FFFFFF; --pace:#6D28D9; --edge:#14243B; }
+.vsa.night .live{background:var(--green) !important;color:#06210F !important}
+.vsa.night { --onOrange:#1A1206; --pace:#C4B5FD; --red:#FF7A7A; }
+.vsa .hbtn{min-height:44px;display:inline-flex;align-items:center}
+.vsa .tab{min-height:44px;align-content:center}
+.vsa .link.tap{min-height:44px;display:inline-flex;align-items:center}
+.vsa:not(.night) .btn{border:1.5px solid var(--edge)}
+</style>
+</helmet>
+<div class="vsa {{mode}}" style="width: 393px;height: 884px;border-radius: 46px;background: var(--bg);color: var(--ink);overflow: hidden;display: flex;flex-direction: column;font-size: var(--t-body);position: relative;box-shadow: none"><div class="status" style="height: 54px;background: var(--head);color: #fff;font-size: 15px;font-weight: 600;display: flex;align-items: flex-end;justify-content: space-between;padding: 0 30px 8px;flex: none;"></div><div class="top" style="background: var(--head);color: #fff;padding: 6px 20px 14px;display: grid;gap: 8px;flex: none;"><div class="r1" style="display: flex;align-items: center;gap: 12px;"><div class="menu tap" style="width: 44px;height: 44px;border: 1.5px solid var(--headMuted);border-radius: var(--r-m);display: grid;place-items: center;font-size: 20px;flex: none;">☰</div><h1 style="font-weight: 900;font-size: var(--t-display);line-height: 1;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">Hera Highway 13A</h1></div><div class="r2" style="display: flex;align-items: center;gap: 10px;font-size: var(--t-body);font-weight: 600;"><span class="chip live" style="font-size: var(--t-label);font-weight: 600;padding: 3px 8px;border-radius: var(--r-s);white-space: nowrap;background: #15803D;color: #fff;">LIVE</span><span>Berth 2 · 10/12/2026</span><span class="hbtn tap" style="margin-left: auto;border: 1.5px solid var(--headMuted);border-radius: var(--r-m);padding: 9px 14px;font-weight: 600;">Ask</span><span class="hbtn tap" style="border: 1.5px solid var(--headMuted);border-radius: var(--r-m);padding: 9px 14px;font-weight: 600;margin-left: 0;">Map</span></div></div>
+    <div class="body" style="flex: 1;overflow-y: auto;overflow-x: hidden;padding: 16px;display: flex;flex-direction: column;gap: 16px;scrollbar-width: none;opacity: .35"><div class="hull" style="flex: none;background: var(--hull);color: #fff;border-radius: 10px 10px 12px 24px;padding: 14px 14px 26px;display: grid;gap: 5px;height: 220px"></div></div>
+    <div class="scrim" style="position: absolute;inset: 0;z-index: 3;background: rgba(5,10,18,.35)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;top:150px;z-index:4;background:var(--bg);border-radius:16px 16px 0 0;display:flex;flex-direction:column;box-shadow:0 -8px 24px rgba(0,0,0,.25)">
+      <div class="shead" style="flex: none;padding: 4px 16px 10px;display: grid;gap: 8px;background: var(--bg);border-bottom: 1px solid var(--line);padding-top: 8px"><div class="grab" style="width: 40px;height: 5px;border-radius: 3px;background: var(--line);justify-self: center;"></div><div class="ttl" style="display: flex;justify-content: space-between;align-items: center;gap: 12px;"><b style="font-size: var(--t-display);font-weight: 900;">DK12</b><span class="x tap" style="width: 44px;height: 44px;border-radius: 999px;background: var(--soft);display: grid;place-items: center;flex: none;font-size: var(--t-label);color: var(--muted);">✕</span></div></div>
+      <div class="body" style="flex: 1;overflow-y: auto;overflow-x: hidden;padding: 16px;display: flex;flex-direction: column;gap: 16px;scrollbar-width: none;">
+        <div class="chips" style="flex: none;display: flex;flex-wrap: wrap;gap: 6px;"><span class="chip plain" style="font-size: var(--t-label);font-weight: 600;padding: 3px 8px;border-radius: var(--r-s);white-space: nowrap;background: var(--soft);color: var(--ink);">2.10 m · confirmed 07:40</span><span class="chip plain" style="font-size: var(--t-label);font-weight: 600;padding: 3px 8px;border-radius: var(--r-s);white-space: nowrap;background: var(--soft);color: var(--ink);">📷 3</span></div>
+        <span class="lbl" style="flex: none;font-size: var(--t-label);color: var(--muted);font-weight: 600;">Status</span>
+        <div class="seg tap" style="flex: none;display: grid;gap: 8px;grid-template-columns: repeat(4,minmax(0,1fr));--n: 4"><div style="border: var(--bw2) solid var(--line);background: var(--card);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;min-height: 44px;display: grid;place-items: center;cursor: pointer;user-select: none;font-size: var(--t-body)">Not started</div><div class="on" style="border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;user-select: none;background: var(--ink);color: var(--bg);border-color: var(--ink);">Active</div><div style="border: var(--bw2) solid var(--line);background: var(--card);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;user-select: none;">Paused</div><div style="border: var(--bw2) solid var(--line);background: var(--card);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;min-height: 44px;display: grid;place-items: center;cursor: pointer;user-select: none;font-size: var(--t-body)">Complete</div></div>
+        <div style="flex: none;display: flex;justify-content: space-between;align-items: baseline;gap: 12px"><span class="lbl" style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">Left by hatch, H4 → H1</span><span style="font-size: var(--t-label);color: var(--muted);">160 of 433 left</span></div>
+        <div class="seg" style="flex: none;display: grid;gap: 8px;grid-template-columns: repeat(var(--n,2),1fr);--n: 4"><div class="input tap" style="font-variant-numeric: tabular-nums;border: var(--bw2) solid var(--line);background: var(--card);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;user-select: none;">55</div><div class="input tap" style="font-variant-numeric: tabular-nums;border: var(--bw2) solid var(--line);background: var(--card);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;user-select: none;">40</div><div class="input tap" style="font-variant-numeric: tabular-nums;border: var(--bw2) solid var(--line);background: var(--card);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;user-select: none;">30</div><div class="input tap" style="font-variant-numeric: tabular-nums;border: var(--bw2) solid var(--line);background: var(--card);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;user-select: none;">23</div></div>
+        <div class="seg" style="flex: none;display: grid;grid-template-columns: repeat(var(--n,2),1fr);--n: 4;gap: 8px;margin-top: -10px"><span class="note" style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;text-align: center">H4 · of 120</span><span class="note" style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;text-align: center">H3 · of 120</span><span class="note" style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;text-align: center">H2 · of 120</span><span class="note" style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;text-align: center">H1 · of 73</span></div>
+        <div class="field" style="flex: none;display: grid;gap: 6px;"><span class="lbl" style="font-size: var(--t-label);font-weight: 600;color: var(--ink);">Or deck total remaining</span><div class="input ph tap" style="border: var(--bw2) solid var(--line);border-radius: var(--r-m);background: var(--card);padding: 10px 12px;font-weight: 500;min-height: 44px;font-variant-numeric: tabular-nums;font-size: var(--t-body);color: var(--muted);display: flex;align-items: center;">148 from hatches</div></div>
+        <div class="field" style="flex: none;display: grid;gap: 6px;"><span class="lbl" style="font-size: var(--t-label);font-weight: 600;color: var(--ink);">Time of this update</span><div style="display:flex;gap:8px"><div class="input tap" style="border: var(--bw2) solid var(--line);border-radius: var(--r-m);background: var(--card);padding: 10px 12px;font-size: 20px;font-weight: 500;min-height: 44px;font-variant-numeric: tabular-nums;flex: 1">15:02</div><div class="ghost tap" style="background: var(--card);border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 12px;text-align: center;font-weight: 600;min-height: 44px;width: 80px">Now</div></div></div>
+        <span class="note" style="flex: none;font-size: var(--t-label);color: var(--muted);line-height: 1.4;margin-top: -6px">Previous 160 at 13:58. Now 148: 12 cleared since.</span>
+        <div class="btn tap" style="flex: none;background: var(--action);color: #0E1A2B;font-weight: 700;font-size: var(--t-em);border-radius: 999px;padding: 16px;text-align: center;box-shadow: 0 3px 8px rgba(0,0,0,.18);min-height: 56px;">Save deck update</div>
+        <div class="ghost tap" style="flex: none;background: var(--card);border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 12px;text-align: center;font-weight: 600;min-height: 44px;">Photos on this deck (3) ›</div>
+        <span class="note" style="flex: none;font-size: var(--t-label);color: var(--muted);line-height: 1.4;">Deck heights are confirmed on the Plan tab.</span>
+      </div>
+    </div>
+  <div class="tabs" style="flex: none;background: var(--head);display: flex;align-items: center;padding: 8px 8px 30px;"><div class="tab tap" style="flex: 1;text-align: center;color: var(--headMuted);font-size: var(--t-label);font-weight: 600;display: grid;gap: 3px;justify-items: center;"><i style="font-style: normal;font-size: 18px;">◠</i>Snapshot</div><div class="tab tap on" style="flex: 1;text-align: center;font-size: var(--t-label);font-weight: 600;display: grid;gap: 3px;justify-items: center;color: var(--action);"><i style="font-style: normal;font-size: 18px;">≋</i>Decks</div><div class="logbtn tap" style="background: var(--action);color: #0E1A2B;font-weight: 700;font-size: var(--t-em);border-radius: 999px;padding: 14px 22px;margin: 0 4px;">＋ Log</div><div class="tab tap" style="flex: 1;text-align: center;color: var(--headMuted);font-size: var(--t-label);font-weight: 600;display: grid;gap: 3px;justify-items: center;"><i style="font-style: normal;font-size: 18px;">▮</i>Hourly</div><div class="tab tap" style="flex: 1;text-align: center;color: var(--headMuted);font-size: var(--t-label);font-weight: 600;display: grid;gap: 3px;justify-items: center;"><i style="font-style: normal;font-size: 18px;">⌖</i>Plan</div></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"night": {"editor": "boolean", "default": false, "section": "Look"}, "extraVisible": {"editor": "boolean", "default": false, "section": "Look"}, "showTapTargets": {"editor": "boolean", "default": false, "section": "Look"}, "$preview": {"width": 393, "height": 884}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const mode = [(p.night ?? false) ? 'night' : '', p.extraVisible ? 'xv' : '', p.showTapTargets ? 'showtaps' : ''].filter(Boolean).join(' ');
+    return { mode };
+  }
+}
+</script>
+</body>
+</html>

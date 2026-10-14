@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Closeout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#14243B}
+.vsa { font-family:'Schibsted Grotesk', system-ui, -apple-system, sans-serif; --bg:#EEF1F4; --card:#FFFFFF; --ink:#0E1A2B; --muted:#3A4B60; --line:#CBD3DC; --soft:#DCE3EC; --row:#F4F6F8;
+  --blue:#1D4ED8; --oBg:#FFF4EB; --oInk:#7C2D12; --orange:#B45309; --red:#B91C1C; --rBg:#FEE2E2; --rInk:#7F1D1D; --green:#15803D; --gBg:#DCFCE7; --gInk:#14532D;
+  --head:#14243B; --headMuted:#C9D6EA; --action:#FFD6A5; --hull:#14243B; --track:#24375A; --clear:#1B2C47; --fill:#3D7BFF; --deckMuted:#A9BAD1;
+  --t-label:13px; --t-body:15px; --t-em:17px; --t-title:22px; --t-display:28px;
+  --r-s:8px; --r-m:12px; --bw:1px; --bw2:1.5px; }
+.vsa.night { --bg:#0A121D; --card:#13202F; --ink:#E8EEF5; --muted:#B5C4D8; --line:#2A3B55; --soft:#1E2F48; --row:#15233A;
+  --blue:#8CB2FF; --oBg:#35210F; --oInk:#FFC999; --orange:#F59E0B; --rBg:#3A1515; --rInk:#FFB4B4; --gBg:#12301D; --gInk:#B8F2CB; --green:#5EE08A;
+  --head:#060D17; --headMuted:#B5C4D8; --hull:#050A12; --track:#1E3354; --clear:#101C2E; --fill:#4C8DFF; }
+.vsa.xv { --bg:#D3DAE2; --ink:#000; --muted:#1F2B38; --line:#0E1A2B; --soft:#B9C4D0; --t-label:15px; --bw:2px; --bw2:2.5px; }
+.vsa.night.xv { --bg:#000; --ink:#fff; --muted:#E0E8F2; --line:#E8EEF5; --soft:#2A3B55; }
+.vsa.showtaps .tap { outline:2px dashed #FF3D7F !important; outline-offset:1px; }
+.vsa, .vsa * { box-sizing:border-box; margin:0; padding:0; }
+.vsa .legend span::before { content:''; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; background:var(--c); }
+.vsa .body::-webkit-scrollbar { display:none; }
+.vsa.night .card { box-shadow:none !important }
+.vsa .sw::after { content:''; position:absolute; right:2px; top:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+.vsa .sw.off::after { right:auto; left:2px; }
+.vsa.night .kbd { background:#2B2B2E !important }
+.vsa.night .kbd div { background:#5A5A5E !important;color:#fff !important }
+.vsa .thumbs i.sel::after { content:'✓'; position:absolute; right:4px; bottom:4px; width:22px; height:22px; border-radius:50%; background:#0A84FF; color:#fff; font-size:13px; display:grid; place-items:center; border:2px solid #fff; }
+
+.vsa { --onOrange:#FFFFFF; --pace:#6D28D9; --edge:#14243B; }
+.vsa.night .live{background:var(--green) !important;color:#06210F !important}
+.vsa.night { --onOrange:#1A1206; --pace:#C4B5FD; --red:#FF7A7A; }
+.vsa .hbtn{min-height:44px;display:inline-flex;align-items:center}
+.vsa .tab{min-height:44px;align-content:center}
+.vsa .link.tap{min-height:44px;display:inline-flex;align-items:center}
+.vsa:not(.night) .btn{border:1.5px solid var(--edge)}
+.vsa.night .off:not(.sw){background:var(--card) !important;color:var(--ink) !important;border:2px solid var(--ink)}
+.vsa.night .off:not(.sw) .offc{background:var(--ink) !important;color:var(--card) !important}
+.vsa.night .off{background:var(--card) !important;color:var(--ink) !important;border:2px solid var(--ink)}
+.vsa.night .off .offc{background:var(--ink) !important;color:var(--card) !important}
+</style>
+</helmet>
+<div class="vsa {{mode}}" style="width: 393px;border-radius: 46px;background: var(--bg);color: var(--ink);overflow: hidden;position: relative;display: flex;flex-direction: column;font-size: var(--t-body);height: 1332px;box-shadow: none"><div class="status" style="height: 54px;font-size: 15px;font-weight: 600;display: flex;align-items: flex-end;justify-content: space-between;padding: 0 30px 8px;flex: none;background: var(--bg);color: var(--ink);"></div><div class="shead" style="flex: none;padding: 4px 16px 10px;display: grid;gap: 8px;background: var(--bg);border-bottom: 1px solid var(--line);"><div class="grab" style="width: 40px;height: 5px;border-radius: 3px;background: var(--line);justify-self: center;"></div><div class="ttl" style="display: flex;justify-content: space-between;align-items: center;gap: 12px;"><b style="font-size: var(--t-display);font-weight: 900;">Closeout</b><span style="font-size: var(--t-label);color: var(--muted);display: flex;gap: 8px;align-items: center"><span class="x tap" style="width: 44px;height: 44px;border-radius: 999px;background: var(--soft);display: grid;place-items: center;font-size: 17px;flex: none;">✕</span></span></div></div>
+    <div class="body" style="flex: 1;overflow-y: auto;overflow-x: hidden;padding: 16px;display: flex;flex-direction: column;gap: 16px;scrollbar-width: none;">
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 14px 16px;display: grid;gap: 12px;box-shadow: 0 3px 8px rgba(0,0,0,.08);">
+        <div style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;"><span style="font-weight: 700;">Vessel remaining</span><span style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">reached 0 at 16:12</span></div>
+        <div style="display: grid;gap: 4px;"><div style="display: flex;align-items: baseline;gap: 10px;"><b style="font-size: 44px;font-weight: 900;line-height: 1;">0</b><span style="font-weight: 600;">of 1,352 autos</span></div><span style="font-size: var(--t-label);color: var(--muted);">Ready to close. Not marked complete yet.</span></div>
+        <div class="off" style="display: flex;align-items: center;justify-content: space-between;gap: 12px;background: var(--ink);color: var(--card);border-radius: var(--r-m);padding: 12px 14px;">
+          <div style="display: grid;gap: 4px;"><span style="font-size: var(--t-em);font-weight: 800;">Field count</span><span class="offc" style="justify-self: start;font-size: var(--t-label);font-weight: 800;letter-spacing: .06em;padding: 2px 8px;border-radius: var(--r-s);background: var(--card);color: var(--ink);">OFFICIAL</span></div>
+          <div style="display: grid;justify-items: end;gap: 2px;"><b style="font-size: 40px;font-weight: 900;line-height: 1;">1,352</b><span style="font-size: var(--t-label);font-weight: 600;opacity: .85;">through 16–17 · ship = field</span></div>
+        </div>
+      </div>
+      <div class="list" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);overflow: hidden;">
+        <div class="li tap" style="display: flex;align-items: center;gap: 12px;padding: 8px 14px;min-height: 52px;"><span class="check on" style="width: 24px;height: 24px;border: 2px solid var(--ink);border-radius: 6px;display: grid;place-items: center;font-weight: 900;font-size: 15px;flex: none;background: var(--ink);color: var(--bg);">✓</span><div class="grow" style="flex: 1;min-width: 0;"><div>Every deck counted</div><div style="font-size: var(--t-label);color: var(--muted);line-height: 1.35;">7 of 7 decks complete</div></div></div>
+        <div class="li tap" style="display: flex;align-items: center;gap: 12px;padding: 8px 14px;min-height: 52px;border-top: 1px solid var(--soft);"><span class="check on" style="width: 24px;height: 24px;border: 2px solid var(--ink);border-radius: 6px;display: grid;place-items: center;font-weight: 900;font-size: 15px;flex: none;background: var(--ink);color: var(--bg);">✓</span><div class="grow" style="flex: 1;min-width: 0;"><div>Ship = field, overall and by brand</div><div style="font-size: var(--t-label);color: var(--muted);line-height: 1.35;">BMW 820 · MBZ 480 · POV 52</div></div></div>
+        <div class="li tap" style="display: flex;align-items: center;gap: 12px;padding: 8px 14px;min-height: 52px;border-top: 1px solid var(--soft);"><span class="check" style="width: 24px;height: 24px;border: 2px solid var(--ink);border-radius: 6px;display: grid;place-items: center;font-weight: 900;font-size: 15px;flex: none;"></span><div class="grow" style="flex: 1;min-width: 0;"><div><b style="font-weight: 700;">Open discrepancy resolved</b></div><div style="font-size: var(--t-label);color: var(--muted);line-height: 1.35;">Count mismatch, 14:52</div></div><span class="link tap" style="font-size: var(--t-body);color: var(--blue);font-weight: 700;white-space: nowrap;min-height: 44px;">Go fix it ›</span></div>
+        <div class="li tap" style="display: flex;align-items: center;gap: 12px;padding: 8px 14px;min-height: 52px;border-top: 1px solid var(--soft);"><span class="check on" style="width: 24px;height: 24px;border: 2px solid var(--ink);border-radius: 6px;display: grid;place-items: center;font-weight: 900;font-size: 15px;flex: none;background: var(--ink);color: var(--bg);">✓</span><div class="grow" style="flex: 1;min-width: 0;"><div>End of shift logged</div><div style="font-size: var(--t-label);color: var(--muted);line-height: 1.35;">16:15</div></div></div>
+        <div class="li tap" style="display: flex;align-items: center;gap: 12px;padding: 8px 14px;min-height: 52px;border-top: 1px solid var(--soft);"><span class="check" style="width: 24px;height: 24px;border: 2px solid var(--ink);border-radius: 6px;display: grid;place-items: center;font-weight: 900;font-size: 15px;flex: none;"></span><div class="grow" style="flex: 1;min-width: 0;"><div>Vessel backed up</div><div style="font-size: var(--t-label);color: var(--muted);line-height: 1.35;">Not backed up yet</div></div></div>
+      </div>
+      <div class="sec" style="flex: none;font-size: var(--t-label);color: var(--muted);font-weight: 700;margin: 4px 4px -8px;">How close the forecast came</div>
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 14px 16px;display: grid;gap: 12px;box-shadow: 0 3px 8px rgba(0,0,0,.08);">
+        <div style="display: flex;gap: 10px;align-items: stretch;">
+          <div style="flex: 1;min-width: 0;background: var(--row);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 10px 12px;display: grid;gap: 2px;align-content: start;"><span style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">Actual finish</span><b style="font-size: var(--t-display);font-weight: 900;line-height: 1.1;">16:12</b></div>
+          <div style="flex: 1;min-width: 0;background: var(--row);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 10px 12px;display: grid;gap: 2px;align-content: start;"><span style="font-size: var(--t-label);color: var(--muted);font-weight: 600;display: flex;gap: 6px;align-items: center;"><span style="font-size: var(--t-label);font-weight: 800;letter-spacing: .06em;padding: 2px 8px;border-radius: var(--r-s);background: var(--orange);color: var(--onOrange);">FORECAST</span> at 14:00</span><b style="font-size: var(--t-display);font-weight: 900;line-height: 1.1;">16:08</b></div>
+        </div>
+        <b style="font-size: var(--t-em);">Finished 4 min after the forecast.</b>
+      </div>
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 14px 16px;display: flex;gap: 10px;box-shadow: 0 3px 8px rgba(0,0,0,.08);">
+        <div style="flex: 1;min-width: 0;background: var(--row);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 10px 12px;display: grid;gap: 2px;align-content: start;"><span style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">H.A.</span><b style="font-size: var(--t-display);font-weight: 900;line-height: 1.1;">150<span style="font-size: var(--t-body);font-weight: 700;">/hr</span></b><span style="font-size: var(--t-label);color: var(--muted);line-height: 1.35;">1,352 ÷ 9 counted hours</span></div>
+        <div style="flex: 1;min-width: 0;background: var(--row);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 10px 12px;display: grid;gap: 2px;align-content: start;"><span style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">Pace</span><b style="font-size: var(--t-display);font-weight: 900;line-height: 1.1;color: var(--pace);">174<span style="font-size: var(--t-body);font-weight: 700;">/hr</span></b><span style="font-size: var(--t-label);color: var(--muted);line-height: 1.35;">1,352 ÷ 467 productive min</span></div>
+      </div>
+      <div class="sec" style="flex: none;font-size: var(--t-label);color: var(--muted);font-weight: 700;margin: 4px 4px -8px;">What slowed you down today?</div>
+      <div class="input txt tap" style="flex: none;border: var(--bw2) solid var(--line);border-radius: var(--r-m);background: var(--card);padding: 10px 12px;font-weight: 500;font-size: var(--t-body);min-height: 72px;line-height: 1.4;">Gate 2 closed 09:00–09:40, cars staged at MBZ. DK4 low deck (1.80 m) needed the small vans.</div>
+      <div class="ghost tap" style="flex: none;background: var(--card);border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 12px;text-align: center;font-weight: 600;min-height: 44px;">Send the answer sheet</div>
+      <span class="note" style="flex: none;font-size: var(--t-label);color: var(--muted);line-height: 1.4;margin-top: -8px;">Pick the superintendent or operations manager in the share sheet.</span>
+      <div class="btn tap" style="flex: none;background: var(--action);color: #0E1A2B;font-weight: 700;font-size: var(--t-em);border-radius: 999px;padding: 16px;text-align: center;box-shadow: 0 3px 8px rgba(0,0,0,.18);min-height: 56px;">Mark complete…</div>
+    </div>
+  </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"night": {"editor": "boolean", "default": false, "section": "Look"}, "extraVisible": {"editor": "boolean", "default": false, "section": "Look"}, "showTapTargets": {"editor": "boolean", "default": false, "section": "Look"}, "$preview": {"width": 393, "height": 1332}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const mode = [(p.night ?? false) ? 'night' : '', p.extraVisible ? 'xv' : '', p.showTapTargets ? 'showtaps' : ''].filter(Boolean).join(' ');
+    return { mode };
+  }
+}
+</script>
+</body>
+</html>
