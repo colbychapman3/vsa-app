@@ -25,7 +25,7 @@ export function Big({ children, size, style }: { children: ReactNode; size: numb
   const f = useType(), sun = useSun();
   return (
     <Text style={[{ fontSize: size, lineHeight: size * 0.95, letterSpacing: -size * 0.025, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, sun && { lineHeight: size * 1.2 }, style]}
-      numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+      numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={1.1}>
       {children}
     </Text>
   );
@@ -96,7 +96,7 @@ export function Bar({ pct, small }: { pct: number; small?: boolean }) {
 
 export function Tag({ kind }: { kind: 'FORECAST' | 'CALCULATED' }) {
   const f = useType(), sun = useSun();
-  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, sun && { fontSize: 13 }, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>{kind === 'FORECAST' ? 'Forecast' : 'Calculated'}</Text>;
+  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, sun && { fontSize: 13 }, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={1.2}>{kind === 'FORECAST' ? 'Forecast' : 'Calculated'}</Text>;
 }
 
 // A titled card: one part of a form or screen, so each section has a clear start and end (Colby, 2026-10-12: the Log read
@@ -256,21 +256,19 @@ export function Field({ label, value, onChange, placeholder, keyboard = 'number-
 }
 
 // A time box that starts empty. "Now" fills the phone's time; Colby can still edit it.
-export function TimeField({ label, value, onChange, onNow, required, hint, accessoryId }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void; required?: boolean; hint?: string; accessoryId?: string }) {
+export function TimeField({ label, value, onChange, onNow, hint, accessoryId }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void; required?: boolean; hint?: string; accessoryId?: string }) {
   const f = useType();
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <TextInput value={value} onChangeText={onChange} placeholder="HH:MM" keyboardType="numbers-and-punctuation" maxLength={5} inputAccessoryViewID={accessoryId}
-          style={[u.input, { flex: 1, fontFamily: f.bodyMedium, fontSize: 22 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
+          style={[u.input, { flex: 1, minWidth: 0, fontFamily: f.bodyMedium, fontSize: 22 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
         <Pressable onPress={onNow} style={[u.ghostBtn, { paddingHorizontal: 20 }]} accessibilityRole="button" accessibilityLabel={`${label}: now`}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>Now</Text>
         </Pressable>
       </View>
-      <Text style={{ fontFamily: f.body, fontSize: 13, color: required ? color.ink : color.muted }}>
-        {required ? 'Required: type the time or tap Now.' : 'Leave empty if unknown.'}{hint ? ` ${hint}` : ''}
-      </Text>
+      {hint ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>{hint}</Text> : null}
     </View>
   );
 }

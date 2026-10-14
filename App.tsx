@@ -457,7 +457,7 @@ export default function App() {
                   </>}
               </ScrollView>
               {logOpen && (
-                <LogSheet nowMin={nowMin} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} prefill={prefill}
+                <LogSheet state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} prefill={prefill}
                   onClose={(done) => { setLogOpen(false); if (done) setNotice(answered(done)); else before.current = null; }} />
               )}
               {deckOpen && (

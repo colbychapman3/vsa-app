@@ -56,8 +56,9 @@ export function driversFinish(s: State, b: Baseline, nowMin: number, drivers: nu
 // aboard (run through the engine's own split-side forecast, the protocol's 15 / 30 min stops) and heavy cargo (pace in the hours
 // H/H ran against the hours it did not, observed from the H/H timeline). Weather is not here: nothing measured yet. A factor with
 // no measured basis is refused, never guessed. With nothing moved the result is exactly the Snapshot's forecast.
-export type Factors = { drivers?: number; south?: number; heavy?: number }; // south, heavy: share 0..1
+export type Factors = { pace?: number; drivers?: number; south?: number; heavy?: number }; // pace: autos per hour; south, heavy: share 0..1
 export type Levers = {
+  pace: { now: number } | null;                          // the forecast's own pace, autos per hour (the other factors scale it)
   drivers: { now: number; perDriver: number } | null;
   south: { now: number; known: boolean };               // now: Southside share of the cars still aboard the forecast uses; known: from the brands' destinations
   heavy: { now: number; active: number; clear: number; activeHours: number; clearHours: number } | null;
@@ -73,6 +74,7 @@ export function levers(s: State, b: Baseline): Levers {
   const a = s.hh.analysis;
   const ok = a != null && a.active.n > 0 && a.clear.n > 0 && a.active.pace != null && a.clear.pace != null;
   return {
+    pace: s.eta.rate != null && s.eta.rate > 0 ? { now: s.eta.rate } : null,
     drivers: p && now > 0 ? { now, perDriver: p.driverRate.rate! } : null,
     // Unknown (a brand on both sides, or uncounted): the forecast stops every car at the later stop, so "now" is all or none.
     south: { now: known ? south! / s.vesselRemaining! : vesselClearBy(b.destinations) >= CLEAR_BY_MIN.Southside ? 1 : 0, known },
@@ -89,6 +91,11 @@ export function scenario(s: State, b: Baseline, f: Factors): Scenario {
   const lv = levers(s, b);
   let rate = base;
   const lines: string[] = [];
+  if (f.pace != null) {
+    if (!(f.pace > 0)) return err('Pace must be more than 0 autos per hour.');
+    rate = f.pace;
+    lines.push(`${n(f.pace)}/hr instead of ${n(base)}/hr.`);
+  }
   if (f.drivers != null) {
     if (!lv.drivers) return err('No per-driver rate yet: an hour needs its drivers and its stoppage time.');
     rate *= f.drivers / lv.drivers.now;

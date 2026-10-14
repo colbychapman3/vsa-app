@@ -1,5 +1,8 @@
 // Which boxes the Snapshot shows, in what order, and on which tab (Colby, 2026-10-08). A per-phone preference: never part of a
 // vessel's record. Pure, so it is tested without a screen. A missing, corrupt or older saved layout falls back to the default.
+// LAYOUT_DESIGN: bump it whenever the default screen is redesigned. A layout saved under an older design is dropped, so the
+// phone shows the new design instead of an old order with boxes hidden (build #30 phone check, 2026-10-14: the saved order of
+// an older build overrode the Every Screen order and hid boxes).
 // Order of the Every Screen Snapshot (Colby, 2026-10-14): remaining, then the field count beside the finish, ship done beside
 // pace, then the ship and the brands.
 export const BOXES = ['hero', 'field', 'eta', 'done', 'ha', 'ship', 'brands', 'side', 'vessel'] as const;
@@ -10,6 +13,7 @@ export const BOX_TITLE: Record<BoxId, string> = { hero: 'Vessel remaining', ship
 export const TAB_TITLE: Record<BoxTab, string> = { snap: 'Snapshot', plan: 'Plan', hourly: 'Hourly', decks: 'Decks' };
 export const PINNED: readonly BoxId[] = ['hero']; // a vessel balance is never hidden
 
+export const LAYOUT_DESIGN = 2;
 export type Layout = { order: BoxId[]; hidden: BoxId[]; tab: Record<BoxId, BoxTab> };
 
 export const defaultLayout = (): Layout => ({ order: [...BOXES], hidden: [], tab: Object.fromEntries(BOXES.map((b) => [b, 'snap'])) as Record<BoxId, BoxTab> });
@@ -22,7 +26,8 @@ export function parseLayout(text: string | null): Layout {
   const d = defaultLayout();
   if (!text) return d;
   try {
-    const j = JSON.parse(text) as { order?: unknown; hidden?: unknown; tab?: unknown };
+    const j = JSON.parse(text) as { design?: unknown; order?: unknown; hidden?: unknown; tab?: unknown };
+    if (j.design !== LAYOUT_DESIGN) return d;
     const order = Array.isArray(j.order) ? [...new Set(j.order.filter(isBox))] : [];
     // A box added by a later version appears right after the box before it in BOXES (the ship lands under the hero).
     for (const b of BOXES) if (!order.includes(b)) { const prev = BOXES[BOXES.indexOf(b) - 1]; order.splice(prev ? order.indexOf(prev) + 1 : 0, 0, b); }
@@ -32,7 +37,7 @@ export function parseLayout(text: string | null): Layout {
     return { order, hidden, tab };
   } catch { return d; }
 }
-export const layoutText = (l: Layout) => JSON.stringify(l);
+export const layoutText = (l: Layout) => JSON.stringify({ design: LAYOUT_DESIGN, ...l });
 
 // Boxes for one tab, in order, hidden ones left out.
 export const boxesFor = (l: Layout, t: BoxTab): BoxId[] => l.order.filter((b) => l.tab[b] === t && !l.hidden.includes(b));

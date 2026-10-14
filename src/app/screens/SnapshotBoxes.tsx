@@ -9,7 +9,7 @@ import { shipView, HATCH_SLOTS, type Seg } from '../ship.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
 import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
 import { VesselCards, type Save } from './Plan.tsx';
-import Svg, { Circle, G, Line, Polyline } from 'react-native-svg';
+import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 import { FieldTile } from './FieldBox.tsx';
 import { Bar, Big, Body, Card, Label, Note, SectionHead, Tag, u } from './ui.tsx';
 
@@ -108,7 +108,7 @@ function EtaTile({ v, p, half, menu }: { v: V; p: BoxProps; half?: boolean; menu
     <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
       accessibilityLabel={`Finish, forecast ${v.eta.value}. Tap for its history`} accessibilityHint="Long press to move or hide this box">
       <View style={[u.card, s.tile, v.eta.dashed && s.dashed]}>
-        <Text style={[s.fcChip, { fontFamily: f.bodySemi }]}>FORECAST</Text>
+        <Text style={[s.fcChip, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={1.2}>FORECAST</Text>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Finish</Text>
         {v.eta.day && <Body semi>{v.eta.day}</Body>}
         <Big size={44}>{v.eta.value}</Big>
@@ -119,6 +119,7 @@ function EtaTile({ v, p, half, menu }: { v: V; p: BoxProps; half?: boolean; menu
 }
 
 // Pace (Every Screen 1.1): purple number, its last hours as a sparkline with the current pace dashed, then H.A. with its denominator.
+// Every line is one line that shrinks to fit: nothing wraps or is cut off at a large text size.
 // A tap opens the Hourly tab, where those hours are listed.
 function PaceTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
   const f = useType();
@@ -143,45 +144,36 @@ function PaceTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
               {last && <Circle cx={Number(last[0])} cy={Number(last[1])} r={4.5} fill={PACE_COLOR} />}
             </Svg>
           )}
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.muted }}>per productive hour</Text>
           <View style={s.haLine}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: HA_COLOR }}>H.A. {v.ha.value}{v.ha.perHr ? ' /hr' : ''}</Text>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.muted }}>{v.ha.haLine}</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: HA_COLOR }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={1.3}>H.A. {v.ha.value}{v.ha.perHr ? ' /hr' : ''}</Text>
+            <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.3}>{v.ha.haLine}</Text>
           </View>
         </View>
     </Pressable>
   );
 }
 
-// Ship done (Every Screen 1.1): the share of the vessel the decks have cleared, as a ring. Unknown stays a dash. A tap opens Decks.
+// Ship done (Colby, 2026-10-14: the ring was hard to read): the share of the vessel the decks have cleared as a big percent over
+// a plain bar. Unknown stays a dash. A tap opens Decks.
 function DoneTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
   const f = useType();
   const d = v.done;
-  const R = 43, C = 2 * Math.PI * R, pct = d.pct == null ? 0 : Math.min(100, Math.max(0, d.pct));
+  const pct = d.pct == null ? null : Math.min(100, Math.max(0, d.pct));
   return (
     <Pressable onPress={() => (d.deck && p.onOpenDeck ? p.onOpenDeck(d.deck) : p.onOpenTab('decks'))} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
-      accessibilityLabel={`Ship done: ${d.pct == null ? 'unknown' : `${Math.round(d.pct)} percent`}. ${d.text}. ${d.deck ? 'Opens that deck' : 'Opens Decks'}`}>
+      accessibilityLabel={`Ship done: ${pct == null ? 'unknown' : `${Math.round(pct)} percent`}. ${d.text}. ${d.deck ? 'Opens that deck' : 'Opens Decks'}`}>
     <View style={[u.card, s.tile, { flex: 1 }]}>
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Ship done</Text>
-      <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 4 }}>
-        <Svg width={104} height={104} viewBox="0 0 104 104">
-          <Circle cx={52} cy={52} r={R} stroke={color.soft} strokeWidth={12} fill="none" />
-          {d.pct != null && (
-            <G rotation={-90} origin="52, 52">
-              <Circle cx={52} cy={52} r={R} stroke={color.blue} strokeWidth={12} fill="none" strokeLinecap="round" strokeDasharray={`${(C * pct) / 100} ${C}`} />
-            </G>
-          )}
-        </Svg>
-        <Text style={{ position: 'absolute', fontFamily: f.display, fontSize: 26, color: color.ink }}>{d.pct == null ? '—' : `${Math.round(d.pct)}%`}</Text>
-      </View>
-      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.muted, textAlign: 'center' }}>{d.text}</Text>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={1.3}>Ship done</Text>
+      <Big size={56}>{pct == null ? '—' : `${Math.round(pct)}%`}</Big>
+      <View style={s.doneTrack}>{pct != null && <View style={[s.doneFill, { width: `${pct}%` }]} />}</View>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.muted }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={1.3}>{d.text}</Text>
     </View>
     </Pressable>
   );
 }
 
 // Vessel remaining (Every Screen 1.1): just the number and "autos left of N", the ship progress, and the gap sentence. The
-// percent lives in the ring tile, so no bar here; how each number is worked out is in Ask, not on this page.
+// percent lives in the Ship done tile, so no bar here; how each number is worked out is in Ask, not on this page.
 function HeroBox({ v }: { v: V }) {
   const f = useType();
   const h = v.hero;
@@ -284,6 +276,8 @@ const s = StyleSheet.create({
   tile: { flex: 1, padding: 16, gap: 6 },
   tileFc: { borderWidth: 2, borderColor: bcolor.orange },
   dashed: { borderStyle: 'dashed' },
+  doneTrack: { height: 14, borderRadius: 7, backgroundColor: color.soft, overflow: 'hidden', marginVertical: 4 },
+  doneFill: { height: '100%', borderRadius: 7, backgroundColor: color.blue },
   haRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, paddingTop: 4 },
   link: { fontSize: 13, color: color.blue, marginTop: 2 },
   sec: { gap: 10 },

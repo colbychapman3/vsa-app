@@ -68,7 +68,7 @@ export function TabBar({ tab, onTab, badges, onLog, due }: { tab: Tab; onTab: (t
         accessibilityLabel={n ? `${label}, ${n} to check` : label}>
         <Icon name={id} color={on ? color.accent : color.headMuted} />
         <View style={s.tabLabelRow}>
-          <Text style={[s.tabLabel, { color: on ? color.accent : color.headMuted, fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
+          <Text style={[s.tabLabel, { color: on ? color.accent : color.headMuted, fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={1.15}>{label}</Text>
           {n > 0 && <Text style={[s.badge, { fontFamily: f.bodySemi }]}>{n}</Text>}
         </View>
       </Pressable>
@@ -80,7 +80,7 @@ export function TabBar({ tab, onTab, badges, onLog, due }: { tab: Tab; onTab: (t
       <View>
         <Pressable onPress={onLog} style={({ pressed }) => [s.log, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={due ? `Log an entry. The ${due} count is due` : 'Log an entry'}>
           <Icon name="plus" color={color.onAction} />
-          <Text style={[s.logText, { fontFamily: f.displaySemi }]}>Log</Text>
+          <Text style={[s.logText, { fontFamily: f.displaySemi }]} maxFontSizeMultiplier={1.15}>Log</Text>
         </Pressable>
         {due && <Text style={[s.dueChip, { fontFamily: f.bodySemi }]} numberOfLines={1} accessibilityElementsHidden>{due} due</Text>}
       </View>
@@ -101,13 +101,13 @@ const s = StyleSheet.create({
   mapBtn: { minHeight: 44, minWidth: 52, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.headMuted, alignItems: 'center', justifyContent: 'center' },
   mapText: { fontSize: 15, color: color.headInk },
   h1: { fontSize: 28, color: color.headInk },
-  tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 8, ...elev.raised, shadowOffset: { width: 0, height: -3 } },
-  tab: { flex: 1, minHeight: 60, alignItems: 'center', justifyContent: 'center', gap: 4, borderTopWidth: 3, borderTopColor: 'transparent' },
+  tabs: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: color.head, flexDirection: 'row', paddingHorizontal: 4, ...elev.raised, shadowOffset: { width: 0, height: -3 } },
+  tab: { flex: 1, minWidth: 0, minHeight: 60, paddingHorizontal: 2, alignItems: 'center', justifyContent: 'center', gap: 4, borderTopWidth: 3, borderTopColor: 'transparent' },
   tabOn: { borderTopColor: bcolor.accent },
-  tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%' },
+  tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%', flexShrink: 1 },
   tabLabel: { fontSize: 13, flexShrink: 1 },
   badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 13, overflow: 'hidden' },
-  log: { alignSelf: 'center', minHeight: 56, paddingHorizontal: 22, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 4, ...elev.raised },
+  log: { alignSelf: 'center', minHeight: 56, paddingHorizontal: 16, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 4, marginHorizontal: 2, ...elev.raised },
   dueChip: { position: 'absolute', top: -10, alignSelf: 'center', fontSize: 13, color: color.headInk, backgroundColor: color.head, borderWidth: 1.5, borderColor: color.headInk, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 1, overflow: 'hidden' },
   logText: { color: color.onAction, fontSize: 17 },
 });

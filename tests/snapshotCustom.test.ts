@@ -44,7 +44,7 @@ test('layout: saved text round-trips; missing, corrupt or older layouts fall bac
   assert.deepEqual(parseLayout(layoutText(l)), l);
   assert.deepEqual(parseLayout(null), defaultLayout());
   assert.deepEqual(parseLayout('not json'), defaultLayout());
-  assert.deepEqual(parseLayout('{"order":["field","nope"],"hidden":["hero","side"],"tab":{"eta":"plan","ha":"mars"}}'), {
+  assert.deepEqual(parseLayout('{"design":2,"order":["field","nope"],"hidden":["hero","side"],"tab":{"eta":"plan","ha":"mars"}}'), {
     order: [...BOXES], hidden: ['side'], tab: { ...defaultLayout().tab, eta: 'plan' }, // missing boxes rejoin after their neighbour in BOXES
   });
 });
@@ -132,7 +132,13 @@ test('hourly rows split the per-driver rate and the driver count; a pace change 
   }
 });
 
-test('an older saved layout gains the new boxes next to their neighbours: ship done after the finish, the ship after pace', () => {
-  const old = JSON.stringify({ order: ['hero', 'field', 'eta', 'ha', 'brands', 'side', 'vessel'], hidden: [], tab: {} });
-  assert.deepEqual(parseLayout(old).order.slice(0, 6), ['hero', 'field', 'eta', 'done', 'ha', 'ship']);
+test('a layout saved under an older design is dropped: the phone shows the new default order with nothing hidden', () => {
+  const old = JSON.stringify({ order: ['ha', 'eta', 'done', 'hero', 'field', 'ship', 'brands', 'side', 'vessel'], hidden: ['ship', 'brands'], tab: {} });
+  assert.deepEqual(parseLayout(old), defaultLayout());
+  assert.deepEqual(parseLayout(JSON.stringify({ design: 1, order: ['ha'], hidden: ['ship'], tab: {} })), defaultLayout());
+});
+
+test('a layout saved under this design gains boxes added later next to their neighbours', () => {
+  const saved = JSON.stringify({ design: 2, order: ['hero', 'field', 'eta', 'ha', 'brands', 'side', 'vessel'], hidden: [], tab: {} });
+  assert.deepEqual(parseLayout(saved).order.slice(0, 6), ['hero', 'field', 'eta', 'done', 'ha', 'ship']);
 });
