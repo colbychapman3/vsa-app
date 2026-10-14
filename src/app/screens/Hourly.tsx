@@ -83,7 +83,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
   const [open, setOpen] = useState(false);
   const details: string[] = [
     ...(r.short && !r.shortUnset ? [r.short] : []), ...(r.cutoff ? [r.cutoff] : []), ...(r.minNote ? [r.minNote] : []),
-    ...(r.rateLine ? [r.rateLine] : []), ...(r.driversLine ? [r.driversLine] : []), ...(r.delta && r.deltaPaced ? [r.delta] : []),
+    ...(r.rateLine ? [r.rateLine] : []), ...(r.driversLine ? [r.driversLine] : []), ...(r.equiv ? [r.equiv] : []), ...(r.delta && r.deltaPaced ? [r.delta] : []),
   ];
   return (
     <View>

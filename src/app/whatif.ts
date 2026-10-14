@@ -172,7 +172,8 @@ export function moveBreak(s: State, b: Baseline, nowMin: number, from: number, t
   const sched = scheduleOf(b, s.plan, actual);
   const south = southRemaining(s.brands, b.destinations);
   const southLeft = south != null ? south * (remaining / s.vesselRemaining) : null;
-  const run = (breaks: string[]) => eta({ remaining, basis: 'vessel', periods: s.periods, schedule: { ...sched, breaks }, ops: s.ops, southLeft }).etaAbs;
+  const per = s.periods.map((p, i, all) => (i >= all.length - 2 ? { ...p, pace: s.eta.rate! } : p)); // the forecast's own (mix-scaled) rate
+  const run = (breaks: string[]) => eta({ remaining, basis: 'vessel', periods: per, schedule: { ...sched, breaks }, ops: s.ops, southLeft }).etaAbs;
   const was = run(sched.breaks), now = run(sched.breaks.map((x) => (parseHM(x) === from ? formatHM(to) : x)));
   if (was == null || now == null) return err('No finish can be projected at this pace.');
   return { ok: true, title: `Move the ${formatHM(from)} break to ${formatHM(to)}`, lines: [

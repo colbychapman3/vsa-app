@@ -10,6 +10,7 @@ import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, SAFETY_MEE
 import { buildPasses, hhAnalysis, hhStatus, type HhMarker } from './hh.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
 import { eta, scheduleOf, southRemaining, steadyFinish, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
+import { brandMiles, mixAdjust } from './mix.ts';
 import { absFromIso, fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
 
 export * from './time.ts';
@@ -21,6 +22,7 @@ export * from './production.ts';
 export * from './hh.ts';
 export * from './ledger.ts';
 export * from './eta.ts';
+export * from './mix.ts';
 export * from './evidence.ts';
 export * from './vans.ts';
 
@@ -529,16 +531,22 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const L = ledger({ decks: deckResults, periods, phase, drivers, clerk: clerk && { remaining: clerk.remaining, time: clerk.time } });
   // Cars still aboard that stop at the Southside time (null = unknown: every car then stops at the later stop, as before).
   const southLeft = L.vesselRemaining != null ? southRemaining(L.brands, baseline.destinations) : null;
+  // The brand mix (Colby, 2026-10-14): each hour's pace scaled to the mix still aboard, from the hours' brand splits and the
+  // destinations' miles. Null (the old rate) when the cars left cannot be priced or no hour is split.
+  const mixTry = L.vesselRemaining != null ? mixAdjust(periods, Object.fromEntries(L.brands.map((x) => [x.name, x.remaining])), brandMiles(baseline.destinations)) : null;
+  // Only when it changes a pace (brands that go to different distances): a single-destination vessel keeps its output unchanged.
+  const mixAdj = mixTry && mixTry.periods.some((p, i) => p.pace !== periods[i].pace) ? mixTry : null;
+  const etaPeriods = mixAdj?.periods ?? periods;
   const forecast = eta({
     remaining: L.vesselRemaining ?? L.fieldBalance,
     basis: L.vesselRemaining != null ? 'vessel' : 'field',
-    periods,
+    periods: etaPeriods,
     schedule: scheduleOf(baseline, plan, Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm]))),
     ops,
     southLeft,
   });
   // The finish the screens show (Colby, 2026-10-11, option A): deck counts older than the last logged hour carried forward at the pace.
-  const steady = steadyFinish({ vesselRemaining: L.vesselRemaining, fieldBalance: L.fieldBalance, forecast: forecast, periods,
+  const steady = steadyFinish({ vesselRemaining: L.vesselRemaining, fieldBalance: L.fieldBalance, forecast: forecast, periods: etaPeriods,
     schedule: scheduleOf(baseline, plan, Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm]))), ops,
     deckSaves: Object.values(deckSave), shiftEndAbs: breakLog.find((x) => x.kind === 'shift' && x.startAbs < 1440)?.startAbs ?? null, southLeft });
 
@@ -557,6 +565,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     ...L,
     eta: forecast,
     steady, // the finish the screens show; `eta` stays the raw forecast
+    ...(mixAdj ? { mix: { avgMilesLeft: mixAdj.avgLeft, hoursAdjusted: mixAdj.used } } : {}), // only when the forecast was scaled to the mix
     ops: { ...ops, phase },
     plan,
     issues: [...issues.values()],
