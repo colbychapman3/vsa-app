@@ -28,6 +28,7 @@ import { writeCacheFile } from './src/app/exportFile.ts';
 import { saveBatch, shareAndMark, type SaveResult } from './src/app/session.ts';
 import { addNoteEvents, offsetFor, openDiscrepancyEvents, type Ctx } from './src/app/entries.ts';
 import { badges, offerCopy, openFirst, unsavedNote, type Banner } from './src/app/view.ts';
+import { dueHour } from './src/app/now.ts';
 import { applyAppearance, asAppearance, bcolor, color, fontFiles, fonts, FontContext, setSunPalette, SunContext, type AppearanceMode } from './src/app/theme.ts';
 import { asSun, sunFamilies } from './src/app/sun.ts';
 import { Header, TabBar, type Tab } from './src/app/screens/Chrome.tsx';
@@ -441,16 +442,15 @@ export default function App() {
                   </View>
                 )}
                 {tab === 'snap'
-                  ? <Snapshot notUseful={(t) => notUsefulFor('now', t)} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice}
+                  ? <Snapshot state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice}
                       layout={layout} onLayout={changeLayout} onHistory={() => { setNotice(null); setSheet('eta'); }}
-                      onLog={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }}
                       onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} />
                   : <>
                     {/* Snapshot boxes Colby moved to this tab sit at its top. */}
                     <Boxes tab={tab} layout={layout} onLayout={changeLayout} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} onNotice={setNotice}
                       onOpenTab={openTab} onHistory={() => { setNotice(null); setSheet('eta'); }} />
                     {tab === 'decks'
-                    ? <Decks showShip={!boxesFor(layout, 'decks').includes('ship')} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
+                    ? <Decks notUseful={(t) => notUsefulFor('now', t)} showShip={!boxesFor(layout, 'decks').includes('ship')} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} baseline={vessel.baseline} />
                       : <Plan vesselId={vessel.id} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}
@@ -487,7 +487,7 @@ export default function App() {
               )}
               {sheet === 'map' && <MapScreen onClose={() => setSheet(null)} />}
               {sheet === 'search' && <Search isTest={vessel.isTest} onClose={() => setSheet(null)} />}
-              <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} onLog={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }} />
+              <TabBar tab={tab} onTab={openTab} badges={badges(vessel.state)} due={dueHour(vessel.state, vessel.baseline, nowMin)} onLog={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }} />
               {drawer && <Sidebar rows={rows} currentId={vessel.id} onClose={() => setDrawer(false)} onOpen={switchTo} onNew={() => { setDrawer(false); setSheet('new'); }} onSettings={() => { setDrawer(false); setSheet('settings'); }} onUpdate={() => { setDrawer(false); void Share.share({ message: updateMessage(vessel.state, vessel.baseline, minutesNow(), vessel.isTest) }); }} onComplete={() => { setDrawer(false); setSheet('complete'); }} canComplete={vessel.state.completed == null} onLessons={() => { setDrawer(false); setSheet('lessons'); }} />}
             </>
           ) : (

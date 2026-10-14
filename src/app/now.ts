@@ -9,6 +9,12 @@ import { paceAdvice, paceWatch } from './whatif.ts';
 export type NowAction = { label: string; to: 'log' | 'decks' | 'deck'; deck?: string }; // 'deck': that deck's sheet
 export type NowLine = { tone: 'warn' | 'due' | 'calm'; text: string; sub?: string; advice?: string; action?: NowAction }; // advice: the driver move, FORECAST, only with a warning; action: the one tap that answers it
 
+// The hour that has ended without a count ("14–15"), for the Log button's chip: the due count is said there, not on the Snapshot.
+export function dueHour(s: State, b: Baseline, nowMin: number): string | null {
+  const l = nowLine(s, b, nowMin);
+  return l?.tone === 'due' && l.action ? l.action.label.replace(/^Log /, '') : null;
+}
+
 export function nowLine(s: State, b: Baseline, nowMin: number): NowLine | null {
   if (s.ops.phase !== 'working' || s.vesselRemaining === 0) return null;
   const watch = paceWatch(s, b, nowMin);

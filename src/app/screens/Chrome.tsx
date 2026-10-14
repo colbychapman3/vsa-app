@@ -58,7 +58,7 @@ export function Header({ isTest, berth, date, vessel, onMenu, onMap, onAsk }: { 
 
 const TABS: [Tab, string][] = [['snap', 'Snapshot'], ['decks', 'Decks'], ['hourly', 'Hourly'], ['plan', 'Plan']];
 
-export function TabBar({ tab, onTab, badges, onLog }: { tab: Tab; onTab: (t: Tab) => void; badges: Partial<Record<Tab, number>>; onLog: () => void }) {
+export function TabBar({ tab, onTab, badges, onLog, due }: { tab: Tab; onTab: (t: Tab) => void; badges: Partial<Record<Tab, number>>; onLog: () => void; due?: string | null }) {
   const f = useType();
   const insets = useSafeAreaInsets();
   const item = ([id, label]: [Tab, string]) => {
@@ -77,10 +77,13 @@ export function TabBar({ tab, onTab, badges, onLog }: { tab: Tab; onTab: (t: Tab
   return (
     <View style={[s.tabs, { paddingBottom: insets.bottom + 8 }]}>
       {TABS.slice(0, 2).map(item)}
-      <Pressable onPress={onLog} style={({ pressed }) => [s.log, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Log an entry">
-        <Icon name="plus" color={color.onAction} />
-        <Text style={[s.logText, { fontFamily: f.displaySemi }]}>Log</Text>
-      </Pressable>
+      <View>
+        <Pressable onPress={onLog} style={({ pressed }) => [s.log, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={due ? `Log an entry. The ${due} count is due` : 'Log an entry'}>
+          <Icon name="plus" color={color.onAction} />
+          <Text style={[s.logText, { fontFamily: f.displaySemi }]}>Log</Text>
+        </Pressable>
+        {due && <Text style={[s.dueChip, { fontFamily: f.bodySemi }]} numberOfLines={1} accessibilityElementsHidden>{due} due</Text>}
+      </View>
       {TABS.slice(2).map(item)}
     </View>
   );
@@ -105,5 +108,6 @@ const s = StyleSheet.create({
   tabLabel: { fontSize: 13, flexShrink: 1 },
   badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 13, overflow: 'hidden' },
   log: { alignSelf: 'center', minHeight: 56, paddingHorizontal: 22, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 4, ...elev.raised },
+  dueChip: { position: 'absolute', top: -10, alignSelf: 'center', fontSize: 13, color: color.headInk, backgroundColor: color.head, borderWidth: 1.5, borderColor: color.headInk, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 1, overflow: 'hidden' },
   logText: { color: color.onAction, fontSize: 17 },
 });

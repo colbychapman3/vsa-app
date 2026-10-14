@@ -159,8 +159,8 @@ function DoneTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
   const d = v.done;
   const R = 43, C = 2 * Math.PI * R, pct = d.pct == null ? 0 : Math.min(100, Math.max(0, d.pct));
   return (
-    <Pressable onPress={() => p.onOpenTab('decks')} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
-      accessibilityLabel={`Ship done: ${d.pct == null ? 'unknown' : `${Math.round(d.pct)} percent`}. ${d.text}. Opens Decks`}>
+    <Pressable onPress={() => (d.deck && p.onOpenDeck ? p.onOpenDeck(d.deck) : p.onOpenTab('decks'))} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
+      accessibilityLabel={`Ship done: ${d.pct == null ? 'unknown' : `${Math.round(d.pct)} percent`}. ${d.text}. ${d.deck ? 'Opens that deck' : 'Opens Decks'}`}>
     <View style={[u.card, s.tile, { flex: 1 }]}>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Ship done</Text>
       <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 4 }}>

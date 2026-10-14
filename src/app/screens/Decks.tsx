@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { WhatIfCard } from './WhatIfCard.tsx';
+import { NotUseful, type NotUsefulProps } from './NotUseful.tsx';
+import { nowLine } from '../now.ts';
 import { decksRemaining, decksView } from '../view.ts';
 import { bcolor, color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
@@ -12,8 +14,10 @@ import { Body, Card, Chip, InfoNote, Note, Pill, SectionHead, Seg, u } from './u
 
 const acc = (r: { photoTypes: { type: string; photos: number }[] }) => r.photoTypes.find((t) => t.type === 'accident')?.photos ?? 0;
 
-export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShip }: { state: State; baseline: Baseline; nowMin: number; showShip: boolean; onOpenDeck: (id: string) => void; onOpenPlan: () => void }) {
+export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShip, notUseful }: { state: State; baseline: Baseline; nowMin: number; showShip: boolean; onOpenDeck: (id: string) => void; onOpenPlan: () => void; notUseful?: (text: string) => NotUsefulProps }) {
   const f = useType();
+  const line = nowLine(state, baseline, nowMin);
+  const warn = line?.tone === 'warn' ? line : null; // a deck that won't clear before the break: said here, where the decks are
   const v = decksView(state);
   const [show, setShow] = useState<'all' | 'remaining'>('all');
   const left = decksRemaining(v.rows);
@@ -22,6 +26,18 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
     <View style={s.main}>
       {/* The ship sits here too (Colby, 2026-10-12: on Snapshot and on Decks); a tap opens the first deck that still has cars. */}
       {showShip && <ShipBox state={state} onOpen={() => left[0] && onOpenDeck(left[0].id)} onOpenDeck={onOpenDeck} />}
+      {warn && (
+        <View style={s.warn} accessibilityRole="alert">
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.oInk }}>{warn.text}</Text>
+          {warn.advice && <Body>{warn.advice}</Body>}
+          {warn.action?.deck && (
+            <Pressable onPress={() => onOpenDeck(warn.action!.deck!)} accessibilityRole="button" style={({ pressed }) => [u.ghostBtn, pressed && u.pressed]}>
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{warn.action.label}</Text>
+            </Pressable>
+          )}
+          {notUseful && <NotUseful key={warn.text} {...notUseful(warn.advice ? `${warn.text} ${warn.advice}` : warn.text)} />}
+        </View>
+      )}
       <WhatIfCard state={state} baseline={baseline} nowMin={nowMin} />
       <View style={{ gap: 10 }}>
         <SectionHead title="Lessons & Insights" />
@@ -78,6 +94,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
 
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
+  warn: { backgroundColor: color.oBg, borderWidth: 1.5, borderColor: bcolor.orange, borderRadius: 12, padding: 14, gap: 8 },
   lowAlert: { backgroundColor: color.rBg, borderBottomWidth: 3, borderBottomColor: bcolor.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
   strip: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 16 },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8, minHeight: 56 },

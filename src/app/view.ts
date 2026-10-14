@@ -111,7 +111,7 @@ export const allPhotoFiles = (s: State): string[] => livePhotos(s).flatMap((x) =
 
 // Tab badges: low decks with cargo left (Decks); unconfirmed heights with cargo left (Plan).
 export function badges(s: State) {
-  return { decks: s.decks.filter(isLow).length, plan: s.decks.filter(isUnconfirmed).length };
+  return { decks: s.decks.filter(isLow).length, plan: s.decks.filter(isUnconfirmed).length + s.issues.filter((i) => i.status === 'open').length }; // Plan: heights to confirm and open discrepancies
 }
 
 export function subtitles(s: State, b: Baseline) {
@@ -283,7 +283,8 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
       dashed: false,
     } : { value: '—', day: null, notes: [e.reason ?? ''], dashed: true };
   const p = s.production;
-  const done = { pct: known ? pct : null, text: known ? `${fmt(s.progress)} of ${fmt(s.start)}` : 'Needs a remaining count on every active deck' };
+  const done = { pct: known ? pct : null, text: known ? `${fmt(s.progress)} of ${fmt(s.start)}` : `Needs a count on ${s.missingDecks.join(', ')}`,
+    deck: known ? null : s.decks.find((d) => d.rem == null)?.id ?? null }; // the first deck without a count: the ring opens it
   const ha = {
     value: p.ha == null ? '—' : String(Math.round(p.ha)),
     perHr: p.ha != null,

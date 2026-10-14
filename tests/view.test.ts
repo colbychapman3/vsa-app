@@ -84,7 +84,7 @@ test('screen 01: Snapshot mid-shift (tracker demo)', () => {
   assert.equal(v.side.north.pct, '100.0%');
   assert.equal(v.side.north.note, '1,969 autos · 512 left');
   assert.deepEqual([v.side.south.pct, v.side.south.note, v.side.clearByNote], ['0.0%', 'None to this side', 'Clear-by −15 N']);
-  assert.deepEqual(badges(s), { decks: 1, plan: 1 });
+  assert.deepEqual(badges(s), { decks: 1, plan: 2 }); // Plan: one unconfirmed height + the open discrepancy (the Snapshot no longer lists it)
 });
 
 test('screen 02: Snapshot before production', () => {
