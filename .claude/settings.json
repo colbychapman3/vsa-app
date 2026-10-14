@@ -19,24 +19,24 @@
     ]
   },
   "hooks": {
-    "PreToolUse": [
+    "SessionStart": [
       {
-        "matcher": "Bash|Grep",
         "hooks": [
           {
-            "type": "command",
-            "command": "C:/Users/colby/.local/bin/graphify.EXE hook-guard search",
-            "timeout": 10
+            "command": "node scripts/hooks/session-status.mjs",
+            "timeout": 15,
+            "type": "command"
           }
         ]
-      },
+      }
+    ],
+    "Stop": [
       {
-        "matcher": "Read|Glob",
         "hooks": [
           {
-            "type": "command",
-            "command": "C:/Users/colby/.local/bin/graphify.EXE hook-guard read",
-            "timeout": 10
+            "command": "node scripts/hooks/stop-gate.mjs",
+            "timeout": 420,
+            "type": "command"
           }
         ]
       }
