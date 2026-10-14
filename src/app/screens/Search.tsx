@@ -2,7 +2,7 @@
 // operations-reference passages. Every result shows its citation; no result says "not found".
 // One Sheet: the list and the full passage swap inside it (never two modals). Layout only.
 import { useMemo, useState } from 'react';
-import { Pressable, Text, TextInput } from 'react-native';
+import { Keyboard, Pressable, Text, TextInput } from 'react-native';
 import indexJson from '../../../assets/knowledge/index.json';
 import { search, segments, snippet, type Chunk, type KnowledgeIndex } from '../knowledge/search.ts';
 import { bcolor, color, TAP, useType } from '../theme.ts';
@@ -42,7 +42,7 @@ export function Search({ isTest, onClose }: { isTest: boolean; onClose: () => vo
       ) : (
         <>
           <TextInput value={q} onChangeText={setQ} placeholder="Search SOPs, protocol, glossary" placeholderTextColor={color.muted} accessibilityLabel="Search the knowledge pack"
-            autoCorrect={false} autoCapitalize="none" returnKeyType="search" clearButtonMode="while-editing"
+            autoCorrect={false} autoCapitalize="none" returnKeyType="search" onSubmitEditing={() => Keyboard.dismiss()} clearButtonMode="while-editing"
             style={[u.input, { fontFamily: f.bodyMedium, fontSize: 17 }]} />
           {r.message ? <Card style={[u.pad, { gap: 4 }]}><Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{r.message}</Text><InfoNote><Note>Try other words. The app only answers from the documents in the pack and never guesses.</Note></InfoNote></Card> : null}
           {!r.hits.length && r.related.length > 0 && <InfoNote><Note>Closest passages, not an answer. Check them yourself:</Note></InfoNote>}

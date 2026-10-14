@@ -249,6 +249,7 @@ export function Field({ label, value, onChange, placeholder, keyboard = 'number-
     <View style={{ gap: 6, flex: 1 }}>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}{note ? <Text style={{ fontFamily: f.body, color: color.muted }}> {note}</Text> : null}</Text>
       <TextInput value={value} onChangeText={onChange} placeholder={placeholder} keyboardType={keyboard} maxLength={maxLength} inputAccessoryViewID={accessoryId}
+        returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()}
         style={[u.input, edge, { fontFamily: f.bodyMedium, fontSize: keyboard === 'default' ? 17 : 20 }]} placeholderTextColor={color.muted} accessibilityLabel={label} />
     </View>
   );
@@ -385,7 +386,7 @@ export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} allowSwipeDismissal={guardSwipe}>
       <ScrollView ref={ref} key={scrollKey} style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }}
-        keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
+        keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
           <View style={u.secH}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
               {isTest && <Text style={{ flexShrink: 0, fontFamily: f.bodySemi, fontSize: 13, backgroundColor: color.accent, color: color.onAccent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' }}>TEST</Text>}

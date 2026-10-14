@@ -2,7 +2,7 @@
 // directory or the knowledge pack (src/app/assistant.ts); nothing here does math. Actions are confirm cards:
 // the hourly form opens prefilled, a note saves only on Add, a new vessel opens the Vessels sheet.
 import { useState } from 'react';
-import { Pressable, Share, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, Share, Text, TextInput, View } from 'react-native';
 import type { Baseline, Reject, VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import indexJson from '../../../assets/knowledge/index.json';
@@ -47,14 +47,14 @@ export function Ask({ state, baseline, nowMin, isTest, save, reminders, onEnable
       setRes({ kind: 'answer', a: answer(intent, state, baseline, nowMin, INDEX) });
     } finally { setBusy(false); }
   };
-  const quick = (label: string, ask: string) => { setPicked(label); setQ(ask); if (ask.endsWith(' ')) return setRes(null); void run(ask); };
+  const quick = (label: string, ask: string) => { Keyboard.dismiss(); setPicked(label); setQ(ask); if (ask.endsWith(' ')) return setRes(null); void run(ask); };
 
   return (
     <Sheet title="Ask" isTest={isTest} onClose={() => onClose()} scrollTopOn={res ? 'r' : 'q'}>
       <TextInput value={q} onChangeText={(v) => { setQ(v); setRes(null); setPicked(null); }} placeholder="Ask about this vessel, or look something up" placeholderTextColor={color.muted}
-        accessibilityLabel="Ask a question" autoCorrect={false} returnKeyType="search" onSubmitEditing={() => run(q)} clearButtonMode="while-editing"
+        accessibilityLabel="Ask a question" autoCorrect={false} returnKeyType="search" onSubmitEditing={() => { Keyboard.dismiss(); void run(q); }} clearButtonMode="while-editing"
         style={[u.input, { fontFamily: f.bodyMedium, fontSize: 17 }]} />
-      <Go label={busy ? 'Looking…' : 'Ask'} disabled={busy || !q.trim()} onPress={() => run(q)} />
+      <Go label={busy ? 'Looking…' : 'Ask'} disabled={busy || !q.trim()} onPress={() => { Keyboard.dismiss(); void run(q); }} />
       <Go ghost label="Search the SOPs and protocol" onPress={onSearch} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         {QUICK.map((x) => {

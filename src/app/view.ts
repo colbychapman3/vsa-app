@@ -263,7 +263,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     label: known ? 'Vessel remaining' : 'Field balance',
     value: fmt(known ? s.vesselRemaining : s.fieldBalance),
     of: `of ${fmt(s.start)} autos · ${pct == null ? '—' : pct.toFixed(1)}%${known ? ' complete' : ''}`,
-    ofShort: `autos left of ${fmt(s.start)}`, // the Every Screen hero: the ring carries the percent
+    ofShort: `autos left of ${fmt(s.start)}${s.brands.length === 1 ? ` ${s.brands[0].name}` : ''}`, // the Every Screen hero: the ring carries the percent
     // Under the bar: how many are done (left, under the dark part) and how many to go (right). Both come from the same ledger as the headline.
     barLeft: known ? `${fmt(s.progress)} done` : `${fmt(s.field)} counted`,
     barRight: `${fmt(known ? s.vesselRemaining : s.fieldBalance)} to go`,

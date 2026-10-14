@@ -24,9 +24,10 @@ export type BoxProps = {
 const TILES: BoxId[] = ['field', 'eta', 'done', 'ha'];
 
 export function Boxes(p: BoxProps) {
-  const ids = boxesFor(p.layout, p.tab);
-  if (!ids.length) return p.tab === 'snap' ? <Note style={{ padding: 20 }}>Every box is hidden or moved to another tab. Settings › Customize Snapshot brings them back.</Note> : null;
   const v = snapshot(p.state, p.baseline, p.nowMin);
+  // One brand repeats the vessel number, so its box stays out of the way (the hero names the brand instead).
+  const ids = boxesFor(p.layout, p.tab).filter((id) => id !== 'brands' || v.brands.count > 1);
+  if (!ids.length) return p.tab === 'snap' ? <Note style={{ padding: 20 }}>Every box is hidden or moved to another tab. Settings › Customize Snapshot brings them back.</Note> : null;
   // Tiles sit two to a row when they are next to each other (field + finish, ship done + pace).
   const rows: BoxId[][] = [];
   for (const id of ids) { const last = rows.at(-1); if (TILES.includes(id) && last && last.length === 1 && TILES.includes(last[0])) last.push(id); else rows.push([id]); }
