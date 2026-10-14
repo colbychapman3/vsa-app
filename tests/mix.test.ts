@@ -79,3 +79,15 @@ test('end to end: a vessel whose brands go to different distances has its foreca
   assert.ok(Math.abs(mixed.eta.rate - want) < 1e-6, `${mixed.eta.rate} vs ${want}`);
   assert.ok(Math.abs(mixed.eta.rate - base.eta.rate) > 1e-9, 'the mix moved the rate (a little: the hours and the cars left are close in mix)');
 });
+
+test('a brand that goes to several destinations is priced by the cars planned to each; a destination with no miles gets them from the directory', async () => {
+  const { withTerminalMiles } = await import('../src/engine/mix.ts');
+  // MBZ cars: 100 to Zone 1 (1.70 mi at berth 2) and 300 to the MBZ lot (2.60 mi): (170 + 780) / 400 = 2.375
+  const w = brandMiles([{ brands: ['MBZ'], mi: 1.7, autos: 100 }, { brands: ['MBZ'], mi: 2.6, autos: 300 }]);
+  assert.ok(Math.abs(w.get('MBZ')! - 2.375) < 1e-9);
+  // one of them does not say how many: the plain mean
+  assert.ok(Math.abs(brandMiles([{ brands: ['MBZ'], mi: 1.7, autos: 100 }, { brands: ['MBZ'], mi: 2.6 }]).get('MBZ')! - 2.15) < 1e-9);
+  // a destination typed without miles: the vessel's berth and the directory fill it in; an unknown name stays unpriced
+  const d = withTerminalMiles([{ name: 'BMW Field', mi: null as unknown as number }, { name: 'Zone 2', mi: 0.8 }, { name: 'Nowhere', mi: null as unknown as number }], 2);
+  assert.deepEqual(d.map((x) => x.mi), [1.2, 0.8, null]);
+});

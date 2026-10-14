@@ -5,14 +5,29 @@
 // Assumption, said wherever it is shown: parking time grows with the distance. Pure; no UI, storage or AI.
 import type { Destination } from './baseline.ts';
 import type { Period } from './production.ts';
+import { terminalInfo } from './terminal.ts';
 
 export type BrandMiles = Map<string, number>;
 
-// Miles per car for each brand: the mean of the miles of the destinations it goes to (one destination is the usual case).
-export function brandMiles(destinations: Pick<Destination, 'brands' | 'mi'>[]): BrandMiles {
-  const acc = new Map<string, number[]>();
-  for (const d of destinations) if (typeof d.mi === 'number' && d.mi > 0) for (const b of d.brands ?? []) acc.set(b, [...(acc.get(b) ?? []), d.mi]);
-  return new Map([...acc].map(([b, xs]) => [b, xs.reduce((s, x) => s + x, 0) / xs.length]));
+// A destination with no stored miles gets them from the terminal directory (Appendix D: every zone, site and yard, at the vessel's
+// berth), so a destination typed or imported without miles is still priced.
+export function withTerminalMiles<T extends Pick<Destination, 'name' | 'mi'>>(destinations: T[], berth: unknown): T[] {
+  return destinations.map((d) => (typeof d.mi === 'number' && d.mi > 0 ? d : { ...d, mi: terminalInfo(d.name, String(berth ?? ''))?.mi ?? d.mi }));
+}
+
+// Miles per car for each brand: the miles of the destination(s) it goes to. One destination is the usual case; a brand that goes to
+// several is the mean of their miles, weighted by the cars planned to each when every one of them says how many.
+export function brandMiles(destinations: Pick<Destination, 'brands' | 'mi' | 'autos'>[]): BrandMiles {
+  const acc = new Map<string, { mi: number; autos: number | null }[]>();
+  for (const d of destinations) {
+    if (!(typeof d.mi === 'number' && d.mi > 0)) continue;
+    for (const b of d.brands ?? []) acc.set(b, [...(acc.get(b) ?? []), { mi: d.mi, autos: typeof d.autos === 'number' && d.autos > 0 ? d.autos : null }]);
+  }
+  return new Map([...acc].map(([b, xs]) => {
+    const weighted = xs.every((x) => x.autos != null);
+    const w = (x: { autos: number | null }) => (weighted ? x.autos! : 1);
+    return [b, xs.reduce((s, x) => s + x.mi * w(x), 0) / xs.reduce((s, x) => s + w(x), 0)] as [string, number];
+  }));
 }
 
 // Average miles per car of a brand mix; null when a brand in it has no miles, or the mix is empty. Unknown is never zero.

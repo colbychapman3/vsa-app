@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, requiredRate, scheduleOf, southRemaining, brandMiles, mixMiles, mixReference, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, requiredRate, scheduleOf, southRemaining, brandMiles, mixMiles, mixReference, withTerminalMiles, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -496,7 +496,7 @@ export function hourlyView(s: State, b?: Baseline) {
     return r.rate == null ? { text: `Cannot finish by ${formatHM(stopAt)}: no working time left on Day 1.` } : { text: `Needed to finish by ${formatHM(stopAt)}: ${Math.ceil(r.rate)}/hr (${fmt(rem)} left, ${r.productiveHours.toFixed(1)} working hr)` };
   })();
   // The hour in the nearest brand's cars (Colby, 2026-10-14: 100 Mercedes + 200 BMW is 400 BMW when a Mercedes goes twice as far).
-  const miles = b ? brandMiles(b.destinations) : null, ref = miles ? mixReference(miles) : null;
+  const miles = b ? brandMiles(withTerminalMiles(b.destinations, b.berth)) : null, ref = miles ? mixReference(miles) : null;
   const equivOf = (x: (typeof s.periods)[number]): string | null => {
     if (!miles || !ref || !x.brands || Object.values(x.brands).reduce((t, v) => t + v, 0) !== x.count) return null;
     const avg = mixMiles(x.brands, miles);

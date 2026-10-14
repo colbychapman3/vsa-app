@@ -10,7 +10,7 @@ import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, SAFETY_MEE
 import { buildPasses, hhAnalysis, hhStatus, type HhMarker } from './hh.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
 import { eta, scheduleOf, southRemaining, steadyFinish, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
-import { brandMiles, mixAdjust } from './mix.ts';
+import { brandMiles, mixAdjust, withTerminalMiles } from './mix.ts';
 import { absFromIso, fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
 
 export * from './time.ts';
@@ -533,7 +533,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const southLeft = L.vesselRemaining != null ? southRemaining(L.brands, baseline.destinations) : null;
   // The brand mix (Colby, 2026-10-14): each hour's pace scaled to the mix still aboard, from the hours' brand splits and the
   // destinations' miles. Null (the old rate) when the cars left cannot be priced or no hour is split.
-  const mixTry = L.vesselRemaining != null ? mixAdjust(periods, Object.fromEntries(L.brands.map((x) => [x.name, x.remaining])), brandMiles(baseline.destinations)) : null;
+  const mixTry = L.vesselRemaining != null ? mixAdjust(periods, Object.fromEntries(L.brands.map((x) => [x.name, x.remaining])), brandMiles(withTerminalMiles(baseline.destinations, baseline.berth))) : null;
   // Only when it changes a pace (brands that go to different distances): a single-destination vessel keeps its output unchanged.
   const mixAdj = mixTry && mixTry.periods.some((p, i) => p.pace !== periods[i].pace) ? mixTry : null;
   const etaPeriods = mixAdj?.periods ?? periods;
