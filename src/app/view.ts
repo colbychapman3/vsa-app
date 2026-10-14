@@ -180,7 +180,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   const cutAt = next == null ? null : next - Math.max(sideCut.N ?? 0, sideCut.S ?? 0);
   const etaToday = st.etaAbs == null ? null : st.etaAbs - (s.ops.day - 1) * 1440;
   const finish = cutAt == null || etaToday == null || s.vesselRemaining === 0 ? null
-    : etaToday <= cutAt ? { ok: true, text: `${Math.round(cutAt - etaToday)} min to spare (est.)` } : { ok: false, text: 'Runs past this break (est.)' };
+    : etaToday <= cutAt ? { ok: true, text: `${Math.round(cutAt - etaToday)} min before the ${formatHM(cutAt)} stop` } : { ok: false, text: `Runs past the ${formatHM(cutAt)} stop` };
   const strip = recon || next == null ? null : { // no strip after the last break of the day (it would be an empty bar)
     breakAt: formatHM(next), finish,
     clearBy: [
@@ -263,6 +263,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     label: known ? 'Vessel remaining' : 'Field balance',
     value: fmt(known ? s.vesselRemaining : s.fieldBalance),
     of: `of ${fmt(s.start)} autos · ${pct == null ? '—' : pct.toFixed(1)}%${known ? ' complete' : ''}`,
+    ofShort: `autos left of ${fmt(s.start)}`, // the Every Screen hero: the ring carries the percent
     // Under the bar: how many are done (left, under the dark part) and how many to go (right). Both come from the same ledger as the headline.
     barLeft: known ? `${fmt(s.progress)} done` : `${fmt(s.field)} counted`,
     barRight: `${fmt(known ? s.vesselRemaining : s.fieldBalance)} to go`,
@@ -308,7 +309,9 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
       tone: s.variance === 0 ? 'green' as const : s.variance > 0 ? 'orange' as const : 'red' as const,
       text: s.variance === 0 ? 'Match' : s.variance > 0 ? `Ship is ${fmt(s.variance)} ahead` : `Field is ${fmt(-s.variance)} ahead` }
     : null;
-  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, done, scale, brands, side: sideSplit(s, b) };
+  // The Pace tile's sparkline: pace per counted hour, oldest to newest, the last six hours with a known pace (the hourly list's numbers).
+  const paceSeries = s.periods.filter((x) => x.pace != null).slice(-6).map((x) => x.pace as number);
+  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, done, scale, paceSeries, brands, side: sideSplit(s, b) };
 }
 
 // Side split from destinations; autos left per side only when each brand goes to one side.

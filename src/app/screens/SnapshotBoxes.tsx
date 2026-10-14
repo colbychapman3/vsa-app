@@ -1,6 +1,6 @@
 // The Snapshot's boxes, each shown where the layout (src/app/snapshotLayout.ts) puts it: on the Snapshot or at the top of
 // Plan, Hourly or Decks. Layout only; every value comes from view.snapshot(). Long press a box for "Move to" and Hide.
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
@@ -10,9 +10,9 @@ import { shipView, HATCH_SLOTS, type Seg } from '../ship.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
 import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
 import { VesselCards, type Save } from './Plan.tsx';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle, G, Line, Polyline } from 'react-native-svg';
 import { FieldTile } from './FieldBox.tsx';
-import { Bar, Big, Body, Card, FillNumber, FlipTile, InfoNote, Label, Note, SectionHead, Tag, u } from './ui.tsx';
+import { Bar, Big, Body, Card, Label, Note, SectionHead, Tag, u } from './ui.tsx';
 
 export type BoxProps = {
   tab: BoxTab; layout: Layout; onLayout: (l: Layout) => void;
@@ -54,53 +54,11 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
     case 'ship': return wrap(<ShipBox state={p.state} onOpen={() => p.onOpenTab('decks')} />);
     case 'field': return <FieldTile v={v} half={half} onLongPress={menu} />;
     case 'done': return wrap(<DoneTile v={v} />);
-    case 'eta': return (
-      <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
-        accessibilityLabel="Finish, forecast. Tap for its history" accessibilityHint="Long press to move or hide this box">
-        <View style={[u.card, s.tile, s.tileFc, v.eta.dashed && s.dashed]}>
-          <Tag kind="FORECAST" />
-          <Label>Finish</Label>
-          {v.eta.day && <Body semi style={{ fontSize: 22 }}>{v.eta.day}</Body>}
-          <Big size={40}>{v.eta.value}</Big>
-          {/* The break line that sat above the tiles (Colby, 2026-10-12: the top strip wasn't useful there). */}
-          {v.strip?.breakAt && <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: v.strip.finish?.ok ? color.gInk : color.muted }}>Break {v.strip.breakAt}{v.strip.finish ? ` · ${v.strip.finish.text}` : ''}</Text>}
-          <Text style={[s.link, { fontFamily: f.bodySemi }]}>History ›</Text>
-        </View>
-      </Pressable>);
-    case 'ha': return (
-      <FlipTile style={half ? { flex: 1 } : undefined} cardStyle={s.tile} onLongPress={menu} label="Pace and average hourly. Tap for how they are worked out"
-        front={<>
-          <Tag kind="CALCULATED" />
-          <Label>Pace</Label>
-          <View style={s.haRow}>
-            <Big size={40} style={{ flexShrink: 1, color: PACE_COLOR, lineHeight: 48 }}>{v.ha.pace}</Big>
-            {v.ha.pace !== '—' && <Body style={{ fontSize: 17, marginBottom: 8 }}>/hr</Body>}
-          </View>
-          <Note>per productive hour</Note>
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: HA_COLOR }}>H.A. {v.ha.value}{v.ha.perHr ? ' /hr' : ''}</Text>
-          <Note>{v.ha.haLine}</Note>
-          <Text style={[s.link, { fontFamily: f.bodySemi }]}>Details ›</Text>
-        </>}
-        back={<>
-          <Tag kind="CALCULATED" />
-          <Label>How this is worked out</Label>
-          {v.ha.notes.map((n) => <Body key={n}>{n}</Body>)}
-          <InfoNote><Note>H.A. counts every logged hour as a full hour. Pace counts only the minutes worked, so the short hour before a break is not held against it. They match when no hour was cut short. The forecast uses Pace.</Note></InfoNote>
-          <Pressable onPress={() => p.onOpenTab('hourly')} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
-            <Text style={[s.link, { fontFamily: f.bodySemi }]}>Hourly breakdown ›</Text>
-          </Pressable>
-          <Text style={[s.link, { fontFamily: f.bodySemi }]}>Tap the box to flip back</Text>
-        </>} />);
+    case 'eta': return <EtaTile v={v} p={p} half={half} menu={menu} />;
+    case 'ha': return <PaceTile v={v} p={p} half={half} />;
     case 'brands': return wrap(
       <View style={s.sec}>
-        <SectionHead title="Remaining by brand" right={`${v.brands.total} autos`} />
-        <View style={s.banner}>
-          <Big size={36} style={{ color: color.headInk }}>{String(v.brands.left)}</Big>
-          <View style={{ flexShrink: 1 }}>
-            <Body semi style={{ color: color.headInk }}>brands remaining</Body>
-            <Note style={{ color: color.headMuted }}>of {v.brands.count} on this vessel · {v.brands.finished} finished</Note>
-          </View>
-        </View>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.muted }}>Remaining by brand</Text>
         <Card>
           {v.brands.rows.map((r, i) => (
             <View key={r.name} style={[s.row, i > 0 && s.rowLine]}>
@@ -141,54 +99,142 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   }
 }
 
-const HERO_TRACES = ['remaining', 'transit', 'gap', 'eta'];
+// The "i" beside a number (Every Screen boards): 44 pt to tap, a 30 pt circle to look at. It opens that number's own trace.
+function InfoDot({ on, onPress, label, corner }: { on: boolean; onPress: () => void; label: string; corner?: boolean }) {
+  const f = useType();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: on }}
+      style={({ pressed }) => [s.dotHit, corner && { position: 'absolute', top: -4, right: -4 }, pressed && u.pressed]}>
+      <View style={[s.dot, on && { backgroundColor: color.ink }]}>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: on ? color.card : color.ink }}>i</Text>
+      </View>
+    </Pressable>
+  );
+}
 
-// Ship done (Every Screen layout): the share of the vessel the decks have cleared, as a ring. Unknown stays a dash.
+function WhyBox({ lines }: { lines: string[] }) {
+  return (
+    <View style={s.why}>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: color.blue }}>How this is worked out</Text>
+      {lines.map((l) => <Note key={l} style={{ color: color.ink }}>{l}</Note>)}
+    </View>
+  );
+}
+
+// The trace lines for these keys, from the same state the numbers came from.
+const whyLines = (state: State, baseline: Baseline, ...keys: string[]) => traces(state, baseline).filter((x) => keys.includes(x.key)).flatMap((x) => x.lines);
+
+// FORECAST finish (Every Screen 1.1): a filled FORECAST chip, the time, and how it sits against the stop before the break.
+function EtaTile({ v, p, half, menu }: { v: V; p: BoxProps; half?: boolean; menu: () => void }) {
+  const f = useType();
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={[{ gap: 8 }, half ? { flex: 1 } : undefined]}>
+      <View style={{ flex: half ? 1 : undefined }}>
+        <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={{ flex: 1 }} accessibilityRole="button"
+          accessibilityLabel={`Finish, forecast ${v.eta.value}. Tap for its history`} accessibilityHint="Long press to move or hide this box">
+          <View style={[u.card, s.tile, v.eta.dashed && s.dashed]}>
+            <Text style={[s.fcChip, { fontFamily: f.bodySemi }]}>FORECAST</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Finish</Text>
+            {v.eta.day && <Body semi>{v.eta.day}</Body>}
+            <Big size={44}>{v.eta.value}</Big>
+            {v.strip?.finish && <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: v.strip.finish.ok ? color.gInk : color.oInk }}>{v.strip.finish.text}</Text>}
+          </View>
+        </Pressable>
+        <InfoDot corner on={open} onPress={() => setOpen(!open)} label="How the forecast is worked out" />
+      </View>
+      {open && <WhyBox lines={whyLines(p.state, p.baseline, 'eta')} />}
+    </View>
+  );
+}
+
+// Pace (Every Screen 1.1): purple number, its last hours as a sparkline with the current pace dashed, then H.A. with its denominator.
+function PaceTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
+  const f = useType();
+  const [open, setOpen] = useState(false);
+  const series = v.paceSeries, cur = Number(v.ha.pace);
+  const lo = Math.min(...series), hi = Math.max(...series), span = hi - lo || 1;
+  const y = (n: number) => 8 + ((hi - n) / span) * 30;
+  const pts = series.map((n, i) => `${(4 + (i * 142) / (series.length - 1)).toFixed(1)},${y(n).toFixed(1)}`);
+  const refY = Number.isFinite(cur) ? Math.min(42, Math.max(4, y(cur))) : null;
+  const last = pts.at(-1)?.split(',');
+  return (
+    <View style={[{ gap: 8 }, half ? { flex: 1 } : undefined]}>
+      <View style={{ flex: half ? 1 : undefined }}>
+        <View style={[u.card, s.tile, { flex: 1 }]}>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: PACE_COLOR }}>Pace</Text>
+          <View style={s.haRow}>
+            <Big size={44} style={{ flexShrink: 1, color: PACE_COLOR, lineHeight: 50 }}>{v.ha.pace}</Big>
+            {v.ha.pace !== '—' && <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: PACE_COLOR, marginBottom: 8 }}>/hr</Text>}
+          </View>
+          {series.length > 1 && (
+            <Svg width="100%" height={46} viewBox="0 0 150 46" accessibilityLabel={`Pace by hour: ${series.map((n) => Math.round(n)).join(', ')}`}>
+              {refY != null && <Line x1={4} x2={146} y1={refY} y2={refY} stroke={color.muted} strokeWidth={1.5} strokeDasharray="3 3" opacity={0.6} />}
+              <Polyline points={pts.join(' ')} fill="none" stroke={PACE_COLOR} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+              {last && <Circle cx={Number(last[0])} cy={Number(last[1])} r={4.5} fill={PACE_COLOR} />}
+            </Svg>
+          )}
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.muted }}>per productive hour</Text>
+          <View style={s.haLine}>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: HA_COLOR }}>H.A. {v.ha.value}{v.ha.perHr ? ' /hr' : ''}</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.muted }}>{v.ha.haLine}</Text>
+          </View>
+        </View>
+        <InfoDot corner on={open} onPress={() => setOpen(!open)} label="How H.A. and pace are worked out" />
+      </View>
+      {open && <WhyBox lines={whyLines(p.state, p.baseline, 'ha', 'pace')} />}
+    </View>
+  );
+}
+
+// Ship done (Every Screen 1.1): the share of the vessel the decks have cleared, as a ring. Unknown stays a dash.
 function DoneTile({ v }: { v: V }) {
   const f = useType();
   const d = v.done;
-  const R = 40, C = 2 * Math.PI * R, pct = d.pct == null ? 0 : Math.min(100, Math.max(0, d.pct));
+  const R = 43, C = 2 * Math.PI * R, pct = d.pct == null ? 0 : Math.min(100, Math.max(0, d.pct));
   return (
     <View style={[u.card, s.tile]} accessible accessibilityLabel={`Ship done: ${d.pct == null ? 'unknown' : `${Math.round(d.pct)} percent`}. ${d.text}`}>
-      <Tag kind="CALCULATED" />
-      <Label>Ship done</Label>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Ship done</Text>
       <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 4 }}>
         <Svg width={104} height={104} viewBox="0 0 104 104">
-          <Circle cx={52} cy={52} r={R} stroke={color.soft} strokeWidth={10} fill="none" />
+          <Circle cx={52} cy={52} r={R} stroke={color.soft} strokeWidth={12} fill="none" />
           {d.pct != null && (
             <G rotation={-90} origin="52, 52">
-              <Circle cx={52} cy={52} r={R} stroke={color.blue} strokeWidth={10} fill="none" strokeLinecap="round" strokeDasharray={`${(C * pct) / 100} ${C}`} />
+              <Circle cx={52} cy={52} r={R} stroke={color.blue} strokeWidth={12} fill="none" strokeLinecap="round" strokeDasharray={`${(C * pct) / 100} ${C}`} />
             </G>
           )}
         </Svg>
         <Text style={{ position: 'absolute', fontFamily: f.display, fontSize: 26, color: color.ink }}>{d.pct == null ? '—' : `${Math.round(d.pct)}%`}</Text>
       </View>
-      <Note>{d.text}</Note>
+      <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.muted, textAlign: 'center' }}>{d.text}</Text>
     </View>
   );
 }
 
+// Vessel remaining (Every Screen 1.1): just the number and "autos left of N", the ship progress, and the gap sentence. Each
+// number has its own (i). The percent lives in the ring tile, so no bar here.
 function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baseline }) {
   const f = useType();
   const h = v.hero;
-  const why = traces(state, baseline).filter((x) => HERO_TRACES.includes(x.key));
+  const [open, setOpen] = useState<'remaining' | 'gap' | null>(null);
+  const toggle = (k: 'remaining' | 'gap') => setOpen(open === k ? null : k);
   const heroColor = h.clerkBadge ? (h.clerkBadge.ok ? color.green : color.red) : color.ink;
   return (
     <Card style={[u.pad, { gap: 10 }]}>
-      <View style={u.secH}>
-        <Label style={{ flexShrink: 1 }}>{h.label}</Label>
+      <View style={[u.secH, { minHeight: TAP }]}>
+        <Text style={{ flex: 1, fontFamily: f.bodySemi, fontSize: 17, color: color.muted }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{h.label}</Text>
         {h.clerkBadge && (
           <Text style={[s.clerk, h.clerkBadge.ok ? s.clerkOk : s.clerkBad, { fontFamily: f.bodySemi }]}>
             {h.clerkBadge.ok ? '✓ ' : '! '}{h.clerkBadge.text}
           </Text>
         )}
+        <InfoDot on={open === 'remaining'} onPress={() => toggle('remaining')} label="How vessel remaining is worked out" />
       </View>
-      <View style={s.heroRow}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          {h.value === '—' ? <Big size={96} style={{ color: heroColor }}>{h.value}</Big> : <FillNumber size={96} pct={h.pct} fill={heroColor}>{h.value}</FillNumber>}
-        </View>
+      <View style={{ marginTop: -6, gap: 6 }}>
+        <Big size={96} style={{ color: heroColor }}>{h.value}</Big>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>{h.ofShort}</Text>
       </View>
-      <Body style={{ fontSize: 17 }}>{h.of}</Body>
+      {open === 'remaining' && <WhyBox lines={whyLines(state, baseline, 'remaining')} />}
       {h.estimate && (
         <View style={{ gap: 4 }}>
           <View style={[u.secH, { justifyContent: 'flex-start', gap: 8 }]}>
@@ -198,11 +244,6 @@ function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baselin
           {h.estimate.sub && <Note>{h.estimate.sub}</Note>}
         </View>
       )}
-      <Bar pct={h.pct} />
-      <View style={u.secH}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barLeft}</Text>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barRight}</Text>
-      </View>
       {h.clerkLine && (
         <Text style={[{ fontFamily: f.body, fontSize: 15 }, h.clerkLine.tone === 'red' ? s.err : h.clerkLine.tone === 'green' ? { color: color.gInk } : { color: color.muted }]}>
           {h.clerkLine.text}
@@ -217,19 +258,15 @@ function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baselin
             </Text>
           </View>
         ))}
-        {h.gapNote && <Note style={{ color: color.muted }}>{h.gapNote}</Note>}
+        {h.gapNote && (
+          <View style={[u.secH, { minHeight: TAP }]}>
+            <Text style={{ flex: 1, fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{h.gapNote}</Text>
+            <InfoDot on={open === 'gap'} onPress={() => toggle('gap')} label="How the gap is worked out" />
+          </View>
+        )}
+        {open === 'gap' && <WhyBox lines={whyLines(state, baseline, 'gap', 'transit')} />}
         {h.unknownNote && <Note>{h.unknownNote}</Note>}
       </View>
-      <InfoNote label="How this is worked out">
-        <View style={{ gap: 8 }}>
-          {why.map((x) => (
-            <View key={x.key} style={{ gap: 2 }}>
-              <Body semi>{x.title}</Body>
-              {x.lines.map((l) => <Note key={l}>{l}</Note>)}
-            </View>
-          ))}
-        </View>
-      </InfoNote>
     </Card>
   );
 }
@@ -296,11 +333,17 @@ const s = StyleSheet.create({
   heroRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
   finish: { alignItems: 'flex-end', maxWidth: '42%', paddingBottom: 6 },
   mono: { fontSize: 13, color: color.muted },
-  hull: { backgroundColor: color.hull, paddingTop: 14, paddingHorizontal: 14, paddingBottom: 16, gap: 4, borderRadius: 14, minHeight: TAP },
+  // The ship card corners from the boards: 10 / 10 / 12 / 24 (top left, top right, bottom right, bottom left).
+  hull: { backgroundColor: color.hull, paddingTop: 14, paddingHorizontal: 14, paddingBottom: 20, gap: 4, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomRightRadius: 12, borderBottomLeftRadius: 24, minHeight: TAP },
+  dotHit: { width: TAP, height: TAP, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
+  why: { backgroundColor: color.row, borderLeftWidth: 3, borderLeftColor: color.blue, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, gap: 4 },
+  fcChip: { alignSelf: 'flex-start', fontSize: 13, letterSpacing: 0.6, color: color.onOrange, backgroundColor: color.orange, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
+  haLine: { borderTopWidth: 1, borderTopColor: bcolor.soft, paddingTop: 6, gap: 2 },
   shipHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 },
   shipTitle: { flexShrink: 1, fontSize: 15, color: color.deckInk },
   shipLink: { fontSize: 15, color: color.deckMuted },
-  deckRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 24 },
+  deckRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
   bridge: { width: 30, height: 26, borderRadius: 4, backgroundColor: color.deckMuted },
   hatchBox: { flex: 1, height: 18, borderTopLeftRadius: 5, borderTopRightRadius: 5, backgroundColor: color.deckClear },
   hatchOn: { backgroundColor: color.deckFill },
@@ -308,7 +351,7 @@ const s = StyleSheet.create({
   deckLabelBox: { width: 46 },
   deckLabel: { fontSize: 13 },
   segs: { flex: 1, flexDirection: 'row', gap: 3, alignSelf: 'stretch' },
-  seg: { flex: 1, borderRadius: 8, overflow: 'hidden', minHeight: 22 },
+  seg: { flex: 1, borderRadius: 8, overflow: 'hidden', minHeight: 30 },
   segUnknown: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: bcolor.deckMuted, backgroundColor: 'transparent' },
   segFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: color.deckFill },
   hatchHead: { flex: 1, textAlign: 'center', fontSize: 13, color: color.deckMuted },

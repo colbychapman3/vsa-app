@@ -71,7 +71,7 @@ test('screen 01: Snapshot mid-shift (tracker demo)', () => {
   const v = snapshot(s, glovis, 11 * 60); // the capture's clock was before noon
   assert.equal(subtitles(s, glovis).snap, '9/21/2026 · Field counts through 15:00');
   assert.deepEqual(v.banners, []);
-  assert.deepEqual(v.strip, { breakAt: '12:00', clearBy: [{ side: 'North', at: '11:45' }], finish: { ok: false, text: 'Runs past this break (est.)' } }); // Design B: the finish against the cutoff, not the clock time
+  assert.deepEqual(v.strip, { breakAt: '12:00', clearBy: [{ side: 'North', at: '11:45' }], finish: { ok: false, text: 'Runs past the 11:45 stop' } }); // Design B: the finish against the cutoff, not the clock time
   assert.equal(v.openIssues, 1);
   assert.equal(v.hero.label, 'Vessel remaining');
   assert.equal(v.hero.value, '512');

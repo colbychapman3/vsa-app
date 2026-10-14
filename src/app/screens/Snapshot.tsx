@@ -37,6 +37,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
           <Text style={[s.nowText, { fontFamily: f.bodySemi, color: now.tone === 'warn' ? color.onOrange : now.tone === 'due' ? color.headInk : color.ink }]}>{now.text}</Text>
         </View>
       )}
+      {now?.sub && <Body style={s.nowSub}>{now.sub}</Body>}
       {now?.action && (
         <Pressable onPress={() => (now.action!.to === 'log' ? onLog() : onOpenTab('decks'))} accessibilityRole="button" accessibilityLabel={now.action.label}
           style={({ pressed }) => [s.nowBtn, now.tone === 'warn' ? s.nowBtnWarn : s.nowBtnDue, pressed && u.pressed]}>
@@ -84,5 +85,6 @@ const s = StyleSheet.create({
   nowBtnDue: { backgroundColor: color.action, borderWidth: 2, borderColor: bcolor.ink },
   nowBtnWarn: { backgroundColor: color.head },
   nowBtnText: { fontSize: 17 },
+  nowSub: { marginHorizontal: 20, marginTop: 8 },
   nowMore: { marginHorizontal: 20, marginTop: 10, gap: 4 },
 });

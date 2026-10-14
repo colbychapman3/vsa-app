@@ -56,7 +56,7 @@ export const fontFiles = {
 export const SCRIM = 'rgba(0,0,0,0.5)';
 
 export const HA_COLOR = color.blue;
-export const PACE_COLOR = color.oInk;
+export const PACE_COLOR = color.pace; // purple (Every Screen boards), so Pace never reads as a warning
 
 // If fonts fail to load, fall back to system fonts rather than block the app.
 export function fonts(loaded: boolean) {
