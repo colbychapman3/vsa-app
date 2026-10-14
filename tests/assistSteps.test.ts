@@ -1,4 +1,4 @@
-// Assistant steps 1 to 4 (Colby, 2026-10-12): Send update, the clerk's text, driver advice, and "not useful" in the moment.
+// Assistant steps 1 to 4 (Colby, 2026-10-12): Send update, driver advice, and "not useful" in the moment. (Step 2, the clerk's text reader, was removed 2026-10-14.)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -8,10 +8,8 @@ import type { VsaEvent, Reject } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
 import { updateMessage } from '../src/app/update.ts';
-import { readClerkText } from '../src/app/clerkText.ts';
 import { paceAdvice, paceWatch } from '../src/app/whatif.ts';
 import { nowLine } from '../src/app/now.ts';
-import { hourOptions } from '../src/app/view.ts';
 import { feedbackKey, feedbackSummary, type Feedback } from '../src/app/feedback.ts';
 import { addFeedback, listFeedback, setFeedbackReason } from '../src/storage/feedback.ts';
 import { openNodeDb } from './nodeDb.ts';
@@ -49,36 +47,6 @@ async function setup(tc: { after: (fn: () => Promise<void>) => void }) {
 }
 
 
-
-const day = (starts: string[], logged: string[] = []) => starts.map((start) => ({ start, logged: logged.includes(start) }));
-const HOURS = day(['07:00', '08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '19:00', '20:00', '21:00']);
-
-test('clerk text: the common ways a count arrives are read; each hour is only a proposal', () => {
-  const r = readClerkText('10-11 245\n245 for 9 to 10\n11-12: 180 cars\n1-2 = 200', HOURS, 14 * 60 + 5);
-  assert.deepEqual(r.found.map((x) => [x.start, x.count, x.note]), [['10:00', 245, null], ['09:00', 245, null], ['11:00', 180, null], ['13:00', 200, 'read as 13-14']]);
-  assert.deepEqual(r.notRead, []);
-});
-
-test('clerk text: never guessed; what is not clean is listed as not read with the reason', () => {
-  const r = readClerkText('about 200 so far\n10-12 400\n12-1 90\n3-4 50\n5-6 40', day(['03:00', '15:00', '10:00', '17:00']), 16 * 60);
-  assert.equal(r.found.length, 0);
-  assert.deepEqual(r.notRead, ['about 200 so far', '10-12 400 (not a one-hour period)', '12-1 90 (not a working hour today)', '3-4 50 (could be 03-04 or 15-16)', '5-6 40 (that hour has not started yet)']);
-});
-
-test('clerk text: a dictated line with "to" and a trailing period, and several hours separated by commas', () => {
-  const r = readClerkText('8 to 9 212, 9 to 10 230.', HOURS, 10 * 60 + 2); // in the morning the 20-21 and 21-22 hours have not started
-  assert.deepEqual(r.found.map((x) => [x.start, x.count]), [['08:00', 212], ['09:00', 230]]);
-  const evening = readClerkText('8-9 150', day(HOURS.map((h) => h.start), ['08:00']), 21 * 60 + 5); // 08-09 already logged: 20-21 is the one open
-  assert.deepEqual(evening.found.map((x) => [x.start, x.note]), [['20:00', 'read as 20-21']]);
-  assert.match(readClerkText('8-9 150', HOURS, 21 * 60 + 5).notRead[0], /could be 08-09 or 20-21/);
-});
-
-test('clerk text: the Log offers the real working hours, so the reader uses them', async (tc) => {
-  const s = await setup(tc);
-  const hours = hourOptions(s.state, glovis).hours;
-  assert.ok(!hours.some((h) => h.start === '12:00'));
-  assert.equal(readClerkText('12-13 100', hours, 15 * 60).found.length, 0);
-});
 
 test('send update: counts, remaining, a FORECAST finish once there is one, the break outlook by side, H&H left out', async (tc) => {
   const s = await setup(tc);
