@@ -1,3 +1,5 @@
+> **Partly superseded 2026-10-13** by `../mockups/every-screen-swarm-final-2026-10-13/HANDOFF_SPEC.md` (VSA Every Screen design). Replaced: the Now card and the answer-after-save UI (boards 1.2, 1.2b, 2.1b, 3.1b). Where the two disagree, the handoff spec and its boards win; the rest of this spec still stands.
+
 # Spec: Tracker to Assistant, Phases 0 to 5
 
 Status: **APPROVED by Colby 2026-10-11/12 and built 2026-10-12** (main, through the commit that adds this file). Source plan: the Claude Docs artifact "Tracker to Assistant: Game Plan"; philosophy: "VSA Philosophy: Is It an Assistant?". Gate rule changed by Colby 2026-10-12: a phase passes once everything in it is built and merged; "is it an assistant?" is still asked on every ship.
