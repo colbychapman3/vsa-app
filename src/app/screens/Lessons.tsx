@@ -19,7 +19,7 @@ export function Lessons({ live, test, liveNos, testNos, startTest, onClose }: { 
   const top = l.themes[0];
   const nos = which === 'test' ? testNos : liveNos;
   return (
-    <Sheet title="Lessons from past ships" isTest={which === 'test'} onClose={onClose}>
+    <Sheet title="Lessons & Insights" isTest={which === 'test'} onClose={onClose}>
       <Seg<'live' | 'test'> columns={2} value={which} onChange={setWhich} options={[{ value: 'live', label: `LIVE (${live.ships})` }, { value: 'test', label: `TEST (${test.ships})` }]} />
       {l.ships === 0 ? (
         <Note>No {which === 'test' ? 'TEST' : 'LIVE'} ship is marked complete yet. A ship teaches the next one once you mark it complete at Closeout.</Note>

@@ -78,7 +78,7 @@ test('screen 01: Snapshot mid-shift (tracker demo)', () => {
   assert.equal(v.hero.of, 'of 1,969 autos · 74.0% complete');
   assert.deepEqual(v.hero.rows, [{ k: 'Ship progress', v: '1,457' }, { k: 'Field record', v: '1,419' }, { k: 'Gap (in transit)', v: '38', sub: 'of 70 drivers' }]);
   assert.deepEqual(v.eta, { value: '17:06', day: null, notes: ['512 ÷ 245/hr pace (last 2 hr)'], dashed: false });
-  assert.deepEqual(v.ha, { value: '237', perHr: true, notes: ['1,419 ÷ 6 counted hr', 'Pace 247/hr over 5.75 productive hr'] });
+  assert.deepEqual(v.ha, { value: '237', perHr: true, pace: '247', haLine: '1,419 ÷ 6 counted hours', notes: ['1,419 ÷ 6 counted hr', 'Pace 247/hr over 5.75 productive hr'] });
   assert.deepEqual([v.brands.left, v.brands.count, v.brands.finished, v.brands.total], [2, 2, 0, '512']);
   assert.deepEqual(v.brands.rows.map((r) => [r.name, r.remaining, r.start]), [['Kia', '30', '829'], ['Hyundai', '482', '1,140']]);
   assert.equal(v.side.north.pct, '100.0%');
@@ -95,7 +95,8 @@ test('screen 02: Snapshot before production', () => {
   assert.equal(v.hero.of, 'of 1,969 autos · 0.0% complete');
   assert.deepEqual(v.hero.rows, [{ k: 'Ship progress', v: '0' }, { k: 'Field record', v: '0' }, { k: 'Gap (in transit)', v: '0', sub: 'of 70 drivers' }]);
   assert.deepEqual(v.eta, { value: '—', day: null, notes: ['Needs production data'], dashed: true });
-  assert.deepEqual(v.ha, { value: '—', perHr: false, notes: ['No counted hours yet'] });
+  assert.deepEqual(v.ha, { value: '—', perHr: false, pace: '—', haLine: 'No counted hours yet', notes: ['No counted hours yet'] });
+  assert.equal(v.done.pct, 0, 'no deck is active, so the vessel remaining is the starting cargo and ship done is a known 0%');
   assert.deepEqual(v.brands.rows.map((r) => [r.name, r.remaining, r.start]), [['Kia', '829', '829'], ['Hyundai', '1,140', '1,140']]);
   assert.deepEqual(badges(s), { decks: 0, plan: 5 });
 });

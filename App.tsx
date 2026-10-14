@@ -449,7 +449,7 @@ export default function App() {
                     <Boxes tab={tab} layout={layout} onLayout={changeLayout} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} onNotice={setNotice}
                       onOpenTab={openTab} onHistory={() => { setNotice(null); setSheet('eta'); }} />
                     {tab === 'decks'
-                    ? <Decks showShip={!boxesFor(layout, 'decks').includes('ship')} state={vessel.state} onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
+                    ? <Decks showShip={!boxesFor(layout, 'decks').includes('ship')} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} onOpenPlan={() => openTab('plan')} />
                     : tab === 'hourly'
                       ? <Hourly state={vessel.state} baseline={vessel.baseline} />
                       : <Plan vesselId={vessel.id} state={vessel.state} baseline={vessel.baseline} isTest={vessel.isTest} save={save} backup={backup} reports={reports} onNotice={setNotice} />}

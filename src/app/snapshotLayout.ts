@@ -1,10 +1,12 @@
 // Which boxes the Snapshot shows, in what order, and on which tab (Colby, 2026-10-08). A per-phone preference: never part of a
 // vessel's record. Pure, so it is tested without a screen. A missing, corrupt or older saved layout falls back to the default.
-export const BOXES = ['hero', 'ship', 'field', 'eta', 'ha', 'brands', 'side', 'vessel'] as const;
+// Order of the Every Screen Snapshot (Colby, 2026-10-14): remaining, then the field count beside the finish, ship done beside
+// pace, then the ship and the brands.
+export const BOXES = ['hero', 'field', 'eta', 'done', 'ha', 'ship', 'brands', 'side', 'vessel'] as const;
 export type BoxId = (typeof BOXES)[number];
 export const TABS = ['snap', 'plan', 'hourly', 'decks'] as const;
 export type BoxTab = (typeof TABS)[number];
-export const BOX_TITLE: Record<BoxId, string> = { hero: 'Vessel remaining', ship: 'The ship (decks and hatches)', field: 'Field record', eta: 'Finish (forecast)', ha: 'Avg hourly (H.A.)', brands: 'Remaining by brand', side: 'Side split', vessel: 'Vessel notes and cards' };
+export const BOX_TITLE: Record<BoxId, string> = { hero: 'Vessel remaining', ship: 'The ship (decks and hatches)', field: 'Field record', eta: 'Finish (forecast)', done: 'Ship done', ha: 'Pace and avg hourly (H.A.)', brands: 'Remaining by brand', side: 'Side split', vessel: 'Vessel notes and cards' };
 export const TAB_TITLE: Record<BoxTab, string> = { snap: 'Snapshot', plan: 'Plan', hourly: 'Hourly', decks: 'Decks' };
 export const PINNED: readonly BoxId[] = ['hero']; // a vessel balance is never hidden
 

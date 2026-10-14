@@ -34,10 +34,11 @@ test('map data colors do not change between palettes', () => {
   for (const k of ['mapZone', 'mapSite', 'mapYard', 'mapOem', 'mapRail', 'mapMeasure'] as Token[]) assert.equal(night[k], light[k]);
 });
 
-test('Light is Design B, Ship Plan (Colby, 2026-10-11): navy ink on steel grey, hi-vis orange action', () => {
+test('Light is Design B, Ship Plan (Colby, 2026-10-11): navy ink on steel grey; the action is peach (Colby, 2026-10-14)', () => {
   assert.equal(light.bg, '#EEF1F4');
   assert.equal(light.ink, '#0E1A2B');
-  assert.equal(light.action, '#FF8A3D');
+  assert.equal(light.action, '#FFD6A5');
+  assert.equal(night.action, '#FFD6A5');
   assert.ok(contrast(light.onAction, light.action) >= 7, 'the Log and Save buttons read at 7:1 in sun');
 });
 

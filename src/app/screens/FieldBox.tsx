@@ -1,52 +1,51 @@
-// Field record box: the same layout as the vessel hero (Colby, 2026-10-08). The big count fills with the share counted.
+// Field count tile (Every Screen layout, Colby 2026-10-14): a dark OFFICIAL tile beside the finish. Flip it for the full field
+// record (counted hours, last hour, field / cleared by brand). Layout only; every value comes from view.snapshot().
 import { StyleSheet, Text, View } from 'react-native';
 import type { snapshot } from '../view.ts';
 import { bcolor, color, useType } from '../theme.ts';
-import { Bar, Body, Card, FillNumber, InfoNote, Label, Note, u } from './ui.tsx';
+import { Big, FlipTile } from './ui.tsx';
 
-export function FieldBox({ v }: { v: ReturnType<typeof snapshot> }) {
+export function FieldTile({ v, half, onLongPress }: { v: ReturnType<typeof snapshot>; half?: boolean; onLongPress: () => void }) {
   const f = useType();
-  const h = v.fieldRecord.hero;
-  const rows = v.fieldRecord.rows.filter((r) => r.k !== 'Field count' && r.k !== 'Field balance'); // those two are the hero's number and "to go"
+  const h = v.fieldRecord.hero, t = v.fieldRecord.tile;
+  const rows = v.fieldRecord.rows.filter((r) => r.k !== 'Field count' && r.k !== 'Field balance'); // the tile's number and "to go"
+  const pct = Math.min(100, Math.max(0, h.pct));
+  const text = (size: number, semi?: boolean, muted?: boolean) => ({ fontFamily: semi ? f.bodySemi : f.body, fontSize: size, color: muted ? color.headMuted : color.headInk });
   return (
-    <Card style={[u.pad, { gap: 10 }]}>
-      <View style={u.secH}>
-        <Label style={{ flexShrink: 1 }}>Field record</Label>
-        <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>official counts</Text>
-      </View>
-      <FillNumber size={84} pct={h.pct} fill={color.ink}>{h.value}</FillNumber>
-      <Body style={{ fontSize: 17 }}>{h.of}</Body>
-      <Bar pct={h.pct} />
-      <View style={u.secH}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barLeft}</Text>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.ink }}>{h.barRight}</Text>
-      </View>
-      <View style={s.hr}>
+    <FlipTile style={half ? { flex: 1 } : undefined} cardStyle={s.tile} onLongPress={onLongPress} label="Official field count. Tap for the field record"
+      front={<>
+        <Text style={[s.chip, { fontFamily: f.bodySemi }]}>OFFICIAL</Text>
+        <Text style={text(17, true)}>Field count</Text>
+        <Big size={40} style={{ color: color.headInk }}>{h.value}</Big>
+        <Text style={text(13, false, true)}>{t.through}</Text>
+        <View style={s.track}><View style={[s.fill, { width: `${pct}%` }]} /></View>
+        <Text style={text(13, false, true)}>{t.line}</Text>
+        <Text style={text(13, true, true)}>Details ›</Text>
+      </>}
+      back={<>
+        <Text style={[s.chip, { fontFamily: f.bodySemi }]}>OFFICIAL</Text>
+        <Text style={text(17, true)}>Field record</Text>
+        <Text style={text(15)}>{h.of}</Text>
         {rows.map((r) => (
-          <View key={r.k} style={u.kv}>
-            <Body style={{ color: color.muted, maxWidth: '45%' }}>{r.k}</Body>
-            <Text style={{ flex: 1, textAlign: 'right' }}>
-              <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{r.v}</Text>
-              {r.sub ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> {r.sub}</Text> : null}
-            </Text>
+          <View key={r.k} style={{ gap: 0 }}>
+            <Text style={text(13, false, true)}>{r.k}{r.sub ? ` (${r.sub})` : ''}</Text>
+            <Text style={text(17, true)}>{r.v}</Text>
           </View>
         ))}
-        {v.fieldRecord.brands.length > 0 && <Label>Field / cleared by brand</Label>}
+        {v.fieldRecord.brands.length > 0 && <Text style={text(13, true, true)}>Field / cleared by brand</Text>}
         {v.fieldRecord.brands.map((b) => (
-          <View key={b.name} style={u.kv}>
-            <Body semi style={{ maxWidth: '35%' }}>{b.name}</Body>
-            <Text style={{ flex: 1, textAlign: 'right', fontFamily: f.body, fontSize: 15, color: b.diff.tone === 'red' ? color.red : color.ink }}>
-              {b.field} / {b.cleared}{b.diff.text !== '—' && b.diff.text !== '0' ? ` · ${b.diff.text}` : ''}
-            </Text>
-          </View>
+          <Text key={b.name} style={text(15)}>{b.name}: {b.field} / {b.cleared}{b.diff.text !== '—' && b.diff.text !== '0' ? ` · ${b.diff.text}` : ''}</Text>
         ))}
-        {v.fieldRecord.unsplitNote && <Note>{v.fieldRecord.unsplitNote}</Note>}
-        <InfoNote><Note>{v.fieldRecord.note}</Note></InfoNote>
-      </View>
-    </Card>
+        {v.fieldRecord.unsplitNote && <Text style={text(13, false, true)}>{v.fieldRecord.unsplitNote}</Text>}
+        <Text style={text(13, false, true)}>{v.fieldRecord.note}</Text>
+        <Text style={text(13, true, true)}>Tap the box to flip back</Text>
+      </>} />
   );
 }
 
 const s = StyleSheet.create({
-  hr: { borderTopWidth: 1, borderTopColor: bcolor.soft, marginTop: 6, paddingTop: 12, gap: 8 },
+  tile: { flex: 1, padding: 16, gap: 6, backgroundColor: color.head, borderWidth: 1.5, borderColor: bcolor.line },
+  chip: { alignSelf: 'flex-start', fontSize: 13, color: color.headInk, borderWidth: 1.5, borderColor: color.headInk, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 2, overflow: 'hidden' },
+  track: { height: 8, borderRadius: 4, backgroundColor: color.deckTrack, overflow: 'hidden' },
+  fill: { height: 8, backgroundColor: color.deckFill },
 });

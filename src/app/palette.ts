@@ -8,8 +8,8 @@ export const light = {
   oBg: '#FFF4EB', oInk: '#7C2D12', red: '#B91C1C', rBg: '#FEE2E2', rInk: '#7F1D1D',
   green: '#15803D', gBg: '#DCFCE7', gInk: '#14532D',
   head: '#14243B', headInk: '#FFFFFF', headMuted: '#C9D6EA', accent: '#FF8A3D', onAccent: '#0E1A2B', done: '#5A6B80',
-  // The one primary action (Log, Save): hi-vis orange with navy text, readable in sun at 7:1.
-  action: '#FF8A3D', onAction: '#0E1A2B',
+  // The one primary action (Log, Save): peach with navy text (Colby, 2026-10-14; the screens give it a navy edge so it holds in sun).
+  action: '#FFD6A5', onAction: '#0E1A2B',
   // The ship: hull, deck tracks (a hatch with cars / a cleared one), the fill for cars still aboard, text on the hull.
   hull: '#14243B', deckTrack: '#24375A', deckClear: '#1B2C47', deckFill: '#3D7BFF', deckWarn: '#FF8A3D', deckInk: '#FFFFFF', deckMuted: '#A9BAD1',
   // Terminal map data colors: only for shapes, never for text, same in both palettes.
@@ -23,7 +23,7 @@ export const night: Record<Token, string> = {
   oBg: '#35210F', oInk: '#FFC999', red: '#FF8585', rBg: '#3A1414', rInk: '#FFC4C4',
   green: '#5EE08A', gBg: '#12301D', gInk: '#B8F2CB',
   head: '#060D17', headInk: '#E8EEF5', headMuted: '#B5C4D8', accent: '#FF8A3D', onAccent: '#0A121D', done: '#A3B1C2',
-  action: '#FF8A3D', onAction: '#0A121D',
+  action: '#FFD6A5', onAction: '#0A121D',
   hull: '#050A12', deckTrack: '#1E3354', deckClear: '#101C2E', deckFill: '#4C8DFF', deckWarn: '#FF8A3D', deckInk: '#FFFFFF', deckMuted: '#A9BAD1',
   mapZone: light.mapZone, mapSite: light.mapSite, mapYard: light.mapYard, mapOem: light.mapOem, mapRail: light.mapRail, mapMeasure: light.mapMeasure,
 };

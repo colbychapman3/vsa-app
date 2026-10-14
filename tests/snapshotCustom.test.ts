@@ -11,10 +11,10 @@ const day = SCENARIOS.find((s) => s.name === 'mixed deck progress, working')!;
 const events = toEvents(day);
 const OPID = events[0].operation_id;
 
-test('layout: the default shows every box on the Snapshot, the ship then the field record under the vessel remaining', () => {
+test('layout: the default shows every box on the Snapshot in the Every Screen order (Colby, 2026-10-14)', () => {
   const l = defaultLayout();
   assert.deepEqual(boxesFor(l, 'snap'), [...BOXES]);
-  assert.deepEqual(boxesFor(l, 'snap').slice(0, 3), ['hero', 'ship', 'field']); // Design B (Colby, 2026-10-11)
+  assert.deepEqual(boxesFor(l, 'snap').slice(0, 6), ['hero', 'field', 'eta', 'done', 'ha', 'ship']);
 });
 
 test('layout: hide, show, reorder and move to a tab; the vessel balance can move but never hides', () => {
@@ -26,10 +26,10 @@ test('layout: hide, show, reorder and move to a tab; the vessel balance can move
   l = setHidden(l, 'side', false);
   assert.ok(boxesFor(l, 'snap').includes('side'));
   l = moveBox(l, 'ha', -1);
-  assert.deepEqual(boxesFor(l, 'snap').slice(0, 5), ['hero', 'ship', 'field', 'ha', 'eta']);
+  assert.deepEqual(boxesFor(l, 'snap').slice(0, 5), ['hero', 'field', 'eta', 'ha', 'done']);
   assert.equal(moveBox(l, 'hero', -1), l, 'the first box cannot move up');
   l = reorder(l, 'brands', 'field'); // dragged onto the field record
-  assert.deepEqual(boxesFor(l, 'snap').slice(0, 4), ['hero', 'ship', 'brands', 'field']);
+  assert.deepEqual(boxesFor(l, 'snap').slice(0, 4), ['hero', 'brands', 'field', 'eta']);
   l = moveToTab(l, 'side', 'hourly');
   assert.deepEqual(boxesFor(l, 'hourly'), ['side']);
   assert.ok(!boxesFor(l, 'snap').includes('side'));
@@ -132,7 +132,7 @@ test('hourly rows split the per-driver rate and the driver count; a pace change 
   }
 });
 
-test('Design B: the ship box joins an older saved layout right under the hero, not at the end', () => {
+test('an older saved layout gains the new boxes next to their neighbours: ship done after the finish, the ship after pace', () => {
   const old = JSON.stringify({ order: ['hero', 'field', 'eta', 'ha', 'brands', 'side', 'vessel'], hidden: [], tab: {} });
-  assert.deepEqual(parseLayout(old).order.slice(0, 3), ['hero', 'ship', 'field']);
+  assert.deepEqual(parseLayout(old).order.slice(0, 6), ['hero', 'field', 'eta', 'done', 'ha', 'ship']);
 });

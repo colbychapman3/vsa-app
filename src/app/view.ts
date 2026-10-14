@@ -238,6 +238,11 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
       pct: s.start > 0 ? (s.field / s.start) * 100 : 0,
       barLeft: `${fmt(s.field)} counted`, barRight: `${fmt(s.fieldBalance)} to go`,
     },
+    // The Snapshot tile (Every Screen layout): the count, the hour it runs through, and one line of how it sits against the ship.
+    tile: {
+      through: lastP ? `through ${lastP.day > 1 ? `Day ${lastP.day} ` : ''}${lastP.start.slice(0, 2)}–${String((Number(lastP.start.slice(0, 2)) + 1) % 24).padStart(2, '0')}` : 'no count logged yet',
+      line: [`Field ${fmt(s.field)}`, ...(s.variance != null && s.variance >= 0 ? [`In transit ${fmt(s.variance)}`] : []), ...(known ? [`Ship left ${fmt(s.vesselRemaining)}`] : [])].join(' · '),
+    },
     // Field against cleared by brand, only when there is more than one brand (a single brand repeats the totals).
     brands: s.brands.length > 1 ? brandTableOf(s) : [],
     unsplitNote: s.brands.length > 1 && s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,
@@ -277,9 +282,12 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
       dashed: false,
     } : { value: '—', day: null, notes: [e.reason ?? ''], dashed: true };
   const p = s.production;
+  const done = { pct: known ? pct : null, text: known ? `${fmt(s.progress)} of ${fmt(s.start)}` : 'Needs a remaining count on every active deck' };
   const ha = {
     value: p.ha == null ? '—' : String(Math.round(p.ha)),
     perHr: p.ha != null,
+    pace: p.pace == null ? '—' : String(Math.round(p.pace)),
+    haLine: p.ha == null ? 'No counted hours yet' : `${fmt(s.field)} ÷ ${p.countedHours} counted hour${p.countedHours === 1 ? '' : 's'}`,
     notes: p.ha == null ? ['No counted hours yet'] : [
       `${fmt(s.field)} ÷ ${p.countedHours} counted hr`,
       ...(p.pace != null ? [`Pace ${Math.round(p.pace)}/hr over ${(p.prodMin / 60).toFixed(2)} productive hr`] : []),
@@ -294,7 +302,13 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     rows: s.brands.map((x) => ({ name: x.name, remaining: fmt(x.remaining), start: fmt(x.start), pct: x.remaining == null ? null : (x.remaining / x.start) * 100 })), // null: no bar (unknown ≠ finished)
   };
 
-  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, brands, side: sideSplit(s, b) };
+  // The break-check scale (Every Screen graphic): ship progress against field at a break or end of shift. Overall only; brands are in the banners.
+  const scale = recon && s.progress != null && s.variance != null
+    ? { title: endShift ? 'End-of-shift check' : 'Break check', ship: s.progress, field: s.field, diff: s.variance,
+      tone: s.variance === 0 ? 'green' as const : s.variance > 0 ? 'orange' as const : 'red' as const,
+      text: s.variance === 0 ? 'Match' : s.variance > 0 ? `Ship is ${fmt(s.variance)} ahead` : `Field is ${fmt(-s.variance)} ahead` }
+    : null;
+  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, done, scale, brands, side: sideSplit(s, b) };
 }
 
 // Side split from destinations; autos left per side only when each brand goes to one side.

@@ -232,8 +232,8 @@ export const u = StyleSheet.create({
   input: { minHeight: TAP, borderWidth: 1.5, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
   segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   segOn: { backgroundColor: color.ink, borderColor: bcolor.ink, ...elev.raised },
-  goBtn: { minHeight: 58, borderRadius: 999, backgroundColor: color.action, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, ...elev.raised },
-  ghostBtn: { minHeight: TAP, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, ...elev.card },
+  goBtn: { minHeight: 58, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.action, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, ...elev.raised },
+  ghostBtn: { minHeight: TAP, borderRadius: 999, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, ...elev.card },
   x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, ...elev.card, alignItems: 'center', justifyContent: 'center' },
   errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 12, padding: 12, fontSize: 15, overflow: 'hidden' },
 });

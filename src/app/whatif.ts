@@ -41,6 +41,16 @@ export function driversChange(s: State, b: Baseline, nowMin: number, drivers: nu
   return r.ok ? { ok: true, title: 'Finish with a different driver count', lines: [`With ${drivers} drivers: ${n(rate * drivers)}/hr (last rate ${rate.toFixed(2)} per driver per productive hr, ${p.start}).`, ...r.lines] } : r;
 }
 
+// The numbers behind driversChange for a screen: the finish as an absolute minute (past 1440 = next day) at `drivers` drivers,
+// from the last per-driver rate. Same refusals as driversChange.
+export function driversFinish(s: State, b: Baseline, nowMin: number, drivers: number): { ok: true; endAbs: number; perHr: number } | { ok: false; error: string } {
+  const w = driversChange(s, b, nowMin, drivers);
+  if (!w.ok) return w;
+  const p = [...s.periods].reverse().find((x) => x.driverRate.rate != null && typeof x.drivers === 'number')!;
+  const perHr = p.driverRate.rate! * drivers;
+  return { ok: true, endAbs: workUntil(nowMin, s.vesselRemaining! / perHr, breakMins(b)), perHr };
+}
+
 // Can the deck's remaining cars be cleared before the next break? The cutoff depends on the side (15 / 30 min), so both are shown.
 export function canClear(s: State, b: Baseline, nowMin: number, deckId: string): WhatIf {
   const d = s.decks.find((x) => x.id === deckId);

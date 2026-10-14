@@ -8,6 +8,7 @@ import { nowLine } from '../now.ts';
 import type { Layout } from '../snapshotLayout.ts';
 import { bcolor, color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
+import { BreakScale } from './Graphics.tsx';
 import type { Save } from './Plan.tsx';
 import { Boxes } from './SnapshotBoxes.tsx';
 import { BannerView, Body, Label, u } from './ui.tsx';
@@ -27,12 +28,13 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
 
   return (
     <View>
+      {v.scale && <BreakScale scale={v.scale} />}
       {v.banners.map((b, i) => <BannerView key={i} banner={b} onTrack={onTrack} onGo={onOpenTab} />)}
 
       {now && (
         <View style={[s.now, now.tone === 'warn' ? s.nowWarn : now.tone === 'due' ? s.nowDue : s.nowCalm]} accessibilityRole="text" accessibilityLabel={`Now: ${now.text}`}>
-          <Icon name="clock" color={now.tone === 'warn' ? color.onAction : now.tone === 'due' ? color.accent : color.green} />
-          <Text style={[s.nowText, { fontFamily: f.bodySemi, color: now.tone === 'warn' ? color.onAction : now.tone === 'due' ? color.headInk : color.ink }]}>{now.text}</Text>
+          <Icon name="clock" color={now.tone === 'warn' ? color.onOrange : now.tone === 'due' ? color.accent : color.green} />
+          <Text style={[s.nowText, { fontFamily: f.bodySemi, color: now.tone === 'warn' ? color.onOrange : now.tone === 'due' ? color.headInk : color.ink }]}>{now.text}</Text>
         </View>
       )}
       {now?.action && (
@@ -74,12 +76,12 @@ const s = StyleSheet.create({
   lookOrange: { backgroundColor: color.oBg, borderColor: bcolor.orange },
   // The Now line: the one thing worth knowing right now (navy when a count is due, hi-vis orange for a warning).
   now: { marginHorizontal: 20, marginTop: 16, marginBottom: -4, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
-  nowWarn: { backgroundColor: color.action },
+  nowWarn: { backgroundColor: color.orange },
   nowDue: { backgroundColor: color.head },
   nowCalm: { backgroundColor: color.card, borderWidth: 1, borderColor: bcolor.line },
   nowText: { flex: 1, fontSize: 15, lineHeight: 20 },
-  nowBtn: { marginHorizontal: 20, marginTop: 10, minHeight: 56, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
-  nowBtnDue: { backgroundColor: color.action, borderWidth: 2, borderColor: color.head },
+  nowBtn: { marginHorizontal: 20, marginTop: 10, minHeight: 56, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  nowBtnDue: { backgroundColor: color.action, borderWidth: 2, borderColor: bcolor.ink },
   nowBtnWarn: { backgroundColor: color.head },
   nowBtnText: { fontSize: 17 },
   nowMore: { marginHorizontal: 20, marginTop: 10, gap: 4 },

@@ -8,9 +8,10 @@ import { snapshot } from '../view.ts';
 import { traces } from '../brief.ts';
 import { shipView, HATCH_SLOTS, type Seg } from '../ship.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
-import { bcolor, color, HA_COLOR, TAP, useType } from '../theme.ts';
+import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
 import { VesselCards, type Save } from './Plan.tsx';
-import { FieldBox } from './FieldBox.tsx';
+import Svg, { Circle, G } from 'react-native-svg';
+import { FieldTile } from './FieldBox.tsx';
 import { Bar, Big, Body, Card, FillNumber, FlipTile, InfoNote, Label, Note, SectionHead, Tag, u } from './ui.tsx';
 
 export type BoxProps = {
@@ -20,18 +21,20 @@ export type BoxProps = {
   onOpenTab: (t: 'hourly' | 'decks' | 'plan') => void; onHistory: () => void;
 };
 
+const TILES: BoxId[] = ['field', 'eta', 'done', 'ha'];
+
 export function Boxes(p: BoxProps) {
   const ids = boxesFor(p.layout, p.tab);
   if (!ids.length) return p.tab === 'snap' ? <Note style={{ padding: 20 }}>Every box is hidden or moved to another tab. Settings › Customize Snapshot brings them back.</Note> : null;
   const v = snapshot(p.state, p.baseline, p.nowMin);
-  // The two tiles sit side by side when they are next to each other.
+  // Tiles sit two to a row when they are next to each other (field + finish, ship done + pace).
   const rows: BoxId[][] = [];
-  for (const id of ids) { const last = rows.at(-1); if ((id === 'eta' || id === 'ha') && last && (last[0] === 'eta' || last[0] === 'ha') && last.length === 1 && last[0] !== id) last.push(id); else rows.push([id]); }
+  for (const id of ids) { const last = rows.at(-1); if (TILES.includes(id) && last && last.length === 1 && TILES.includes(last[0])) last.push(id); else rows.push([id]); }
   return (
     <View style={p.tab === 'snap' ? s.main : s.moved}>
       {rows.map((r) => r.length === 2
         ? <View key={r.join()} style={s.grid2}>{r.map((id) => <Box key={id} id={id} v={v} p={p} half />)}</View>
-        : <Box key={r[0]} id={r[0]} v={v} p={p} half={r[0] === 'eta' || r[0] === 'ha' ? false : undefined} />)}
+        : <Box key={r[0]} id={r[0]} v={v} p={p} half={TILES.includes(r[0]) ? false : undefined} />)}
     </View>
   );
 }
@@ -49,7 +52,8 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   switch (id) {
     case 'hero': return wrap(<HeroBox v={v} state={p.state} baseline={p.baseline} />);
     case 'ship': return wrap(<ShipBox state={p.state} onOpen={() => p.onOpenTab('decks')} />);
-    case 'field': return wrap(<FieldBox v={v} />);
+    case 'field': return <FieldTile v={v} half={half} onLongPress={menu} />;
+    case 'done': return wrap(<DoneTile v={v} />);
     case 'eta': return (
       <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
         accessibilityLabel="Finish, forecast. Tap for its history" accessibilityHint="Long press to move or hide this box">
@@ -64,14 +68,17 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
         </View>
       </Pressable>);
     case 'ha': return (
-      <FlipTile style={half ? { flex: 1 } : undefined} cardStyle={s.tile} onLongPress={menu} label="Average hourly. Tap for how it is worked out"
+      <FlipTile style={half ? { flex: 1 } : undefined} cardStyle={s.tile} onLongPress={menu} label="Pace and average hourly. Tap for how they are worked out"
         front={<>
           <Tag kind="CALCULATED" />
-          <Label>Avg hourly (H.A.)</Label>
+          <Label>Pace</Label>
           <View style={s.haRow}>
-            <Big size={40} style={{ flexShrink: 1, color: HA_COLOR, lineHeight: 48 }}>{v.ha.value}</Big>
-            {v.ha.perHr && <Body style={{ fontSize: 17, marginBottom: 8 }}>/hr</Body>}
+            <Big size={40} style={{ flexShrink: 1, color: PACE_COLOR, lineHeight: 48 }}>{v.ha.pace}</Big>
+            {v.ha.pace !== '—' && <Body style={{ fontSize: 17, marginBottom: 8 }}>/hr</Body>}
           </View>
+          <Note>per productive hour</Note>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: HA_COLOR }}>H.A. {v.ha.value}{v.ha.perHr ? ' /hr' : ''}</Text>
+          <Note>{v.ha.haLine}</Note>
           <Text style={[s.link, { fontFamily: f.bodySemi }]}>Details ›</Text>
         </>}
         back={<>
@@ -136,6 +143,31 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
 
 const HERO_TRACES = ['remaining', 'transit', 'gap', 'eta'];
 
+// Ship done (Every Screen layout): the share of the vessel the decks have cleared, as a ring. Unknown stays a dash.
+function DoneTile({ v }: { v: V }) {
+  const f = useType();
+  const d = v.done;
+  const R = 40, C = 2 * Math.PI * R, pct = d.pct == null ? 0 : Math.min(100, Math.max(0, d.pct));
+  return (
+    <View style={[u.card, s.tile]} accessible accessibilityLabel={`Ship done: ${d.pct == null ? 'unknown' : `${Math.round(d.pct)} percent`}. ${d.text}`}>
+      <Tag kind="CALCULATED" />
+      <Label>Ship done</Label>
+      <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 4 }}>
+        <Svg width={104} height={104} viewBox="0 0 104 104">
+          <Circle cx={52} cy={52} r={R} stroke={color.soft} strokeWidth={10} fill="none" />
+          {d.pct != null && (
+            <G rotation={-90} origin="52, 52">
+              <Circle cx={52} cy={52} r={R} stroke={color.blue} strokeWidth={10} fill="none" strokeLinecap="round" strokeDasharray={`${(C * pct) / 100} ${C}`} />
+            </G>
+          )}
+        </Svg>
+        <Text style={{ position: 'absolute', fontFamily: f.display, fontSize: 26, color: color.ink }}>{d.pct == null ? '—' : `${Math.round(d.pct)}%`}</Text>
+      </View>
+      <Note>{d.text}</Note>
+    </View>
+  );
+}
+
 function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baseline }) {
   const f = useType();
   const h = v.hero;
@@ -154,12 +186,6 @@ function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baselin
       <View style={s.heroRow}>
         <View style={{ flex: 1, minWidth: 0 }}>
           {h.value === '—' ? <Big size={96} style={{ color: heroColor }}>{h.value}</Big> : <FillNumber size={96} pct={h.pct} fill={heroColor}>{h.value}</FillNumber>}
-        </View>
-        {/* Design B: the finish sits beside the number, so "how many and when" is one glance. */}
-        <View style={s.finish} accessible accessibilityLabel={`Finish, forecast: ${v.eta.value}${v.eta.day ? `, ${v.eta.day}` : ''}`}>
-          <Text style={[s.mono, { fontFamily: f.mono }]} numberOfLines={1} adjustsFontSizeToFit>Finish (est.)</Text>
-          <Big size={36}>{v.eta.value}</Big>
-          {v.eta.day && <Text style={[s.mono, { fontFamily: f.mono }]}>{v.eta.day}</Text>}
         </View>
       </View>
       <Body style={{ fontSize: 17 }}>{h.of}</Body>
@@ -230,6 +256,13 @@ export function ShipBox({ state, onOpen }: { state: State; onOpen: () => void })
         <View style={s.segs}>{HATCH_SLOTS.map((h) => <Text key={h} style={[s.hatchHead, { fontFamily: f.mono }]}>{h}</Text>)}</View>
         <View style={s.deckRightBox} />
       </View>
+      {/* The ship drawn (Every Screen mockup): a hatch is lit when any deck still has cars in it. */}
+      <View style={[s.deckRow, { alignItems: 'flex-end' }]} importantForAccessibility="no-hide-descendants">
+        <View style={s.deckLabelBox}><View style={s.bridge} /></View>
+        <View style={s.segs}>{HATCH_SLOTS.map((h, i) => <View key={h} style={[s.hatchBox, v.rows.some((r) => r.segs.length > 1 && (r.segs[i]?.fill ?? 0) > 0) && s.hatchOn]} />)}</View>
+        <View style={s.deckRightBox} />
+      </View>
+      <View style={s.keel} importantForAccessibility="no-hide-descendants" />
       {v.rows.map((r) => (
         <View key={r.id} style={s.deckRow} importantForAccessibility="no-hide-descendants">
           <View style={s.deckLabelBox}><Text style={[s.deckLabel, { fontFamily: f.mono, color: r.tone === 'clear' ? color.deckMuted : color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text></View>
@@ -263,11 +296,15 @@ const s = StyleSheet.create({
   heroRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
   finish: { alignItems: 'flex-end', maxWidth: '42%', paddingBottom: 6 },
   mono: { fontSize: 13, color: color.muted },
-  hull: { backgroundColor: color.hull, paddingTop: 14, paddingHorizontal: 14, paddingBottom: 26, gap: 4, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 70, borderBottomRightRadius: 18, minHeight: TAP },
+  hull: { backgroundColor: color.hull, paddingTop: 14, paddingHorizontal: 14, paddingBottom: 16, gap: 4, borderRadius: 14, minHeight: TAP },
   shipHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 },
   shipTitle: { flexShrink: 1, fontSize: 15, color: color.deckInk },
   shipLink: { fontSize: 15, color: color.deckMuted },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 24 },
+  bridge: { width: 30, height: 26, borderRadius: 4, backgroundColor: color.deckMuted },
+  hatchBox: { flex: 1, height: 18, borderTopLeftRadius: 5, borderTopRightRadius: 5, backgroundColor: color.deckClear },
+  hatchOn: { backgroundColor: color.deckFill },
+  keel: { height: 10, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, backgroundColor: color.deckMuted, marginBottom: 8 },
   deckLabelBox: { width: 46 },
   deckLabel: { fontSize: 13 },
   segs: { flex: 1, flexDirection: 'row', gap: 3, alignSelf: 'stretch' },

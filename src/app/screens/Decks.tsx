@@ -1,7 +1,9 @@
 // Decks tab (reference: docs/reference/screens/04). Layout only; values from view.decksView().
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
+import { WhatIfCard } from './WhatIfCard.tsx';
 import { decksRemaining, decksView } from '../view.ts';
 import { bcolor, color, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
@@ -10,7 +12,7 @@ import { Body, Card, Chip, InfoNote, Note, Pill, SectionHead, Seg, u } from './u
 
 const acc = (r: { photoTypes: { type: string; photos: number }[] }) => r.photoTypes.find((t) => t.type === 'accident')?.photos ?? 0;
 
-export function Decks({ state, onOpenDeck, onOpenPlan, showShip }: { state: State; showShip: boolean; onOpenDeck: (id: string) => void; onOpenPlan: () => void }) {
+export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShip }: { state: State; baseline: Baseline; nowMin: number; showShip: boolean; onOpenDeck: (id: string) => void; onOpenPlan: () => void }) {
   const f = useType();
   const v = decksView(state);
   const [show, setShow] = useState<'all' | 'remaining'>('all');
@@ -20,8 +22,9 @@ export function Decks({ state, onOpenDeck, onOpenPlan, showShip }: { state: Stat
     <View style={s.main}>
       {/* The ship sits here too (Colby, 2026-10-12: on Snapshot and on Decks); a tap opens the first deck that still has cars. */}
       {showShip && <ShipBox state={state} onOpen={() => left[0] && onOpenDeck(left[0].id)} />}
+      <WhatIfCard state={state} baseline={baseline} nowMin={nowMin} />
       <View style={{ gap: 10 }}>
-        <SectionHead title="Deck insights" />
+        <SectionHead title="Lessons & Insights" />
         <InfoNote><Note>Shuttle vans need a deck height of 1.85 m or more. A deck below that gets a low-deck warning.</Note></InfoNote>
         {v.low.length === 0 && <Card style={u.pad}><Note>No low decks with cargo remaining.</Note></Card>}
         {v.low.map((d) => (

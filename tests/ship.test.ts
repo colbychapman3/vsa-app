@@ -5,13 +5,45 @@ import { project } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
 import { shipView } from '../src/app/ship.ts';
 import { nowLine } from '../src/app/now.ts';
-import { needsLook } from '../src/app/view.ts';
+import { needsLook, snapshot } from '../src/app/view.ts';
+import { driversFinish } from '../src/app/whatif.ts';
 import { glovis, SCENARIOS, toEvents } from './scenarios.ts';
 
 type D = State['decks'][number];
 const deck = (id: string, status: D['status'], hatches: [string, number | null, number | null][], rem: number | null, start = 100) =>
   ({ id, label: id, status, start, rem, hatches: hatches.map(([h, qty, r]) => ({ h, qty, rem: r, items: [] })) }) as unknown as D;
 const ship = (decks: D[]) => shipView({ decks, vesselRemaining: null } as unknown as State);
+
+const replay = () => {
+  const events = toEvents(SCENARIOS.find((s) => s.name === 'mixed deck progress, working')!);
+  return project(glovis, events, events[0].operation_id);
+};
+
+test('break-check scale: only at a break or shift end, ship against field, tone follows the gap', () => {
+  const p = replay();
+  assert.ok(p.ok);
+  if (!p.ok) return;
+  assert.equal(snapshot(p, glovis, 600).scale, null, 'nothing to weigh while working');
+  const brk = { ...p, ops: { ...p.ops, phase: 'break', onBreak: true } } as State;
+  const sc = snapshot(brk, glovis, 720).scale;
+  if (p.progress == null || p.variance == null) { assert.equal(sc, null, 'ship progress unknown: no scale'); return; }
+  assert.ok(sc);
+  assert.equal(sc.ship, p.progress);
+  assert.equal(sc.field, p.field);
+  assert.equal(sc.tone, p.variance === 0 ? 'green' : p.variance > 0 ? 'orange' : 'red');
+});
+
+test('what if drivers: the finish moves earlier with more drivers and refuses without a per-driver rate', () => {
+  const p = replay();
+  assert.ok(p.ok);
+  if (!p.ok || p.vesselRemaining == null || p.vesselRemaining === 0) return;
+  const rated = p.periods.find((x) => x.driverRate.rate != null && typeof x.drivers === 'number');
+  const a = driversFinish(p, glovis, 600, 20), b = driversFinish(p, glovis, 600, 40);
+  if (!rated) { assert.equal(a.ok, false); return; }
+  assert.ok(a.ok && b.ok);
+  assert.ok(b.endAbs <= a.endAbs, 'more drivers never finish later');
+  assert.equal(driversFinish({ ...p, periods: [] } as State, glovis, 600, 20).ok, false);
+});
 
 test('Needs a look lists open discrepancies, low decks with cargo and unconfirmed heights; a clean vessel lists nothing', () => {
   const d = (id: string, level: string, status = 'active', cur = 1.7) => ({ id, label: id, status, height: { level, current: cur } }) as unknown as D;

@@ -67,7 +67,7 @@ export function Sidebar({ rows, currentId, onClose, onOpen, onNew, onSettings, o
         </ScrollView>
         {/* One grouped list (Colby, 2026-10-12): short rows with a chevron instead of four buttons. */}
         <View style={s.list}>
-          {([['Send update', onUpdate], ...(canComplete ? [['Closeout', onComplete] as const] : []), ['Lessons from past ships', onLessons], ['Settings', onSettings]] as const).map(([label, fn], i) => (
+          {([['Send update', onUpdate], ...(canComplete ? [['Closeout', onComplete] as const] : []), ['Lessons & Insights', onLessons], ['Settings', onSettings]] as const).map(([label, fn], i) => (
             <Pressable key={label} onPress={fn} accessibilityRole="button" style={({ pressed }) => [s.li, i > 0 && s.liLine, pressed && { opacity: 0.6 }]}>
               <Text style={{ flex: 1, fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{label}</Text>
               <Text style={{ fontSize: 17, color: color.muted }}>›</Text>
