@@ -21,9 +21,8 @@ type Pal = typeof light;
 const esc = (x: unknown) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const hm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
-function ring(pct: number | null, c: Pal) {
-  const R = 43, C = 2 * Math.PI * R, a = ((pct ?? 0) / 100) * C;
-  return `<svg width="104" height="104" viewBox="0 0 104 104"><circle cx="52" cy="52" r="${R}" fill="none" stroke="${c.soft}" stroke-width="12"/>${pct == null ? '' : `<circle cx="52" cy="52" r="${R}" fill="none" stroke="${c.blue}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${a} ${C}" transform="rotate(-90 52 52)"/>`}<text x="52" y="60" text-anchor="middle" font-size="26" font-weight="900" fill="${c.ink}">${pct == null ? '—' : `${Math.round(pct)}%`}</text></svg>`;
+function done(pct: number | null, c: Pal) {
+  return `<div class="big" style="font-size:56px">${pct == null ? '—' : `${Math.round(pct)}%`}</div><div class="doneBar"><i style="width:${pct == null ? 0 : Math.min(100, Math.max(0, pct))}%;background:${c.blue}"></i></div>`;
 }
 function spark(series: number[], cur: number, c: Pal) {
   if (series.length < 2) return '';
@@ -63,8 +62,8 @@ function snapshotScreen(s: typeof p, now: number, c: Pal, mode: string) {
     <div class="hr">${h.heroRows.map((r) => `<div class="kv"><span>${esc(r.k)}</span><b>${esc(r.v)}</b></div>`).join('')}${h.gapNote ? `<b style="font-size:17px">${esc(h.gapNote)}</b>` : ''}</div></div>
   <div class="grid"><div class="tile off"><span class="chip off">OFFICIAL</span><b style="font-size:17px">Field count</b><div class="big" style="font-size:44px;color:var(--hi)">${esc(v.fieldRecord.hero.value)}</div><span class="m">${esc(v.fieldRecord.tile.through)}</span><div class="meter"><i style="width:${fieldPct}%"></i></div><span class="m s13">${esc(v.fieldRecord.tile.line)}</span></div>
     <div class="tile card"><span class="chip fc">FORECAST</span><span class="lbl2">Finish</span>${v.eta.day ? `<b>${esc(v.eta.day)}</b>` : ''}<div class="big" style="font-size:44px">${esc(v.eta.value)}</div>${v.strip?.finish ? `<b style="color:${v.strip.finish.ok ? 'var(--g)' : 'var(--oi)'}">${esc(v.strip.finish.text)}</b>` : ''}</div></div>
-  <div class="grid"><div class="tile card"><span class="lbl2">Ship done</span><div style="text-align:center">${ring(v.done.pct, c)}</div><div class="m" style="text-align:center">${esc(v.done.text)}</div></div>
-    <div class="tile card"><b style="font-size:17px;color:var(--pace)">Pace</b><div class="big" style="font-size:44px;color:var(--pace)">${esc(v.ha.pace)}<small> /hr</small></div>${spark(v.paceSeries, Number(v.ha.pace), c)}<span class="m">per productive hour</span><div class="hr"><b style="color:var(--blue)">H.A. ${esc(v.ha.value)} /hr</b><div class="m s13">${esc(v.ha.haLine)}</div></div></div></div>
+  <div class="grid"><div class="tile card"><span class="lbl2">Ship done</span>${done(v.done.pct, c)}<div class="m">${esc(v.done.text)}</div></div>
+    <div class="tile card"><b style="font-size:17px;color:var(--pace)">Pace</b><div class="big" style="font-size:44px;color:var(--pace)">${esc(v.ha.pace)}<small> /hr</small></div>${spark(v.paceSeries, Number(v.ha.pace), c)}<div class="hr"><b style="color:var(--blue);font-size:17px">H.A. ${esc(v.ha.value)} /hr</b><div class="m s13">${esc(v.ha.haLine)}</div></div></div></div>
   ${hull(s, c)}
   ${v.brands.count > 1 ? `<div class="lbl2" style="margin:4px 4px -8px">Remaining by brand</div><div class="card flush">${v.brands.rows.map((r) => `<div class="brand"><div class="kv"><b>${esc(r.name)}</b><span><b class="big" style="font-size:28px">${esc(r.remaining)}</b> of ${esc(r.start)}</span></div><div class="bar"><i style="width:${r.pct ?? 0}%"></i></div></div>`).join('')}</div>` : ''}
   </div>
@@ -74,11 +73,13 @@ function snapshotScreen(s: typeof p, now: number, c: Pal, mode: string) {
 function decksScreen(s: typeof p, now: number, c: Pal, mode: string) {
   const dv = decksView(s), warn = nowLine(s, glovis, now), look = needsLook(s);
   const lv = levers(s, glovis), r0 = scenario(s, glovis, {}); // nothing moved: exactly the Snapshot forecast
-  const chips = (now: number) => [0, 0.25, 0.5, 0.75, 1].map((v) => `<span class="step" style="width:auto;padding:0 14px;height:44px;font-size:15px;${v === now ? `background:${c.ink};color:${c.bg}` : ''}">${Math.round(v * 100)}%</span>`).join(' ');
-  const wi = s.vesselRemaining && r0.ok ? `<div class="card"><div class="kv"><b>What if</b><span class="chip fc">FORECAST</span></div><div class="lbl2">Finish</div><div class="big" style="font-size:44px">${hm(r0.endAbs)}</div><b style="color:var(--g)">Same as the forecast now</b>
-    <div class="hr"><div class="lbl2">Drivers</div>${lv.drivers ? `<div class="kv"><span class="step">−</span><b style="font-size:32px">${lv.drivers.now}</b><span class="step">+</span></div>` : '<div class="m">No per-driver rate yet.</div>'}</div>
-    <div class="hr"><div class="lbl2">Southside share of the cars</div><div style="display:flex;gap:6px;flex-wrap:wrap">${chips(lv.south.now)}</div><div class="m s13">${lv.south.known ? `Southside is ${Math.round(lv.south.now * 100)}% of the cars still aboard. Each side stops at its own time.` : 'A brand goes to both sides, or has no count yet, so the forecast stops every car at the Southside time.'}</div></div>
-    <div class="hr"><div class="lbl2">Heavy cargo (H/H) running, share of the hours left</div>${lv.heavy ? `<div style="display:flex;gap:6px;flex-wrap:wrap">${chips(lv.heavy.now)}</div>` : `<div class="m s13">${esc(lv.heavyWhy)}</div>`}</div></div>` : '';
+  const chips = (now: number) => [0, 0.25, 0.5, 0.75, 1].map((v) => `<span class="step" style="width:auto;flex:1;padding:0 2px;height:44px;font-size:15px;${v === now ? `background:${c.ink};color:${c.bg}` : ''}">${Math.round(v * 100)}%</span>`).join(' ');
+  const stepper = (label: string, value: string) => `<div class="hr"><div class="lbl2">${label}</div><div class="kv"><span class="step">−</span><b style="font-size:32px">${value}</b><span class="step">+</span></div></div>`;
+  const wi = s.vesselRemaining && r0.ok ? `<div class="card"><div class="kv"><b>What if</b><span class="chip fc">FORECAST</span></div><div class="lbl2">Finish</div><div class="big" style="font-size:44px">${hm(r0.endAbs)}</div><b style="color:var(--g)">Same as now</b>
+    ${lv.pace ? stepper('Pace', `${Math.round(lv.pace.now)}<small> /hr</small>`) : ''}
+    ${lv.drivers ? stepper('Drivers', String(lv.drivers.now)) : '<div class="hr"><div class="lbl2">Drivers</div><div class="m s13">Needs an hour with drivers logged.</div></div>'}
+    <div class="hr"><div class="lbl2">Southside share</div><div style="display:flex;gap:6px">${chips(lv.south.now)}</div></div>
+    <div class="hr"><div class="lbl2">Heavy cargo (H/H)</div>${lv.heavy ? `<div style="display:flex;gap:6px">${chips(lv.heavy.now)}</div>` : '<div class="m s13">Not enough hours with and without it.</div>'}</div></div>` : '';
   return `<div class="phone ${mode}" style="--bg:${c.bg};--card:${c.card};--ink:${c.ink};--muted:${c.muted};--line:${c.line};--soft:${c.soft};--head:${c.head};--hi:${c.headInk};--hm:${c.headMuted};--act:${c.action};--ona:${c.onAction};--blue:${c.blue};--or:${c.orange};--ono:${c.onOrange};--pace:${c.pace};--g:${c.gInk};--oi:${c.oInk};--obg:${c.oBg};--rbg:${c.rBg};--ri:${c.rInk}">
   <div class="top"><div class="r1"><span class="menu">☰</span><b>Decks</b></div></div><div class="body">
   ${warn?.tone === 'warn' ? `<div class="banner" style="border:1.5px solid var(--or)"><b>${esc(warn.text)}</b>${warn.advice ? `<div>${esc(warn.advice)}</div>` : ''}${warn.action?.deck ? `<span class="pill">${esc(warn.action.label)}</span>` : ''}</div>` : ''}
@@ -103,6 +104,7 @@ h1{font-size:18px;margin:18px 24px 0}p.n{margin:4px 24px 12px;color:#3A4B60;font
 .big{font-weight:900;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}.big small{font-size:17px;font-weight:600}
 .lbl{font-size:17px;font-weight:700;color:var(--muted)}.lbl2{font-size:15px;font-weight:700;color:var(--muted)}.sub{font-size:17px;font-weight:600;color:var(--muted)}.m{font-size:15px;font-weight:600;color:var(--muted)}.off .m{color:var(--hm)}.s13{font-size:13px}
 .chip{font-size:13px;font-weight:800;letter-spacing:.06em;padding:2px 8px;border-radius:8px;justify-self:start}.fc{background:var(--or);color:var(--ono)}.chip.off{background:var(--hi);color:var(--head)}
+.doneBar{height:14px;border-radius:7px;background:var(--soft);overflow:hidden;margin:4px 0}.doneBar i{display:block;height:100%}
 .meter{height:14px;border-radius:7px;background:#24375A;overflow:hidden}.meter i{display:block;height:100%;background:#3D7BFF}
 .hr{border-top:1px solid var(--soft);padding-top:8px;display:grid;gap:6px}.kv{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .banner{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px}

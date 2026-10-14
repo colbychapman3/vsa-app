@@ -256,7 +256,7 @@ export function Field({ label, value, onChange, placeholder, keyboard = 'number-
 }
 
 // A time box that starts empty. "Now" fills the phone's time; Colby can still edit it.
-export function TimeField({ label, value, onChange, onNow, hint, accessoryId }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void; required?: boolean; hint?: string; accessoryId?: string }) {
+export function TimeField({ label, value, onChange, onNow, required, hint, accessoryId }: { label: string; value: string; onChange: (v: string) => void; onNow: () => void; required?: boolean; hint?: string; accessoryId?: string }) {
   const f = useType();
   return (
     <View style={{ gap: 6 }}>
@@ -268,7 +268,8 @@ export function TimeField({ label, value, onChange, onNow, hint, accessoryId }: 
           <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>Now</Text>
         </Pressable>
       </View>
-      {hint ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>{hint}</Text> : null}
+      {/* A required time says nothing (the error names it); an optional one says it can stay empty. */}
+      {hint || !required ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>{[required ? null : 'Leave empty if unknown.', hint].filter(Boolean).join(' ')}</Text> : null}
     </View>
   );
 }

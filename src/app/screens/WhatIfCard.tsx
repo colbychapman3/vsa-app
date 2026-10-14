@@ -26,8 +26,8 @@ export function WhatIfCard({ state, baseline }: { state: State; baseline: Baseli
   const pct = (x: number) => `${Math.round(x * 100)}%`;
   const paceNow = lv.pace ? Math.round(lv.pace.now) : null;
   const delta = r.ok ? (r.deltaMin === 0 ? 'Same as now' : `${Math.abs(r.deltaMin)} min ${r.deltaMin < 0 ? 'earlier' : 'later'} than now`) : null;
-  // What was chosen, in the order of the controls below. This is the assumption list.
-  const chosen = [pace != null ? `${pace}/hr` : null, d != null ? `${d} drivers` : null, south != null ? `${pct(south)} Southside` : null, heavy != null ? `${pct(heavy)} H/H` : null].filter(Boolean).join(' · ');
+  // The assumption list: the pace the finish runs at (the engine's, after pace, drivers and H/H), then the other values chosen.
+  const chosen = [r.ok && (pace != null || d != null || heavy != null) ? `${Math.round(r.rate)}/hr` : null, d != null ? `${d} drivers` : null, south != null ? `${pct(south)} Southside` : null, heavy != null ? `${pct(heavy)} H/H` : null].filter(Boolean).join(' · ');
 
   const stepper = (label: string, value: number, now: number, unit: string, step: number, set: (v: number) => void, min: number, max: number) => (
     <View style={s.lever}>
@@ -58,7 +58,7 @@ export function WhatIfCard({ state, baseline }: { state: State; baseline: Baseli
             return (
               <Pressable key={v} onPress={() => on(v === now ? null : v)} accessibilityRole="button" accessibilityState={{ selected: sel }} accessibilityLabel={`${label} ${pct(v)}${isNow ? ', as now' : ''}`}
                 style={({ pressed }) => [s.chip, sel && s.chipOn, pressed && u.pressed]}>
-                <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: sel ? color.bg : color.ink }} numberOfLines={1} maxFontSizeMultiplier={1.2}>{pct(v)}</Text>
+                <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: sel ? color.bg : color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.2}>{pct(v)}</Text>
               </Pressable>
             );
           })}
