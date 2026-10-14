@@ -1,6 +1,6 @@
 // What-if calculators (7d step 3), pure. Every result is a FORECAST that lists its assumptions; nothing is saved.
 // Impossible or unknown inputs are refused with the reason, never filled in.
-import { CLEAR_BY_MIN, eta, formatHM, parseHM, scheduleOf, southRemaining, vesselClearBy, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, brandSides, eta, formatHM, parseHM, scheduleOf, southRemaining, vesselClearBy, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 import { heightChip } from './view.ts';
 
@@ -159,24 +159,47 @@ export function stopAt(s: State, b: Baseline, nowMin: number, stopMin: number): 
     `Assumes steady pace and scheduled breaks of 1 hour (${b.breaks.join(', ')}); clear-by is not applied to a stop time you give.`] };
 }
 
-// "What if the 12:00 break moves to 13:00?" The finish time at the current pace with that one break moved, next to the current one.
+// "What if the 12:00 break moves to 13:00?" The finish at the forecast's own pace with that one break moved, next to the current
+// one. Both run through the engine's forecast (clear-by before each break, each side's stop), so "as scheduled" is the Snapshot finish.
 export function moveBreak(s: State, b: Baseline, nowMin: number, from: number, to: number): WhatIf {
   const brs = breakMins(b);
   if (!brs.includes(from)) return err(`There is no scheduled break at ${formatHM(from)} (breaks: ${b.breaks.join(', ')}).`);
-  const pace = s.production.pace;
-  if (pace == null) return err('No pace yet: an hour needs its stoppage time or full minutes.');
   if (s.vesselRemaining == null) return err(`Vessel remaining is unknown: add a count for ${s.missingDecks.join(', ')} first.`);
   if (s.vesselRemaining === 0) return err('Vessel remaining is already 0.');
-  const hrs = s.vesselRemaining / pace;
-  const was = workUntil(nowMin, hrs, brs), now = workUntil(nowMin, hrs, brs.map((x) => (x === from ? to : x)));
+  if (s.eta.rate == null) return err('No recent pace yet: an hour needs its stoppage time or full minutes.');
+  const remaining = s.steady.remaining ?? s.vesselRemaining;
+  const actual = Object.fromEntries(Object.entries(s.dayStarts).filter(([, d]) => d.actual != null).map(([k, d]) => [Number(k), d.actual!]));
+  const sched = scheduleOf(b, s.plan, actual);
+  const south = southRemaining(s.brands, b.destinations);
+  const southLeft = south != null ? south * (remaining / s.vesselRemaining) : null;
+  const run = (breaks: string[]) => eta({ remaining, basis: 'vessel', periods: s.periods, schedule: { ...sched, breaks }, ops: s.ops, southLeft }).etaAbs;
+  const was = run(sched.breaks), now = run(sched.breaks.map((x) => (parseHM(x) === from ? formatHM(to) : x)));
+  if (was == null || now == null) return err('No finish can be projected at this pace.');
   return { ok: true, title: `Move the ${formatHM(from)} break to ${formatHM(to)}`, lines: [
-    `${n(s.vesselRemaining)} remaining at ${n(pace)}/hr: about ${clock(now)} with the break at ${formatHM(to)} (about ${clock(was)} as scheduled).`,
-    `Assumes steady pace from ${formatHM(nowMin)}, every break 1 hour, no stoppages. Moving a break is only a calculation here; nothing is saved.`] };
+    `${n(remaining)} remaining at ${n(s.eta.rate)}/hr (the forecast's recent pace): about ${clock(now)} with the break at ${formatHM(to)} (about ${clock(was)} as scheduled).`,
+    `Same forecast as the Snapshot: each break is 1 hour with the clear-by before it, no stoppages. Moving a break is only a calculation here; nothing is saved.`] };
 }
 
 // Watch rule: an active deck that is a low deck (hard height warning, no vans). Soft (unconfirmed) heights are already listed as "height not confirmed".
 export function fitWatch(s: State): string[] {
   return s.decks.filter((d) => d.status === 'active' && d.height.level === 'hard').map((d) => `${d.label} is active: ${heightChip(d).text}.`);
+}
+
+// What a deck needs per hour to clear before the next break (Colby, 2026-10-14: the side mix matters). All its cars must be out by
+// the Northside stop; its Southside cars (brands positively mapped to Southside) by the Southside stop. The stop that binds is
+// returned. Null once the Northside stop has passed: nothing left to warn about (the warning never fires for a deck that could
+// still make it, and an unmapped brand counts as Northside, as before, so no new alarm comes from missing paperwork).
+function deckNeed(s: State, b: Baseline, d: State['decks'][number], brk: number, nowMin: number): { need: number; stop: number } | null {
+  const sc = scheduleOf(b, s.plan, {});
+  const nStop = sc.clearByNorth ?? CLEAR_BY_MIN.Northside, sStop = sc.clearBySouth ?? CLEAR_BY_MIN.Southside;
+  const hN = (brk - nStop - nowMin) / 60, hS = (brk - sStop - nowMin) / 60;
+  if (d.rem == null || hN <= 0) return null;
+  const sides = brandSides(b.destinations);
+  const tot = Object.values(d.brandStart).reduce((t, x) => t + x, 0);
+  const south = tot > 0 ? Object.entries(d.brandStart).reduce((t, [name, q]) => { const x = sides.get(name); return x && x.size === 1 && x.has('S') ? t + q : t; }, 0) : 0;
+  const southCars = tot > 0 ? d.rem * (south / tot) : 0;
+  const needN = d.rem / hN, needS = southCars > 0 && hS > 0 ? southCars / hS : 0;
+  return needS > needN ? { need: needS, stop: brk - sStop } : { need: needN, stop: brk - nStop };
 }
 
 // Watch rule (7d step 5): an active deck whose remaining cars the current pace cannot clear before the next break's cutoff.
@@ -186,8 +209,8 @@ export function paceWatch(s: State, b: Baseline, nowMin: number): string[] {
   const out: string[] = [];
   for (const d of s.decks) {
     if (d.status !== 'active' || d.rem == null || d.rem === 0) continue;
-    const need = d.rem / Math.max((brk - 15 - nowMin) / 60, 0.01); // Northside cutoff (the later one): the warning never fires for a deck that could still make it
-    if ((brk - 15 - nowMin) > 0 && pace < need) out.push(`${d.label}: ${n(d.rem)} left, pace ${n(pace)}/hr is below the ${n(need)}/hr needed to clear before ${formatHM(brk - 15)}.`);
+    const x = deckNeed(s, b, d, brk, nowMin);
+    if (x && pace < x.need) out.push(`${d.label}: ${n(d.rem)} left, pace ${n(pace)}/hr is below the ${n(x.need)}/hr needed to clear before ${formatHM(x.stop)}.`);
   }
   return out;
 }
@@ -197,19 +220,17 @@ export function paceWatch(s: State, b: Baseline, nowMin: number): string[] {
 export function paceAdvice(s: State, b: Baseline, nowMin: number): string[] {
   const pace = s.production.pace, brk = breakMins(b).find((x) => x > nowMin);
   if (pace == null || brk == null || s.ops.phase !== 'working') return [];
-  const left = (brk - 15 - nowMin) / 60;
-  if (left <= 0) return [];
   const p = [...s.periods].reverse().find((x) => x.driverRate.rate != null && typeof x.drivers === 'number');
   const out: string[] = [];
   for (const d of s.decks) {
     if (d.status !== 'active' || d.rem == null || d.rem === 0) continue;
-    const need = d.rem / left;
-    if (pace >= need) continue;
+    const x = deckNeed(s, b, d, brk, nowMin);
+    if (!x || pace >= x.need) continue;
     if (!p) { out.push(`${d.label}: no per-driver rate yet, so no driver advice (an hour needs its drivers and minutes).`); continue; }
-    const rate = p.driverRate.rate!, cur = p.drivers as number, want = Math.ceil(need / rate), more = want - cur;
+    const rate = p.driverRate.rate!, cur = p.drivers as number, want = Math.ceil(x.need / rate), more = want - cur;
     out.push(more > 0
-      ? `FORECAST: about ${more} more driver${more === 1 ? '' : 's'} (${want} at ${rate.toFixed(2)} per driver per hr, the ${p.start} rate) would clear ${d.label}'s ${n(d.rem)} by ${formatHM(brk - 15)}${b.destinations.some((x) => x.side === 'S') ? ` (Southside cars stop ${formatHM(brk - 30)})` : ''}. Assumes the whole pace goes to this deck.`
-      : `${d.label}: at the ${p.start} rate, ${cur} drivers should already clear it by ${formatHM(brk - 15)}; the pace is running below that rate.`);
+      ? `FORECAST: about ${more} more driver${more === 1 ? '' : 's'} (${want} at ${rate.toFixed(2)} per driver per hr, the ${p.start} rate) would clear ${d.label}'s ${n(d.rem)} by ${formatHM(x.stop)}${b.destinations.some((y) => y.side === 'S') ? ` (Northside cars stop ${formatHM(brk - (scheduleOf(b, s.plan, {}).clearByNorth ?? CLEAR_BY_MIN.Northside))}, Southside cars ${formatHM(brk - (scheduleOf(b, s.plan, {}).clearBySouth ?? CLEAR_BY_MIN.Southside))})` : ''}. Assumes the whole pace goes to this deck.`
+      : `${d.label}: at the ${p.start} rate, ${cur} drivers should already clear it by ${formatHM(x.stop)}; the pace is running below that rate.`);
   }
   return out;
 }

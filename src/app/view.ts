@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, requiredRate, scheduleOf, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, requiredRate, scheduleOf, southRemaining, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -250,8 +250,13 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
   // Live estimate between counts (Colby, 2026-10-11): the forecast's own pace carried from the last logged hour to now.
   // A line under the number, labeled an estimate; the number itself stays the last count.
   const actual = Object.fromEntries(Object.entries(s.dayStarts).filter(([, d]) => d.actual != null).map(([k, d]) => [Number(k), d.actual!]));
+  // The working minutes counted use the same stops as the forecast: while Northside cars remain, the band between the two stops is
+  // still worked (Colby, 2026-10-14); with no Northside cars left or an unknown mix, the later stop.
+  const sch = scheduleOf(b, s.plan, actual);
+  const southNow = s.vesselRemaining != null ? southRemaining(s.brands, b.destinations) : null;
+  const northWorks = sch.clearByNorth != null && southNow != null && s.vesselRemaining != null && southNow < s.vesselRemaining;
   const ne = nowEstimate({ remaining: st.remaining, rate: s.eta.rate, fromAbs: s.eta.fromAbs, nowAbs,
-    schedule: scheduleOf(b, s.plan, actual), phase: s.ops.phase });
+    schedule: northWorks ? { ...sch, clearByMin: sch.clearByNorth! } : sch, phase: s.ops.phase });
   const about = (n: number) => (n >= 50 ? Math.round(n / 5) * 5 : n); // no false precision on a guess
   const estimate: { tone: 'muted' | 'orange'; text: string; sub: string | null; forecast: boolean } | null = ne.est != null
     ? (ne.est === 0

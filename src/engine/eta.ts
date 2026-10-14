@@ -54,9 +54,15 @@ function windows(s: Schedule, d: number): [number, number][] {
 // Cars still aboard that must stop at the Southside time: the sum of the remaining of every brand whose destination is Southside.
 // Null when it cannot be known (a brand with no remaining count, one that goes to both sides, or one the destinations do not name):
 // the forecast then keeps the conservative rule and stops every car at the later stop.
-export function southRemaining(brands: { name: string; remaining: number | null }[], destinations: Pick<Destination, 'side' | 'brands'>[]): number | null {
+// Which side(s) each named brand goes to, from the destinations (setup step 3: one line per brand and destination).
+export function brandSides(destinations: Pick<Destination, 'side' | 'brands'>[]): Map<string, Set<'N' | 'S'>> {
   const sides = new Map<string, Set<'N' | 'S'>>();
   for (const d of destinations) for (const b of d.brands ?? []) sides.set(b, (sides.get(b) ?? new Set<'N' | 'S'>()).add(d.side));
+  return sides;
+}
+
+export function southRemaining(brands: { name: string; remaining: number | null }[], destinations: Pick<Destination, 'side' | 'brands'>[]): number | null {
+  const sides = brandSides(destinations);
   let south = 0;
   for (const b of brands) {
     const s = sides.get(b.name);
@@ -186,7 +192,10 @@ export function steadyFinish(i: { vesselRemaining: number | null; fieldBalance: 
       schedule = { ...schedule, shiftEnd: formatHM(i.shiftEndAbs), shiftEndStopMin: Math.max(SHIFT_END_STOP_MIN.N, SHIFT_END_STOP_MIN.S) };
     }
   }
-  const c = carriedRemaining({ remaining: i.vesselRemaining, rate: i.forecast.rate, deckAsOfAbs: asOf, fromAbs: from, schedule });
+  // While Northside cars remain, the band between the two stops is still productive (they work it), so the minutes carried use the
+  // Northside stop; with no Northside cars left, or an unknown mix, the later stop as before.
+  const northCarries = schedule.clearByNorth != null && i.southLeft != null && i.southLeft < i.vesselRemaining;
+  const c = carriedRemaining({ remaining: i.vesselRemaining, rate: i.forecast.rate, deckAsOfAbs: asOf, fromAbs: from, schedule: northCarries ? { ...schedule, clearByMin: schedule.clearByNorth! } : schedule });
   if (!c) return base;
   // The carried cars come off both sides in proportion (the log does not say which side they were): an estimate, like the carry.
   const southLeft = i.southLeft == null ? null : i.southLeft * (c.remaining / i.vesselRemaining);

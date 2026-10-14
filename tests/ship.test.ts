@@ -6,7 +6,8 @@ import type { State } from '../src/storage/store.ts';
 import { shipView } from '../src/app/ship.ts';
 import { nowLine } from '../src/app/now.ts';
 import { needsLook, snapshot } from '../src/app/view.ts';
-import { driversFinish, levers, scenario } from '../src/app/whatif.ts';
+import { driversFinish, levers, paceWatch, scenario } from '../src/app/whatif.ts';
+import type { Baseline } from '../src/engine/index.ts';
 import { glovis, SCENARIOS, toEvents } from './scenarios.ts';
 
 type D = State['decks'][number];
@@ -73,6 +74,23 @@ test('What if scenario: no factor moved is exactly the forecast; each factor mov
     assert.ok(lv.heavyWhy);
   }
   assert.equal(scenario({ ...p, periods: [] } as State, glovis, { drivers: 20 }).ok, false);
+});
+
+test('pace watch uses the deck\'s own side stop: a mostly Southside deck is flagged against the Southside stop (Colby, 2026-10-14)', () => {
+  const b = { start: '08:00', breaks: ['12:00'], destinations: [{ side: 'N', clearBy: 15, brands: ['BMW'] }, { side: 'S', clearBy: 30, brands: ['MBZ'] }] } as unknown as Baseline;
+  const deck = (brandStart: Record<string, number>) => ({ id: 'D1', label: 'D1', status: 'active', rem: 150, brandStart }) as unknown as D;
+  const st = (d: D, pace: number) => ({ production: { pace }, ops: { phase: 'working', day: 1 }, plan: { shiftEnd: null, nextStart: null }, decks: [d] }) as unknown as State;
+  const at = 10 * 60;
+  // 150 cars, 135 of them Southside: the Northside stop needs 86/hr (150 ÷ 1.75 h), the Southside stop needs 90/hr (135 ÷ 1.5 h).
+  const w = paceWatch(st(deck({ BMW: 20, MBZ: 180 }), 88), b, at);
+  assert.equal(w.length, 1);
+  assert.match(w[0], /needed to clear before 11:30\.$/);
+  // The same deck at 88/hr under the old Northside-only rule was fine; mostly Northside it still is.
+  assert.deepEqual(paceWatch(st(deck({ BMW: 180, MBZ: 20 }), 88), b, at), []);
+  // A brand no destination names counts as Northside: missing paperwork raises no new alarm.
+  assert.deepEqual(paceWatch(st(deck({ XYZ: 200 }), 88), b, at), []);
+  // Past the Northside stop there is nothing left to warn about.
+  assert.deepEqual(paceWatch(st(deck({ MBZ: 200 }), 10), b, 11 * 60 + 50), []);
 });
 
 test('Needs a look lists open discrepancies, low decks with cargo and unconfirmed heights; a clean vessel lists nothing', () => {
