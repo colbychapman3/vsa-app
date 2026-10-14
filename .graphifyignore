@@ -1,0 +1,11 @@
+# Generated design iterations (three passes of the same screens)
+docs/mockups/every-screen-2026-10-13/
+docs/mockups/every-screen-swarm-wip-2026-10-13/
+docs/mockups/every-screen-swarm-final-2026-10-13/
+
+# Reference screenshots and example game plan (image-heavy)
+docs/reference/game-plan-example-hector-highway-10a/
+docs/reference/screens/
+
+# Duplicate copy of the skills kept in .claude/skills
+.agents/
