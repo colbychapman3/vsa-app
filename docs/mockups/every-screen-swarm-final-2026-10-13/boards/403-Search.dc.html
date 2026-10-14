@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#14243B}
+.vsa { font-family:'Schibsted Grotesk', system-ui, -apple-system, sans-serif; --bg:#EEF1F4; --card:#FFFFFF; --ink:#0E1A2B; --muted:#3A4B60; --line:#CBD3DC; --soft:#DCE3EC; --row:#F4F6F8;
+  --blue:#1D4ED8; --oBg:#FFF4EB; --oInk:#7C2D12; --orange:#B45309; --red:#B91C1C; --rBg:#FEE2E2; --rInk:#7F1D1D; --green:#15803D; --gBg:#DCFCE7; --gInk:#14532D;
+  --head:#14243B; --headMuted:#C9D6EA; --action:#FFD6A5; --hull:#14243B; --track:#24375A; --clear:#1B2C47; --fill:#3D7BFF; --deckMuted:#A9BAD1;
+  --t-label:13px; --t-body:15px; --t-em:17px; --t-title:22px; --t-display:28px;
+  --r-s:8px; --r-m:12px; --bw:1px; --bw2:1.5px; }
+.vsa.night { --bg:#0A121D; --card:#13202F; --ink:#E8EEF5; --muted:#B5C4D8; --line:#2A3B55; --soft:#1E2F48; --row:#15233A;
+  --blue:#8CB2FF; --oBg:#35210F; --oInk:#FFC999; --orange:#F59E0B; --rBg:#3A1515; --rInk:#FFB4B4; --gBg:#12301D; --gInk:#B8F2CB; --green:#5EE08A;
+  --head:#060D17; --headMuted:#B5C4D8; --hull:#050A12; --track:#1E3354; --clear:#101C2E; --fill:#4C8DFF; }
+.vsa.xv { --bg:#D3DAE2; --ink:#000; --muted:#1F2B38; --line:#0E1A2B; --soft:#B9C4D0; --t-label:15px; --bw:2px; --bw2:2.5px; }
+.vsa.night.xv { --bg:#000; --ink:#fff; --muted:#E0E8F2; --line:#E8EEF5; --soft:#2A3B55; }
+.vsa.showtaps .tap { outline:2px dashed #FF3D7F !important; outline-offset:1px; }
+.vsa, .vsa * { box-sizing:border-box; margin:0; padding:0; }
+.vsa .legend span::before { content:''; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; background:var(--c); }
+.vsa .body::-webkit-scrollbar { display:none; }
+.vsa.night .card { box-shadow:none !important }
+.vsa .sw::after { content:''; position:absolute; right:2px; top:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+.vsa .sw.off::after { right:auto; left:2px; }
+.vsa.night .kbd { background:#2B2B2E !important }
+.vsa.night .kbd div { background:#5A5A5E !important;color:#fff !important }
+.vsa .thumbs i.sel::after { content:'✓'; position:absolute; right:4px; bottom:4px; width:22px; height:22px; border-radius:50%; background:#0A84FF; color:#fff; font-size:13px; display:grid; place-items:center; border:2px solid #fff; }
+
+.vsa { --onOrange:#FFFFFF; --pace:#6D28D9; --edge:#14243B; }
+.vsa.night .live{background:var(--green) !important;color:#06210F !important}
+.vsa.night { --onOrange:#1A1206; --pace:#C4B5FD; --red:#FF7A7A; }
+.vsa .hbtn{min-height:44px;display:inline-flex;align-items:center}
+.vsa .tab{min-height:44px;align-content:center}
+.vsa .link.tap{min-height:44px;display:inline-flex;align-items:center}
+.vsa:not(.night) .btn{border:1.5px solid var(--edge)}
+</style>
+</helmet>
+<div class="vsa {{mode}}" style="width: 393px;height: 686px;border-radius: 46px;background: var(--bg);color: var(--ink);overflow: hidden;position: relative;display: flex;flex-direction: column;font-size: var(--t-body);box-shadow: none"><div class="status" style="height: 54px;font-size: 15px;font-weight: 600;display: flex;align-items: flex-end;justify-content: space-between;padding: 0 30px 8px;flex: none;background: var(--bg);color: var(--ink);"></div><div class="shead" style="flex: none;padding: 4px 16px 10px;display: grid;gap: 8px;background: var(--bg);border-bottom: 1px solid var(--line);"><div class="grab" style="width: 40px;height: 5px;border-radius: 3px;background: var(--line);justify-self: center;"></div><div class="ttl" style="display: flex;justify-content: space-between;align-items: center;gap: 12px;"><b style="font-size: var(--t-display);font-weight: 900;">Search</b><span style="font-size: var(--t-label);color: var(--muted);display: flex;gap: 8px;align-items: center"><span class="x tap" style="width: 44px;height: 44px;border-radius: 999px;background: var(--soft);display: grid;place-items: center;font-size: 17px;flex: none;">✕</span></span></div></div>
+    <div class="body" style="flex: 1;overflow-y: auto;overflow-x: hidden;padding: 16px;display: flex;flex-direction: column;gap: 16px;scrollbar-width: none;">
+      <div class="input tap" style="flex: none;border: var(--bw2) solid var(--line);border-radius: var(--r-m);background: var(--card);padding: 10px 12px;font-weight: 500;min-height: 44px;font-variant-numeric: tabular-nums;font-size: 17px">clear by</div>
+      <span class="note" style="flex: none;font-size: var(--t-label);color: var(--muted);line-height: 1.4;">Closest passages, not an answer. Check them yourself:</span>
+      <div class="card tap" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 16px;display: grid;box-shadow: 0 3px 8px rgba(0,0,0,.08);gap: 6px"><span class="lbl" style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">Protocol v1.1 · Appendix C</span><span>“…Southside destinations stop 30 minutes before a scheduled break…”</span><span class="link small" style="font-size: var(--t-body);color: var(--blue);font-weight: 600;">Open passage ›</span></div>
+      <div class="card tap" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 16px;display: grid;box-shadow: 0 3px 8px rgba(0,0,0,.08);gap: 6px"><span class="lbl" style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">Project Instructions v2.1 · §4</span><span>“…apply a cutoff once; never double-subtract when a stop time is given…”</span><span class="link small" style="font-size: var(--t-body);color: var(--blue);font-weight: 600;">Open passage ›</span></div>
+      <div class="card tap" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 16px;display: grid;box-shadow: 0 3px 8px rgba(0,0,0,.08);gap: 6px"><span class="lbl" style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">Glossary · Clear-by</span><span>“…the time a side must stop sending cars…”</span><span class="link small" style="font-size: var(--t-body);color: var(--blue);font-weight: 600;">Open passage ›</span></div>
+      <span class="note" style="flex: none;font-size: var(--t-label);color: var(--muted);line-height: 1.4;">Quoted from the loaded pack (built 2026-10-11). Works offline.</span>
+    </div>
+  </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"night": {"editor": "boolean", "default": false, "section": "Look"}, "extraVisible": {"editor": "boolean", "default": false, "section": "Look"}, "showTapTargets": {"editor": "boolean", "default": false, "section": "Look"}, "$preview": {"width": 393, "height": 686}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const mode = [(p.night ?? false) ? 'night' : '', p.extraVisible ? 'xv' : '', p.showTapTargets ? 'showtaps' : ''].filter(Boolean).join(' ');
+    return { mode };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+> **Partly superseded 2026-10-13** by `../mockups/every-screen-swarm-final-2026-10-13/HANDOFF_SPEC.md` (VSA Every Screen design). Replaced: the Snapshot box layout and box ids (new tile grid, section 9.1). Where the two disagree, the handoff spec and its boards win; the rest of this spec still stands.
+
 # Spec: Customizable Snapshot, Field record box, ETA history (Phase 7i)
 
 Status: **DRAFT**, waiting on approval. Colby asked on 2026-10-08: (1) customize the Snapshot page as he sees fit, removing a box or moving it to another tab; (2) a separate **Field record** box under the vessel remaining box; (3) a history of the recorded ETA behind the forecast box, tappable, with bar and line graph options and an analysis of plus or minus against production.

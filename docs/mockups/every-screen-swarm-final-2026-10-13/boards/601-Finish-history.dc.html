@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Finish history</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#14243B}
+.vsa { font-family:'Schibsted Grotesk', system-ui, -apple-system, sans-serif; --bg:#EEF1F4; --card:#FFFFFF; --ink:#0E1A2B; --muted:#3A4B60; --line:#CBD3DC; --soft:#DCE3EC; --row:#F4F6F8;
+  --blue:#1D4ED8; --oBg:#FFF4EB; --oInk:#7C2D12; --orange:#B45309; --red:#B91C1C; --rBg:#FEE2E2; --rInk:#7F1D1D; --green:#15803D; --gBg:#DCFCE7; --gInk:#14532D;
+  --head:#14243B; --headMuted:#C9D6EA; --action:#FFD6A5; --hull:#14243B; --track:#24375A; --clear:#1B2C47; --fill:#3D7BFF; --deckMuted:#A9BAD1;
+  --t-label:13px; --t-body:15px; --t-em:17px; --t-title:22px; --t-display:28px;
+  --r-s:8px; --r-m:12px; --bw:1px; --bw2:1.5px; }
+.vsa.night { --bg:#0A121D; --card:#13202F; --ink:#E8EEF5; --muted:#B5C4D8; --line:#2A3B55; --soft:#1E2F48; --row:#15233A;
+  --blue:#8CB2FF; --oBg:#35210F; --oInk:#FFC999; --orange:#F59E0B; --rBg:#3A1515; --rInk:#FFB4B4; --gBg:#12301D; --gInk:#B8F2CB; --green:#5EE08A;
+  --head:#060D17; --headMuted:#B5C4D8; --hull:#050A12; --track:#1E3354; --clear:#101C2E; --fill:#4C8DFF; }
+.vsa.xv { --bg:#D3DAE2; --ink:#000; --muted:#1F2B38; --line:#0E1A2B; --soft:#B9C4D0; --t-label:15px; --bw:2px; --bw2:2.5px; }
+.vsa.night.xv { --bg:#000; --ink:#fff; --muted:#E0E8F2; --line:#E8EEF5; --soft:#2A3B55; }
+.vsa.showtaps .tap { outline:2px dashed #FF3D7F !important; outline-offset:1px; }
+.vsa, .vsa * { box-sizing:border-box; margin:0; padding:0; }
+.vsa .legend span::before { content:''; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; background:var(--c); }
+.vsa .body::-webkit-scrollbar { display:none; }
+.vsa.night .card { box-shadow:none !important }
+.vsa .sw::after { content:''; position:absolute; right:2px; top:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+.vsa .sw.off::after { right:auto; left:2px; }
+.vsa.night .kbd { background:#2B2B2E !important }
+.vsa.night .kbd div { background:#5A5A5E !important;color:#fff !important }
+.vsa .thumbs i.sel::after { content:'✓'; position:absolute; right:4px; bottom:4px; width:22px; height:22px; border-radius:50%; background:#0A84FF; color:#fff; font-size:13px; display:grid; place-items:center; border:2px solid #fff; }
+
+.vsa { --onOrange:#FFFFFF; --pace:#6D28D9; --edge:#14243B; }
+.vsa.night .live{background:var(--green) !important;color:#06210F !important}
+.vsa.night { --onOrange:#1A1206; --pace:#C4B5FD; --red:#FF7A7A; }
+.vsa .hbtn{min-height:44px;display:inline-flex;align-items:center}
+.vsa .tab{min-height:44px;align-content:center}
+.vsa .link.tap{min-height:44px;display:inline-flex;align-items:center}
+.vsa:not(.night) .btn{border:1.5px solid var(--edge)}
+</style>
+</helmet>
+<div class="vsa {{mode}}" style="width: 393px;height: 1024px;border-radius: 46px;background: var(--bg);color: var(--ink);overflow: hidden;position: relative;display: flex;flex-direction: column;font-size: var(--t-body);box-shadow: none"><div class="status" style="height: 54px;font-size: 15px;font-weight: 600;display: flex;align-items: flex-end;justify-content: space-between;padding: 0 30px 8px;flex: none;background: var(--bg);color: var(--ink);"></div><div class="shead" style="flex: none;padding: 4px 16px 10px;display: grid;gap: 8px;background: var(--bg);border-bottom: 1px solid var(--line);"><div class="grab" style="width: 40px;height: 5px;border-radius: 3px;background: var(--line);justify-self: center;"></div><div class="ttl" style="display: flex;justify-content: space-between;align-items: center;gap: 12px;"><b style="font-size: var(--t-display);font-weight: 900;">Finish history</b><span style="font-size: var(--t-label);color: var(--muted);display: flex;gap: 8px;align-items: center"><span class="x tap" style="width: 44px;height: 44px;border-radius: 999px;background: var(--soft);display: grid;place-items: center;font-size: 17px;flex: none;">✕</span></span></div></div>
+    <div class="body" style="flex: 1;overflow-y: auto;overflow-x: hidden;padding: 16px;display: flex;flex-direction: column;gap: 12px;scrollbar-width: none;">
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 14px 16px;display: grid;gap: 6px;box-shadow: 0 3px 8px rgba(0,0,0,.08);">
+        <div style="display: flex;align-items: center;gap: 8px;"><span class="tag fc" style="font-size: var(--t-label);font-weight: 700;padding: 2px 7px;border-radius: var(--r-s);letter-spacing: .02em;background: var(--orange);color: var(--onOrange);">FORECAST</span><span style="font-size: var(--t-label);color: var(--muted);font-weight: 600;">Finish now</span></div>
+        <div style="display: flex;align-items: baseline;gap: 10px;flex-wrap: wrap;"><b style="font-size: 40px;font-weight: 900;line-height: 1;">16:08</b><span style="font-size: var(--t-body);font-weight: 600;">82 min before the 17:30 stop</span></div>
+        <span class="note" style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;">From 14:00: 337 left at 158/hr, the average of the last two hours.</span>
+      </div>
+      <span class="lbl" style="flex: none;font-size: var(--t-label);color: var(--muted);font-weight: 600;margin-top: 4px;">FORECAST after each logged hour · tap a point</span>
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);padding: 12px 16px 14px;display: grid;gap: 10px;box-shadow: 0 3px 8px rgba(0,0,0,.08);">
+        <svg viewBox="0 0 330 180" style="width:100%;display:block"><g stroke="var(--soft)"><line x1="40" x2="322" y1="30" y2="30"></line><line x1="40" x2="322" y1="90" y2="90"></line><line x1="40" x2="322" y1="150" y2="150"></line></g>
+          <g font-size="11" fill="var(--muted)" text-anchor="end"><text x="34" y="34">16:30</text><text x="34" y="94">16:00</text><text x="34" y="154">15:30</text></g>
+          <line x1="{{ sx }}" x2="{{ sx }}" y1="22" y2="158" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="3 3"></line>
+          <polyline fill="none" stroke="var(--orange)" stroke-width="3" points="55,98 97,104 139,92 181,126 223,106 307,74"></polyline>
+          <g fill="var(--orange)"><circle cx="55" cy="98" r="4.5"></circle><circle cx="97" cy="104" r="4.5"></circle><circle cx="139" cy="92" r="4.5"></circle><circle cx="181" cy="126" r="4.5"></circle><circle cx="223" cy="106" r="4.5"></circle><circle cx="307" cy="74" r="4.5"></circle></g>
+          <circle cx="{{ sx }}" cy="{{ sy }}" r="9" fill="none" stroke="var(--ink)" stroke-width="3"></circle>
+          <g fill="transparent" class="tap"><circle cx="55" cy="98" r="21" onClick="{{ p0 }}"></circle><circle cx="97" cy="104" r="21" onClick="{{ p1 }}"></circle><circle cx="139" cy="92" r="21" onClick="{{ p2 }}"></circle><circle cx="181" cy="126" r="21" onClick="{{ p3 }}"></circle><circle cx="223" cy="106" r="21" onClick="{{ p4 }}"></circle><circle cx="307" cy="74" r="21" onClick="{{ p5 }}"></circle></g>
+          <g font-size="11" fill="var(--muted)" text-anchor="middle"><text x="55" y="174">08</text><text x="97" y="174">09</text><text x="139" y="174">10</text><text x="181" y="174">11</text><text x="223" y="174">12</text><text x="265" y="174" font-style="italic">break</text><text x="307" y="174">14</text></g></svg>
+        <div style="background: var(--row);border: var(--bw2) solid var(--ink);border-radius: var(--r-m);padding: 10px 12px;display: grid;gap: 2px;">
+          <div style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;"><b style="font-size: var(--t-em);">After {{ sel.hour }}</b><b style="font-size: var(--t-em);">{{ sel.eta }}</b></div>
+          <span style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;">{{ sel.why }}</span>
+          <span style="font-size: var(--t-label);font-weight: 700;color: {{ sel.dc }};">{{ sel.move }}</span>
+        </div>
+        <span class="note" style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;">Higher on the chart is a later finish.</span>
+      </div>
+      <span class="lbl" style="flex: none;font-size: var(--t-label);color: var(--muted);font-weight: 600;margin-top: 4px;">FORECAST finish, plus / minus by hour</span>
+      <div class="list" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);overflow: hidden;">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5"><div class="li tap" onClick="{{ r.pick }}" style="display: flex;align-items: center;gap: 12px;padding: 10px 14px;min-height: 44px;border-top: {{ r.bt }};background: {{ r.bg }};box-shadow: {{ r.sh }};"><span class="mono" style="font-family: 'DM Mono', monospace;width: 52px;flex: none;">{{ r.hour }}</span><span class="grow" style="flex: 1;min-width: 0;font-weight: 600;">{{ r.eta }}</span><b style="color: {{ r.dc }};">{{ r.delta }}</b></div></sc-for>
+      </div>
+      <span class="info" style="flex: none;font-size: var(--t-label);color: var(--muted);line-height: 1.4;border-left: 3px solid var(--line);padding-left: 10px;">These lines say what changed. They don’t say why: pace, drivers, breaks and the cargo left all move it.</span>
+    </div>
+  </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"night": {"editor": "boolean", "default": false, "section": "Look"}, "extraVisible": {"editor": "boolean", "default": false, "section": "Look"}, "showTapTargets": {"editor": "boolean", "default": false, "section": "Look"}, "$preview": {"width": 393, "height": 1024}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: 5 }; }
+  renderVals() {
+    const p = this.props;
+    const mode = [(p.night ?? false) ? 'night' : '', p.extraVisible ? 'xv' : '', p.showTapTargets ? 'showtaps' : ''].filter(Boolean).join(' ');
+    // ETA after each logged hour: from the end of that hour, vessel remaining ÷ average pace of the last two hours with a known pace; breaks and the 11:45 stop skipped.
+    const pts = [
+      { hour: '07–08', x: 55, y: 98, eta: '15:56', left: '1,202', rate: '180/hr (07–08 only, 50 min worked)', d: null },
+      { hour: '08–09', x: 97, y: 104, eta: '15:53', left: '1,020', rate: '181/hr (180 and 182)', d: -3 },
+      { hour: '09–10', x: 139, y: 92, eta: '15:59', left: '845', rate: '179/hr (182 and 175)', d: 6 },
+      { hour: '10–11', x: 181, y: 126, eta: '15:42', left: '646', rate: '187/hr (175 and 199)', d: -17 },
+      { hour: '11–12', x: 223, y: 106, eta: '15:52', left: '522', rate: '182/hr (199 and 165)', d: 10 },
+      { hour: '13–14', x: 307, y: 74, eta: '16:08', left: '337', rate: '158/hr (165 and 151)', d: 16 },
+    ];
+    const sel = this.state.sel;
+    const pick = (i) => () => this.setState({ sel: i });
+    const move = (pt, i) => pt.d == null ? 'First forecast of the day' : (pt.d > 0 ? pt.d + ' min later' : (-pt.d) + ' min earlier') + ' than after ' + pts[i - 1].hour;
+    const dc = (pt) => pt.d == null ? 'var(--muted)' : (pt.d > 0 ? 'var(--oInk)' : 'var(--gInk)');
+    const s = pts[sel];
+    const rows = pts.slice().reverse().map((pt, k) => {
+      const i = pts.indexOf(pt);
+      return { hour: pt.hour, eta: pt.eta, delta: pt.d == null ? 'first' : (pt.d > 0 ? '+' + pt.d : '−' + (-pt.d)) + ' min', dc: dc(pt), pick: pick(i), bt: k ? '1px solid var(--soft)' : '0', bg: i === sel ? 'var(--row)' : 'transparent', sh: i === sel ? 'inset 4px 0 0 var(--ink)' : 'none' };
+    });
+    const r = { mode, rows, sx: s.x, sy: s.y,
+      sel: { hour: s.hour, eta: 'FORECAST ' + s.eta, why: s.left + ' left at ' + s.rate + '.', move: move(s, sel), dc: dc(s) } };
+    pts.forEach((pt, i) => { r['p' + i] = pick(i); });
+    return r;
+  }
+}
+</script>
+</body>
+</html>

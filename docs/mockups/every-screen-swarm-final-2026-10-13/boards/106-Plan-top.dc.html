@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Plan, top</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#14243B}
+.vsa { font-family:'Schibsted Grotesk', system-ui, -apple-system, sans-serif; --bg:#EEF1F4; --card:#FFFFFF; --ink:#0E1A2B; --muted:#3A4B60; --line:#CBD3DC; --soft:#DCE3EC; --row:#F4F6F8;
+  --blue:#1D4ED8; --oBg:#FFF4EB; --oInk:#7C2D12; --orange:#B45309; --red:#B91C1C; --rBg:#FEE2E2; --rInk:#7F1D1D; --green:#15803D; --gBg:#DCFCE7; --gInk:#14532D;
+  --head:#14243B; --headMuted:#C9D6EA; --action:#FFD6A5; --hull:#14243B; --track:#24375A; --clear:#1B2C47; --fill:#3D7BFF; --deckMuted:#A9BAD1;
+  --t-label:13px; --t-body:15px; --t-em:17px; --t-title:22px; --t-display:28px;
+  --r-s:8px; --r-m:12px; --bw:1px; --bw2:1.5px; }
+.vsa.night { --bg:#0A121D; --card:#13202F; --ink:#E8EEF5; --muted:#B5C4D8; --line:#2A3B55; --soft:#1E2F48; --row:#15233A;
+  --blue:#8CB2FF; --oBg:#35210F; --oInk:#FFC999; --orange:#F59E0B; --rBg:#3A1515; --rInk:#FFB4B4; --gBg:#12301D; --gInk:#B8F2CB; --green:#5EE08A;
+  --head:#060D17; --headMuted:#B5C4D8; --hull:#050A12; --track:#1E3354; --clear:#101C2E; --fill:#4C8DFF; }
+.vsa.xv { --bg:#D3DAE2; --ink:#000; --muted:#1F2B38; --line:#0E1A2B; --soft:#B9C4D0; --t-label:15px; --bw:2px; --bw2:2.5px; }
+.vsa.night.xv { --bg:#000; --ink:#fff; --muted:#E0E8F2; --line:#E8EEF5; --soft:#2A3B55; }
+.vsa.showtaps .tap { outline:2px dashed #FF3D7F !important; outline-offset:1px; }
+.vsa, .vsa * { box-sizing:border-box; margin:0; padding:0; }
+.vsa .legend span::before { content:''; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; background:var(--c); }
+.vsa .body::-webkit-scrollbar { display:none; }
+.vsa.night .card { box-shadow:none !important }
+.vsa .sw::after { content:''; position:absolute; right:2px; top:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+.vsa .sw.off::after { right:auto; left:2px; }
+.vsa.night .kbd { background:#2B2B2E !important }
+.vsa.night .kbd div { background:#5A5A5E !important;color:#fff !important }
+.vsa .thumbs i.sel::after { content:'✓'; position:absolute; right:4px; bottom:4px; width:22px; height:22px; border-radius:50%; background:#0A84FF; color:#fff; font-size:13px; display:grid; place-items:center; border:2px solid #fff; }
+
+.vsa { --onOrange:#FFFFFF; --pace:#6D28D9; --edge:#14243B; }
+.vsa.night .live{background:var(--green) !important;color:#06210F !important}
+.vsa.night { --onOrange:#1A1206; --pace:#C4B5FD; --red:#FF7A7A; }
+.vsa .hbtn{min-height:44px;display:inline-flex;align-items:center}
+.vsa .tab{min-height:44px;align-content:center}
+.vsa .link.tap{min-height:44px;display:inline-flex;align-items:center}
+.vsa:not(.night) .btn{border:1.5px solid var(--edge)}
+</style>
+</helmet>
+<div class="vsa {{mode}}" style="width: 393px;border-radius: 46px;background: var(--bg);color: var(--ink);overflow: hidden;position: relative;display: flex;flex-direction: column;font-size: var(--t-body);height: 1581px;box-shadow: none"><div class="status" style="height: 54px;background: var(--head);color: #fff;font-size: 15px;font-weight: 600;display: flex;align-items: flex-end;justify-content: space-between;padding: 0 30px 8px;flex: none;"></div><div class="top" style="background: var(--head);color: #fff;padding: 6px 20px 14px;display: grid;gap: 8px;flex: none;"><div class="r1" style="display: flex;align-items: center;gap: 12px;"><div class="menu tap" style="width: 44px;height: 44px;border: 1.5px solid var(--headMuted);border-radius: var(--r-m);display: grid;place-items: center;font-size: 20px;flex: none;">☰</div><h1 style="font-weight: 900;font-size: var(--t-display);line-height: 1;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">Hera Highway 13A</h1></div><div class="r2" style="display: flex;align-items: center;gap: 10px;font-size: var(--t-body);font-weight: 600;"><span class="chip live" style="font-size: var(--t-label);font-weight: 600;padding: 3px 8px;border-radius: var(--r-s);white-space: nowrap;background: #15803D;color: #fff;">LIVE</span><span>Berth 2 · 10/12/2026</span><span class="hbtn tap" style="margin-left: auto;border: 1.5px solid var(--headMuted);border-radius: var(--r-m);padding: 9px 14px;font-weight: 600;">Ask</span><span class="hbtn tap" style="border: 1.5px solid var(--headMuted);border-radius: var(--r-m);padding: 9px 14px;font-weight: 600;margin-left: 0;">Map</span></div></div>
+    <div class="body" style="flex: 1;overflow-y: auto;overflow-x: hidden;padding: 16px;display: flex;flex-direction: column;gap: 16px;scrollbar-width: none;">
+      <div class="sec" style="flex: none;font-size: var(--t-body);color: var(--muted);font-weight: 700;margin: 4px 4px -8px;">Baseline</div>
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);box-shadow: 0 3px 8px rgba(0,0,0,.08);padding: 16px;display: grid;gap: 12px;"><div class="kv" style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;"><span>Starting autos</span><b>1,352</b></div><div class="kv" style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;border-top: 1px solid var(--soft);padding-top: 10px;"><span>Load list</span><b style="color: var(--gInk);">Checked ✓</b></div><div class="kv" style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;border-top: 1px solid var(--soft);padding-top: 10px;"><span>High &amp; Heavy</span><b>38 <span style="color: var(--muted);font-size: var(--t-label);">awareness only</span></b></div><div class="kv" style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;border-top: 1px solid var(--soft);padding-top: 10px;align-items: center;"><span>Game plan photos</span><span class="link tap" style="color: var(--blue);font-weight: 600;">3 ›</span></div></div>
+      <div class="sec" style="flex: none;font-size: var(--t-body);color: var(--muted);font-weight: 700;margin: 4px 4px -8px;">Day’s start time</div>
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);box-shadow: 0 3px 8px rgba(0,0,0,.08);padding: 16px;display: grid;gap: 12px;"><div class="kv" style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;"><span>Day 1 planned</span><b>07:00</b></div><div class="kv" style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;border-top: 1px solid var(--soft);padding-top: 10px;"><span>Actual start</span><b>07:10 <span style="color: var(--muted);font-size: var(--t-label);">safety meeting</span></b></div><div class="ghost tap" style="background: var(--card);border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 12px;text-align: center;font-weight: 600;min-height: 44px;display: grid;place-items: center;">Change start time</div></div>
+      <div class="sec" style="flex: none;font-size: var(--t-body);color: var(--muted);font-weight: 700;margin: 4px 4px -8px;">Shift</div>
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);box-shadow: 0 3px 8px rgba(0,0,0,.08);padding: 16px;display: grid;gap: 12px;"><div class="seg" style="display: grid;gap: 8px;grid-template-columns: 1fr 1fr;"><div class="tap" onClick="{{ pickOne }}" style="border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;{{ oneSt }}">One day</div><div class="tap" onClick="{{ pickTwo }}" style="border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;{{ twoSt }}">Two days</div></div><div class="field" style="display: grid;gap: 6px;"><span style="font-size: var(--t-body);font-weight: 700;color: var(--ink);">Day 1 shift end</span><div class="input tap" style="border: var(--bw2) solid var(--line);border-radius: var(--r-m);background: var(--card);padding: 10px 12px;font-size: 20px;font-weight: 500;min-height: 44px;font-variant-numeric: tabular-nums;">23:00</div></div><span style="font-size: var(--t-body);font-weight: 700;color: var(--ink);">Day 1 ends on which side?</span><div class="seg" style="display: grid;gap: 8px;grid-template-columns: 1fr 1fr;"><div class="tap" onClick="{{ pickN }}" style="border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;{{ nSt }}">Northside (−15)</div><div class="tap" onClick="{{ pickS }}" style="border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 10px 4px;text-align: center;font-weight: 600;font-size: var(--t-body);min-height: 44px;display: grid;place-items: center;cursor: pointer;{{ sSt }}">Southside (−30)</div></div><div style="display: flex;justify-content: space-between;align-items: baseline;gap: 12px;background: var(--row);border-radius: var(--r-s);padding: 10px 12px;"><span style="font-weight: 600;">Last cars</span><b style="font-size: var(--t-title);font-weight: 800;font-variant-numeric: tabular-nums;">{{ lastCars }}</b></div><sc-if value="{{ twoDays }}" hint-placeholder-val="{{ false }}"><div style="display: grid;gap: 2px;border-left: 3px solid var(--blue);padding-left: 10px;"><span style="font-weight: 600;">Day 2 start: not set yet.</span><span style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;">The forecast rolls into Day 2.</span></div></sc-if><div class="btn tap" style="flex: none;background: var(--action);color: #0E1A2B;font-weight: 700;font-size: var(--t-em);border-radius: 999px;padding: 16px;text-align: center;box-shadow: 0 3px 8px rgba(0,0,0,.18);min-height: 56px;display: grid;place-items: center;">Save shift</div></div>
+      <div class="sec" style="flex: none;font-size: var(--t-body);color: var(--muted);font-weight: 700;margin: 4px 4px -8px;">Confirm deck heights</div>
+      <div class="card flush" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);box-shadow: 0 3px 8px rgba(0,0,0,.08);display: grid;padding: 0;gap: 0;overflow: hidden;"><div class="li" style="display: flex;align-items: center;gap: 12px;padding: 12px 14px;min-height: 64px;"><div style="flex: 1;min-width: 0;display: grid;gap: 2px"><b>DK9 · 2.00 m</b><span style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;">{{ d9Sub }}</span></div><sc-if value="{{ d9Open }}" hint-placeholder-val="{{ true }}"><div class="ghost tap" onClick="{{ d9Confirm }}" style="background: var(--card);border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 12px;text-align: center;font-weight: 600;min-height: 44px;display: grid;place-items: center;padding: 8px 16px;cursor: pointer;">Confirm</div></sc-if><sc-if value="{{ d9Done }}" hint-placeholder-val="{{ false }}"><span style="color: var(--gInk);font-weight: 700;white-space: nowrap;min-height: 44px;display: inline-flex;align-items: center;">Confirmed ✓</span></sc-if></div><div class="li" style="display: flex;align-items: center;gap: 12px;padding: 12px 14px;min-height: 64px;border-top: 1px solid var(--soft);"><div style="flex: 1;min-width: 0;display: grid;gap: 2px"><b>DK7 · 2.20 m</b><span style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;">{{ d7Sub }}</span></div><sc-if value="{{ d7Open }}" hint-placeholder-val="{{ true }}"><div class="ghost tap" onClick="{{ d7Confirm }}" style="background: var(--card);border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 12px;text-align: center;font-weight: 600;min-height: 44px;display: grid;place-items: center;padding: 8px 16px;cursor: pointer;">Confirm</div></sc-if><sc-if value="{{ d7Done }}" hint-placeholder-val="{{ false }}"><span style="color: var(--gInk);font-weight: 700;white-space: nowrap;min-height: 44px;display: inline-flex;align-items: center;">Confirmed ✓</span></sc-if></div></div>
+      <div class="sec" style="flex: none;font-size: var(--t-body);color: var(--muted);font-weight: 700;margin: 4px 4px -8px;">Labor</div>
+      <div class="card" style="flex: none;background: var(--card);border: var(--bw) solid var(--line);border-radius: var(--r-m);box-shadow: 0 3px 8px rgba(0,0,0,.08);padding: 16px;display: grid;gap: 12px;"><div class="kv" style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;"><span>Van drivers</span><b>70</b></div><div class="kv" style="display: flex;justify-content: space-between;align-items: baseline;gap: 8px;border-top: 1px solid var(--soft);padding-top: 10px;"><span>Heavy gang</span><b>12</b></div><div style="font-size: var(--t-label);color: var(--muted);line-height: 1.4;">Labor order figures are ordered, not a confirmed shape-up.</div><div class="ghost tap" style="background: var(--card);border: var(--bw2) solid var(--line);border-radius: var(--r-m);padding: 12px;text-align: center;font-weight: 600;min-height: 44px;display: grid;place-items: center;">Van list ›</div></div>
+    </div>
+  <div class="tabs" style="flex: none;background: var(--head);display: flex;align-items: center;padding: 8px 8px 30px;"><div class="tab tap" style="flex: 1;text-align: center;color: var(--headMuted);font-size: var(--t-label);font-weight: 600;display: grid;gap: 3px;justify-items: center;"><i style="font-style: normal;font-size: 18px;">◠</i>Snapshot</div><div class="tab tap" style="flex: 1;text-align: center;color: var(--headMuted);font-size: var(--t-label);font-weight: 600;display: grid;gap: 3px;justify-items: center;"><i style="font-style: normal;font-size: 18px;">≋</i>Decks</div><div class="logbtn tap" style="background: var(--action);color: #0E1A2B;font-weight: 700;font-size: var(--t-em);border-radius: 999px;padding: 14px 22px;margin: 0 4px;">＋ Log</div><div class="tab tap" style="flex: 1;text-align: center;color: var(--headMuted);font-size: var(--t-label);font-weight: 600;display: grid;gap: 3px;justify-items: center;"><i style="font-style: normal;font-size: 18px;">▮</i>Hourly</div><div class="tab tap on" style="flex: 1;text-align: center;font-size: var(--t-label);font-weight: 600;display: grid;gap: 3px;justify-items: center;color: var(--action);"><i style="font-style: normal;font-size: 18px;">⌖</i>Plan</div></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"night": {"editor": "boolean", "default": false, "section": "Look"}, "extraVisible": {"editor": "boolean", "default": false, "section": "Look"}, "showTapTargets": {"editor": "boolean", "default": false, "section": "Look"}, "$preview": {"width": 393, "height": 1581}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { side: 'S', two: false, d9: false, d7: false }; }
+  renderVals() {
+    const p = this.props;
+    const mode = [(p.night ?? false) ? 'night' : '', p.extraVisible ? 'xv' : '', p.showTapTargets ? 'showtaps' : ''].filter(Boolean).join(' ');
+    const s = this.state || {};
+    const on = 'background: var(--ink);color: var(--bg);border-color: var(--ink);';
+    const off = 'background: var(--card);color: var(--ink);';
+    return {
+      mode,
+      oneSt: s.two ? off : on, twoSt: s.two ? on : off,
+      pickOne: () => this.setState({ two: false }), pickTwo: () => this.setState({ two: true }),
+      nSt: s.side === 'N' ? on : off, sSt: s.side === 'N' ? off : on,
+      pickN: () => this.setState({ side: 'N' }), pickS: () => this.setState({ side: 'S' }),
+      lastCars: s.side === 'N' ? '22:45' : '22:30',
+      twoDays: !!s.two,
+      d9Open: !s.d9, d9Done: !!s.d9, d9Sub: s.d9 ? 'Confirmed by you · 98 left' : 'Per stow plan · 98 left',
+      d9Confirm: () => this.setState({ d9: true }),
+      d7Open: !s.d7, d7Done: !!s.d7, d7Sub: s.d7 ? 'Confirmed by you · 49 left' : 'Stow plan · can be lowered · 49 left',
+      d7Confirm: () => this.setState({ d7: true }),
+    };
+  }
+}
+</script>
+</body>
+</html>
