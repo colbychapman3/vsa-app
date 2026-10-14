@@ -111,14 +111,16 @@ h1{font-size:18px;margin:18px 24px 0}p.n{margin:4px 24px 12px;color:#3A4B60;font
 .logw{position:relative}.log{display:block;background:var(--act);color:var(--ona);border:2px solid var(--ink);border-radius:999px;padding:13px 22px;font-size:17px;font-weight:800}.due{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--head);color:var(--hi);border:1.5px solid var(--hi);border-radius:999px;padding:0 8px;font-size:13px;white-space:nowrap}
 .between{display:flex;justify-content:space-between;padding:0 12px;font-size:17px}.step{border:2px solid var(--ink);border-radius:999px;width:56px;height:56px;display:grid;place-items:center;font-size:28px;font-weight:700}`;
 
-const out = `<!doctype html><meta charset="utf-8"><title>VSA current design preview</title><style>${css}</style>
-<h1>VSA, current design (from the app's own view models, Glovis replay)</h1>
-<p class="n">A layout mirror for looking over an edit before a store build. Fonts differ from the phone (Schibsted Grotesk there). The phone build is the real check.</p>
-<div class="wrap">
-<div class="col"><h2>Snapshot · Light · a count is due</h2>${snapshotScreen(p, nowMin, light, '')}</div>
-<div class="col"><h2>Snapshot · Night</h2>${snapshotScreen(p, nowMin, night as Pal, 'night')}</div>
-<div class="col"><h2>Snapshot · at a break (scale)</h2>${snapshotScreen(brk, nowMin, light, '')}</div>
-<div class="col"><h2>Decks · Light</h2>${decksScreen(p, nowMin, light, '')}</div>
-</div>`;
-writeFileSync(new URL('../docs/mockups/preview-current.html', import.meta.url), out);
-console.log('wrote docs/mockups/preview-current.html');
+const screens: [string, string, string][] = [
+  ['snapshot-light', 'Snapshot · Light · a count is due', snapshotScreen(p, nowMin, light, '')],
+  ['snapshot-night', 'Snapshot · Night', snapshotScreen(p, nowMin, night as Pal, 'night')],
+  ['snapshot-break', 'Snapshot · at a break (scale)', snapshotScreen(brk, nowMin, light, '')],
+  ['decks-light', 'Decks · Light', decksScreen(p, nowMin, light, '')],
+];
+const page = (title: string, body: string) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${css}</style>${body}`;
+const note = `<p class="n">Drawn from the app's own view models (Glovis replay). A layout mirror: fonts differ from the phone. The phone build is the real check.</p>`;
+writeFileSync(new URL('../docs/mockups/preview-current.html', import.meta.url), page('VSA current design preview',
+  `<h1>VSA, current design</h1>${note}<div class="wrap">${screens.map(([, t, h]) => `<div class="col"><h2>${t}</h2>${h}</div>`).join('')}</div>`));
+// One page per screen, so each can be shot to a phone-sized PNG (see the commit that added this).
+for (const [name, t, h] of screens) writeFileSync(new URL(`../docs/mockups/preview/${name}.html`, import.meta.url), page(t, `<div style="padding:0">${h}</div>`));
+console.log('wrote docs/mockups/preview-current.html and docs/mockups/preview/*.html');
