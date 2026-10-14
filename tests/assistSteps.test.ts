@@ -121,7 +121,7 @@ test('advice: only when the pace watch fires, as a FORECAST with the per-driver 
   const line = nowLine(s.state, glovis, at)!;
   assert.equal(line.tone, 'warn');
   assert.equal(line.advice, adv);
-  assert.deepEqual(line.action, { label: 'See decks', to: 'decks' });
+  assert.deepEqual(line.action, { label: `See ${d.label}`, to: 'deck', deck: d.id }); // the warning names a deck, so the card opens that deck
   assert.deepEqual(paceAdvice(s.state, glovis, 11 * 60 + 50), []); // past the cutoff: nothing to advise
 });
 

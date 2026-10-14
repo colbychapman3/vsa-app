@@ -443,7 +443,8 @@ export default function App() {
                 {tab === 'snap'
                   ? <Snapshot notUseful={(t) => notUsefulFor('now', t)} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} onOpenTab={openTab} onTrack={track} isTest={vessel.isTest} save={save} onNotice={setNotice}
                       layout={layout} onLayout={changeLayout} onHistory={() => { setNotice(null); setSheet('eta'); }}
-                      onLog={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }} />
+                      onLog={() => { setNotice(null); setPrefill(undefined); before.current = vessel.state; setLogOpen(true); }}
+                      onOpenDeck={(id) => { setNotice(null); before.current = vessel.state; setDeckOpen(id); }} />
                   : <>
                     {/* Snapshot boxes Colby moved to this tab sit at its top. */}
                     <Boxes tab={tab} layout={layout} onLayout={changeLayout} state={vessel.state} baseline={vessel.baseline} nowMin={nowMin} isTest={vessel.isTest} save={save} onNotice={setNotice}

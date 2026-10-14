@@ -6,7 +6,7 @@ import type { State } from '../storage/store.ts';
 
 export const HATCH_SLOTS = ['H4', 'H3', 'H2', 'H1'] as const;
 export type Seg = { h: string; fill: number | null }; // fill: share still aboard, 0..1; null = unknown (or no quantity on the paperwork)
-export type ShipRow = { id: string; label: string; segs: (Seg | null)[]; right: string; tone: 'working' | 'waiting' | 'clear' | 'unknown'; a11y: string };
+export type ShipRow = { id: string; label: string; segs: (Seg | null)[]; right: string; tone: 'working' | 'waiting' | 'clear' | 'unknown'; low: boolean; a11y: string };
 
 const n = (x: number) => x.toLocaleString('en-US');
 const share = (qty: number | null, rem: number | null, complete: boolean): number | null =>
@@ -25,10 +25,11 @@ export function shipView(s: State): { rows: ShipRow[]; left: number | null; deck
     const working = byHatch ? named.filter((h) => !complete && h.rem != null && h.rem > 0).map((h) => h.h) : [];
     const tone: ShipRow['tone'] = complete ? 'clear' : d.rem == null ? 'unknown' : d.status === 'notStarted' ? 'waiting' : 'working';
     const right = complete ? '✓ clear' : d.rem == null ? 'count?' : `${n(d.rem)} left`;
+    const low = !complete && d.height?.level === 'hard'; // the same low-deck rule the Decks tab and Needs a look use (no vans below 1.85 m)
     const a11y = complete ? `${d.label}: clear`
       : d.rem == null ? `${d.label}: remaining count needed`
-      : `${d.label}: ${n(d.rem)} left${d.status === 'notStarted' ? ', not started' : ''}${working.length ? `, in ${working.join(' and ')}` : ''}`;
-    return { id: d.id, label: d.label, segs, right, tone, a11y };
+      : `${d.label}: ${n(d.rem)} left${d.status === 'notStarted' ? ', not started' : ''}${working.length ? `, in ${working.join(' and ')}` : ''}${low ? ', low deck' : ''}`;
+    return { id: d.id, label: d.label, segs, right, tone, low, a11y };
   });
   return { rows, left: s.vesselRemaining, decksLeft: s.decks.filter((d) => d.status !== 'complete').length, decks: s.decks.length };
 }

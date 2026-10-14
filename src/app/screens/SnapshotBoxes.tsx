@@ -19,6 +19,7 @@ export type BoxProps = {
   state: State; baseline: Baseline; nowMin: number; isTest: boolean; save: Save;
   onNotice: (n: { ok: boolean; text: string }) => void;
   onOpenTab: (t: 'hourly' | 'decks' | 'plan') => void; onHistory: () => void;
+  onOpenDeck?: (id: string) => void; // a deck row on the ship opens that deck's sheet
 };
 
 const TILES: BoxId[] = ['field', 'eta', 'done', 'ha'];
@@ -52,7 +53,7 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   const f = useType();
   switch (id) {
     case 'hero': return wrap(<HeroBox v={v} state={p.state} baseline={p.baseline} />);
-    case 'ship': return wrap(<ShipBox state={p.state} onOpen={() => p.onOpenTab('decks')} />);
+    case 'ship': return wrap(<ShipBox state={p.state} onOpen={() => p.onOpenTab('decks')} onOpenDeck={p.onOpenDeck} />);
     case 'field': return <FieldTile v={v} half={half} onLongPress={menu} />;
     case 'done': return wrap(<DoneTile v={v} />);
     case 'eta': return <EtaTile v={v} p={p} half={half} menu={menu} />;
@@ -274,7 +275,7 @@ function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baselin
 
 // Design B: the ship. One band per deck (top deck first), split into hatches H4 → H1; a hatch fills by how much is still
 // aboard. The whole box is one tap target (to Decks), so it stays glove-sized while the bands stay slim.
-export function ShipBox({ state, onOpen }: { state: State; onOpen: () => void }) {
+export function ShipBox({ state, onOpen, onOpenDeck }: { state: State; onOpen: () => void; onOpenDeck?: (id: string) => void }) {
   const f = useType();
   const v = shipView(state);
   const seg = (g: Seg | null, k: string) => g == null
@@ -302,11 +303,13 @@ export function ShipBox({ state, onOpen }: { state: State; onOpen: () => void })
       </View>
       <View style={s.keel} importantForAccessibility="no-hide-descendants" />
       {v.rows.map((r) => (
-        <View key={r.id} style={s.deckRow} importantForAccessibility="no-hide-descendants">
+        // A deck row opens that deck; a low deck (no vans) is outlined, the same flag the Decks tab and Needs a look use.
+        <Pressable key={r.id} onPress={() => (onOpenDeck ? onOpenDeck(r.id) : onOpen())} accessibilityRole="button" accessibilityLabel={`${r.a11y}. Opens the deck.`}
+          style={({ pressed }) => [s.deckRow, r.low && s.deckLow, pressed && { opacity: 0.7 }]}>
           <View style={s.deckLabelBox}><Text style={[s.deckLabel, { fontFamily: f.mono, color: r.tone === 'clear' ? color.deckMuted : color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text></View>
           <View style={s.segs}>{r.segs.length === 1 ? seg(r.segs[0], 'all') : r.segs.map((g, i) => seg(g, String(i)))}</View>
           <View style={s.deckRightBox}><Text style={[s.deckRight, { fontFamily: f.bodySemi, color: r.tone === 'clear' ? color.deckMuted : color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.right}</Text></View>
-        </View>
+        </Pressable>
       ))}
     </Pressable>
   );
@@ -345,6 +348,7 @@ const s = StyleSheet.create({
   shipTitle: { flexShrink: 1, fontSize: 15, color: color.deckInk },
   shipLink: { fontSize: 15, color: color.deckMuted },
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
+  deckLow: { borderWidth: 1.5, borderColor: color.deckWarn, borderRadius: 10, marginHorizontal: -4, paddingHorizontal: 4 },
   bridge: { width: 30, height: 26, borderRadius: 4, backgroundColor: color.deckMuted },
   hatchBox: { flex: 1, height: 18, borderTopLeftRadius: 5, borderTopRightRadius: 5, backgroundColor: color.deckClear },
   hatchOn: { backgroundColor: color.deckFill },

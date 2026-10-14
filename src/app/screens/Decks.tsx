@@ -21,7 +21,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
   return (
     <View style={s.main}>
       {/* The ship sits here too (Colby, 2026-10-12: on Snapshot and on Decks); a tap opens the first deck that still has cars. */}
-      {showShip && <ShipBox state={state} onOpen={() => left[0] && onOpenDeck(left[0].id)} />}
+      {showShip && <ShipBox state={state} onOpen={() => left[0] && onOpenDeck(left[0].id)} onOpenDeck={onOpenDeck} />}
       <WhatIfCard state={state} baseline={baseline} nowMin={nowMin} />
       <View style={{ gap: 10 }}>
         <SectionHead title="Lessons & Insights" />

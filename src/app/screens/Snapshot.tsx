@@ -16,9 +16,9 @@ import { NotUseful, type NotUsefulProps } from './NotUseful.tsx';
 
 type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'decks' | 'plan') => void; onTrack: (b: Banner) => void;
   isTest: boolean; save: Save; onNotice: (n: { ok: boolean; text: string }) => void;
-  layout: Layout; onLayout: (l: Layout) => void; onHistory: () => void; onLog: () => void; notUseful?: (text: string) => NotUsefulProps };
+  layout: Layout; onLayout: (l: Layout) => void; onHistory: () => void; onLog: () => void; onOpenDeck: (id: string) => void; notUseful?: (text: string) => NotUsefulProps };
 
-export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice, layout, onLayout, onHistory, onLog, notUseful }: Props) {
+export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, save, onNotice, layout, onLayout, onHistory, onLog, onOpenDeck, notUseful }: Props) {
   const f = useType();
   const v = snapshot(state, baseline, nowMin);
   const line = nowLine(state, baseline, nowMin);
@@ -39,7 +39,7 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
       )}
       {now?.sub && <Body style={s.nowSub}>{now.sub}</Body>}
       {now?.action && (
-        <Pressable onPress={() => (now.action!.to === 'log' ? onLog() : onOpenTab('decks'))} accessibilityRole="button" accessibilityLabel={now.action.label}
+        <Pressable onPress={() => { const a = now.action!; if (a.to === 'log') onLog(); else if (a.to === 'deck' && a.deck) onOpenDeck(a.deck); else onOpenTab('decks'); }} accessibilityRole="button" accessibilityLabel={now.action.label}
           style={({ pressed }) => [s.nowBtn, now.tone === 'warn' ? s.nowBtnWarn : s.nowBtnDue, pressed && u.pressed]}>
           <Text numberOfLines={1} adjustsFontSizeToFit style={[s.nowBtnText, { fontFamily: f.bodySemi, color: now.tone === 'warn' ? color.headInk : color.onAction }]}>{now.action.label}</Text>
         </Pressable>
@@ -51,13 +51,13 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
         </View>
       )}
 
-      <Boxes tab="snap" layout={layout} onLayout={onLayout} state={state} baseline={baseline} nowMin={nowMin} isTest={isTest} save={save} onNotice={onNotice} onOpenTab={onOpenTab} onHistory={onHistory} />
+      <Boxes tab="snap" layout={layout} onLayout={onLayout} state={state} baseline={baseline} nowMin={nowMin} isTest={isTest} save={save} onNotice={onNotice} onOpenTab={onOpenTab} onHistory={onHistory} onOpenDeck={onOpenDeck} />
 
       {look.length > 0 && (
         <View style={s.look}>
           <Label>Needs a look</Label>
           {look.map((r) => (
-            <Pressable key={r.text} onPress={() => onOpenTab(r.go)} accessibilityRole="button" accessibilityLabel={`${r.text}. Opens ${r.go === 'plan' ? 'Plan' : 'Decks'}.`}
+            <Pressable key={r.text} onPress={() => (r.deck ? onOpenDeck(r.deck) : onOpenTab(r.go))} accessibilityRole="button" accessibilityLabel={`${r.text}. Opens ${r.go === 'plan' ? 'Plan' : 'Decks'}.`}
               style={({ pressed }) => [s.lookRow, r.tone === 'red' ? s.lookRed : s.lookOrange, pressed && u.pressed]}>
               <Body semi style={{ flex: 1, color: r.tone === 'red' ? color.rInk : color.oInk }}>{r.text}</Body>
               <Text style={[s.stripRight, { color: r.tone === 'red' ? color.rInk : color.oInk, fontFamily: f.body }]}>View ›</Text>

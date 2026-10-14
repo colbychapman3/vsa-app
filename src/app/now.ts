@@ -6,13 +6,17 @@ import type { State } from '../storage/store.ts';
 import { hourOptions } from './view.ts';
 import { paceAdvice, paceWatch } from './whatif.ts';
 
-export type NowAction = { label: string; to: 'log' | 'decks' };
+export type NowAction = { label: string; to: 'log' | 'decks' | 'deck'; deck?: string }; // 'deck': that deck's sheet
 export type NowLine = { tone: 'warn' | 'due' | 'calm'; text: string; sub?: string; advice?: string; action?: NowAction }; // advice: the driver move, FORECAST, only with a warning; action: the one tap that answers it
 
 export function nowLine(s: State, b: Baseline, nowMin: number): NowLine | null {
   if (s.ops.phase !== 'working' || s.vesselRemaining === 0) return null;
   const watch = paceWatch(s, b, nowMin);
-  if (watch.length) { const a = paceAdvice(s, b, nowMin)[0]; return { tone: 'warn', text: watch[0], ...(a ? { advice: a } : {}), action: { label: 'See decks', to: 'decks' } }; }
+  if (watch.length) {
+    const a = paceAdvice(s, b, nowMin)[0];
+    const d = s.decks.find((x) => watch[0].startsWith(`${x.label}:`)); // paceWatch lines open with the deck's label: the card jumps to that deck
+    return { tone: 'warn', text: watch[0], ...(a ? { advice: a } : {}), action: d ? { label: `See ${d.label}`, to: 'deck', deck: d.id } : { label: 'See decks', to: 'decks' } };
+  }
   const opts = hourOptions(s, b);
   const endOf = (h: { start: string; end: string }) => { const a = parseHM(h.start)!, z = parseHM(h.end)!; return z > a ? z : z + 1440; }; // 23–00 ends at midnight
   const due = opts.hours.filter((h) => !h.logged && endOf(h) <= nowMin).at(-1); // the latest hour that has ended without a count

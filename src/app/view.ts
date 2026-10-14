@@ -126,12 +126,12 @@ export function subtitles(s: State, b: Baseline) {
 }
 
 // "Needs a look" (Every Screen graft 3): one list for what is open, in place of stacked strips. Each row says where to go.
-export type LookRow = { tone: 'red' | 'orange'; text: string; go: 'plan' | 'decks' };
+export type LookRow = { tone: 'red' | 'orange'; text: string; go: 'plan' | 'decks'; deck?: string }; // deck: open that deck's sheet
 export function needsLook(s: State): LookRow[] {
   const rows: LookRow[] = [];
   const open = s.issues.filter((i) => i.status === 'open').length;
   if (open) rows.push({ tone: 'orange', text: `${open} open discrepanc${open === 1 ? 'y' : 'ies'}`, go: 'plan' });
-  for (const d of s.decks.filter(isLow)) rows.push({ tone: 'red', text: `${d.label} is a low deck (${m2(d.height.current!)}): no shuttle vans`, go: 'decks' });
+  for (const d of s.decks.filter(isLow)) rows.push({ tone: 'red', text: `${d.label} is a low deck (${m2(d.height.current!)}): no shuttle vans`, go: 'decks', deck: d.id });
   const un = s.decks.filter(isUnconfirmed).length;
   if (un) rows.push({ tone: 'orange', text: `${un} deck height${un === 1 ? '' : 's'} unconfirmed: confirm on Plan`, go: 'plan' });
   return rows;
