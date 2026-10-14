@@ -1,5 +1,5 @@
 // "What if" on the Decks tab (Every Screen, Colby 2026-10-14): ONE widget holding every factor the log can back, each moved in
-// its own way (a stepper, share chips), the finish answering at once. Drivers, Southside share and heavy cargo (H/H) today;
+// its own way (a stepper, share chips), the finish answering at once, through the engine's own forecast. Drivers, Southside share and heavy cargo (H/H) today;
 // weather comes later, when something measured stands behind it. A factor with no measured basis says so and stays out.
 // Nothing here is saved, and nothing here is on the Snapshot.
 import { useState } from 'react';
@@ -19,11 +19,10 @@ export function WhatIfCard({ state, baseline }: { state: State; baseline: Baseli
   const [heavy, setHeavy] = useState<number | null>(null);
   if (state.vesselRemaining == null || state.vesselRemaining === 0 || state.eta.rate == null) return null; // nothing to project: stay out of the way
   const lv = levers(state, baseline);
-  // Southside starts at the vessel's real share of the autos (Colby, 2026-10-14), not at the forecast's "every car at the Southside
-  // time". The Snapshot forecast keeps the protocol's rule; the difference is said below the finish.
-  const real = lv.south.ofAutos;
-  const southUsed = south ?? real ?? undefined;
-  const factors: Factors = { ...(d != null ? { drivers: d } : {}), ...(southUsed != null ? { south: southUsed } : {}), ...(heavy != null ? { heavy } : {}) };
+  // Southside starts at the share of the cars still aboard that the engine's forecast already uses (Colby, 2026-10-14: each side
+  // stops at its own time), so with nothing moved this is exactly the Snapshot finish.
+  const real = lv.south.known ? lv.south.now : null;
+  const factors: Factors = { ...(d != null ? { drivers: d } : {}), ...(south != null ? { south } : {}), ...(heavy != null ? { heavy } : {}) };
   const r = scenario(state, baseline, factors);
   const moved = d != null || south != null || heavy != null;
   const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -44,7 +43,7 @@ export function WhatIfCard({ state, baseline }: { state: State; baseline: Baseli
       </View>
     );
   };
-  const delta = r.ok ? (r.deltaMin === 0 ? 'Same as the Snapshot forecast' : `${Math.abs(r.deltaMin)} min ${r.deltaMin < 0 ? 'earlier' : 'later'} than the Snapshot forecast`) : null;
+  const delta = r.ok ? (r.deltaMin === 0 ? 'Same as the forecast now' : `${Math.abs(r.deltaMin)} min ${r.deltaMin < 0 ? 'earlier' : 'later'} than the forecast now`) : null;
   return (
     <View style={[u.card, u.pad, { gap: 12 }]}>
       <View style={u.secH}>
@@ -75,8 +74,8 @@ export function WhatIfCard({ state, baseline }: { state: State; baseline: Baseli
 
       <View style={s.lever}>
         <Label>Southside share of the cars</Label>
-        {chips(south, real, setSouth, 'Southside share', "the vessel's share")}
-        <Note>{`${real != null ? `Starts at this vessel's real share: Southside is ${pct(real)} of its autos. ` : ''}The Snapshot forecast stops every car ${Math.round(15 + 15 * lv.south.now)} min before a break.`}</Note>
+        {chips(south, lv.south.now, setSouth, 'Southside share', 'as now')}
+        <Note>{real != null ? `Southside is ${pct(real)} of the cars still aboard. Each side stops at its own time (Northside 15, Southside 30 min before a break).` : 'A brand goes to both sides, or has no count yet, so the forecast stops every car at the Southside time. Pick a share to test it.'}</Note>
       </View>
 
       <View style={s.lever}>

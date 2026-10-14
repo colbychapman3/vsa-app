@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { eta, requiredRate, forecastError, forecastPassed, vesselClearBy, type Schedule, type Ops } from '../src/engine/eta.ts';
+import { eta, requiredRate, forecastError, forecastPassed, vesselClearBy, southRemaining, scheduleOf, type Schedule, type Ops } from '../src/engine/eta.ts';
 import { buildPeriods, type HourEntry } from '../src/engine/production.ts';
 import { toAbs } from '../src/engine/time.ts';
 import { loadTracker } from './tracker.ts';
@@ -51,6 +51,36 @@ test('parity: ETA matches the tracker across breaks, shift end and Day 2', () =>
     assert.equal(got.fromAbs, want.from, c.name);
     if (want.reason !== 'done') assert.equal(got.reason, want.reason, c.name);
   }
+});
+
+// Colby, 2026-10-14: the side split changes production numbers, so the forecast no longer stops every car at the Southside time when
+// only some go there. This is a deliberate step away from the VSA Live tracker's single clear-by (the parity test above keeps the
+// tracker's rule for schedules that do not name both sides).
+test('split sides: each class finishes by its own stop; the vessel finishes when both are done', () => {
+  const periods = buildPeriods(DEMO, BREAKS);
+  const one: Schedule = { dayStart: '08:00', breaks: BREAKS, clearByMin: 30 };
+  const two: Schedule = { ...one, clearByNorth: 15, clearBySouth: 30 };
+  const run = (schedule: Schedule, southLeft?: number | null, remaining = 1000) => eta({ remaining, basis: 'vessel', periods, schedule, ops: { day: 1 }, southLeft }).etaAbs!;
+  const conservative = run(one);
+  assert.equal(run(two, null), conservative, 'unknown Southside cars: the later stop for every car, as before');
+  assert.equal(run(two, 1000), conservative, 'every car Southside: the Southside stop');
+  assert.equal(run(two, 0), run({ ...one, clearByMin: 15 }), 'no car Southside: the Northside stop');
+  const mixed = run(two, 300);
+  assert.ok(mixed <= conservative && mixed >= run(two, 0), 'a mix lands between the two');
+  assert.ok(run(two, 600) >= run(two, 300), 'more Southside cars never finish earlier');
+  // A schedule that names only one side keeps the one stop.
+  assert.equal(run({ ...one, clearByNorth: 15 }, 300), conservative);
+});
+
+test('southRemaining: only brands whose destination is Southside, and only when every brand is known to one side', () => {
+  const dest = [{ side: 'N' as const, brands: ['BMW'] }, { side: 'S' as const, brands: ['MBZ', 'POV'] }];
+  assert.equal(southRemaining([{ name: 'BMW', remaining: 200 }, { name: 'MBZ', remaining: 100 }, { name: 'POV', remaining: 15 }], dest), 115);
+  assert.equal(southRemaining([{ name: 'BMW', remaining: 200 }, { name: 'MBZ', remaining: null }], dest), null, 'an uncounted brand: unknown, never zero');
+  assert.equal(southRemaining([{ name: 'KIA', remaining: 5 }], dest), null, 'a brand no destination names');
+  assert.equal(southRemaining([{ name: 'BMW', remaining: 5 }], [...dest, { side: 'S', brands: ['BMW'] }]), null, 'a brand going to both sides');
+  // scheduleOf names both sides only when the destinations do.
+  const sc = scheduleOf({ start: '08:00', breaks: ['12:00'], destinations: [{ clearBy: 15, side: 'N' }, { clearBy: 30, side: 'S' }] }, { shiftEnd: null, nextStart: null }, {});
+  assert.deepEqual([sc.clearByMin, sc.clearByNorth, sc.clearBySouth], [30, 15, 30]);
 });
 
 test('ETA is always a FORECAST; field basis is labeled', () => {

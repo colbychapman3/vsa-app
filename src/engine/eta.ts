@@ -18,6 +18,10 @@ export type Schedule = {
   shiftEnd?: string | null;      // Day 1 shift end, if set
   breaks: string[];
   clearByMin: number;            // applied once before each break (and before the shift end when its side is not given: older logs)
+  // The two sides' pre-break stops, when the destinations name both. With the cars still aboard per side (`southLeft`) the forecast
+  // finishes each class by its own stop instead of stopping every car at the later one (Colby, 2026-10-14).
+  clearByNorth?: number;
+  clearBySouth?: number;
   shiftEndStopMin?: number;      // minutes before the Day 1 shift end that work stops, from the side Colby names (its own rule)
   actualStarts?: Record<number, string>; // day → actual (late) start; replaces that day's planned start
 };
@@ -47,8 +51,23 @@ function windows(s: Schedule, d: number): [number, number][] {
   return segs.map(([a, z]) => [a, Math.min(z, end)] as [number, number]).filter(([a, z]) => z > a);
 }
 
-export function eta(input: { remaining: number; basis: 'vessel' | 'field'; periods: Period[]; schedule: Schedule; ops: Ops }) {
-  const { remaining, basis, periods, schedule: s, ops } = input;
+// Cars still aboard that must stop at the Southside time: the sum of the remaining of every brand whose destination is Southside.
+// Null when it cannot be known (a brand with no remaining count, one that goes to both sides, or one the destinations do not name):
+// the forecast then keeps the conservative rule and stops every car at the later stop.
+export function southRemaining(brands: { name: string; remaining: number | null }[], destinations: Pick<Destination, 'side' | 'brands'>[]): number | null {
+  const sides = new Map<string, Set<'N' | 'S'>>();
+  for (const d of destinations) for (const b of d.brands ?? []) sides.set(b, (sides.get(b) ?? new Set<'N' | 'S'>()).add(d.side));
+  let south = 0;
+  for (const b of brands) {
+    const s = sides.get(b.name);
+    if (!s || s.size !== 1 || b.remaining == null) return null;
+    if (s.has('S')) south += b.remaining;
+  }
+  return south;
+}
+
+export function eta(input: { remaining: number; basis: 'vessel' | 'field'; periods: Period[]; schedule: Schedule; ops: Ops; southLeft?: number | null }) {
+  const { remaining, basis, periods, schedule: s, ops, southLeft } = input;
   const out = {
     label: 'FORECAST' as const,
     eta: null as OpTime | null,
@@ -72,28 +91,46 @@ export function eta(input: { remaining: number; basis: 'vessel' | 'field'; perio
   if (ops.shiftEnded) t = Math.max(t, ops.day * DAY + dayStartMin(s, ops.day + 1));
   else if (ops.onBreak && ops.breakStart) t = Math.max(t, (ops.day - 1) * DAY + parseHM(ops.breakStart)! + BREAK_MIN);
   out.fromAbs = t;
-  let need = (remaining / rate) * 60;
   const d0 = Math.floor(t / DAY);
-  for (let d = d0; d < d0 + 4; d++) {
-    for (const [a, z] of windows(s, d)) {
-      const a1 = Math.max(a, t);
-      if (z <= a1) continue;
-      const avail = z - a1;
-      if (need <= avail) { out.etaAbs = a1 + need; out.eta = fromAbs(out.etaAbs); return out; }
-      need -= avail; t = z;
+  // When every working window has run for `cars` at this rate, from the anchor: null when it is beyond two days.
+  const finish = (cars: number, sched: Schedule): number | null => {
+    let need = (cars / rate) * 60, at = t;
+    for (let d = d0; d < d0 + 4; d++) {
+      for (const [a, z] of windows(sched, d)) {
+        const a1 = Math.max(a, at);
+        if (z <= a1) continue;
+        const avail = z - a1;
+        if (need <= avail) return a1 + need;
+        need -= avail; at = z;
+      }
+      at = (d + 1) * DAY;
     }
-    t = (d + 1) * DAY;
-  }
-  return { ...out, reason: 'Beyond two days at this pace' };
+    return null;
+  };
+  // Both sides named and the Southside cars known: the Northside stop serves every car, the Southside stop serves the Southside
+  // cars, and the vessel finishes when both are done (a car of either side may use the time before the earlier stop).
+  const split = s.clearByNorth != null && s.clearBySouth != null && southLeft != null;
+  let end: number | null;
+  if (split) {
+    const all = finish(remaining, { ...s, clearByMin: s.clearByNorth! });
+    const south = southLeft! > 0 ? finish(southLeft!, { ...s, clearByMin: s.clearBySouth! }) : 0;
+    end = all == null || south == null ? null : Math.max(all, south);
+  } else end = finish(remaining, s);
+  if (end == null) return { ...out, reason: 'Beyond two days at this pace' };
+  out.etaAbs = end; out.eta = fromAbs(end);
+  return out;
 }
 
 // The forecast's schedule from the baseline and the plan. One builder, so the forecast and the live estimate never disagree.
 export function scheduleOf(
-  b: { start: string; breaks: string[]; destinations: Pick<Destination, 'clearBy'>[] },
+  b: { start: string; breaks: string[]; destinations: (Pick<Destination, 'clearBy'> & { side?: 'N' | 'S' })[] },
   plan: { shiftEnd: string | null; nextStart: string | null; shiftEndSide?: 'N' | 'S' | null },
   actualStarts: Record<number, string>,
 ): Schedule {
+  const sideStop = (side: 'N' | 'S') => { const x = b.destinations.filter((d) => d.side === side); return x.length ? vesselClearBy(x) : null; };
+  const north = sideStop('N'), south = sideStop('S');
   return { dayStart: b.start, nextStart: plan.nextStart, shiftEnd: plan.shiftEnd, breaks: b.breaks, clearByMin: vesselClearBy(b.destinations),
+    ...(north != null && south != null ? { clearByNorth: north, clearBySouth: south } : {}), // only when both sides are named
     ...(plan.shiftEndSide ? { shiftEndStopMin: SHIFT_END_STOP_MIN[plan.shiftEndSide] } : {}), ...(Object.keys(actualStarts).length ? { actualStarts } : {}) };
 }
 
@@ -134,7 +171,7 @@ export function carriedRemaining(i: { remaining: number | null; rate: number | n
 // Inputs the forecast already used are passed in, so this is one more step of the same forecast, never a second model.
 export type Steady = { etaAbs: number | null; remaining: number | null; carry: { cars: number; sinceMin: number } | null };
 export function steadyFinish(i: { vesselRemaining: number | null; fieldBalance: number | null; forecast: { etaAbs: number | null; rate: number | null; fromAbs: number | null };
-  periods: Period[]; schedule: Schedule; ops: Ops; deckSaves: (number | null)[]; shiftEndAbs: number | null }): Steady {
+  periods: Period[]; schedule: Schedule; ops: Ops; deckSaves: (number | null)[]; shiftEndAbs: number | null; southLeft?: number | null }): Steady {
   const base: Steady = { etaAbs: i.forecast.etaAbs, remaining: i.vesselRemaining ?? i.fieldBalance, carry: null };
   if (i.vesselRemaining == null || i.vesselRemaining === 0) return base; // the field balance is already as new as the hourly counts
   if (!i.deckSaves.length || i.deckSaves.some((x) => x == null)) return base; // a save whose time can't be read: leave the forecast as it is
@@ -151,7 +188,9 @@ export function steadyFinish(i: { vesselRemaining: number | null; fieldBalance: 
   }
   const c = carriedRemaining({ remaining: i.vesselRemaining, rate: i.forecast.rate, deckAsOfAbs: asOf, fromAbs: from, schedule });
   if (!c) return base;
-  const e = eta({ remaining: c.remaining, basis: 'vessel', periods: i.periods, schedule, ops: i.ops });
+  // The carried cars come off both sides in proportion (the log does not say which side they were): an estimate, like the carry.
+  const southLeft = i.southLeft == null ? null : i.southLeft * (c.remaining / i.vesselRemaining);
+  const e = eta({ remaining: c.remaining, basis: 'vessel', periods: i.periods, schedule, ops: i.ops, southLeft });
   return { etaAbs: e.etaAbs, remaining: c.remaining, carry: { cars: c.cars, sinceMin: c.sinceMin } };
 }
 

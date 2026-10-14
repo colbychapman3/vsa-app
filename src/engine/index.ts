@@ -9,7 +9,7 @@ import { replay, activeEvents, historyOf, type VsaEvent } from './events.ts';
 import { buildPeriods, summarize, checkHour, hourDriverRate, isShort, SAFETY_MEETING, type HourEntry } from './production.ts';
 import { buildPasses, hhAnalysis, hhStatus, type HhMarker } from './hh.ts';
 import { ledger, currentDrivers, type Phase } from './ledger.ts';
-import { eta, scheduleOf, steadyFinish, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
+import { eta, scheduleOf, southRemaining, steadyFinish, SHIFT_END_STOP_MIN, type Ops } from './eta.ts';
 import { absFromIso, fromIso, toAbs, eventTimeLabel, parseHM, formatHM, type OpTime, type Reject } from './time.ts';
 
 export * from './time.ts';
@@ -527,17 +527,20 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const today = dayDrivers.get(ops.day);
   const drivers = currentDrivers(periods, baseline.labor, today ? { day: ops.day, n: today.n } : null);
   const L = ledger({ decks: deckResults, periods, phase, drivers, clerk: clerk && { remaining: clerk.remaining, time: clerk.time } });
+  // Cars still aboard that stop at the Southside time (null = unknown: every car then stops at the later stop, as before).
+  const southLeft = L.vesselRemaining != null ? southRemaining(L.brands, baseline.destinations) : null;
   const forecast = eta({
     remaining: L.vesselRemaining ?? L.fieldBalance,
     basis: L.vesselRemaining != null ? 'vessel' : 'field',
     periods,
     schedule: scheduleOf(baseline, plan, Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm]))),
     ops,
+    southLeft,
   });
   // The finish the screens show (Colby, 2026-10-11, option A): deck counts older than the last logged hour carried forward at the pace.
   const steady = steadyFinish({ vesselRemaining: L.vesselRemaining, fieldBalance: L.fieldBalance, forecast: forecast, periods,
     schedule: scheduleOf(baseline, plan, Object.fromEntries([...dayActual].map(([d, a]) => [d, a.hm]))), ops,
-    deckSaves: Object.values(deckSave), shiftEndAbs: breakLog.find((x) => x.kind === 'shift' && x.startAbs < 1440)?.startAbs ?? null });
+    deckSaves: Object.values(deckSave), shiftEndAbs: breakLog.find((x) => x.kind === 'shift' && x.startAbs < 1440)?.startAbs ?? null, southLeft });
 
   const corrections = log.events.filter((e) => e.supersedes_event_id && !log.supersededBy[e.event_id])
     .map((e) => ({ event_id: e.event_id, metric: e.payload.metric, history: historyOf(log, e.event_id).map((x) => x.payload.value), reason: e.payload.reason }));

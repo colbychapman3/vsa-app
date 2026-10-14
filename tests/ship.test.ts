@@ -61,9 +61,12 @@ test('What if scenario: no factor moved is exactly the forecast; each factor mov
     assert.ok(more.ok && fewer.ok);
     if (more.ok && fewer.ok) assert.ok(more.endAbs <= none.endAbs && fewer.endAbs >= none.endAbs, 'more drivers never finish later, fewer never earlier');
   }
-  const s0 = scenario(p, glovis, { south: 0 }), s1 = scenario(p, glovis, { south: 1 });
-  assert.ok(s0.ok && s1.ok);
-  if (s0.ok && s1.ok) assert.ok(s0.endAbs <= s1.endAbs, 'a Southside stop (30 min) never finishes earlier than a Northside one (15 min)');
+  const s0 = scenario(p, glovis, { south: 0 }), s1 = scenario(p, glovis, { south: 1 }), sh = scenario(p, glovis, { south: 0.5 });
+  assert.ok(s0.ok && s1.ok && sh.ok);
+  if (s0.ok && s1.ok && sh.ok) {
+    assert.ok(s0.endAbs <= sh.endAbs && sh.endAbs <= s1.endAbs, 'more Southside cars never finish earlier: 0% ≤ 50% ≤ 100%');
+    assert.ok(none.endAbs <= s1.endAbs, 'the forecast now never runs later than every car stopping at the Southside time');
+  }
   if (!lv.heavy) {
     const h = scenario(p, glovis, { heavy: 0.5 });
     assert.equal(h.ok, false, 'heavy cargo is refused without hours both with and without H/H');
