@@ -11,7 +11,7 @@ Boards win on layout and wording, the repo wins on rules. Where a board contradi
 3. **Stale decks look like a mismatch.** 2.1b says "Field is 124 over ship progress". The decks are 62 working minutes old. Say so ("Decks last saved 13:58; about 160 cars cleared since, estimate") and keep the plain gap sentence second. This is wording, not a new rule.
 4. **Hero number age.** 1.1/1.2 show 337 at 15:04 with no age. The app already has `hero.estimate` ("About N left now (est.)") and the steady carry. Show "Decks as of 13:58" under Ship progress, and the estimate line when `nowEstimate` returns a number.
 
-## 1. Board to file map (49 boards, including 2.1b, 1.2b, 1.4b and 3.1b; 4.4 Map was deleted)
+## 1. Board to file map (50 boards, including 2.1b, 1.2b, 1.4b, 1.4c and 3.1b; 4.4 Map was deleted)
 
 Board names are the file stems. `Main.dc.html` is 1.1.
 
@@ -134,7 +134,7 @@ No new engine rule. After save, `state.steady` is the displayed finish. Test wit
 
 1. **Pre-break nudge (warn Now card): board 1.2b `102b-Snapshot-break-coming`.** "Break in 30 min. Stop at 11:45." plus a ghost "See DK12" button (not peach: nothing to log). Sample numbers at 11:15: field 706 through 10-11, ship progress 760, in transit 54, remaining 592, ring 56%, H.A. 177 (706 / 4), pace 184 (706 / 230 productive min), FORECAST finish 15:25 (avg of last two known paces 175 and 199 = 187/hr; skips the 11:45 stop and the 12:00 break). These are sample numbers, not the Main story; the 12:00 break check later reconciles ship = field.
 2. **Answer after a deck save: board 3.1b `301b-Deck-After-Save`.** DK12 160 -> 148 at 15:02 ("12 cleared since"); ship progress 1,027 (was 1,015), remaining 325, 76%; field 981 OFFICIAL, gap 46 shown as in transit; "DK9, DK7 and DK4 are still as of 13:58"; quiet line "Nothing needs your attention right now." A peach "Update decks" button only when decks are older than the last logged hour. Run `answerAfterSave`; reuse the 2.1b component.
-3. **Needed-rate warn state: board 1.4b `104b-Needed-rate-short`.** Example numbers: needed 182 vs pace 151; 2 px orange outline, orange number and tick, line "Pace is 31/hr short of what the ship needs." Never peach, never FORECAST. The "Close:" wording (needed < pace but >= 0.9 x pace) has no board; build it from 9.4.
+3. **Needed-rate warn state: board 1.4b `104b-Needed-rate-short`.** Example numbers: needed 182 vs pace 151; 2 px orange outline, orange number and tick, line "Pace is 31/hr short of what the ship needs." Never peach, never FORECAST. The "Close:" state (needed < pace but >= 0.9 x pace) is board 1.4c `104c-Needed-rate-close`: needed 165 vs pace 176, same orange warning, line "Close: pace is only 11/hr above what the ship needs."
 4. **End-of-shift reconciliation** reuses 9.1 with the Southside stop at 22:30; no new board.
 
 ## 5. Build order (one phase; `npm run verify:release` after each numbered step)
