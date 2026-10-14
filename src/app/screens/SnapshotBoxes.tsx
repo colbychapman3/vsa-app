@@ -1,11 +1,10 @@
 // The Snapshot's boxes, each shown where the layout (src/app/snapshotLayout.ts) puts it: on the Snapshot or at the top of
 // Plan, Hourly or Decks. Layout only; every value comes from view.snapshot(). Long press a box for "Move to" and Hide.
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { snapshot } from '../view.ts';
-import { traces } from '../brief.ts';
 import { shipView, HATCH_SLOTS, type Seg } from '../ship.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
 import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
@@ -52,10 +51,10 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   const wrap = (kids: ReactNode) => <Pressable onLongPress={menu} delayLongPress={450} accessibilityHint="Long press to move or hide this box" style={half ? { flex: 1 } : undefined}>{kids}</Pressable>;
   const f = useType();
   switch (id) {
-    case 'hero': return wrap(<HeroBox v={v} state={p.state} baseline={p.baseline} />);
+    case 'hero': return wrap(<HeroBox v={v} />);
     case 'ship': return wrap(<ShipBox state={p.state} onOpen={() => p.onOpenTab('decks')} onOpenDeck={p.onOpenDeck} />);
-    case 'field': return <FieldTile v={v} half={half} onLongPress={menu} />;
-    case 'done': return wrap(<DoneTile v={v} />);
+    case 'field': return <FieldTile v={v} half={half} onPress={() => p.onOpenTab('hourly')} onLongPress={menu} />;
+    case 'done': return <DoneTile v={v} p={p} half={half} />;
     case 'eta': return <EtaTile v={v} p={p} half={half} menu={menu} />;
     case 'ha': return <PaceTile v={v} p={p} half={half} />;
     case 'brands': return wrap(
@@ -101,59 +100,28 @@ function Box({ id, v, p, half }: { id: BoxId; v: V; p: BoxProps; half?: boolean 
   }
 }
 
-// The "i" beside a number (Every Screen boards): 44 pt to tap, a 30 pt circle to look at. It opens that number's own trace.
-function InfoDot({ on, onPress, label, corner }: { on: boolean; onPress: () => void; label: string; corner?: boolean }) {
+// FORECAST finish (Every Screen 1.1): a filled FORECAST chip, the time, and how it sits against the stop before the break.
+// The page stays clean: how it is worked out lives in Ask, and a tap opens the finish history.
+function EtaTile({ v, p, half, menu }: { v: V; p: BoxProps; half?: boolean; menu: () => void }) {
   const f = useType();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: on }}
-      style={({ pressed }) => [s.dotHit, corner && { position: 'absolute', top: -4, right: -4 }, pressed && u.pressed]}>
-      <View style={[s.dot, on && { backgroundColor: color.ink }]}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: on ? color.card : color.ink }}>i</Text>
+    <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
+      accessibilityLabel={`Finish, forecast ${v.eta.value}. Tap for its history`} accessibilityHint="Long press to move or hide this box">
+      <View style={[u.card, s.tile, v.eta.dashed && s.dashed]}>
+        <Text style={[s.fcChip, { fontFamily: f.bodySemi }]}>FORECAST</Text>
+        <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Finish</Text>
+        {v.eta.day && <Body semi>{v.eta.day}</Body>}
+        <Big size={44}>{v.eta.value}</Big>
+        {v.strip?.finish && <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: v.strip.finish.ok ? color.gInk : color.oInk }}>{v.strip.finish.text}</Text>}
       </View>
     </Pressable>
   );
 }
 
-function WhyBox({ lines }: { lines: string[] }) {
-  return (
-    <View style={s.why}>
-      <Text style={{ fontSize: 13, fontWeight: '700', color: color.blue }}>How this is worked out</Text>
-      {lines.map((l) => <Note key={l} style={{ color: color.ink }}>{l}</Note>)}
-    </View>
-  );
-}
-
-// The trace lines for these keys, from the same state the numbers came from.
-const whyLines = (state: State, baseline: Baseline, ...keys: string[]) => traces(state, baseline).filter((x) => keys.includes(x.key)).flatMap((x) => x.lines);
-
-// FORECAST finish (Every Screen 1.1): a filled FORECAST chip, the time, and how it sits against the stop before the break.
-function EtaTile({ v, p, half, menu }: { v: V; p: BoxProps; half?: boolean; menu: () => void }) {
-  const f = useType();
-  const [open, setOpen] = useState(false);
-  return (
-    <View style={[{ gap: 8 }, half ? { flex: 1 } : undefined]}>
-      <View style={{ flex: half ? 1 : undefined }}>
-        <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={{ flex: 1 }} accessibilityRole="button"
-          accessibilityLabel={`Finish, forecast ${v.eta.value}. Tap for its history`} accessibilityHint="Long press to move or hide this box">
-          <View style={[u.card, s.tile, v.eta.dashed && s.dashed]}>
-            <Text style={[s.fcChip, { fontFamily: f.bodySemi }]}>FORECAST</Text>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Finish</Text>
-            {v.eta.day && <Body semi>{v.eta.day}</Body>}
-            <Big size={44}>{v.eta.value}</Big>
-            {v.strip?.finish && <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: v.strip.finish.ok ? color.gInk : color.oInk }}>{v.strip.finish.text}</Text>}
-          </View>
-        </Pressable>
-        <InfoDot corner on={open} onPress={() => setOpen(!open)} label="How the forecast is worked out" />
-      </View>
-      {open && <WhyBox lines={whyLines(p.state, p.baseline, 'eta')} />}
-    </View>
-  );
-}
-
 // Pace (Every Screen 1.1): purple number, its last hours as a sparkline with the current pace dashed, then H.A. with its denominator.
+// A tap opens the Hourly tab, where those hours are listed.
 function PaceTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
   const f = useType();
-  const [open, setOpen] = useState(false);
   const series = v.paceSeries, cur = Number(v.ha.pace);
   const lo = Math.min(...series), hi = Math.max(...series), span = hi - lo || 1;
   const y = (n: number) => 8 + ((hi - n) / span) * 30;
@@ -161,8 +129,7 @@ function PaceTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
   const refY = Number.isFinite(cur) ? Math.min(42, Math.max(4, y(cur))) : null;
   const last = pts.at(-1)?.split(',');
   return (
-    <View style={[{ gap: 8 }, half ? { flex: 1 } : undefined]}>
-      <View style={{ flex: half ? 1 : undefined }}>
+    <Pressable onPress={() => p.onOpenTab('hourly')} style={half ? { flex: 1 } : undefined} accessibilityRole="button" accessibilityLabel={`Pace ${v.ha.pace} per hour, H.A. ${v.ha.value}. Opens Hourly`}>
         <View style={[u.card, s.tile, { flex: 1 }]}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: PACE_COLOR }}>Pace</Text>
           <View style={s.haRow}>
@@ -182,20 +149,19 @@ function PaceTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
             <Text style={{ fontFamily: f.bodySemi, fontSize: 13, color: color.muted }}>{v.ha.haLine}</Text>
           </View>
         </View>
-        <InfoDot corner on={open} onPress={() => setOpen(!open)} label="How H.A. and pace are worked out" />
-      </View>
-      {open && <WhyBox lines={whyLines(p.state, p.baseline, 'ha', 'pace')} />}
-    </View>
+    </Pressable>
   );
 }
 
-// Ship done (Every Screen 1.1): the share of the vessel the decks have cleared, as a ring. Unknown stays a dash.
-function DoneTile({ v }: { v: V }) {
+// Ship done (Every Screen 1.1): the share of the vessel the decks have cleared, as a ring. Unknown stays a dash. A tap opens Decks.
+function DoneTile({ v, p, half }: { v: V; p: BoxProps; half?: boolean }) {
   const f = useType();
   const d = v.done;
   const R = 43, C = 2 * Math.PI * R, pct = d.pct == null ? 0 : Math.min(100, Math.max(0, d.pct));
   return (
-    <View style={[u.card, s.tile]} accessible accessibilityLabel={`Ship done: ${d.pct == null ? 'unknown' : `${Math.round(d.pct)} percent`}. ${d.text}`}>
+    <Pressable onPress={() => p.onOpenTab('decks')} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
+      accessibilityLabel={`Ship done: ${d.pct == null ? 'unknown' : `${Math.round(d.pct)} percent`}. ${d.text}. Opens Decks`}>
+    <View style={[u.card, s.tile, { flex: 1 }]}>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Ship done</Text>
       <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 4 }}>
         <Svg width={104} height={104} viewBox="0 0 104 104">
@@ -210,33 +176,30 @@ function DoneTile({ v }: { v: V }) {
       </View>
       <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.muted, textAlign: 'center' }}>{d.text}</Text>
     </View>
+    </Pressable>
   );
 }
 
-// Vessel remaining (Every Screen 1.1): just the number and "autos left of N", the ship progress, and the gap sentence. Each
-// number has its own (i). The percent lives in the ring tile, so no bar here.
-function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baseline }) {
+// Vessel remaining (Every Screen 1.1): just the number and "autos left of N", the ship progress, and the gap sentence. The
+// percent lives in the ring tile, so no bar here; how each number is worked out is in Ask, not on this page.
+function HeroBox({ v }: { v: V }) {
   const f = useType();
   const h = v.hero;
-  const [open, setOpen] = useState<'remaining' | 'gap' | null>(null);
-  const toggle = (k: 'remaining' | 'gap') => setOpen(open === k ? null : k);
   const heroColor = h.clerkBadge ? (h.clerkBadge.ok ? color.green : color.red) : color.ink;
   return (
     <Card style={[u.pad, { gap: 10 }]}>
-      <View style={[u.secH, { minHeight: TAP }]}>
+      <View style={u.secH}>
         <Text style={{ flex: 1, fontFamily: f.bodySemi, fontSize: 17, color: color.muted }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{h.label}</Text>
         {h.clerkBadge && (
           <Text style={[s.clerk, h.clerkBadge.ok ? s.clerkOk : s.clerkBad, { fontFamily: f.bodySemi }]}>
             {h.clerkBadge.ok ? '✓ ' : '! '}{h.clerkBadge.text}
           </Text>
         )}
-        <InfoDot on={open === 'remaining'} onPress={() => toggle('remaining')} label="How vessel remaining is worked out" />
       </View>
-      <View style={{ marginTop: -6, gap: 6 }}>
+      <View style={{ gap: 6 }}>
         <Big size={96} style={{ color: heroColor }}>{h.value}</Big>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>{h.ofShort}</Text>
       </View>
-      {open === 'remaining' && <WhyBox lines={whyLines(state, baseline, 'remaining')} />}
       {h.estimate && (
         <View style={{ gap: 4 }}>
           <View style={[u.secH, { justifyContent: 'flex-start', gap: 8 }]}>
@@ -260,13 +223,7 @@ function HeroBox({ v, state, baseline }: { v: V; state: State; baseline: Baselin
             </Text>
           </View>
         ))}
-        {h.gapNote && (
-          <View style={[u.secH, { minHeight: TAP }]}>
-            <Text style={{ flex: 1, fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{h.gapNote}</Text>
-            <InfoDot on={open === 'gap'} onPress={() => toggle('gap')} label="How the gap is worked out" />
-          </View>
-        )}
-        {open === 'gap' && <WhyBox lines={whyLines(state, baseline, 'gap', 'transit')} />}
+        {h.gapNote && <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{h.gapNote}</Text>}
         {h.unknownNote && <Note>{h.unknownNote}</Note>}
       </View>
     </Card>

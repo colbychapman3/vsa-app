@@ -50,6 +50,12 @@ export const QUICK: { label: string; ask: string }[] = [
   { label: 'ETA', ask: 'What is the ETA?' },
   { label: 'Decks left', ask: 'Which decks are left?' },
   { label: 'Open alerts', ask: 'What alerts are open?' },
+  // How the Snapshot's numbers are worked out lives here, not on the Snapshot (Colby, 2026-10-14: a clean page).
+  { label: 'How remaining is worked out', ask: 'How is vessel remaining worked out?' },
+  { label: 'How the gap is worked out', ask: 'How is the gap worked out?' },
+  { label: 'How the ETA is worked out', ask: 'How is the ETA worked out?' },
+  { label: 'How pace is worked out', ask: 'How is pace worked out?' },
+  { label: 'How H.A. is worked out', ask: 'How is H.A. worked out?' },
   { label: 'Distance to a zone', ask: 'Distance to ' },
 ];
 
