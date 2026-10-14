@@ -1,12 +1,12 @@
 // What-if calculators (7d step 3), pure. Every result is a FORECAST that lists its assumptions; nothing is saved.
 // Impossible or unknown inputs are refused with the reason, never filled in.
-import { formatHM, parseHM, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, eta, formatHM, parseHM, scheduleOf, vesselClearBy, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
-import { heightChip } from './view.ts';
+import { heightChip, sideSplit } from './view.ts';
 
 export type WhatIf = { ok: true; title: string; lines: string[] } | { ok: false; error: string };
 const n = (x: number) => Math.round(x).toLocaleString('en-US');
-const err = (error: string): WhatIf => ({ ok: false, error });
+const err = (error: string) => ({ ok: false as const, error });
 const clock = (abs: number) => `${formatHM(((Math.round(abs) % 1440) + 1440) % 1440)}${abs >= 1440 ? ' (next day)' : ''}`;
 
 // Clock time when `hours` of work are done starting at `from`, skipping each scheduled break (1 hour). Ignores the planned shift end.
@@ -49,6 +49,68 @@ export function driversFinish(s: State, b: Baseline, nowMin: number, drivers: nu
   const p = [...s.periods].reverse().find((x) => x.driverRate.rate != null && typeof x.drivers === 'number')!;
   const perHr = p.driverRate.rate! * drivers;
   return { ok: true, endAbs: workUntil(nowMin, s.vesselRemaining! / perHr, breakMins(b)), perHr };
+}
+
+// ---- One scenario with every factor (Every Screen "What if", Colby 2026-10-14) ----
+// The factors are the ones the log can back: drivers (the last measured per-driver rate), the Southside share (the protocol's
+// 15 / 30 min pre-break stops, blended by share) and heavy cargo (pace in the hours H/H ran against the hours it did not, observed
+// from the H/H timeline). Weather is not here: nothing measured yet. A factor with no measured basis is refused, never guessed.
+export type Factors = { drivers?: number; south?: number; heavy?: number }; // south, heavy: share 0..1
+export type Levers = {
+  drivers: { now: number; perDriver: number } | null;
+  south: { now: number; ofAutos: number | null };       // now: the share the forecast assumes (1 when any car goes Southside)
+  heavy: { now: number; active: number; clear: number; activeHours: number; clearHours: number } | null;
+  heavyWhy: string | null;
+};
+export type Scenario = { ok: true; endAbs: number; baseAbs: number; deltaMin: number; rate: number; lines: string[] } | { ok: false; error: string };
+
+export function levers(s: State, b: Baseline): Levers {
+  const p = [...s.periods].reverse().find((x) => x.driverRate.rate != null && typeof x.drivers === 'number');
+  const now = s.drivers?.n ?? (p ? (p.drivers as number) : 0);
+  const cb = vesselClearBy(b.destinations);
+  const split = sideSplit(s, b);
+  const a = s.hh.analysis;
+  const ok = a != null && a.active.n > 0 && a.clear.n > 0 && a.active.pace != null && a.clear.pace != null;
+  return {
+    drivers: p && now > 0 ? { now, perDriver: p.driverRate.rate! } : null,
+    south: { now: Math.min(1, Math.max(0, (cb - CLEAR_BY_MIN.Northside) / (CLEAR_BY_MIN.Southside - CLEAR_BY_MIN.Northside))), ofAutos: split.northPct == null ? null : 1 - split.northPct / 100 },
+    heavy: ok ? { now: s.hh.status === 'active' ? 1 : 0, active: a.active.pace!, clear: a.clear.pace!, activeHours: a.active.n, clearHours: a.clear.n } : null,
+    heavyWhy: ok ? null : !a ? 'No H/H pass is logged yet, so heavy cargo has no measured effect.' : 'Needs whole hours both with and without H/H, so heavy cargo has no measured effect yet.',
+  };
+}
+
+export function scenario(s: State, b: Baseline, f: Factors): Scenario {
+  const base = s.eta.rate, remaining = s.steady.remaining ?? s.vesselRemaining;
+  if (remaining == null) return err(`Remaining is unknown: add a count for ${s.missingDecks.join(', ')} first.`);
+  if (s.vesselRemaining === 0) return err('Vessel remaining is already 0.');
+  if (base == null || !(base > 0)) return err('No recent pace yet: an hour needs its stoppage time or full minutes.');
+  const lv = levers(s, b);
+  let rate = base;
+  const lines: string[] = [];
+  if (f.drivers != null) {
+    if (!lv.drivers) return err('No per-driver rate yet: an hour needs its drivers and its stoppage time.');
+    rate *= f.drivers / lv.drivers.now;
+    lines.push(`${f.drivers} drivers instead of ${lv.drivers.now}: ${n(base)} → ${n(rate)}/hr (last measured ${lv.drivers.perDriver.toFixed(2)} per driver per productive hr).`);
+  }
+  if (f.heavy != null) {
+    if (!lv.heavy) return err(lv.heavyWhy ?? 'Heavy cargo has no measured effect yet.');
+    const at = (h: number) => lv.heavy!.clear * (1 - h) + lv.heavy!.active * h;
+    rate *= at(f.heavy) / at(lv.heavy.now);
+    lines.push(`H/H running ${Math.round(f.heavy * 100)}% of the remaining hours: measured pace ${n(lv.heavy.clear)}/hr without it (${lv.heavy.clearHours} h) and ${n(lv.heavy.active)}/hr with it (${lv.heavy.activeHours} h). Observed, not proven.`);
+  }
+  const N = CLEAR_BY_MIN.Northside, S = CLEAR_BY_MIN.Southside;
+  const clearBy = f.south != null ? N + (S - N) * f.south : vesselClearBy(b.destinations);
+  if (f.south != null) lines.push(`Southside ${Math.round(f.south * 100)}% of the cars: stop ${Math.round(clearBy)} min before each break (Northside ${N}, Southside ${S}, blended by share). The forecast now stops ${vesselClearBy(b.destinations)} min before.`);
+  const actual = Object.fromEntries(Object.entries(s.dayStarts).filter(([, d]) => d.actual != null).map(([k, d]) => [Number(k), d.actual!]));
+  const run = (r: number, c: number) => {
+    const per = s.periods.map((p, i, all) => (i >= all.length - 2 ? { ...p, pace: r } : p)); // the forecast averages the last two paces
+    return eta({ remaining, basis: s.vesselRemaining != null ? 'vessel' : 'field', periods: per, schedule: { ...scheduleOf(b, s.plan, actual), clearByMin: c }, ops: s.ops });
+  };
+  const now = run(base, vesselClearBy(b.destinations)), then = run(rate, clearBy);
+  if (then.etaAbs == null || now.etaAbs == null) return err(then.reason ?? now.reason ?? 'No finish can be projected.');
+  lines.push(`Assumes the same steady pace from the last logged hour and 1-hour scheduled breaks (${b.breaks.join(', ')}). Nothing is saved.`);
+  const endAbs = Math.round(then.etaAbs), baseAbs = Math.round(now.etaAbs); // whole minutes: the clock never shows a fraction
+  return { ok: true, endAbs, baseAbs, deltaMin: endAbs - baseAbs, rate, lines };
 }
 
 // Can the deck's remaining cars be cleared before the next break? The cutoff depends on the side (15 / 30 min), so both are shown.

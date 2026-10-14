@@ -38,7 +38,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
           {notUseful && <NotUseful key={warn.text} {...notUseful(warn.advice ? `${warn.text} ${warn.advice}` : warn.text)} />}
         </View>
       )}
-      <WhatIfCard state={state} baseline={baseline} nowMin={nowMin} />
+      <WhatIfCard state={state} baseline={baseline} />
       <View style={{ gap: 10 }}>
         <SectionHead title="Lessons & Insights" />
         <InfoNote><Note>Shuttle vans need a deck height of 1.85 m or more. A deck below that gets a low-deck warning.</Note></InfoNote>

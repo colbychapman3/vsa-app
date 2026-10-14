@@ -7,7 +7,7 @@ import { light, night } from '../src/app/palette.ts';
 import { snapshot, needsLook, badges, decksView } from '../src/app/view.ts';
 import { nowLine, dueHour } from '../src/app/now.ts';
 import { shipView, HATCH_SLOTS } from '../src/app/ship.ts';
-import { driversFinish } from '../src/app/whatif.ts';
+import { levers, scenario } from '../src/app/whatif.ts';
 import { glovis, SCENARIOS, toEvents } from '../tests/scenarios.ts';
 
 const events = toEvents(SCENARIOS.find((s) => s.name === 'mixed deck progress, working')!);
@@ -73,13 +73,17 @@ function snapshotScreen(s: typeof p, now: number, c: Pal, mode: string) {
 
 function decksScreen(s: typeof p, now: number, c: Pal, mode: string) {
   const dv = decksView(s), warn = nowLine(s, glovis, now), look = needsLook(s);
-  const lastRated = [...s.periods].reverse().find((x) => x.driverRate.rate != null && typeof x.drivers === 'number');
-  const wi = lastRated && s.vesselRemaining ? driversFinish(s, glovis, now, lastRated.drivers as number) : null;
+  const lv = levers(s, glovis), r0 = scenario(s, glovis, {});
+  const chips = (now: number) => [0, 0.25, 0.5, 0.75, 1].map((v) => `<span class="step" style="width:auto;padding:0 14px;height:44px;font-size:15px;${v === now ? `background:${c.ink};color:${c.bg}` : ''}">${Math.round(v * 100)}%</span>`).join(' ');
+  const wi = s.vesselRemaining && r0.ok ? `<div class="card"><div class="kv"><b>What if</b><span class="chip fc">FORECAST</span></div><div class="lbl2">Finish</div><div class="big" style="font-size:44px">${hm(r0.endAbs)}</div><b style="color:var(--g)">Same as the forecast now</b>
+    <div class="hr"><div class="lbl2">Drivers</div>${lv.drivers ? `<div class="kv"><span class="step">−</span><b style="font-size:32px">${lv.drivers.now}</b><span class="step">+</span></div>` : '<div class="m">No per-driver rate yet.</div>'}</div>
+    <div class="hr"><div class="lbl2">Southside share of the cars</div><div style="display:flex;gap:6px;flex-wrap:wrap">${chips(lv.south.now)}</div><div class="m s13">Now the forecast stops ${Math.round(15 + 15 * lv.south.now)} min before a break.</div></div>
+    <div class="hr"><div class="lbl2">Heavy cargo (H/H) running, share of the hours left</div>${lv.heavy ? `<div style="display:flex;gap:6px;flex-wrap:wrap">${chips(lv.heavy.now)}</div>` : `<div class="m s13">${esc(lv.heavyWhy)}</div>`}</div></div>` : '';
   return `<div class="phone ${mode}" style="--bg:${c.bg};--card:${c.card};--ink:${c.ink};--muted:${c.muted};--line:${c.line};--soft:${c.soft};--head:${c.head};--hi:${c.headInk};--hm:${c.headMuted};--act:${c.action};--ona:${c.onAction};--blue:${c.blue};--or:${c.orange};--ono:${c.onOrange};--pace:${c.pace};--g:${c.gInk};--oi:${c.oInk};--obg:${c.oBg};--rbg:${c.rBg};--ri:${c.rInk}">
   <div class="top"><div class="r1"><span class="menu">☰</span><b>Decks</b></div></div><div class="body">
   ${warn?.tone === 'warn' ? `<div class="banner" style="border:1.5px solid var(--or)"><b>${esc(warn.text)}</b>${warn.advice ? `<div>${esc(warn.advice)}</div>` : ''}${warn.action?.deck ? `<span class="pill">${esc(warn.action.label)}</span>` : ''}</div>` : ''}
   ${hull(s, c)}
-  ${wi ? `<div class="card"><div class="kv"><b>What if</b><span class="chip fc">FORECAST</span></div><div class="lbl2">Finish with this many drivers</div>${wi.ok ? `<div class="big" style="font-size:44px">${hm(wi.endAbs)}</div>` : '<div class="m">—</div>'}<div class="kv"><span class="step">−</span><b style="font-size:32px">${lastRated!.drivers}</b><span class="step">+</span></div></div>` : ''}
+  ${wi}
   <div class="lbl2" style="margin:4px 4px -8px">Lessons &amp; Insights</div>
   ${dv.low.length ? dv.low.map((d) => `<div class="banner" style="background:var(--rbg);color:var(--ri)"><b>${esc(d.title)}</b><div>${esc(d.sub)}</div></div>`).join('') : '<div class="card m">No low decks with cargo remaining.</div>'}
   ${look.filter((r) => r.go === 'plan').map((r) => `<div class="banner" style="background:var(--obg);color:var(--oi)"><b>${esc(r.text)}</b></div>`).join('')}
@@ -94,7 +98,7 @@ h1{font-size:18px;margin:18px 24px 0}p.n{margin:4px 24px 12px;color:#3A4B60;font
 .phone{width:393px;background:var(--bg);color:var(--ink);border-radius:36px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:15px}
 .top{background:var(--head);color:var(--hi);padding:44px 20px 14px;display:grid;gap:8px}.r1{display:flex;gap:12px;align-items:center;font-size:26px;font-weight:900}.r2{display:flex;gap:8px;align-items:center;font-size:15px;font-weight:600}
 .menu,.hb{border:1.5px solid var(--hm);border-radius:12px;padding:8px 12px}.live{background:#15803D;color:#fff;border-radius:8px;padding:2px 8px;font-size:13px}
-.body{padding:16px;display:grid;gap:14px}.card,.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:8px;box-shadow:0 3px 8px rgba(0,0,0,.08)}.flush{padding:0}
+.body{padding:16px;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}.card,.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:8px;box-shadow:0 3px 8px rgba(0,0,0,.08)}.flush{padding:0}
 .tile.off{background:var(--head);color:var(--hi);border-color:var(--head)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .big{font-weight:900;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}.big small{font-size:17px;font-weight:600}
 .lbl{font-size:17px;font-weight:700;color:var(--muted)}.lbl2{font-size:15px;font-weight:700;color:var(--muted)}.sub{font-size:17px;font-weight:600;color:var(--muted)}.m{font-size:15px;font-weight:600;color:var(--muted)}.off .m{color:var(--hm)}.s13{font-size:13px}

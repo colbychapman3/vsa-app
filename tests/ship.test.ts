@@ -6,7 +6,7 @@ import type { State } from '../src/storage/store.ts';
 import { shipView } from '../src/app/ship.ts';
 import { nowLine } from '../src/app/now.ts';
 import { needsLook, snapshot } from '../src/app/view.ts';
-import { driversFinish } from '../src/app/whatif.ts';
+import { driversFinish, levers, scenario } from '../src/app/whatif.ts';
 import { glovis, SCENARIOS, toEvents } from './scenarios.ts';
 
 type D = State['decks'][number];
@@ -43,6 +43,33 @@ test('what if drivers: the finish moves earlier with more drivers and refuses wi
   assert.ok(a.ok && b.ok);
   assert.ok(b.endAbs <= a.endAbs, 'more drivers never finish later');
   assert.equal(driversFinish({ ...p, periods: [] } as State, glovis, 600, 20).ok, false);
+});
+
+test('What if scenario: no factor moved is exactly the forecast; each factor moves the finish the way its basis says', () => {
+  const p = replay();
+  assert.ok(p.ok);
+  if (!p.ok || p.vesselRemaining == null || p.vesselRemaining === 0 || p.eta.rate == null) return;
+  const none = scenario(p, glovis, {});
+  assert.ok(none.ok);
+  if (!none.ok) return;
+  assert.equal(none.deltaMin, 0);
+  assert.ok(Number.isInteger(none.endAbs), 'a finish is a whole minute (the screen once showed 17:5.64)');
+  assert.equal(Math.round(none.endAbs), Math.round(p.steady.etaAbs!), 'as now, the widget shows the finish the Snapshot shows');
+  const lv = levers(p, glovis);
+  if (lv.drivers) {
+    const more = scenario(p, glovis, { drivers: lv.drivers.now + 10 }), fewer = scenario(p, glovis, { drivers: Math.max(1, lv.drivers.now - 10) });
+    assert.ok(more.ok && fewer.ok);
+    if (more.ok && fewer.ok) assert.ok(more.endAbs <= none.endAbs && fewer.endAbs >= none.endAbs, 'more drivers never finish later, fewer never earlier');
+  }
+  const s0 = scenario(p, glovis, { south: 0 }), s1 = scenario(p, glovis, { south: 1 });
+  assert.ok(s0.ok && s1.ok);
+  if (s0.ok && s1.ok) assert.ok(s0.endAbs <= s1.endAbs, 'a Southside stop (30 min) never finishes earlier than a Northside one (15 min)');
+  if (!lv.heavy) {
+    const h = scenario(p, glovis, { heavy: 0.5 });
+    assert.equal(h.ok, false, 'heavy cargo is refused without hours both with and without H/H');
+    assert.ok(lv.heavyWhy);
+  }
+  assert.equal(scenario({ ...p, periods: [] } as State, glovis, { drivers: 20 }).ok, false);
 });
 
 test('Needs a look lists open discrepancies, low decks with cargo and unconfirmed heights; a clean vessel lists nothing', () => {
