@@ -8,7 +8,8 @@ import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
 import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
-import { Bar, Big, Body, Card, Chip, FlipTile, InfoNote, Label, Note, SectionHead, Seg, Tag, u } from './ui.tsx';
+import { NeededCard } from './NeededCard.tsx';
+import { Bar, Big, Body, Card, Chip, FlipTile, InfoNote, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
   const f = useType();
@@ -36,7 +37,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
           {v.paceLine && <Note>{v.paceLine}</Note>}
           <InfoNote><Note>They match when no hour was cut short. The forecast uses Pace. Tap to flip back.</Note></InfoNote>
         </View>} />
-      {v.needed && <Card style={u.pad}><Tag kind="FORECAST" /><Body semi>{v.needed.text}</Body></Card>}
+      {v.needed && <NeededCard n={v.needed} />}
       {v.unsetShort && (
         <View style={s.warn}>
           <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.oInk }}>{v.unsetShort}</Text>

@@ -317,7 +317,9 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     : null;
   // The Pace tile's sparkline: pace per counted hour, oldest to newest, the last six hours with a known pace (the hourly list's numbers).
   const paceSeries = s.periods.filter((x) => x.pace != null).slice(-6).map((x) => x.pace as number);
-  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, done, scale, paceSeries, brands, side: sideSplit(s, b) };
+  // The needed rate shows on the Snapshot only when it matters (pace within NEEDED_WARN of it, or short); Hourly always shows it.
+  const need = neededRate(s, b), needed = need?.ok && need.warn ? need : null;
+  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, done, scale, paceSeries, brands, side: sideSplit(s, b), needed };
 }
 
 // Side split from destinations; autos left per side only when each brand goes to one side.
@@ -464,6 +466,28 @@ export function hhTagsFor(s: State, x: { day: number; start: string }): string[]
   ]);
 }
 
+// Needed rate (Colby, 2026-10-12; gauge per HANDOFF_SPEC 9.4): what the rest of Day 1 must average to finish by the planned shift
+// end (last cars, after the shift-end stop). Same remaining and anchor as the forecast. A calculation, never a FORECAST. Compared with
+// the Pace the Snapshot shows; warn when the needed rate reaches NEEDED_WARN of it. Null when there is no shift end, no anchor or
+// nothing remaining. Both marks share one scale (0 to the larger, rounded up to 20).
+export const NEEDED_WARN = 0.9;
+export type Needed = { ok: true; rate: number; pace: number | null; target: string; scaleMax: number; warn: boolean; line: string; detail: string } | { ok: false; target: string; reason: string };
+export function neededRate(s: State, b: Baseline): Needed | null {
+  const rem = s.steady.remaining, from = s.eta.fromAbs;
+  if (!s.plan.shiftEnd || rem == null || rem <= 0 || from == null || from >= 1440) return null;
+  const sch = scheduleOf(b, s.plan, Object.fromEntries(Object.entries(s.dayStarts).filter(([, d]) => d.actual != null).map(([k, d]) => [Number(k), d.actual!])));
+  const target = formatHM(parseHM(s.plan.shiftEnd)! - (sch.shiftEndStopMin ?? sch.clearByMin));
+  const r = requiredRate(rem, { day: 1, hm: formatHM(from) }, { day: 1, hm: target }, sch);
+  if (r.rate == null) return { ok: false, target, reason: `Cannot finish by ${target}: no working time left on Day 1.` };
+  const rate = Math.ceil(r.rate), pace = s.production.pace == null ? null : Math.round(s.production.pace);
+  const warn = pace != null && rate >= NEEDED_WARN * pace;
+  const line = pace == null ? 'No pace yet to compare.'
+    : rate > pace ? `Pace is ${fmt(rate - pace)}/hr short of what the ship needs.`
+      : warn ? `Close: pace is only ${fmt(pace - rate)}/hr above what the ship needs.`
+        : pace >= 1.5 * rate ? `Comfortable: pace is about ${(pace / rate).toFixed(1)}× what the ship needs.` : `Pace is ${fmt(pace - rate)}/hr above what the ship needs.`;
+  return { ok: true, rate, pace, target, scaleMax: Math.ceil(Math.max(rate, pace ?? 0) / 20) * 20, warn, line, detail: `${fmt(rem)} left, ${r.productiveHours.toFixed(1)} working hr` };
+}
+
 // Field vs cleared per brand (the tracker's table): field − cleared, "in transit" when cleared is ahead.
 function brandTableOf(s: State) {
   const reconciling = s.ops.phase !== 'working';
@@ -485,16 +509,7 @@ export function hourlyView(s: State, b?: Baseline) {
   const max = Math.max(1, ...s.periods.map((x) => x.count));
   const ph = photoHourNotes(s);
   const multi = s.periods.some((x) => x.day > 1);
-  // Needed rate (Colby, 2026-10-12): what the rest of Day 1 must average to finish by the planned shift end (last cars, after the
-  // shift-end stop). Same remaining and anchor as the forecast. Null when there is no shift end, no anchor or nothing remaining.
-  const needed = (() => {
-    const rem = s.steady.remaining, from = s.eta.fromAbs;
-    if (!b || !s.plan.shiftEnd || rem == null || rem <= 0 || from == null || from >= 1440) return null;
-    const sch = scheduleOf(b, s.plan, Object.fromEntries(Object.entries(s.dayStarts).filter(([, d]) => d.actual != null).map(([k, d]) => [Number(k), d.actual!])));
-    const stopAt = parseHM(s.plan.shiftEnd)! - (sch.shiftEndStopMin ?? sch.clearByMin);
-    const r = requiredRate(rem, { day: 1, hm: formatHM(from) }, { day: 1, hm: formatHM(stopAt) }, sch);
-    return r.rate == null ? { text: `Cannot finish by ${formatHM(stopAt)}: no working time left on Day 1.` } : { text: `Needed to finish by ${formatHM(stopAt)}: ${Math.ceil(r.rate)}/hr (${fmt(rem)} left, ${r.productiveHours.toFixed(1)} working hr)` };
-  })();
+  const needed = b ? neededRate(s, b) : null;
   // The hour in the nearest brand's cars (Colby, 2026-10-14: 100 Mercedes + 200 BMW is 400 BMW when a Mercedes goes twice as far).
   const miles = b ? brandMiles(withTerminalMiles(b.destinations, b.berth)) : null, ref = miles ? mixReference(miles) : null;
   const equivOf = (x: (typeof s.periods)[number]): string | null => {

@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { type Baseline, type VsaEvent, type Reject } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
-import { hourlyView, hourOptions } from '../src/app/view.ts';
+import { hourlyView, hourOptions, neededRate, NEEDED_WARN, snapshot } from '../src/app/view.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
 
@@ -64,5 +64,20 @@ test('needed rate: only with a planned shift end, and it stops before the end by
   assert.equal(hourlyView(s.state, glovis).needed, null);
   await s.ok(E.shiftSettingsEvents(s.ctx(), '17:00', '08:00', 'N'));
   const n = hourlyView(s.state, glovis).needed;
-  assert.match(n!.text, /^Needed to finish by 16:45: \d+\/hr \(1,969 left, \d+\.\d working hr\)$/);
+  assert.ok(n && n.ok);
+  if (!n?.ok) return;
+  assert.equal(n.target, '16:45');
+  assert.match(n.detail, /^1,969 left, \d+\.\d working hr$/);
+  // One scale for both marks: 0 to the larger, rounded up to 20.
+  assert.equal(n.scaleMax % 20, 0);
+  assert.ok(n.scaleMax >= n.rate && n.scaleMax >= (n.pace ?? 0) && n.scaleMax - Math.max(n.rate, n.pace ?? 0) < 20);
+  // The three states against the Pace the Snapshot shows (HANDOFF_SPEC 9.4); the Snapshot shows it only when it warns.
+  const at = (pace: number) => neededRate({ ...s.state, production: { ...s.state.production, pace } } as State, glovis)!;
+  const short = at(n.rate - 30), close = at(Math.ceil(n.rate / NEEDED_WARN) - 1), easy = at(n.rate * 3);
+  assert.ok(short.ok && short.warn && /^Pace is 30\/hr short of what the ship needs\.$/.test(short.line), short.ok ? short.line : '');
+  assert.ok(close.ok && close.warn && /^Close: pace is only \d+\/hr above/.test(close.line), close.ok ? close.line : '');
+  assert.ok(easy.ok && !easy.warn && /^Comfortable: pace is about 3\.0× what the ship needs\.$/.test(easy.line), easy.ok ? easy.line : '');
+  const snapAt = (pace: number) => snapshot({ ...s.state, production: { ...s.state.production, pace } } as State, glovis, 9 * 60).needed;
+  assert.ok(snapAt(n.rate - 30), 'shown on the Snapshot when pace is short');
+  assert.equal(snapAt(n.rate * 3), null, 'hidden on the Snapshot when it does not matter');
 });
