@@ -62,17 +62,7 @@ test('What if scenario: no factor moved is exactly the forecast; each factor mov
     assert.ok(more.ok && fewer.ok);
     if (more.ok && fewer.ok) assert.ok(more.endAbs <= none.endAbs && fewer.endAbs >= none.endAbs, 'more drivers never finish later, fewer never earlier');
   }
-  const lvP = lv.pace;
-  assert.ok(lvP && lvP.now === p.eta.rate, 'the pace lever starts at the forecast\'s own pace');
-  if (lvP) {
-    const same = scenario(p, glovis, { pace: lvP.now }), faster = scenario(p, glovis, { pace: lvP.now + 40 }), slower = scenario(p, glovis, { pace: Math.max(1, lvP.now - 40) });
-    assert.ok(same.ok && faster.ok && slower.ok);
-    if (same.ok && faster.ok && slower.ok) {
-      assert.equal(same.deltaMin, 0, 'the same pace is the forecast now');
-      assert.ok(faster.endAbs <= none.endAbs && slower.endAbs >= none.endAbs, 'a faster pace never finishes later, a slower never earlier');
-    }
-    assert.equal(scenario(p, glovis, { pace: 0 }).ok, false, 'a pace of 0 is refused');
-  }
+  assert.equal('pace' in lv, false, 'no typed pace: every control is backed by the log (Colby, 2026-10-14)');
   const s0 = scenario(p, glovis, { south: 0 }), s1 = scenario(p, glovis, { south: 1 }), sh = scenario(p, glovis, { south: 0.5 });
   assert.ok(s0.ok && s1.ok && sh.ok);
   if (s0.ok && s1.ok && sh.ok) {
