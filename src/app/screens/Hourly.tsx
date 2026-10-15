@@ -16,6 +16,8 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
   const f = useType();
   const v = hourlyView(state, baseline);
   const [view, setView] = useState<'list' | 'graph'>('list');
+  const [pick, setPick] = useState<number | null>(null); // the tapped graph point; none = the latest hour
+  const sel = v.graph ? Math.min(pick ?? v.graph.points.length - 1, v.graph.points.length - 1) : -1;
   // H.A. and Pace share one color while their numbers are equal; Pace takes its own color only when it differs from H.A.
   const paceColor = v.stats.pace === v.stats.ha ? HA_COLOR : PACE_COLOR;
 
@@ -67,9 +69,10 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
             {v.graph.avgY != null && <Line x1={v.graph.L} x2={v.graph.W - v.graph.R} y1={v.graph.avgY} y2={v.graph.avgY} stroke={color.muted} strokeWidth={1.5} strokeDasharray="5 4" />}
             <Polyline fill="none" stroke={color.blue} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" points={v.graph.points.map((p) => `${p.x},${p.y}`).join(' ')} />
             {v.graph.points.map((p, i) => (
-              <SvgPoint key={i} x={p.x} y={p.y} count={p.count} short={p.short} xLabel={p.xLabel} baseY={v.graph!.H - v.graph!.Bm + 16} />
+              <SvgPoint key={i} x={p.x} y={p.y} count={p.count} short={p.short} xLabel={p.xLabel} baseY={v.graph!.H - v.graph!.Bm + 16} on={i === sel} onPress={() => setPick(i)} label={p.readout} />
             ))}
           </Svg>
+          {sel >= 0 && <View style={s.readout} accessibilityLiveRegion="polite"><Body semi>{v.graph.points[sel].readout}</Body></View>}
           <InfoNote><Note>{v.graph.note}{v.graph.hasShort ? ' Orange = pre-break hour, pace adjusted for the stoppage.' : ''}</Note></InfoNote>
         </Card>
       )}
@@ -134,10 +137,12 @@ function SvgGridLine({ y, label, L, right }: { y: number; label: string; L: numb
   );
 }
 
-function SvgPoint({ x, y, count, short, xLabel, baseY }: { x: number; y: number; count: string; short: boolean; xLabel: string; baseY: number }) {
+function SvgPoint({ x, y, count, short, xLabel, baseY, on, onPress, label }: { x: number; y: number; count: string; short: boolean; xLabel: string; baseY: number; on: boolean; onPress: () => void; label: string }) {
   return (
     <>
-      <Circle cx={x} cy={y} r={5} fill={short ? color.orange : color.blue} stroke={color.card} strokeWidth={2} />
+      <Circle cx={x} cy={y} r={on ? 8 : 5} fill={short ? color.orange : color.blue} stroke={on ? color.ink : color.card} strokeWidth={2} />
+      {/* 44 pt hit circle: the viewBox is about one point per unit on the phone. */}
+      <Circle cx={x} cy={y} r={22} fill="transparent" onPress={onPress} accessibilityLabel={label} />
       <SvgText x={x} y={y - 10} textAnchor="middle" fontSize={12} fontWeight="600" fill={color.ink}>{count}</SvgText>
       <SvgText x={x} y={baseY} textAnchor="middle" fontSize={11} fill={color.muted}>{xLabel}</SvgText>
     </>
@@ -146,6 +151,7 @@ function SvgPoint({ x, y, count, short, xLabel, baseY }: { x: number; y: number;
 
 
 const s = StyleSheet.create({
+  readout: { borderTopWidth: 1, borderTopColor: bcolor.soft, paddingTop: 10 },
   main: { padding: 20, gap: 16 },
   stats: { flexDirection: 'row', gap: 12 },
   warn: { backgroundColor: color.oBg, borderBottomWidth: 3, borderBottomColor: bcolor.orange, borderRadius: 12, padding: 12, gap: 2 },

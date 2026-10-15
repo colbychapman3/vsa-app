@@ -373,3 +373,11 @@ test('backup nudge: offered only for LIVE vessels with entries not in a saved co
   assert.equal(unsavedNote(1, null), '1 entry not backed up. No copy saved yet.');
   assert.equal(unsavedNote(1234, '2026-09-21T14:42:10-04:00'), '1,234 entries not backed up. Last copy Sep 21, 14:42.');
 });
+
+test('graph readouts (G10): every point names its hour, its pace and the minutes worked; a short hour says so', () => {
+  const g = hourlyView(demo()).graph!;
+  assert.equal(g.points.length, demo().periods.length);
+  for (const p of g.points) assert.match(p.readout, /^\d\d:\d\d–\d\d:\d\d: (pace \d+\/hr\. [\d,]+ counted in \d+ min worked\.|[\d,]+ counted; stoppage time not set, so no pace\.)$/);
+  const short = g.points.find((p) => p.short)!;
+  assert.match(short.readout, /^11:00–\d\d:\d\d: pace \d+\/hr\. 186 counted in \d+ min worked\.$/);
+});

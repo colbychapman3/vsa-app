@@ -179,8 +179,8 @@ test('pre-break nudge (board 1.2b): the stop before a break, each side its own c
   const p = project(glovis, events, events[0].operation_id);
   assert.ok(p.ok);
   if (!p.ok) return;
-  const sides = new Set(glovis.destinations.map((d) => d.side));
-  const first = 12 * 60 - Math.max(...glovis.destinations.map((d) => d.clearBy));
+  const sides = new Set((glovis as Baseline).destinations.map((d) => d.side));
+  const first = 12 * 60 - Math.max(...(glovis as Baseline).destinations.map((d) => d.clearBy));
   assert.equal(breakNudge(p, glovis, first - 31), null, 'not yet');
   assert.equal(breakNudge(p, glovis, first), null, 'the stop has come: nothing left to nudge');
   const n = breakNudge(p, glovis, first - 10)!;

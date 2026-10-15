@@ -596,7 +596,10 @@ export function graph(s: State) {
     W, H, L, R, T, Bm,
     grid: Array.from({ length: nT + 1 }, (_, k) => ({ y: y(lo + step * k), label: String(Math.round(lo + step * k)) })),
     avgY: avg != null ? y(avg) : null,
-    points: P.map((q, i) => ({ x: x(i), y: y(vals[i]), count: String(q.count), short: q.short, xLabel: `${multi && q.day > 1 ? `D${q.day} ` : ''}${q.start.slice(0, 2)}` })),
+    // Each point is labeled with its count and plotted at its pace; a tap shows the hour behind it (G10). Labeling a short hour by
+    // its pace instead (HANDOFF_SPEC F9) moves a screen number, so it waits on Colby.
+    points: P.map((q, i) => ({ x: x(i), y: y(vals[i]), count: String(q.count), short: q.short, xLabel: `${multi && q.day > 1 ? `D${q.day} ` : ''}${q.start.slice(0, 2)}`,
+      readout: `${multi ? `Day ${q.day} ` : ''}${q.start}–${formatHM(preBreak(q.start, s.breaks) ?? parseHM(q.start)! + 60)}: ${q.pace != null ? `pace ${Math.round(q.pace)}/hr. ${fmt(q.count)} counted in ${q.min} min worked.` : `${fmt(q.count)} counted; stoppage time not set, so no pace.`}` })),
     note: `Numbers are each hour’s count; the line is its pace per full hour. Dashed line = average pace${avg != null ? ` (${Math.round(avg)}/hr)` : ''}.`,
     hasShort: P.some((q) => q.short),
   };
