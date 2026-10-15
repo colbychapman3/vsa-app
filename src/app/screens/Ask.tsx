@@ -2,7 +2,8 @@
 // directory or the knowledge pack (src/app/assistant.ts); nothing here does math. Actions are confirm cards:
 // the hourly form opens prefilled, a note saves only on Add, a new vessel opens the Vessels sheet.
 import { useState } from 'react';
-import { Keyboard, Pressable, Share, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, Share, View } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import type { Baseline, Reject, VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import indexJson from '../../../assets/knowledge/index.json';

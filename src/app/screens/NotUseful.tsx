@@ -1,7 +1,8 @@
 // "Is it an assistant?" in the moment (assistant step 4): one tap says this wasn't useful; a reason is optional. Kept on this
 // phone and read in Lessons; nothing in the vessel's record changes.
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from './text.tsx';
 import { FEEDBACK_REASONS } from '../feedback.ts';
 import { color, TAP, useType } from '../theme.ts';
 import { u } from './ui.tsx';

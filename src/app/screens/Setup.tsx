@@ -4,7 +4,8 @@
 import { pickSetupFile } from '../importFile.ts';
 import { readDeckLines } from '../deckLines.ts';
 import { useEffect, useState, type MutableRefObject } from 'react';
-import { Pressable, Share, Text, TextInput, View } from 'react-native';
+import { Pressable, Share, View } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import type { Reject } from '../../engine/index.ts';
 import { TERMINAL, terminalInfo } from '../../engine/terminal.ts';
 import {

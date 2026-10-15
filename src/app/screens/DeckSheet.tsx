@@ -2,7 +2,8 @@
 // A full snapshot (Colby chose A): boxes open with the current counts; clearing a box
 // saves that hatch as unknown. entries.deckEvents writes only what changed.
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './text.tsx';
 import { operationDate, parseHM, type Baseline, type DeckStatus, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';

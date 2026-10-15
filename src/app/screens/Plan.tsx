@@ -2,7 +2,8 @@
 // Actions (confirm height, resolve discrepancy, shift settings) save through App.save().
 import { useState } from 'react';
 import { pickTextFile } from '../importFile.ts';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';

@@ -2,7 +2,8 @@
 // Forms only: entries.ts builds the events and App.save() stores them; the engine's
 // exact message is shown if anything is refused, and nothing is saved.
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import { formatHM, operationDate, parseHM, suggestedStop, type Baseline, type OpTime, type Reject, type Side, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
@@ -240,7 +241,7 @@ function DeckList({ state, onOpenDeck }: { state: State; onOpenDeck: (id: string
     <View style={u.card}>
       {decksView(state).rows.map((r, i) => (
         <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} style={({ pressed }) => [s.deckRow, i > 0 && { borderTopWidth: 1, borderTopColor: bcolor.row }, pressed && u.pressed]} accessibilityRole="button">
-          <Text style={{ fontFamily: f.display, fontSize: 22, flexBasis: 64, flexShrink: 1, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text>
+          <Text style={{ fontFamily: f.display, fontSize: 22, minWidth: 72, flexShrink: 0, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text>
           <Body style={{ color: color.muted }}>{r.pill}</Body>
           <Text style={{ marginLeft: 'auto', fontFamily: f.display, fontSize: 22, color: color.ink }}>{r.remaining}<Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> of {r.start}</Text></Text>
         </Pressable>

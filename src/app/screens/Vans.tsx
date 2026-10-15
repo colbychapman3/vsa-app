@@ -1,7 +1,8 @@
 // Van list card for the Plan tab (spec: docs/specs/phase-6-van-list.md). Layout only: values come from view.vanView(),
 // saves go through entries.ts via App.save(). One sheet at a time (iOS freezes on stacked modals).
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import { GAS_LEVELS, MAX_VANS, operationDate, parseHM, parseVanSheet, type Baseline, type OpTime, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';

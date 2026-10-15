@@ -2,7 +2,8 @@
 // listing each incident with all its photos, select-and-remove, add photos (deck and type already set), full-size view, and save to the
 // camera roll. Layout only: counts come from view.ts, every save from entries.ts through App.save(). One sheet; content swaps.
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './text.tsx';
 import type { Baseline, EvidenceType, Reject, VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';

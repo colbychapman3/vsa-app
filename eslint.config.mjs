@@ -23,5 +23,11 @@ export default tseslint.config(
     files: ['src/engine/**/*.ts'],
     rules: { 'no-restricted-imports': ['error', { patterns: [{ regex: '^(?!\\./)', message: 'src/engine imports only its own files (no React, Expo, storage, app code or AI).' }] }] },
   },
+  {
+    // Text and TextInput come from screens/text.tsx, which holds the Dynamic Type ceiling (see theme.ts MAX_TEXT_SCALE).
+    files: ['src/app/**/*.{ts,tsx}', 'App.tsx'],
+    ignores: ['src/app/screens/text.tsx'],
+    rules: { 'no-restricted-imports': ['error', { paths: [{ name: 'react-native', importNames: ['Text', 'TextInput'], message: "Import Text / TextInput from screens/text.tsx: it caps Dynamic Type so words never split at the largest text size." }] }] },
+  },
   { files: ['tests/**/*.ts'], rules: { '@typescript-eslint/no-floating-promises': 'off' } }, // node:test's test() returns a promise by design
 );

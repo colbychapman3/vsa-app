@@ -3,7 +3,8 @@
 // rough "map estimate" only. Layout only: every fact comes from src/app/map/model.ts (directory-backed).
 // Full-screen Modal, opened from the header; it is the only modal open while it is showing.
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { Image, Modal, PanResponder, Pressable, ScrollView, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import { Text } from './text.tsx';
 import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MAP, type Pt } from '../map/data.ts';

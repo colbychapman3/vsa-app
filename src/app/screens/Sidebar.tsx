@@ -1,7 +1,8 @@
 // Left-side menu: New vessel, the vessel list, Send update, Settings. An overlay inside the main screen, not a Modal,
 // so it can never stack on a sheet; New vessel and Settings close it first and then open their own sheet.
 import { useEffect, useRef } from 'react';
-import { AccessibilityInfo, Animated, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Animated, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from './text.tsx';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { VesselRow } from '../../storage/vessels.ts';
 import { bcolor, color, SCRIM, TAP, useType } from '../theme.ts';

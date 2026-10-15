@@ -1,6 +1,7 @@
 // The frame around every tab: header (menu, vessel, Ask, Map), bottom tab bar with badges and the Log button in its
 // middle (nothing floats over the tiles, Colby 2026-10-12), and the tracker's icons. Layout only.
-import { Pressable, StyleSheet, Text, View, type ColorValue } from 'react-native';
+import { Pressable, StyleSheet, View, type ColorValue } from 'react-native';
+import { Text } from './text.tsx';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bcolor, color, elev, TAP, useType } from '../theme.ts';
@@ -82,7 +83,7 @@ export function TabBar({ tab, onTab, badges, onLog, due }: { tab: Tab; onTab: (t
           <Icon name="plus" color={color.onAction} />
           <Text style={[s.logText, { fontFamily: f.displaySemi }]} maxFontSizeMultiplier={1.15}>Log</Text>
         </Pressable>
-        {due && <Text style={[s.dueChip, { fontFamily: f.bodySemi }]} numberOfLines={1} accessibilityElementsHidden>{due} due</Text>}
+        {due && <Text style={[s.dueChip, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.15} accessibilityElementsHidden>{due} due</Text>}
       </View>
       {TABS.slice(2).map(item)}
     </View>

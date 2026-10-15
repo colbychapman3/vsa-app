@@ -1,9 +1,10 @@
 // Shared building blocks, styled after the tracker's CSS (.card, .lbl, .big,
 // .bar, .tag, .alert, .sec-h, .note). Layout only.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, InputAccessoryView, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ColorValue, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, InputAccessoryView, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type ColorValue, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import type { Banner } from '../view.ts';
-import { bcolor, color, elev, TAP, useEdge, useSun, useType } from '../theme.ts';
+import { bcolor, color, elev, MAX_BIG_SCALE, TAP, useEdge, useSun, useType } from '../theme.ts';
 
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[u.card, useEdge(), style]}>{children}</View>;
@@ -25,7 +26,7 @@ export function Big({ children, size, style }: { children: ReactNode; size: numb
   const f = useType(), sun = useSun();
   return (
     <Text style={[{ fontSize: size, lineHeight: size * 0.95, letterSpacing: -size * 0.025, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, sun && { lineHeight: size * 1.2 }, style]}
-      numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={1.1}>
+      numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={MAX_BIG_SCALE}>
       {children}
     </Text>
   );
@@ -96,7 +97,7 @@ export function Bar({ pct, small }: { pct: number; small?: boolean }) {
 
 export function Tag({ kind }: { kind: 'FORECAST' | 'CALCULATED' }) {
   const f = useType(), sun = useSun();
-  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, sun && { fontSize: 13 }, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={1.2}>{kind === 'FORECAST' ? 'Forecast' : 'Calculated'}</Text>;
+  return <Text style={[u.tag, kind === 'FORECAST' ? u.tagFc : u.tagCalc, sun && { fontSize: 13 }, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={MAX_BIG_SCALE}>{kind === 'FORECAST' ? 'Forecast' : 'Calculated'}</Text>;
 }
 
 // A titled card: one part of a form or screen, so each section has a clear start and end (Colby, 2026-10-12: the Log read
@@ -389,7 +390,7 @@ export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn
           <View style={u.secH}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
               {isTest && <Text style={{ flexShrink: 0, fontFamily: f.bodySemi, fontSize: 13, backgroundColor: color.accent, color: color.onAccent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' }}>TEST</Text>}
-              <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }}>{title}</Text>
+              <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_BIG_SCALE}>{title}</Text>
             </View>
             <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 17, color: color.ink }}>✕</Text></Pressable>
           </View>

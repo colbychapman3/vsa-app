@@ -2,7 +2,8 @@
 // forecast came; the answer sheet to send; then the vessel-complete question (the same sheet, swapped in, so one modal at a time).
 // Layout only: the rows, scorecard and sheet text come from ../closeout.ts.
 import { useMemo, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import type { Baseline, Reject, VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { answerSheet, coachList, scorecard, slowedNote, SLOWED_QUESTION, type Row } from '../closeout.ts';

@@ -1,6 +1,7 @@
 // Settings: app-wide items only. Per-vessel items (Backup of the open vessel, Reports, Labor, Break log) stay in Plan.
 import { useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
+import { Text } from './text.tsx';
 import Constants from 'expo-constants';
 import type { VesselRow } from '../../storage/vessels.ts';
 import { aiStatus, AI_STATUS_TEXT } from '../ai.ts';

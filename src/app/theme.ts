@@ -70,6 +70,12 @@ export function fonts(loaded: boolean) {
   };
 }
 
+// Dynamic Type ceiling (Colby, 2026-10-14: at the phone's largest Accessibility size words split mid-word and titles took four lines).
+// iOS scales text up to 3.1x; the app keeps up to MAX_TEXT_SCALE (about Accessibility 1, so a 15 pt line reads as 24 pt) and big
+// numbers and headings hold less (MAX_BIG_SCALE) because they are already large. Applied by screens/text.tsx and the Big, Tag and tab labels.
+export const MAX_TEXT_SCALE = 1.6;
+export const MAX_BIG_SCALE = 1.2;
+
 // Apple's minimum: nothing tappable smaller than this (points). The main actions (Log, Save: u.goBtn, the Log button) stay larger.
 export const TAP = 44;
 

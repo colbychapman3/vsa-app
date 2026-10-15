@@ -1,13 +1,14 @@
 // The Snapshot's boxes, each shown where the layout (src/app/snapshotLayout.ts) puts it: on the Snapshot or at the top of
 // Plan, Hourly or Decks. Layout only; every value comes from view.snapshot(). Long press a box for "Move to" and Hide.
 import type { ReactNode } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './text.tsx';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { snapshot } from '../view.ts';
 import { shipView, HATCH_SLOTS, type Seg } from '../ship.ts';
 import { BOX_TITLE, boxesFor, moveToTab, PINNED, setHidden, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
-import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
+import { bcolor, color, HA_COLOR, MAX_BIG_SCALE, PACE_COLOR, TAP, useType } from '../theme.ts';
 import { VesselCards, type Save } from './Plan.tsx';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 import { FieldTile } from './FieldBox.tsx';
@@ -108,7 +109,7 @@ function EtaTile({ v, p, half, menu }: { v: V; p: BoxProps; half?: boolean; menu
     <Pressable onPress={p.onHistory} onLongPress={menu} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
       accessibilityLabel={`Finish, forecast ${v.eta.value}. Tap for its history`} accessibilityHint="Long press to move or hide this box">
       <View style={[u.card, s.tile, v.eta.dashed && s.dashed]}>
-        <Text style={[s.fcChip, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={1.2}>FORECAST</Text>
+        <Text style={[s.fcChip, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_BIG_SCALE}>FORECAST</Text>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.muted }}>Finish</Text>
         {v.eta.day && <Body semi>{v.eta.day}</Body>}
         <Big size={44}>{v.eta.value}</Big>

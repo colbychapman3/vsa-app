@@ -85,7 +85,7 @@ function decksScreen(s: typeof p, now: number, c: Pal, mode: string) {
   ${warn?.tone === 'warn' ? `<div class="banner" style="border:1.5px solid var(--or)"><b>${esc(warn.text)}</b>${warn.advice ? `<div>${esc(warn.advice)}</div>` : ''}${warn.action?.deck ? `<span class="pill">${esc(warn.action.label)}</span>` : ''}</div>` : ''}
   ${hull(s, c)}
   ${wi}
-  <div class="lbl2" style="margin:4px 4px -8px">Lessons &amp; Insights</div>
+  <div class="lbl2" style="margin:4px 4px -8px">Deck heights</div>
   ${dv.low.length ? dv.low.map((d) => `<div class="banner" style="background:var(--rbg);color:var(--ri)"><b>${esc(d.title)}</b><div>${esc(d.sub)}</div></div>`).join('') : '<div class="card m">No low decks with cargo remaining.</div>'}
   ${look.filter((r) => r.go === 'plan').map((r) => `<div class="banner" style="background:var(--obg);color:var(--oi)"><b>${esc(r.text)}</b></div>`).join('')}
   <div class="card flush">${dv.rows.map((r) => `<div class="brand"><div class="kv"><b>${esc(r.label)} <small>${esc(r.heightShort)}</small></b><span>${esc(r.pill)} · <b>${esc(r.remaining)}</b> of ${esc(r.start)}</span></div></div>`).join('')}</div>

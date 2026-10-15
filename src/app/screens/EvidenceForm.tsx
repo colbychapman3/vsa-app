@@ -2,7 +2,8 @@
 // save goes through App.save(). Camera: expo-camera (CameraView) inside this same sheet, so only one modal is open.
 // The photo is copied at full size into the app folder (never the camera roll) just before saving.
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { EVIDENCE_REASONS, EVIDENCE_TYPES, needsReason, TYPE_LABEL, checkVin, evidencePath, operationDate, parseHM, type Baseline, type EvidenceType, type Reject, type VsaEvent } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';

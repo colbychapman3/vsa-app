@@ -1,13 +1,14 @@
 // Decks tab (reference: docs/reference/screens/04). Layout only; values from view.decksView().
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './text.tsx';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { WhatIfCard } from './WhatIfCard.tsx';
 import { NotUseful, type NotUsefulProps } from './NotUseful.tsx';
 import { nowLine } from '../now.ts';
 import { decksRemaining, decksView } from '../view.ts';
-import { bcolor, color, useType } from '../theme.ts';
+import { bcolor, color, MAX_BIG_SCALE, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
 import { ShipBox } from './SnapshotBoxes.tsx';
 import { Body, Card, Chip, InfoNote, Note, Pill, SectionHead, Seg, u } from './ui.tsx';
@@ -40,7 +41,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
       )}
       <WhatIfCard state={state} baseline={baseline} />
       <View style={{ gap: 10 }}>
-        <SectionHead title="Lessons & Insights" />
+        <SectionHead title="Deck heights" />
         <InfoNote><Note>Shuttle vans need a deck height of 1.85 m or more. A deck below that gets a low-deck warning.</Note></InfoNote>
         {v.low.length === 0 && <Card style={u.pad}><Note>No low decks with cargo remaining.</Note></Card>}
         {v.low.map((d) => (
@@ -58,7 +59,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
       </View>
 
       <Seg<'all' | 'remaining'> columns={2} value={show} onChange={setShow}
-        options={[{ value: 'all', label: `All decks (${v.rows.length})` }, { value: 'remaining', label: `Decks remaining (${left.length})` }]} />
+        options={[{ value: 'all', label: `All (${v.rows.length})` }, { value: 'remaining', label: `Remaining (${left.length})` }]} />
       {rows.length === 0 && <Card style={u.pad}><Note>Every deck is complete.</Note></Card>}
       <Card>
         {rows.map((r, i) => (
@@ -71,8 +72,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
                 {r.photos > 0 && <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[s.badge, { fontFamily: f.bodySemi }]} accessibilityLabel={`${r.photos} photo${r.photos === 1 ? '' : 's'} on this deck`}>📷 {r.photos}</Text>}
                 {acc(r) > 0 && <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[s.badge, s.accBadge, { fontFamily: f.bodySemi }]} accessibilityLabel={`${acc(r)} accident photo${acc(r) === 1 ? '' : 's'} on this deck`}>🚨 {acc(r)}</Text>}
               </View>
-              <Pill text={r.pill} />
-              <Text style={s.rn} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+              <Text style={s.rn} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_BIG_SCALE}>
                 <Text style={{ fontFamily: f.display, fontSize: 22, color: r.status === 'complete' ? color.done : color.ink }}>{r.remaining}</Text>
                 <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted }}> of {r.start}</Text>
               </Text>
@@ -81,6 +81,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
             {r.clearedShort && <Note style={s.indent}>Cleared: {r.clearedShort}</Note>}
             {!r.cleared && r.split && <Note style={s.indent}>Deck split: {r.split} · counts per hatch not on paperwork</Note>}
             <View style={[s.chips, s.indent]}>
+              <Pill text={r.pill} />
               {r.height.tone !== 'plain' && <Chip text={r.height.text} tone={r.height.tone} />}
               {r.hatches.map((h) => <Chip key={h.h} text={h.chip} tone={h.left?.tone} />)}
             </View>
@@ -100,7 +101,7 @@ const s = StyleSheet.create({
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8, minHeight: 56 },
   rowLine: { borderTopWidth: 1, borderTopColor: bcolor.row },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dnBox: { width: 56 },
+  dnBox: { minWidth: 56, flexShrink: 0 },
   dn: { fontSize: 22, color: color.ink },
   hm: { fontSize: 17 },
   accBadge: { backgroundColor: color.rBg, color: color.rInk, borderWidth: 1, borderColor: bcolor.red },

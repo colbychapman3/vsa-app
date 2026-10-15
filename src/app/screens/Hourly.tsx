@@ -1,7 +1,8 @@
 // Hourly tab (reference: docs/reference/screens/06–07). Layout only; values and graph
 // geometry come from view.hourlyView() (the tracker's viewHourly/hourGraph).
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './text.tsx';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';

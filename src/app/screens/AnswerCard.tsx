@@ -1,7 +1,8 @@
 // The answer after Save (Act II): shown under the header where the plain "Saved …" message used to sit.
 // Design B: a white card that drops in like a banner. Three figures with what changed, why the finish moved, then only
 // what needs action now, or one quiet line when nothing does.
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './text.tsx';
 import type { Answer, Delta } from '../answer.ts';
 import { bcolor, color, elev, TAP, useType } from '../theme.ts';
 import { Big, Label } from './ui.tsx';

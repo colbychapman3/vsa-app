@@ -18,6 +18,7 @@ Colby uses the app on an iPhone 16 Pro, outdoors in Georgia sun, often with larg
 - Fonts come from `useType()`: `display` (Barlow Condensed) for big numbers and headings, `body*` (IBM Plex Sans) for text. They can be `undefined` if fonts failed to load; the app must still work with system fonts.
 
 ## Text never breaks mid-word
+Import `Text` and `TextInput` from `screens/text.tsx`, never from `react-native` (ESLint and `tests/textScale.test.ts` enforce it): it caps Dynamic Type at `MAX_TEXT_SCALE` (`theme.ts`; 1.6, about Accessibility 1), and big numbers, chips and titles hold `MAX_BIG_SCALE`. The phone's largest size (3.1x) split "Closeo/ut" on 2026-10-15. A title or label that is one long word gets `numberOfLines` plus `adjustsFontSizeToFit` so it shrinks before it can split.
 Field feedback 2026-09-27: "COMPLETIO/N", "CALCULATE/D", "Brea/ks" at large text sizes. iOS splits a word when a single word is wider than its box, so:
 - **Numbers** (`Big`): one line, shrink to fit (`numberOfLines={1} adjustsFontSizeToFit`). Already built into `Big`.
 - **Short caps labels and tags** (`Label`, `Tag`): one line, shrink to fit. Already built into both. Keep label text short enough to read when shrunk.

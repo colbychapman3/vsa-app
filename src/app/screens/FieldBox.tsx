@@ -1,8 +1,9 @@
 // Field count tile (Every Screen layout, Colby 2026-10-14): a dark OFFICIAL tile beside the finish. A tap opens Hourly, where the
 // counted hours, last hour and field / cleared by brand are listed. Layout only; every value comes from view.snapshot().
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './text.tsx';
 import type { snapshot } from '../view.ts';
-import { color, useType } from '../theme.ts';
+import { color, MAX_BIG_SCALE, useType } from '../theme.ts';
 import { Big, u } from './ui.tsx';
 
 export function FieldTile({ v, half, onPress, onLongPress }: { v: ReturnType<typeof snapshot>; half?: boolean; onPress: () => void; onLongPress: () => void }) {
@@ -14,10 +15,10 @@ export function FieldTile({ v, half, onPress, onLongPress }: { v: ReturnType<typ
     <Pressable onPress={onPress} onLongPress={onLongPress} delayLongPress={450} style={half ? { flex: 1 } : undefined} accessibilityRole="button"
       accessibilityLabel={`Official field count ${h.value}, ${t.through}. Opens Hourly`} accessibilityHint="Long press to move or hide this box">
       <View style={[u.card, s.tile]}>
-        <Text style={[s.chip, { fontFamily: f.bodySemi }]}>OFFICIAL</Text>
+        <Text style={[s.chip, { fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_BIG_SCALE}>OFFICIAL</Text>
         <Text style={text(17, true)}>Field count</Text>
         <Big size={44} style={{ color: color.headInk }}>{h.value}</Big>
-        <Text style={text(15, true, true)}>{t.through}</Text>
+        <Text style={text(15, true, true)} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{t.through}</Text>
         <View style={s.track}><View style={[s.fill, { width: `${pct}%` }]} /></View>
         <Text style={text(13, true, true)}>{t.line}</Text>
       </View>

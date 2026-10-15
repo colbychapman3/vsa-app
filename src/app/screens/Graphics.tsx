@@ -1,5 +1,6 @@
 // Small drawn graphics from the Every Screen mockups (Colby, 2026-10-14). Layout only; the numbers come from view.snapshot().
-import { Text, View, type ColorValue } from 'react-native';
+import { View, type ColorValue } from 'react-native';
+import { Text } from './text.tsx';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import type { snapshot } from '../view.ts';
 import { bcolor, color, useType } from '../theme.ts';

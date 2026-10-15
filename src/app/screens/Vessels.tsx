@@ -1,7 +1,8 @@
 // New vessel: the 5-step Setup inside one sheet. The vessel list lives in the sidebar; archived vessels in Settings.
 // Closing with work typed in asks first (keep working / save draft and close / discard). A saved draft is offered next time.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Text } from 'react-native';
+import { AppState } from 'react-native';
+import { Text } from './text.tsx';
 import type { Reject } from '../../engine/index.ts';
 import type { Built } from '../setup.ts';
 import { blankDraft, clearDraft, createAutosaver, draftLabel, isDirty, loadDraft, saveDraft, type DraftStore, type SetupDraft, type StoredDraft } from '../setupDraft.ts';

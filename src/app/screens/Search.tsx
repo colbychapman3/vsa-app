@@ -2,7 +2,8 @@
 // operations-reference passages. Every result shows its citation; no result says "not found".
 // One Sheet: the list and the full passage swap inside it (never two modals). Layout only.
 import { useMemo, useState } from 'react';
-import { Keyboard, Pressable, Text, TextInput } from 'react-native';
+import { Keyboard, Pressable } from 'react-native';
+import { Text, TextInput } from './text.tsx';
 import indexJson from '../../../assets/knowledge/index.json';
 import { search, segments, snippet, type Chunk, type KnowledgeIndex } from '../knowledge/search.ts';
 import { bcolor, color, TAP, useType } from '../theme.ts';

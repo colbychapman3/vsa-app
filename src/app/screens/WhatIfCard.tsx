@@ -3,7 +3,8 @@
 // says so in three words and stays out. No prose: the assumptions are the chosen values, printed under the finish.
 // Nothing here is saved, and nothing here is on the Snapshot.
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './text.tsx';
 import { formatHM, type Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { levers, scenario, type Factors } from '../whatif.ts';

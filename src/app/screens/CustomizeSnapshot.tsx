@@ -1,7 +1,8 @@
 // Settings › Customize Snapshot (Colby, 2026-10-08): each box can be dragged up or down by its handle, nudged with ▲ ▼, shown on
 // Snapshot, Plan, Hourly or Decks, or hidden. The vessel remaining box can move but never hides. Saved on the phone only.
 import { useRef, useState } from 'react';
-import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
+import { Animated, PanResponder, Pressable, View } from 'react-native';
+import { Text } from './text.tsx';
 import { BOX_TITLE, boxesFor, defaultLayout, moveBox, PINNED, reorder, setHidden, moveToTab, TABS, TAB_TITLE, type BoxId, type BoxTab, type Layout } from '../snapshotLayout.ts';
 import { bcolor, color, TAP, useType } from '../theme.ts';
 import { Body, Card, Go, InfoNote, Note, Seg, u } from './ui.tsx';

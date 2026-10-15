@@ -2,7 +2,8 @@
 // answers to "What slowed you down today?" grouped into themes; the most common one is the next fix. Layout only: src/app/history.ts.
 // LIVE and TEST are never mixed. Nothing here enters any vessel's record.
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './text.tsx';
 import { biasLine, type Lessons as L, type ShipResult } from '../history.ts';
 import { WHERE_LABEL, type feedbackSummary } from '../feedback.ts';
 type Nos = ReturnType<typeof feedbackSummary>;
