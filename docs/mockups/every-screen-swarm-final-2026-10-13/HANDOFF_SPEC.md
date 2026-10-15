@@ -1,5 +1,7 @@
 # VSA Every Screen: handoff spec for Claude Code (one phase, no store build)
 
+> **Status 2026-10-14:** what is built and what is not is in `docs/specs/phase-a-trust-2026-10-14.md` (gap table). Since this spec: the Ship done ring was replaced by a big percent over a bar; the clerk's text reader (board 2.3) was deleted; the Snapshot holds only the numbers and the ship (Now card, Needs a look and the needed rate moved to Decks, Plan and Hourly); What if has no typed Pace.
+
 Written by the Site Manager, 2026-10-13; updated 2026-10-13 (late) for Colby's final design changes (section 9). If section 9 and an earlier section disagree, section 9 wins. Read-only review of the boards in `/tmp/claude-0/c/es_work/` and of `/home/claude/vsa-app` (CLAUDE.md, `src/app/screens/`, `view.ts`, `answer.ts`, `brief.ts`, `now.ts`, `engine/eta.ts`). Nothing in the repo was changed.
 
 Boards win on layout and wording, the repo wins on rules. Where a board contradicts the engine, the engine rule stands and the board is wrong (section 0 lists the known ones).
