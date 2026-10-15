@@ -417,7 +417,7 @@ export default function App() {
           {vessel ? (
             <>
               <Header isTest={vessel.isTest} berth={String(vessel.baseline.berth ?? '')} date={String(vessel.baseline.date)} vessel={vessel.baseline.vessel} onMenu={openMenu} onMap={() => { setNotice(null); setSheet('map'); }} onAsk={() => { setNotice(null); setSheet('ask'); }} />
-              {notice?.answer && <AnswerCard key={notice.answer.head} answer={notice.answer} onDismiss={() => setNotice(null)} notUseful={notUsefulFor('answer', answerText(notice.answer))} />}
+              {notice?.answer && <AnswerCard key={notice.answer.head} answer={notice.answer} onDismiss={() => setNotice(null)} notUseful={notUsefulFor('answer', answerText(notice.answer))} onUpdateDecks={() => { setNotice(null); openTab('decks'); }} />}
               {notice && !notice.answer && (
                 // Fixed under the header so a save message is never scrolled out of view.
                 <View style={[s.notice, notice.ok ? s.ok : s.errBar]}>

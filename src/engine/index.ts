@@ -565,6 +565,7 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
     ...L,
     eta: forecast,
     steady, // the finish the screens show; `eta` stays the raw forecast
+    deckSaves: { ...deckSave }, // deck → when its numbers were last saved (abs minutes), for "decks as of" (null: time unreadable)
     ...(mixAdj ? { mix: { avgMilesLeft: mixAdj.avgLeft, hoursAdjusted: mixAdj.used } } : {}), // only when the forecast was scaled to the mix
     ops: { ...ops, phase },
     plan,

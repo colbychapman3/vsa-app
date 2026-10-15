@@ -37,12 +37,40 @@ test('the first count answers with remaining, H.A. and the finish, labeled; a fi
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 200 }));
   const a = answerAfterSave(before, s.state, glovis, 9 * 60 + 5, 'Saved 08:00–09:00: 200 autos.');
   assert.equal(a.head, 'Saved 08:00–09:00: 200 autos.');
-  assert.deepEqual(a.figs.map((f) => [f.k, f.tag]), [['Remaining', null], ['H.A.', 'CALCULATED'], ['Finish', 'FORECAST']]);
+  assert.deepEqual(a.figs.map((f) => [f.k, f.tag]), [['Remaining', null], ['H.A.', 'CALCULATED'], ['Pace', 'CALCULATED'], ['Finish', 'FORECAST']]);
   const snap = snapshot(s.state, glovis, 9 * 60 + 5);
   assert.equal(a.figs[0].v, snap.hero.value); // the card never disagrees with the Snapshot
   assert.equal(a.figs[0].d, null); // vessel remaining moves with deck counts, never with field counts
   assert.equal(a.figs[1].v, '200');
   assert.equal(a.figs[1].d, null); // no H.A. before the first count: nothing to compare
+  // Board 2.1b: the OFFICIAL field count and the hour it runs through; H.A. and Pace show their denominators.
+  assert.deepEqual(a.official, { v: '200', through: 'through 08–09' });
+  assert.equal(a.figs[1].sub, '200 ÷ 1 counted hour');
+  assert.equal(a.figs[2].sub, '200 ÷ 60 productive min');
+  assert.equal(a.short, null);
+});
+
+test('decks older than the last logged hour: says when they were saved, which are older, and offers Update decks', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.deckEvents(s.ctx(), { deck: 'D9', status: 'active', skipped: false, hatchRemaining: { H4: 24, H3: 123, H2: 103, H1: 69 }, deckRemaining: null, time: { day: 1, hm: '08:30' } }));
+  await s.ok(E.deckEvents(s.ctx(), { deck: 'D8', status: 'active', skipped: false, hatchRemaining: {}, deckRemaining: null, time: { day: 1, hm: '08:50' } }));
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '08:00', count: 200 }));
+  const before = s.state;
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '09:00', count: 200 }));
+  const a = answerAfterSave(before, s.state, glovis, 10 * 60 + 5, 'x');
+  assert.match(a.decks ?? '', /^Decks saved 08:50/);
+  assert.match(a.stale ?? '', /still as of 08:30.$/);
+  assert.equal(a.action, 'update-decks');
+  assert.equal(a.quiet, null, 'an offered action is not "nothing needs you"');
+});
+
+test('a short hour is answered as short, by its pace, not as a slow hour', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '10:00', count: 200 }));
+  const before = s.state;
+  await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '11:00', count: 150, stopMin: 45 }));
+  const a = answerAfterSave(before, s.state, glovis, 12 * 60 + 5, 'x');
+  assert.equal(a.short, 'Short hour: 150 in 45 min is pace 200/hr, not a slow hour.');
 });
 
 test('a better hour says so: H.A. up and the forecast sooner; a worse hour says that too', async (tc) => {
@@ -51,16 +79,16 @@ test('a better hour says so: H.A. up and the forecast sooner; a worse hour says 
   let before = s.state;
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '09:00', count: 260 }));
   let a = answerAfterSave(before, s.state, glovis, 10 * 60 + 5, 'x');
-  assert.deepEqual(a.figs[1].d, { text: 'up 30', good: true }); // 200 → 230
-  assert.equal(a.figs[2].d?.good, true);
-  assert.match(a.figs[2].d!.text, /sooner$/);
+  assert.deepEqual(a.figs[1].d, { text: 'up 30, was 200', good: true }); // 200 → 230
+  assert.equal(a.figs[3].d?.good, true);
+  assert.match(a.figs[3].d!.text, /sooner$/);
   assert.match(a.why ?? '', /^Why it moved: (no deck update since the last hour, so [\d,]+ still to go; )?pace \d+\/hr, was \d+\/hr\.$/); // the forecast's own inputs, nothing guessed
   before = s.state;
   await s.ok(E.hourEvents(s.ctx(), { day: 1, start: '10:00', count: 140 }));
   a = answerAfterSave(before, s.state, glovis, 11 * 60 - 20, 'x');
-  assert.deepEqual(a.figs[1].d, { text: 'down 30', good: false }); // 230 → 200
-  assert.equal(a.figs[2].d?.good, false);
-  assert.match(a.figs[2].d!.text, /later$/);
+  assert.deepEqual(a.figs[1].d, { text: 'down 30, was 230', good: false }); // 230 → 200
+  assert.equal(a.figs[3].d?.good, false);
+  assert.match(a.figs[3].d!.text, /later$/);
 });
 
 test('quiet when nothing needs the user; no clear-by clock times on the card (Colby: they needn\'t be shown)', async (tc) => {

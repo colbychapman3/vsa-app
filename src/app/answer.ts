@@ -2,15 +2,18 @@
 // Compares the state before the save with the state after it: what changed (remaining, H.A., how far the forecast moved)
 // and only what needs action now. Silence means nothing needs the user: no warning is invented to fill the card.
 // Pure: reads the same views the screens read, so the card can never disagree with the Snapshot.
-import type { Baseline } from '../engine/index.ts';
+import { formatHM, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 import { snapshot } from './view.ts';
 import { paceWatch } from './whatif.ts';
 import { alerts } from './assistant.ts';
 
 export type Delta = { text: string; good: boolean | null }; // good: true = better, false = worse, null = neutral
-export type Fig = { k: string; v: string; tag: 'CALCULATED' | 'FORECAST' | null; d: Delta | null };
-export type Answer = { head: string; figs: Fig[]; why: string | null; watch: string[]; quiet: string | null; changed: boolean }; // changed: the save moved a ledger or raised something; why: what moved the finish
+export type Fig = { k: string; v: string; tag: 'CALCULATED' | 'FORECAST' | null; d: Delta | null; sub?: string | null }; // sub: the denominator
+// official: the hourly field count, the official record (board 2.1b); decks: when the deck counts were saved and what was carried
+// since; stale: decks still on an older count than the latest save; action: the one tap that answers it (decks older than the last hour).
+export type Answer = { head: string; figs: Fig[]; why: string | null; watch: string[]; quiet: string | null; changed: boolean;
+  official: { v: string; through: string }; decks: string | null; stale: string | null; short: string | null; action: 'update-decks' | null }; // changed: the save moved a ledger or raised something; why: what moved the finish
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 
@@ -31,18 +34,15 @@ export function answerAfterSave(before: State, after: State, b: Baseline, nowMin
       : null,
   });
 
-  // H.A.: whole cars per hour, as the tile shows it.
-  const haNow = after.production.ha, haWas = before.production.ha;
+  // H.A. and Pace: whole cars per hour, as the tiles show them, each with its denominator (board 2.1b).
   const r = (x: number) => Math.round(x);
-  figs.push({
-    k: 'H.A.',
-    v: snap.ha.value,
-    tag: 'CALCULATED',
-    d: haNow != null && haWas != null
-      ? r(haNow) === r(haWas) ? null // no change says nothing: left off
-        : r(haNow) > r(haWas) ? { text: `up ${r(haNow) - r(haWas)}`, good: true } : { text: `down ${r(haWas) - r(haNow)}`, good: false }
-      : null,
-  });
+  const step = (now: number | null, was: number | null): Delta | null => now != null && was != null
+    ? r(now) === r(was) ? null // no change says nothing: left off
+      : r(now) > r(was) ? { text: `up ${r(now) - r(was)}, was ${r(was)}`, good: true } : { text: `down ${r(was) - r(now)}, was ${r(was)}`, good: false }
+    : null;
+  const p = after.production;
+  figs.push({ k: 'H.A.', v: snap.ha.value, tag: 'CALCULATED', d: step(p.ha, before.production.ha), sub: p.ha == null ? null : snap.ha.haLine });
+  figs.push({ k: 'Pace', v: snap.ha.pace, tag: 'CALCULATED', d: step(p.pace, before.production.pace), sub: p.pace == null ? null : `${fmt(p.prodCount)} ÷ ${fmt(p.prodMin)} productive min` });
 
   // Finish: the ETA, a forecast, labeled as one. Sooner is better.
   const eNow = after.steady.etaAbs, eWas = before.steady.etaAbs;
@@ -58,7 +58,7 @@ export function answerAfterSave(before: State, after: State, b: Baseline, nowMin
 
   // Why the finish moved (Design B): only the inputs the forecast uses, the recent pace and the cars it divides.
   let why: string | null = null;
-  const fin = figs[2].d;
+  const fin = figs.find((x) => x.k === 'Finish')!.d;
   if (fin) {
     const parts: string[] = [];
     // The forecast starts from the end of the last logged hour. If that moved and the cars to go didn't (no deck update),
@@ -82,7 +82,23 @@ export function answerAfterSave(before: State, after: State, b: Baseline, nowMin
   for (const x of snap.banners) if ((x.tone === 'red' || x.tone === 'orange') && !shown.has(x.title)) watch.push(`${x.title}.`);
 
   const changed = after.field !== before.field || after.vesselRemaining !== before.vesselRemaining || after.ops.phase !== before.ops.phase || watch.length > 0;
-  return { head, figs, why, watch, quiet: watch.length ? null : 'Nothing needs your attention right now.', changed };
+  // Decks: when they were last saved and what the finish carried since (an estimate), and which decks are still on an older count.
+  const open = after.decks.filter((d) => d.status !== 'complete');
+  const saves = open.map((d) => after.deckSaves[d.id]).filter((x): x is number => x != null);
+  const asOf = saves.length ? Math.max(...saves) : null;
+  const clock = (abs: number) => `${abs >= 1440 ? `Day ${Math.floor(abs / 1440) + 1} ` : ''}${formatHM(abs % 1440)}`;
+  const carry = after.steady.carry;
+  const decks = asOf == null ? null : `Decks saved ${clock(asOf)}${carry ? `; about ${fmt(Math.round(carry.cars))} cars cleared since (estimate)` : ''}.`;
+  const older = new Map<string, string[]>();
+  for (const d of open) { const t = after.deckSaves[d.id]; if (t != null && asOf != null && t < asOf) older.set(clock(t), [...(older.get(clock(t)) ?? []), d.label]); }
+  const stale = older.size ? [...older].map(([t, l]) => `${l.join(', ')} still as of ${t}`).join('; ') + '.' : null;
+  const action = asOf != null && after.eta.fromAbs != null && asOf < after.eta.fromAbs && (after.vesselRemaining ?? after.fieldBalance ?? 0) > 0 ? 'update-decks' as const : null;
+  // A short hour saved: its count is low because work stopped early, not because it was slow (HANDOFF_SPEC 3.2).
+  const last = after.periods.at(-1);
+  const short = after.periods.length > before.periods.length && last?.short && last.min != null && last.pace != null
+    ? `Short hour: ${fmt(last.count)} in ${last.min} min is pace ${r(last.pace)}/hr, not a slow hour.` : null;
+  return { head, figs, why, watch, quiet: watch.length || action ? null : 'Nothing needs your attention right now.', changed,
+    official: { v: fmt(after.field), through: snap.fieldRecord.tile.through }, decks, stale, short, action };
 }
 
 const moved = (m: number) => { const x = Math.round(m); return x >= 60 ? `${Math.floor(x / 60)} hr${x % 60 ? ` ${x % 60} min` : ''}` : `${x} min`; };
