@@ -5,7 +5,7 @@ import type { Allocation, DeckDraft, HhEntry } from './setup.ts';
 
 export const DRAFT_KEY = 'setupDraft';
 const VERSION = 1;
-export const DEFAULT_START = '08:00';
+const DEFAULT_START = '08:00';
 
 export type DraftStore = { get: (key: string) => Promise<string | null>; set: (key: string, value: string) => Promise<void> };
 // What the game plan read said, without the page scans (those are positions, only used for sharing).
@@ -111,7 +111,7 @@ export function draftLabel(s: StoredDraft): string {
 // Pure decisions + an injected timer, so it is tested without a phone. It writes the same single draft as "Save draft and close".
 export const AUTOSAVE_MS = 1000;
 export type Timers = { set: (fn: () => void, ms: number) => unknown; clear: (h: unknown) => void };
-export const draftKey = (d: SetupDraft) => JSON.stringify(d);
+const draftKey = (d: SetupDraft) => JSON.stringify(d);
 
 export function createAutosaver(store: DraftStore, timers: Timers, now: () => Date, delay = AUTOSAVE_MS) {
   let handle: unknown = null;

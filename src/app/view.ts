@@ -22,7 +22,7 @@ type Photo = State['evidence'][number];
 const plural = (n: number) => `${n} photo${n === 1 ? '' : 's'}`;
 const livePhotos = (s: State) => s.evidence.filter((x) => !x.removed);
 // One record can hold several photos (the first plus `more`): every count shown anywhere is of photos, not records.
-export const photoCount = (x: { more?: string[] }) => 1 + (x.more?.length ?? 0);
+const photoCount = (x: { more?: string[] }) => 1 + (x.more?.length ?? 0);
 const photosIn = (list: Photo[]) => list.reduce((n, x) => n + photoCount(x), 0);
 const deckName = (s: State, id: string) => s.decks.find((d) => d.id === id)?.label ?? id;
 const hatchLabel = (s: State, x: Photo) => `${deckName(s, x.deck)} ${x.hatch}`;

@@ -33,7 +33,7 @@ export async function enableReminders(): Promise<ReminderStatus> {
 // Notifications shown while the app is open are fine (they say what the Plan and Log already show). A tap opens the place it names.
 const isTab = (x: unknown): x is ReminderTab => x === 'log' || x === 'plan' || x === 'snap';
 // A reminder carries a "Not useful" button (assistant step 4); tapping it opens the app and records the no.
-export const NOT_USEFUL_ACTION = 'not-useful';
+const NOT_USEFUL_ACTION = 'not-useful';
 const CATEGORY = 'vsa-reminder';
 export function installHandlers(onOpen: (tab: ReminderTab) => void, onNotUseful: (text: string) => void = () => {}): () => void {
   const n = load();

@@ -23,7 +23,7 @@ export function completeBlockers(s: State): Blocker[] {
   return b;
 }
 
-export const isComplete = (s: State) => s.completed != null;
+const isComplete = (s: State) => s.completed != null;
 
 // The prompt is due when remaining is exactly 0 and Colby has not marked the vessel.
 export const completionDue = (s: State) => s.vesselRemaining === 0 && !isComplete(s);
@@ -31,7 +31,7 @@ export const completionDue = (s: State) => s.vesselRemaining === 0 && !isComplet
 // Closeout shows only when it is near (Phase 0): the "Mark vessel complete" button on the Snapshot appears when remaining is known and within
 // 5% of starting autos (rounded up, at least 1), or every deck is complete, or the vessel is already marked (any state, so reopen/review stay).
 // "Closeout…" in the menu is there for a vessel that finishes odd.
-export const NEAR_ZERO_PCT = 0.05;
+const NEAR_ZERO_PCT = 0.05;
 export const nearZeroLimit = (start: number) => Math.max(1, Math.ceil(start * NEAR_ZERO_PCT));
 export function showMarkComplete(s: { start: number; vesselRemaining: number | null; completed?: unknown; decks: { status: string }[] }): boolean {
   if (s.completed != null) return true;

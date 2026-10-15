@@ -29,7 +29,7 @@ export function shipResult(id: string, s: State, b: Baseline, isTest: boolean): 
 }
 
 // Themes are matched by plain keywords so the same answer always lands in the same place. Read the answers themselves too.
-export const THEMES: { name: string; words: string[] }[] = [
+const THEMES: { name: string; words: string[] }[] = [
   { name: 'Shuttle vans', words: ['van', 'vans', 'shuttle', 'shuttles', 'tico'] },
   { name: 'Drivers and labor', words: ['driver', 'drivers', 'gang', 'gangs', 'labor', 'labour', 'crew', 'short handed', 'shorthanded', 'men'] },
   { name: 'Weather', words: ['rain', 'weather', 'lightning', 'storm', 'heat', 'wind', 'fog'] },

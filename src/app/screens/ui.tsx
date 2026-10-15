@@ -132,26 +132,6 @@ export function Collapse({ title, right, open: startOpen = false, children }: { 
   );
 }
 
-// A big number that fills from the bottom as the percentage rises (Colby, 2026-10-08): the pale digits are the whole, the solid part is done.
-// The fill is measured on the line box; GLYPH_BOTTOM/TOP say where the digits sit inside it, so 0% shows none and 100% shows all.
-const GLYPH_BOTTOM = 0.1, GLYPH_TOP = 0.9;
-export function FillNumber({ children, size, pct, fill }: { children: string; size: number; pct: number; fill: ColorValue }) {
-  const f = useType(), sun = useSun();
-  const H = size * 0.95;
-  const p = Math.max(0, Math.min(100, pct)) / 100;
-  const share = p <= 0 ? 0 : p >= 1 ? 1 : GLYPH_BOTTOM + p * (GLYPH_TOP - GLYPH_BOTTOM);
-  const style: TextStyle = { fontSize: size, lineHeight: H, letterSpacing: -size * 0.025, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] };
-  const props = { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.5 } as const;
-  return (
-    <View accessible accessibilityLabel={`${children}, ${Math.round(p * 100)} percent done`}>
-      <Text {...props} style={[style, { color: color.ink, opacity: sun ? 0.6 : 0.55 }]}>{children}</Text>
-      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: H * share, overflow: 'hidden' }}>
-        <Text {...props} style={[style, { position: 'absolute', left: 0, right: 0, bottom: 0, height: H, color: fill }]}>{children}</Text>
-      </View>
-    </View>
-  );
-}
-
 export function SectionHead({ title, right }: { title: string; right?: string }) {
   const f = useType();
   return (

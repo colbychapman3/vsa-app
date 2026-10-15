@@ -73,5 +73,5 @@ export function rowsOf(page: Page): Row[] {
 }
 
 // What "Show paperwork text" displays: one line per row, cells separated by " | ".
-export const rowText = (r: Row) => r.cells.map((c) => c.text).join('  |  ');
+const rowText = (r: Row) => r.cells.map((c) => c.text).join('  |  ');
 export const pageText = (page: Page) => rowsOf(page).map(rowText).join('\n');
