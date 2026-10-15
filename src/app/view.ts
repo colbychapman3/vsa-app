@@ -604,11 +604,11 @@ export function graph(s: State) {
     W, H, L, R, T, Bm,
     grid: Array.from({ length: nT + 1 }, (_, k) => ({ y: y(lo + step * k), label: String(Math.round(lo + step * k)) })),
     avgY: avg != null ? y(avg) : null,
-    // Each point is labeled with its count and plotted at its pace; a tap shows the hour behind it (G10). Labeling a short hour by
-    // its pace instead (HANDOFF_SPEC F9) moves a screen number, so it waits on Colby.
-    points: P.map((q, i) => ({ x: x(i), y: y(vals[i]), count: String(q.count), short: q.short, xLabel: `${multi && q.day > 1 ? `D${q.day} ` : ''}${q.start.slice(0, 2)}`,
+    // Each point is labeled with the value it is plotted at: its pace, or its count when it has no pace (HANDOFF_SPEC F9, Colby
+    // 2026-10-14: a short hour's count sat on the line at its pace). A tap shows the hour behind it, count included (G10).
+    points: P.map((q, i) => ({ x: x(i), y: y(vals[i]), count: String(Math.round(vals[i])), short: q.short, xLabel: `${multi && q.day > 1 ? `D${q.day} ` : ''}${q.start.slice(0, 2)}`,
       readout: `${multi ? `Day ${q.day} ` : ''}${q.start}–${formatHM(preBreak(q.start, s.breaks) ?? parseHM(q.start)! + 60)}: ${q.pace != null ? `pace ${Math.round(q.pace)}/hr. ${fmt(q.count)} counted in ${q.min} min worked.` : `${fmt(q.count)} counted; stoppage time not set, so no pace.`}` })),
-    note: `Numbers are each hour’s count; the line is its pace per full hour. Dashed line = average pace${avg != null ? ` (${Math.round(avg)}/hr)` : ''}.`,
+    note: `Each point is the hour’s pace per productive hour (an hour with no pace shows its count). Dashed line = average pace${avg != null ? ` (${Math.round(avg)}/hr)` : ''}. Tap a point for its hour.`,
     hasShort: P.some((q) => q.short),
   };
 }

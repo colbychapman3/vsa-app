@@ -200,9 +200,11 @@ test('screens 06–07: Hourly list and graph (tracker demo)', () => {
 
   const g = v.graph!;
   assert.deepEqual(g.grid.map((x) => x.label), ['200', '220', '240', '260', '280']);
-  assert.deepEqual(g.points.map((p) => [p.count, p.xLabel, p.short]), [['253', '08', false], ['266', '09', false], ['225', '10', false], ['186', '11', true], ['248', '13', false], ['241', '14', false]]);
+  assert.deepEqual(g.points.map((p) => [p.count, p.xLabel, p.short]), [['253', '08', false], ['266', '09', false], ['225', '10', false], ['248', '11', true], ['248', '13', false], ['241', '14', false]]);
   assert.ok(g.avgY != null && g.hasShort);
-  assert.equal(g.note, 'Numbers are each hour’s count; the line is its pace per full hour. Dashed line = average pace (247/hr).');
+  // F9 (Colby, 2026-10-14): a point is labeled with the value it is plotted at, so the short 11:00 hour reads its pace (186 counted in
+  // its productive minutes = 248/hr), not its count; the count is in its readout.
+  assert.equal(g.note, 'Each point is the hour’s pace per productive hour (an hour with no pace shows its count). Dashed line = average pace (247/hr). Tap a point for its hour.');
 });
 
 test('screen 08: Plan (tracker demo)', () => {
