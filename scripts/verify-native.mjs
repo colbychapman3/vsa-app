@@ -26,6 +26,9 @@ const app = json(join(root, 'app.json')).expo, eas = json(join(root, 'eas.json')
 check(/^\d+\.\d+\.\d+$/.test(app.version ?? ''), 'app.json version is x.y.z', String(app.version));
 check(!!app.ios?.bundleIdentifier, 'app.json has an iOS bundle identifier');
 check(eas.build?.production?.autoIncrement === true && eas.cli?.appVersionSource === 'remote', 'eas.json: production build auto-increments, version source is remote');
+// Over-the-air updates (2026-10-14): JS-only changes reach the phone without a store build. The fingerprint runtime makes an
+// update load only on a build whose native code matches, so a JS update can never call a native module the phone lacks.
+check(app.updates?.url === `https://u.expo.dev/${app.extra?.eas?.projectId}` && app.runtimeVersion?.policy === 'fingerprint' && eas.build?.production?.channel === 'production', 'updates: project URL, fingerprint runtime, production channel');
 check((app.plugins ?? []).includes('./plugins/withoutPush.js') && existsSync(join(root, 'plugins/withoutPush.js')), 'push-stripping plugin is listed and present');
 
 const tmp = mkdtempSync(join(tmpdir(), 'vsa-verify-'));
@@ -54,6 +57,8 @@ try {
     const info = plist ? readFileSync(plist, 'utf8') : '';
     check(info.includes('NSCameraUsageDescription') && info.includes('NSPhotoLibraryUsageDescription'), 'camera and photo permission texts are present');
     check(!info.includes('NSMicrophoneUsageDescription'), 'no microphone permission text');
+    const expoPlist = files.find((f) => /[\\/]Expo\.plist$/.test(f));
+    check(!!expoPlist && readFileSync(expoPlist, 'utf8').includes('u.expo.dev'), 'the build checks for updates (Expo.plist has the update URL)');
     const pbx = files.find((f) => f.endsWith('project.pbxproj'));
     check(files.some((f) => /[\\/]VsaLogCountIntent\.swift$/.test(f)) && !!pbx && readFileSync(pbx, 'utf8').includes('VsaLogCountIntent.swift in Sources'), 'the Siri command is compiled into the app target (plugins/withLogIntent.js)');
   }
