@@ -9,6 +9,7 @@ import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
 import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
 import { NeededCard } from './NeededCard.tsx';
+import { BrandTable } from './BrandTable.tsx';
 import { Bar, Big, Body, Card, Chip, FlipTile, InfoNote, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
@@ -72,6 +73,7 @@ export function Hourly({ state, baseline }: { state: State; baseline: Baseline }
           <InfoNote><Note>{v.graph.note}{v.graph.hasShort ? ' Orange = pre-break hour, pace adjusted for the stoppage.' : ''}</Note></InfoNote>
         </Card>
       )}
+      {view === 'graph' && v.brandTable.length > 0 && <BrandTable rows={v.brandTable} total={v.brandTotal} />}
     </View>
   );
 }

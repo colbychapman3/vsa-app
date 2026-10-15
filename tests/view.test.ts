@@ -303,6 +303,13 @@ test('hourly: no percent when the prior hour was 0; field-over is red only at re
   assert.deepEqual(over('working'), { tone: 'plain', text: '+5 field over' });
   assert.equal(over('break').tone, 'red');
   assert.equal(over('shift_end').tone, 'red');
+  // In transit is never negative: a field-ahead brand has none and shows "field over" instead; the All row is the vessel's own.
+  const withVar = (v: number) => hourlyView({ ...s, brands: s.brands.map((b) => ({ ...b, variance: v })), variance: v, progress: s.field + v } as State);
+  assert.equal(withVar(-5).brandTable[0].inTransit, null);
+  assert.equal(withVar(12).brandTable[0].inTransit, '12');
+  assert.deepEqual(withVar(12).brandTotal, { name: 'All', field: s.field.toLocaleString('en-US'), cleared: (s.field + 12).toLocaleString('en-US'), inTransit: '12', diff: { tone: 'plain', text: '12 in transit' } });
+  assert.equal(withVar(-3).brandTotal!.inTransit, null);
+  assert.equal(hourlyView(s).brandTable[0].inTransit, null, 'an inexact (≥) brand field has no in transit figure');
 });
 
 test('side split clear-by note comes from the clear-by table, no trailing separator', () => {

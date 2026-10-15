@@ -245,6 +245,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     },
     // Field against cleared by brand, only when there is more than one brand (a single brand repeats the totals).
     brands: s.brands.length > 1 ? brandTableOf(s) : [],
+    brandTotal: s.brands.length > 1 ? brandTotal(s) : null,
     unsplitNote: s.brands.length > 1 && s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,
   };
   // Live estimate between counts (Colby, 2026-10-11): the forecast's own pace carried from the last logged hour to now.
@@ -488,18 +489,25 @@ export function neededRate(s: State, b: Baseline): Needed | null {
   return { ok: true, rate, pace, target, scaleMax: Math.ceil(Math.max(rate, pace ?? 0) / 20) * 20, warn, line, detail: `${fmt(rem)} left, ${r.productiveHours.toFixed(1)} working hr` };
 }
 
-// Field vs cleared per brand (the tracker's table): field − cleared, "in transit" when cleared is ahead.
-function brandTableOf(s: State) {
+// Field vs cleared per brand (the tracker's table): field − cleared, "in transit" when cleared is ahead. In transit is never
+// negative: a field-ahead brand shows "field over" in its place, red only at a break or shift end. The "All" row is the vessel's own
+// field, ship progress and in transit (HANDOFF_SPEC 3.6). H&H is never in it.
+export const IN_TRANSIT_DEF = 'In transit: cleared from the ship, not in the field count yet.';
+type BrandRow = { name: string; field: string; cleared: string; inTransit: string | null; diff: { tone: 'plain' | 'red'; text: string } };
+function brandRow(name: string, field: string, cleared: number | null, variance: number | null, reconciling: boolean): BrandRow {
+  const d = variance == null ? null : -variance; // field − cleared, as the tracker shows it
+  return {
+    name, field, cleared: fmt(cleared),
+    inTransit: variance != null && variance >= 0 ? fmt(variance) : null,
+    diff: d == null ? { tone: 'plain', text: '—' } : d > 0 ? { tone: reconciling ? 'red' : 'plain', text: `+${fmt(d)} field over` } : d < 0 ? { tone: 'plain', text: `${fmt(-d)} in transit` } : { tone: 'plain', text: '0' },
+  };
+}
+function brandTableOf(s: State): BrandRow[] {
   const reconciling = s.ops.phase !== 'working';
-  return s.brands.map((b) => {
-    const d = b.variance == null ? null : 0 - b.variance; // field − cleared, as the tracker shows it
-    return {
-      name: b.name,
-      field: `${b.fieldExact ? '' : '≥ '}${fmt(b.field)}`,
-      cleared: fmt(b.cleared),
-      diff: d == null ? { tone: 'plain' as const, text: '—' } : d > 0 ? { tone: reconciling ? 'red' as const : 'plain' as const, text: `+${fmt(d)} field over` } : d < 0 ? { tone: 'plain' as const, text: `${fmt(-d)} in transit` } : { tone: 'plain' as const, text: '0' },
-    };
-  });
+  return s.brands.map((b) => brandRow(b.name, `${b.fieldExact ? '' : '≥ '}${fmt(b.field)}`, b.cleared, b.variance, reconciling));
+}
+export function brandTotal(s: State): BrandRow {
+  return brandRow('All', fmt(s.field), s.progress, s.variance, s.ops.phase !== 'working');
 }
 
 export function hourlyView(s: State, b?: Baseline) {
@@ -553,7 +561,7 @@ export function hourlyView(s: State, b?: Baseline) {
     stats: { ha: p.ha == null ? '—' : String(Math.round(p.ha)), haNote: `${fmt(s.field)} ÷ ${p.countedHours} hr`, pace: p.pace == null ? '—' : String(Math.round(p.pace)), paceNote: p.pace == null ? 'no productive time' : 'per productive hr', total: fmt(s.field) },
     paceLine: p.pace != null ? `Pace = ${fmt(p.prodCount)} ÷ ${(p.prodMin / 60).toFixed(2)} productive hr. Pre-break hours count only the minutes worked before stoppage.${s.periods.some((x) => x.reason) ? ' A day that starts at 07:00 counts its first hour as 50 minutes (safety meeting 07:00-07:10).' : ''}` : null,
     unsetShort: p.unsetShort.length ? `Stoppage time not set for ${p.unsetShort.map((x) => `${x}–${formatHM(preBreak(x, s.breaks) ?? parseHM(x)! + 60)}`).join(', ')}` : null,
-    brandTable,
+    brandTable, brandTotal: s.brands.length > 1 ? brandTotal(s) : null,
     unsplitNote: s.unsplit ? `${fmt(s.unsplit)} autos were logged without a brand split, so brand field totals are minimums.` : null,
     rows, needed,
     photosNoTime: ph.noTime, photosOutside: ph.outside,
