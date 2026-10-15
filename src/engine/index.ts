@@ -107,7 +107,8 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
   const noteList: PlanNote[] = [];
   const evidenceList: EvidenceItem[] = [];
   const vanList: VanSlot[] = [];
-  const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null }>();
+  // reopened: each reopen of a resolved issue (HANDOFF_SPEC 3.5, decided 2026-10-13), absent until the first; the resolve stays in the log.
+  const issues = new Map<string, { id: string; key: string | null; text: string; openedAt: string; status: 'open' | 'resolved'; resolvedAt: string | null; reopened?: { at: string; reason: string; wasResolvedAt: string | null }[] }>();
   let completed: { time: string; override: boolean; reason: string | null; blockers: string[] } | null = null; // vessel marked complete by Colby (last mark wins; a reopen clears it)
   const checks = new Map<string, boolean>(); // closeout items Colby ticked (Phase 3); last tick or untick wins
   let recStart = 0; // sequence of the latest break/shift-end start
@@ -429,7 +430,14 @@ export function project(baseline: Baseline, events: VsaEvent[], operationId: str
       case 'discrepancy':
         if (e.event_type !== 'discrepancy_opened' && e.event_type !== 'discrepancy_resolved') return fail(`Event ${id}: discrepancy must be opened or resolved.`, id);
         if (e.event_type === 'discrepancy_opened' && !(p.reason ?? (typeof p.value === 'string' ? p.value : '')).trim()) return fail(`Event ${id}: a discrepancy needs a description.`, id);
-        if (e.event_type === 'discrepancy_opened') issues.set(id, { id, key: p.reason && typeof p.value === 'string' ? p.value : null, text: p.reason ?? String(p.value ?? ''), openedAt: when(occurred, e.recorded_at), status: 'open', resolvedAt: null });
+        if (e.event_type === 'discrepancy_opened' && p.input_event_ids.length) {
+          // A reopen: the same issue again, with its reason. Nothing earlier is rewritten.
+          const target = p.input_event_ids[0], issue = issues.get(target);
+          if (!issue || issue.status !== 'resolved') return fail(`Event ${id}: discrepancy ${target} is not resolved, so it cannot be reopened.`, id);
+          issue.reopened = [...(issue.reopened ?? []), { at: when(occurred, e.recorded_at), reason: (p.reason ?? '').trim(), wasResolvedAt: issue.resolvedAt }];
+          issue.status = 'open';
+          issue.resolvedAt = null;
+        } else if (e.event_type === 'discrepancy_opened') issues.set(id, { id, key: p.reason && typeof p.value === 'string' ? p.value : null, text: p.reason ?? String(p.value ?? ''), openedAt: when(occurred, e.recorded_at), status: 'open', resolvedAt: null });
         else if (e.event_type === 'discrepancy_resolved') {
           const target = p.input_event_ids[0];
           const issue = target ? issues.get(target) : undefined;

@@ -40,6 +40,7 @@ export function Plan({ vesselId, state, baseline, isTest, save, backup, reports,
   const [notesOpen, setNotesOpen] = useState(false);
   const [noteSheet, setNoteSheet] = useState<{ id: string | null } | null>(null); // id null = add a note
   const [busy, setBusy] = useState(false); // a save is in flight: no second tap
+  const [reopen, setReopen] = useState<{ id: string; why: string } | null>(null); // the resolved issue being reopened, and why
   const [making, setMaking] = useState<'break' | 'completion' | EvidenceReportKind | null>(null); // which report is being made
   const [breakOpen, setBreakOpen] = useState<{ entry: BreakEntry | null } | null>(null); // entry null = add a missed break
   const v = planView(state, baseline, recheck);
@@ -103,7 +104,25 @@ export function Plan({ vesselId, state, baseline, isTest, save, backup, reports,
             </View>
           </View>
         ))}
-        {v.issues.resolved && <Note>{v.issues.resolved}</Note>}
+        {v.issues.resolved.map((i) => (
+          <View key={i.id} style={s.issue}>
+            <Body>{i.text}</Body>
+            {reopen?.id === i.id ? (
+              <View style={{ gap: 8 }}>
+                <Field label="Why is it open again?" value={reopen.why} onChange={(why) => setReopen({ id: i.id, why })} keyboard="default" maxLength={200} />
+                <View style={u.secH}>
+                  <Go ghost label="Cancel" onPress={() => setReopen(null)} />
+                  <Go ghost label="Reopen" disabled={busy} onPress={async () => { if (await act((c) => E.reopenDiscrepancyEvents(c, i.id, reopen.why, null), 'Reopened. The earlier resolve stays in the log.')) setReopen(null); }} />
+                </View>
+              </View>
+            ) : (
+              <View style={u.secH}>
+                <Note style={{ flexShrink: 1 }}>{i.when}</Note>
+                <Go ghost label="Reopen" disabled={busy} onPress={() => setReopen({ id: i.id, why: '' })} />
+              </View>
+            )}
+          </View>
+        ))}
       </Collapse>
 
       <Collapse title="Notes" right={v.notes.current.length ? `${v.notes.current.length}` : undefined}>

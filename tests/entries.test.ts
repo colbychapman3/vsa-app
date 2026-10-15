@@ -140,7 +140,7 @@ test('discrepancy: open, track a banner, resolve; empty text refused', async (tc
   await s.ok(E.resolveDiscrepancyEvents(s.ctx(), first, t('10:45')));
   const p = planView(s.state, glovis);
   assert.equal(p.issues.open.length, 1);
-  assert.equal(p.issues.resolved, 'Recently resolved: D12 H2 count disagreed with checker (10:45)');
+  assert.deepEqual(p.issues.resolved.map((i) => [i.text, i.when]), [['D12 H2 count disagreed with checker', 'Resolved 10:45 ✓ The log keeps it.']]);
 });
 
 test('empty time: occurred_at stays null; the phone clock is only the labeled processing time', async (tc) => {
@@ -167,7 +167,25 @@ test('review 2: a discrepancy can only be resolved once', async (tc) => {
   await s.ok(E.resolveDiscrepancyEvents(s.ctx(), id, t('10:10')));
   const r = await s.save(E.resolveDiscrepancyEvents(s.ctx(), id, t('11:30')));
   assert.ok(!r.ok && /is not open/.test(r.error));
-  assert.equal(planView(s.state, glovis).issues.resolved, 'Recently resolved: x (10:10)');
+  assert.deepEqual(planView(s.state, glovis).issues.resolved.map((i) => i.when), ['Resolved 10:10 ✓ The log keeps it.']);
+});
+
+test('reopen a resolved discrepancy (board 1.7): needs a reason, appends, keeps the resolve, and can be resolved again', async (tc) => {
+  const s = await setup(tc);
+  await s.ok(E.openDiscrepancyEvents(s.ctx(), 'x', t('10:00')));
+  const id = s.state.issues[0].id;
+  assert.ok(!Array.isArray(E.reopenDiscrepancyEvents(s.ctx(), id, 'still off', t('10:05'))), 'an open issue cannot be reopened');
+  await s.ok(E.resolveDiscrepancyEvents(s.ctx(), id, t('10:10')));
+  const noWhy = E.reopenDiscrepancyEvents(s.ctx(), id, '  ', t('10:20'));
+  assert.ok(!Array.isArray(noWhy) && /Say why/.test(noWhy.error));
+  await s.ok(E.reopenDiscrepancyEvents(s.ctx(), id, 'checker recount disagrees', t('10:20')));
+  const issue = s.state.issues.find((i) => i.id === id)!;
+  assert.equal(issue.status, 'open');
+  assert.equal(s.state.issues.length, 1, 'the same issue, not a new one');
+  assert.deepEqual(issue.reopened, [{ at: '10:20', reason: 'checker recount disagrees', wasResolvedAt: '10:10' }]);
+  assert.match(planView(s.state, glovis).issues.open[0].opened, /· reopened 10:20: checker recount disagrees$/);
+  await s.ok(E.resolveDiscrepancyEvents(s.ctx(), id, t('10:40')));
+  assert.equal(s.state.issues[0].status, 'resolved');
 });
 
 test('review 3: a brand that is not on the vessel is refused in an hourly split', async (tc) => {

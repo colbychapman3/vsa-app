@@ -634,8 +634,8 @@ export function planView(s: State, b: Baseline, recheck: ReadonlySet<string> = n
   return {
     heights,
     issues: {
-      open: open.map((i) => ({ id: i.id, text: i.text, opened: i.openedAt.startsWith('Logged') ? i.openedAt : `Opened ${i.openedAt}` })),
-      resolved: resolved.length ? `Recently resolved: ${resolved.map((i) => `${i.text} (${i.resolvedAt})`).join(' · ')}` : null,
+      open: open.map((i) => ({ id: i.id, text: i.text, opened: `${i.openedAt.startsWith('Logged') ? i.openedAt : `Opened ${i.openedAt}`}${i.reopened?.length ? ` · reopened ${i.reopened.at(-1)!.at}: ${i.reopened.at(-1)!.reason}` : ''}` })),
+      resolved: resolved.map((i) => ({ id: i.id, text: i.text, when: `Resolved ${i.resolvedAt} ✓ The log keeps it.` })),
     },
     // Ship-specific notes: current ones, then removed ones (kept in the log, shown greyed with the reason).
     notes: {

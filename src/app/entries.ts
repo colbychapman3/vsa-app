@@ -327,6 +327,20 @@ export function resolveDiscrepancyEvents(ctx: Ctx, issueId: string, time: OpTime
   return out;
 }
 
+// Reopen a resolved discrepancy (board 1.7): the same issue, open again, with the reason. The resolve stays in the log.
+export function reopenDiscrepancyEvents(ctx: Ctx, issueId: string, reason: string | null, time: OpTime | null): VsaEvent[] | Reject {
+  const why = reason?.trim() ?? '';
+  if (!why) return reject('Say why it is open again. The earlier resolve stays in the log.');
+  if (why.length > 200) return reject('Keep it under 200 characters.');
+  const issue = ctx.state.issues.find((i) => i.id === issueId);
+  if (!issue || issue.status !== 'resolved') return reject('That discrepancy is not resolved, so there is nothing to reopen.');
+  const bt = badTimes(time);
+  if (bt) return bt;
+  const { add, out } = builder(ctx);
+  add({ type: 'discrepancy_opened', metric: 'discrepancy', value: 'reopened', workstream: 'operation', reason: why, inputs: [issueId], at: time });
+  return out;
+}
+
 // ---------- Workday drivers ----------
 
 // Drivers are set once per operation day (e.g. Day 1 = 70, Day 2 = 50) and used for every

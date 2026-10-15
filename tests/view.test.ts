@@ -210,7 +210,7 @@ test('screen 08: Plan (tracker demo)', () => {
   assert.deepEqual(v.heights.pending.map((d) => [d.label, d.stow, d.options.map((o) => o.label)]), [['D9', 'Stow plan: 2.00 m', ['Set at 2.00 m', 'Set at 1.70 m']]]);
   assert.deepEqual(v.heights.confirmed, [{ id: 'D7', text: 'D7 1.70 m ✓ · change', low: true }]);
   assert.deepEqual(v.issues.open.map((i) => [i.text, i.opened]), [['Field Hyundai +8 vs Hyundai cleared at lunch reconciliation', 'Opened 12:10']]);
-  assert.equal(v.issues.resolved, 'Recently resolved: Deck 12 H2 count disagreed with checker (10:45)');
+  assert.deepEqual(v.issues.resolved.map((i) => [i.text, i.when]), [['Deck 12 H2 count disagreed with checker', 'Resolved 10:45 ✓ The log keeps it.']]);
   assert.deepEqual([v.baseline.start, v.baseline.brands, v.baseline.hh, v.baseline.verified, v.baseline.discrepancies, v.baseline.missing], ['1,969', '829 Kia + 1,140 Hyundai', '0', true, '0 discrepancies', 'Nothing missing']);
   assert.equal(v.baseline.sources, 'Sources: Game plan 9/21/2026; Labor order 9/21/26; Stow plan (SSI blocks, deck heights)');
   assert.deepEqual(v.labor, { start: '08:00', autoDrivers: '70 · 35 + 35', vanDrivers: '10', heavyGang: '0' });
