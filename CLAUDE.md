@@ -42,6 +42,7 @@ npm run verify:release   # typecheck + lint + tests + check:ios + verify:native:
 npm run bench:replay     # replay timings at 100 to 10,000 events (prints only; tests/replayScaling.test.ts guards the growth)
 eas build --platform ios --profile production --non-interactive          # TestFlight store build (counts against the EAS quota)
 eas submit --platform ios --profile production --latest --non-interactive
+eas update --channel production --environment production --platform ios --message "..." --non-interactive   # JS-only fix, no store build (since #31; native changes still need a build)
 ```
 
 ## Installed tools (Claude Code plugins)
