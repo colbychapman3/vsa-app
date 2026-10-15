@@ -78,7 +78,8 @@ export function TabBar({ tab, onTab, badges, onLog, due }: { tab: Tab; onTab: (t
   return (
     <View style={[s.tabs, { paddingBottom: insets.bottom + 8 }]}>
       {TABS.slice(0, 2).map(item)}
-      <View>
+      {/* Centered in the bar, in line with the tabs (Colby, 2026-10-14: it sat high, half above the bar). */}
+      <View style={{ justifyContent: 'center' }}>
         <Pressable onPress={onLog} style={({ pressed }) => [s.log, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={due ? `Log an entry. The ${due} count is due` : 'Log an entry'}>
           <Icon name="plus" color={color.onAction} />
           <Text style={[s.logText, { fontFamily: f.displaySemi }]} maxFontSizeMultiplier={1.15}>Log</Text>
