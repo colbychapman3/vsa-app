@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { project } from '../src/engine/index.ts';
 import type { State } from '../src/storage/store.ts';
 import { shipView } from '../src/app/ship.ts';
-import { nowLine } from '../src/app/now.ts';
+import { breakNudge, nowLine } from '../src/app/now.ts';
 import { needsLook, snapshot } from '../src/app/view.ts';
 import { driversFinish, levers, paceWatch, scenario } from '../src/app/whatif.ts';
 import type { Baseline } from '../src/engine/index.ts';
@@ -171,4 +171,20 @@ test('Now line: a due count, then calm; nothing on a break', () => {
   }
   assert.equal(calm.action, undefined); // calm has nothing to tap
   assert.equal(nowLine({ ...p, ops: { ...p.ops, phase: 'break' } } as State, glovis, endLast + 10), null);
+});
+
+test('pre-break nudge (board 1.2b): the stop before a break, each side its own clear-by, only in the 30 min before the first stop', () => {
+  const day = SCENARIOS.find((s) => s.name === 'mixed deck progress, working')!;
+  const events = toEvents(day);
+  const p = project(glovis, events, events[0].operation_id);
+  assert.ok(p.ok);
+  if (!p.ok) return;
+  const sides = new Set(glovis.destinations.map((d) => d.side));
+  const first = 12 * 60 - Math.max(...glovis.destinations.map((d) => d.clearBy));
+  assert.equal(breakNudge(p, glovis, first - 31), null, 'not yet');
+  assert.equal(breakNudge(p, glovis, first), null, 'the stop has come: nothing left to nudge');
+  const n = breakNudge(p, glovis, first - 10)!;
+  assert.equal(n.tone, 'warn');
+  assert.match(n.text, sides.size === 1 ? /^Break at 12:00\. Stop at \d\d:\d\d, in 10 min\.$/ : /^Break at 12:00\. Stop Southside at 11:30, Northside at 11:45; the first in 10 min\.$/);
+  assert.ok(n.action && n.action.to !== 'log', 'the nudge opens a deck, it is never the peach Log');
 });

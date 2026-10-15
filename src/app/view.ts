@@ -318,9 +318,7 @@ export function snapshot(s: State, b: Baseline, nowMin: number) {
     : null;
   // The Pace tile's sparkline: pace per counted hour, oldest to newest, the last six hours with a known pace (the hourly list's numbers).
   const paceSeries = s.periods.filter((x) => x.pace != null).slice(-6).map((x) => x.pace as number);
-  // The needed rate shows on the Snapshot only when it matters (pace within NEEDED_WARN of it, or short); Hourly always shows it.
-  const need = neededRate(s, b), needed = need?.ok && need.warn ? need : null;
-  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, done, scale, paceSeries, brands, side: sideSplit(s, b), needed };
+  return { banners, strip, openIssues: openIssues.length, hero, fieldRecord, eta, ha, done, scale, paceSeries, brands, side: sideSplit(s, b) };
 }
 
 // Side split from destinations; autos left per side only when each brand goes to one side.
@@ -469,7 +467,8 @@ export function hhTagsFor(s: State, x: { day: number; start: string }): string[]
 
 // Needed rate (Colby, 2026-10-12; gauge per HANDOFF_SPEC 9.4): what the rest of Day 1 must average to finish by the planned shift
 // end (last cars, after the shift-end stop). Same remaining and anchor as the forecast. A calculation, never a FORECAST. Compared with
-// the Pace the Snapshot shows; warn when the needed rate reaches NEEDED_WARN of it. Null when there is no shift end, no anchor or
+// the Pace the Snapshot shows; warn when the needed rate reaches NEEDED_WARN of it. Shown on Hourly (the Snapshot holds only the
+// numbers and the ship, 2026-10-14). Null when there is no shift end, no anchor or
 // nothing remaining. Both marks share one scale (0 to the larger, rounded up to 20).
 export const NEEDED_WARN = 0.9;
 export type Needed = { ok: true; rate: number; pace: number | null; target: string; scaleMax: number; warn: boolean; line: string; detail: string } | { ok: false; target: string; reason: string };

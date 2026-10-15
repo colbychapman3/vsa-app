@@ -31,10 +31,10 @@ Source: `docs/mockups/every-screen-swarm-final-2026-10-13/HANDOFF_SPEC.md` (boar
 | Largest text size | all | Built | `a9e2704` (cap at 1.6Ã—, `textScale.test.ts`) |
 
 ## Build order (each step: tests first or with the code; `npm run verify:release` before commit)
-1. **Needed rate**: view value `needed: { rate, pace, scaleMax, warn, line, target } | { reason }` (CALCULATED, never FORECAST); Hourly gauge; Snapshot shows it only when warn. Constant `NEEDED_WARN = 0.9`.
+1. **Needed rate**: view value `neededRate()` (CALCULATED, never FORECAST); Hourly gauge. Constant `NEEDED_WARN = 0.9`. Not on the Snapshot: since `e092b5a` (2026-10-14) the Snapshot holds only the numbers and the ship; warnings sit at the top of Decks.
 2. **Brand table**: `inTransit` per brand (never negative; field-ahead shows "Field over by N", red only at a break or shift end), "All" row, definition line. "â‰¥" kept for inexact field.
 3. **Answer after Save**: extend `Answer` with `official`, denominators, `decksAsOf`, `carry`, `action: 'update-decks' | null`, short-hour line; deck save variant. Shown in the Log sheet after Save (one modal at a time).
-4. **Pre-break nudge**: `now.ts` warn line within 30 min of a scheduled break (before its stop), ghost action; silent when nothing is left to clear.
+4. **Pre-break nudge**: `now.ts breakNudge`, a warn line in the 30 min before the first stop of a scheduled break (each side its own clear-by), at the top of Decks with a ghost "See DKx".
 5. **Graph readouts**: points carry `{label, pace, count, minutes, short}`; y uses the same value as the label; tap selects, default latest.
 6. **Plan live Last cars**: pure `lastCars(shiftEnd, side)`; Plan updates as the side changes.
 7. **Reopen**: entry builder + projection (same id, `reopened`), Plan "Resolved âœ“ The log keeps it. Reopen". Replay hashes refreshed only if the output changes, with the reason in the commit.

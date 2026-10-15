@@ -10,7 +10,6 @@ import { BreakScale } from './Graphics.tsx';
 import type { Save } from './Plan.tsx';
 import { Boxes } from './SnapshotBoxes.tsx';
 import { BannerView } from './ui.tsx';
-import { NeededCard } from './NeededCard.tsx';
 import { BrandTable } from './BrandTable.tsx';
 
 type Props = { state: State; baseline: Baseline; nowMin: number; onOpenTab: (t: 'hourly' | 'decks' | 'plan') => void; onTrack: (b: Banner) => void;
@@ -24,7 +23,6 @@ export function Snapshot({ state, baseline, nowMin, onOpenTab, onTrack, isTest, 
       {v.scale && <BreakScale scale={v.scale} />}
       {state.ops.phase !== 'working' && v.fieldRecord.brands.length > 0 && <BrandTable rows={v.fieldRecord.brands} total={v.fieldRecord.brandTotal} />}
       {v.banners.map((b, i) => <BannerView key={i} banner={b} onTrack={onTrack} onGo={onOpenTab} />)}
-      {v.needed && <NeededCard n={v.needed} />}
       <Boxes tab="snap" layout={layout} onLayout={onLayout} state={state} baseline={baseline} nowMin={nowMin} isTest={isTest} save={save} onNotice={onNotice} onOpenTab={onOpenTab} onHistory={onHistory} onOpenDeck={onOpenDeck} />
     </View>
   );
