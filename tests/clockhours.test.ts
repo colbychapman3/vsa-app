@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { type Baseline, type VsaEvent, type Reject } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
-import { hourlyView, hourOptions, neededRate, NEEDED_WARN } from '../src/app/view.ts';
+import { hourlyView, hourOptions, lastCars, neededRate, NEEDED_WARN } from '../src/app/view.ts';
 import { openNodeDb } from './nodeDb.ts';
 import { glovis } from './scenarios.ts';
 
@@ -77,4 +77,11 @@ test('needed rate: only with a planned shift end, and it stops before the end by
   assert.ok(short.ok && short.warn && /^Pace is 30\/hr short of what the ship needs\.$/.test(short.line), short.ok ? short.line : '');
   assert.ok(close.ok && close.warn && /^Close: pace is only \d+\/hr above/.test(close.line), close.ok ? close.line : '');
   assert.ok(easy.ok && !easy.warn && /^Comfortable: pace is about 3\.0× what the ship needs\.$/.test(easy.line), easy.ok ? easy.line : '');
+});
+
+test('Plan last cars (G7): follows the side as it is picked, the stop applied once; two days roll into Day 2', () => {
+  assert.equal(lastCars('23:00', 'N', '07:00'), 'Last cars 22:45; the forecast rolls into Day 2 from 07:00.');
+  assert.equal(lastCars('23:00', 'S', '07:00'), 'Last cars 22:30; the forecast rolls into Day 2 from 07:00.');
+  assert.equal(lastCars('23:00', null, '07:00'), null, 'no side, no time');
+  assert.equal(lastCars('23', 'N', '07:00'), null, 'an end that does not read');
 });

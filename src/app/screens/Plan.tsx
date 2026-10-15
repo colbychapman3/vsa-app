@@ -8,7 +8,7 @@ import { formatHM, operationDate, parseHM, type Baseline, type BreakEntry, type 
 import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { NOTE_SECTIONS } from '../report.ts';
-import { allPhotoFiles, planView, photoHourNotes, photoTypesPresent } from '../view.ts';
+import { allPhotoFiles, lastCars, planView, photoHourNotes, photoTypesPresent } from '../view.ts';
 import { saveToCameraRoll } from '../evidenceFiles.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
@@ -313,6 +313,7 @@ function ShiftSheet({ state, baseline, isTest, save, onClose }: { isTest: boolea
         <View style={{ gap: 8 }}>
           <Label>Day 1 ends on which side?</Label>
           <Seg columns={2} value={side} onChange={setSide} options={[{ value: 'N', label: 'Northside (−15)' }, { value: 'S', label: 'Southside (−30)' }]} />
+          {lastCars(end, side, next) && <Body semi>{lastCars(end, side, next)}</Body>}
           <InfoNote><Note>The forecast stops that many minutes before the shift end.</Note></InfoNote>
         </View>
       )}

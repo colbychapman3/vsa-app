@@ -465,6 +465,14 @@ export function hhTagsFor(s: State, x: { day: number; start: string }): string[]
   ]);
 }
 
+// Plan's shift sheet (board 1.6, G7): the last-cars time as the side is picked, before anything is saved. The shift-end stop applies
+// once (Northside 15, Southside 30 min before the end). Null until the end time reads and a side is picked.
+export function lastCars(end: string, side: 'N' | 'S' | null, nextStart: string): string | null {
+  const e = parseHM(end.trim()), n = parseHM(nextStart.trim());
+  if (e == null || side == null) return null;
+  return `Last cars ${formatHM(e - SHIFT_END_STOP_MIN[side])}${n != null ? `; the forecast rolls into Day 2 from ${formatHM(n)}` : ''}.`;
+}
+
 // Needed rate (Colby, 2026-10-12; gauge per HANDOFF_SPEC 9.4): what the rest of Day 1 must average to finish by the planned shift
 // end (last cars, after the shift-end stop). Same remaining and anchor as the forecast. A calculation, never a FORECAST. Compared with
 // the Pace the Snapshot shows; warn when the needed rate reaches NEEDED_WARN of it. Shown on Hourly (the Snapshot holds only the
