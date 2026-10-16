@@ -228,31 +228,37 @@ function HeroBox({ v }: { v: V }) {
 export function ShipBox({ state, onOpen, onOpenDeck }: { state: State; onOpen: () => void; onOpenDeck?: (id: string) => void }) {
   const f = useType();
   const v = shipView(state);
+  const allClear = v.rows.length > 0 && v.decksLeft === 0;
   const seg = (g: Seg | null, k: string) => g == null
     ? <View key={k} style={{ flex: 1 }} />
-    : <View key={k} style={[s.seg, { backgroundColor: g.fill === 0 ? color.deckClear : color.deckTrack }, g.fill == null && s.segUnknown]}>
+    : <View key={k} style={[s.seg, { backgroundColor: g.fill === 0 ? color.hull : color.deckTrack }, g.fill == null && s.segUnknown]}>
         {g.fill != null && g.fill > 0 && <View style={[s.segFill, { width: `${Math.max(6, Math.round(g.fill * 100))}%` }]} />}
       </View>;
   return (
     <Pressable onPress={onOpen} style={({ pressed }) => [s.hull, pressed && { opacity: 0.8 }]} accessibilityRole="button"
       accessibilityLabel={`The ship: ${v.decksLeft} of ${v.decks} decks still have cars. ${v.rows.map((r) => r.a11y).join('. ')}. Opens Decks.`}>
       <View style={s.shipHead}>
-        <Text style={[s.shipTitle, { fontFamily: f.bodySemi }]}>{v.decksLeft} of {v.decks} decks still have cars</Text>
-        <Text style={[s.shipLink, { fontFamily: f.bodySemi }]}>Decks ›</Text>
+        <Text style={[s.shipTitle, { fontFamily: f.bodySemi }]}>{allClear ? 'All decks clear' : `${v.decksLeft} of ${v.decks} decks still have cars`}</Text>
+        <Text style={[s.shipLink, { fontFamily: f.bodySemi }]}>›</Text>
       </View>
-      <View style={s.deckRow} importantForAccessibility="no-hide-descendants">
-        <View style={s.deckLabelBox} />
-        <View style={s.segs}>{HATCH_SLOTS.map((h) => <Text key={h} style={[s.hatchHead, { fontFamily: f.mono }]}>{h}</Text>)}</View>
-        <View style={s.deckRightBox} />
-      </View>
-      {/* The ship drawn (Every Screen mockup): a hatch is lit when any deck still has cars in it. */}
-      <View style={[s.deckRow, { alignItems: 'flex-end' }]} importantForAccessibility="no-hide-descendants">
+      {/* The ship (mockup 2026-10-16): the bridge and the hatch tabs sit on the hull; a tab is lit when any deck still has cars in that hatch. */}
+      <View style={[s.deckRow, { alignItems: 'flex-end', minHeight: 0 }]} importantForAccessibility="no-hide-descendants">
         <View style={s.deckLabelBox}><View style={s.bridge} /></View>
-        <View style={s.segs}>{HATCH_SLOTS.map((h, i) => <View key={h} style={[s.hatchBox, v.rows.some((r) => r.segs.length > 1 && (r.segs[i]?.fill ?? 0) > 0) && s.hatchOn]} />)}</View>
+        <View style={s.segs}>{HATCH_SLOTS.map((h, i) => {
+          const on = v.rows.some((r) => r.segs.length > 1 && (r.segs[i]?.fill ?? 0) > 0);
+          return <View key={h} style={[s.hatchBox, on && s.hatchOn]}><Text style={[s.hatchHead, { fontFamily: f.mono, color: on ? color.deckInk : color.deckMuted }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{h}</Text></View>;
+        })}</View>
         <View style={s.deckRightBox} />
       </View>
-      <View style={s.keel} importantForAccessibility="no-hide-descendants" />
-      {v.rows.map((r) => (
+      <View style={s.hullBody}>
+      {allClear && (
+        <View style={s.deckRow}>
+          <View style={s.tick}><Text style={{ color: color.deckInk, fontSize: 15 }}>✓</Text></View>
+          <Text style={[s.deckLabel, { flex: 1, fontFamily: f.mono, color: color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{v.rows.map((r) => r.label).join(' · ')}</Text>
+          <Text style={[s.deckRight, { fontFamily: f.bodySemi, color: color.deckMuted }]}>0 left</Text>
+        </View>
+      )}
+      {!allClear && v.rows.map((r) => (
         // A deck row opens that deck; a low deck (no vans) is outlined, the same flag the Decks tab and Needs a look use.
         <Pressable key={r.id} onPress={() => (onOpenDeck ? onOpenDeck(r.id) : onOpen())} accessibilityRole="button" accessibilityLabel={`${r.a11y}. Opens the deck.`}
           style={({ pressed }) => [s.deckRow, r.low && s.deckLow, pressed && { opacity: 0.7 }]}>
@@ -261,11 +267,12 @@ export function ShipBox({ state, onOpen, onOpenDeck }: { state: State; onOpen: (
           <View style={s.deckRightBox}><Text style={[s.deckRight, { fontFamily: f.bodySemi, color: r.tone === 'clear' ? color.deckMuted : color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.right}</Text></View>
         </Pressable>
       ))}
+      </View>
     </Pressable>
   );
 }
 
-const s = StyleSheet.create({
+const s =StyleSheet.create({
   main: { padding: 20, gap: 16 },
   moved: { paddingHorizontal: 20, paddingTop: 16, gap: 16 },
   clerk: { fontSize: 13, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1.5, overflow: 'hidden' },
@@ -290,7 +297,7 @@ const s = StyleSheet.create({
   finish: { alignItems: 'flex-end', maxWidth: '42%', paddingBottom: 6 },
   mono: { fontSize: 13, color: color.muted },
   // The ship card corners from the boards: 10 / 10 / 12 / 24 (top left, top right, bottom right, bottom left).
-  hull: { backgroundColor: color.hull, paddingTop: 14, paddingHorizontal: 14, paddingBottom: 20, gap: 4, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomRightRadius: 12, borderBottomLeftRadius: 24, minHeight: TAP },
+  hull: { backgroundColor: color.hull, paddingTop: 14, paddingHorizontal: 14, paddingBottom: 0, gap: 4, overflow: 'hidden', borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomRightRadius: 12, borderBottomLeftRadius: 24, minHeight: TAP },
   dotHit: { width: TAP, height: TAP, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
   why: { backgroundColor: color.row, borderLeftWidth: 3, borderLeftColor: color.blue, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, gap: 4 },
@@ -302,16 +309,18 @@ const s = StyleSheet.create({
   deckRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
   deckLow: { borderWidth: 1.5, borderColor: color.deckWarn, borderRadius: 10, marginHorizontal: -4, paddingHorizontal: 4 },
   bridge: { width: 30, height: 26, borderRadius: 4, backgroundColor: color.deckMuted },
-  hatchBox: { flex: 1, height: 18, borderTopLeftRadius: 5, borderTopRightRadius: 5, backgroundColor: color.deckClear },
+  hatchBox: { flex: 1, height: 26, borderTopLeftRadius: 6, borderTopRightRadius: 6, backgroundColor: color.deckClear, alignItems: 'center', justifyContent: 'center' },
   hatchOn: { backgroundColor: color.deckFill },
-  keel: { height: 10, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, backgroundColor: color.deckMuted, marginBottom: 8 },
+  // The decks sit inside the hull: a lighter panel running edge to edge, clipped to the card's corners.
+  hullBody: { backgroundColor: color.deckClear, marginHorizontal: -14, paddingHorizontal: 14, paddingVertical: 8 },
+  tick: { width: 26, height: 26, borderRadius: 13, backgroundColor: color.green, alignItems: 'center', justifyContent: 'center' },
   deckLabelBox: { width: 46 },
   deckLabel: { fontSize: 13 },
   segs: { flex: 1, flexDirection: 'row', gap: 3, alignSelf: 'stretch' },
   seg: { flex: 1, borderRadius: 8, overflow: 'hidden', minHeight: 30 },
   segUnknown: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: bcolor.deckMuted, backgroundColor: 'transparent' },
   segFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: color.deckFill },
-  hatchHead: { flex: 1, textAlign: 'center', fontSize: 13, color: color.deckMuted },
+  hatchHead: { fontSize: 13 },
   deckRightBox: { width: 70, alignItems: 'flex-end' },
   deckRight: { fontSize: 13 },
 });

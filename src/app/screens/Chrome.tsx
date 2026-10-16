@@ -67,9 +67,9 @@ export function TabBar({ tab, onTab, badges, onLog, due }: { tab: Tab; onTab: (t
     return (
       <Pressable key={id} onPress={() => onTab(id)} style={({ pressed }) => [s.tab, on && s.tabOn, pressed && { opacity: 0.6 }]} accessibilityRole="tab" accessibilityState={{ selected: on }}
         accessibilityLabel={n ? `${label}, ${n} to check` : label}>
-        <Icon name={id} color={on ? color.accent : color.headMuted} />
+        <Icon name={id} color={on ? color.headInk : color.headMuted} />
         <View style={s.tabLabelRow}>
-          <Text style={[s.tabLabel, { color: on ? color.accent : color.headMuted, fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={1.15}>{label}</Text>
+          <Text style={[s.tabLabel, { color: on ? color.headInk : color.headMuted, fontFamily: f.bodySemi }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={1.15}>{label}</Text>
           {n > 0 && <Text style={[s.badge, { fontFamily: f.bodySemi }]}>{n}</Text>}
         </View>
       </Pressable>

@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ship card: cleaner (mockup, 2026-10-16)</title>
+<style>
+:root{--hull:#14243B;--track:#24375A;--clear:#1B2C47;--fill:#3D7BFF;--warn:#FF8A3D;--ink:#fff;--muted:#A9BAD1;--page:#EEF1F5}
+*{box-sizing:border-box}body{margin:0;padding:24px;background:var(--page);font:16px/1.3 -apple-system,Segoe UI,Roboto,sans-serif;color:#0B1626}
+h1{font-size:20px;margin:0 0 4px}p.sub{margin:0 0 20px;color:#44546A}
+.row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.col{width:358px}.col h2{font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:#44546A;margin:0 0 8px}
+/* the card */
+.ship{background:var(--hull);border-radius:14px;padding:14px 14px 18px;color:var(--ink)}
+.head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.head b{font-size:17px}.head span{color:var(--muted);font-size:20px}
+/* topside: bridge + hatch coamings that double as the H4..H1 labels */
+.grid{display:grid;grid-template-columns:44px repeat(4,1fr) 74px;gap:6px;align-items:end}
+.bridge{height:30px;background:var(--muted);border-radius:5px 5px 0 0;position:relative}
+.bridge:after{content:"";position:absolute;left:8px;right:8px;top:7px;height:6px;border-radius:2px;background:var(--hull);opacity:.55}
+.coam{height:26px;border-radius:6px 6px 0 0;background:var(--clear);color:var(--muted);font:600 12px ui-monospace,Menlo,monospace;display:flex;align-items:center;justify-content:center}
+.coam.on{background:var(--fill);color:#fff}
+/* hull body: the decks live INSIDE the ship; bow slopes at the right, stern corner is round */
+.body{background:#1B2F50;margin:0 -14px;padding:10px 14px 12px;border-radius:0 0 0 26px;clip-path:polygon(0 0,100% 0,calc(100% - 30px) 100%,0 100%)}
+.deck{display:grid;grid-template-columns:44px repeat(4,1fr) 74px;gap:6px;align-items:center;min-height:44px}
+.deck + .deck{border-top:1px solid #ffffff14}
+.lab{font:600 14px ui-monospace,Menlo,monospace}
+.seg{height:28px;border-radius:7px;background:var(--track);position:relative;overflow:hidden}
+.seg i{position:absolute;inset:0 auto 0 0;background:var(--fill)}
+.seg.unk{background:transparent;border:1.5px dashed var(--muted)}
+.seg.none{background:transparent}
+.right{text-align:right;font-weight:600;font-size:15px}.right.m{color:var(--muted)}
+.deck.whole .seg{grid-column:2 / 6}
+.low{outline:1.5px solid var(--warn);outline-offset:2px;border-radius:8px}
+/* all-clear: decks collapse to one line */
+.done{padding:12px 14px 14px;margin:0 -14px;background:#1B2F50;border-radius:0 0 0 26px;clip-path:polygon(0 0,100% 0,calc(100% - 30px) 100%,0 100%);display:flex;align-items:center;gap:10px}
+.done .tick{width:26px;height:26px;border-radius:50%;background:#2F9E55;display:grid;place-items:center;font-weight:700}
+.done b{font-size:17px}.done small{color:var(--muted);margin-left:auto;margin-right:26px}
+.notes{max-width:760px;margin-top:28px;background:#fff;border-radius:14px;padding:16px 20px}
+.notes h3{margin:0 0 8px;font-size:16px}.notes li{margin:5px 0}
+</style>
+<h1>Ship card: cleaner</h1>
+<p class="sub">Same data as today. The ship is the card; decks sit inside the hull. Tap anywhere = Decks, tap a row = that deck.</p>
+
+<div class="row">
+ <div class="col"><h2>Working (the 09:13 state)</h2>
+  <div class="ship">
+   <div class="head"><b>3 decks still have cars</b><span>›</span></div>
+   <div class="grid"><div class="bridge"></div><div class="coam on">H4</div><div class="coam on">H3</div><div class="coam on">H2</div><div class="coam on">H1</div><div></div></div>
+   <div class="body">
+    <div class="deck"><div class="lab">D11</div>
+      <div class="seg"><i style="width:35%"></i></div><div class="seg"></div><div class="seg"><i style="width:40%"></i></div><div class="seg"><i style="width:100%"></i></div><div class="right">62 left</div></div>
+    <div class="deck whole"><div class="lab">D12</div><div class="seg unk"></div><div class="right m">count?</div></div>
+    <div class="deck"><div class="lab">D13</div>
+      <div class="seg"><i style="width:100%"></i></div><div class="seg"><i style="width:100%"></i></div><div class="seg"><i style="width:100%"></i></div><div class="seg none"></div><div class="right">204 left</div></div>
+   </div>
+  </div>
+ </div>
+
+ <div class="col"><h2>All clear (the 23:19 state)</h2>
+  <div class="ship">
+   <div class="head"><b>All decks clear</b><span>›</span></div>
+   <div class="grid"><div class="bridge"></div><div class="coam">H4</div><div class="coam">H3</div><div class="coam">H2</div><div class="coam">H1</div><div></div></div>
+   <div class="done"><div class="tick">✓</div><b>D11 · D12 · D13</b><small>0 left</small></div>
+  </div>
+ </div>
+</div>
+
+<div class="notes"><h3>What changed and why</h3><ul>
+<li><b>The grey bar is gone.</b> It was a flat keel between the ship drawing and the decks, so it read as a line cutting the card. The hull is now the dark panel the decks sit in; the bow slopes at the right and the stern corner is round.</li>
+<li><b>Two rows became one.</b> The H4 H3 H2 H1 label row and the dim hatch silhouettes were separate; now the hatch tabs on top of the hull carry the labels, and light up when any deck still has cars in that hatch.</li>
+<li><b>The floating square is now the bridge</b>, attached to the hull's top edge at the stern.</li>
+<li><b>"Decks ›" text becomes a chevron.</b> The title already says what it is.</li>
+<li><b>Clear decks stop drawing empty boxes.</b> When every deck is clear the three blank rows collapse to one line with a check.</li>
+<li><b>Kept:</b> deck rows, per-hatch fill, dashed "count?" for unknown (never zero), orange outline for low decks, whole-deck rows for ramps, the right-hand "N left".</li>
+</ul></div>
