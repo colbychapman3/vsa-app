@@ -7,5 +7,5 @@
     "erasableSyntaxOnly": true,
     "types": ["node"]
   },
-  "include": ["App.tsx", "index.ts", "src", "tests"]
+  "include": ["App.tsx", "index.ts", "src", "tests", "tools"]
 }

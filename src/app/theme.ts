@@ -16,11 +16,13 @@ import { DMMono_500Medium } from '@expo-google-fonts/dm-mono/500Medium';
 // Extra visible swaps the Light palette for sunLight. Colors are fixed when the app starts, so the choice is mirrored in the
 // iPhone's own preferences (read at once, before the database opens) and applies on the next launch.
 const SUN_KEY = 'vsa.extraVisible';
-const readSun = () => { try { return Platform.OS === 'ios' && DeviceSettings.get(SUN_KEY) === '1'; } catch { return false; } };
+// Web (the render harness only): ?theme=night and ?sun=1 in the page address pick the palette at load, as the iPhone's preferences do.
+const webParam = (k: string) => (Platform.OS === 'web' ? new URLSearchParams(globalThis.location?.search ?? '').get(k) : null);
+const readSun = () => { try { return webParam('sun') === '1' || (Platform.OS === 'ios' && DeviceSettings.get(SUN_KEY) === '1'); } catch { return false; } };
 export const sunPaletteLoaded = readSun();
 export function setSunPalette(on: boolean) { try { if (Platform.OS === 'ios') DeviceSettings.set({ [SUN_KEY]: on ? '1' : '0' }); } catch { /* the loaded palette stays */ } }
 const day = sunPaletteLoaded ? sunLight : light;
-const make = (k: Token): ColorValue => (Platform.OS === 'ios' ? DynamicColorIOS({ light: day[k], dark: night[k] }) : day[k]);
+const make = (k: Token): ColorValue => (Platform.OS === 'ios' ? DynamicColorIOS({ light: day[k], dark: night[k] }) : webParam('theme') === 'night' ? night[k] : day[k]);
 export const color = Object.fromEntries((Object.keys(light) as Token[]).map((k) => [k, make(k)])) as Record<Token, ColorValue>;
 
 // iOS paints a border with the phone's own Light/Dark, not the app's forced one (a dynamic color on a border resolves with the
@@ -28,7 +30,7 @@ export const color = Object.fromEntries((Object.keys(light) as Token[]).map((k) 
 // plain colors for the scheme the app started in; the choice is mirrored in the iPhone's preferences like Extra visible. Auto
 // follows the phone, where the dynamic colors are already right, so it keeps them.
 const MODE_KEY = 'vsa.appearance';
-const readMode = () => { try { return Platform.OS === 'ios' ? (DeviceSettings.get(MODE_KEY) as string | null) : null; } catch { return null; } };
+const readMode = () => { try { return Platform.OS === 'ios' ? (DeviceSettings.get(MODE_KEY) as string | null) : webParam('theme'); } catch { return null; } };
 export const appearanceLoaded = readMode();
 const fixed = appearanceLoaded === 'night' ? night : appearanceLoaded === 'light' ? day : null;
 export const bcolor: Record<Token, ColorValue> = fixed ? (Object.fromEntries((Object.keys(light) as Token[]).map((k) => [k, fixed[k]])) as Record<Token, ColorValue>) : color;
@@ -38,7 +40,7 @@ export type AppearanceMode = 'light' | 'night' | 'auto';
 export const APPEARANCES: AppearanceMode[] = ['light', 'night', 'auto'];
 export const asAppearance = (v: string | null): AppearanceMode => (v === 'night' || v === 'auto' ? v : 'light');
 export function applyAppearance(m: AppearanceMode) {
-  Appearance.setColorScheme(m === 'night' ? 'dark' : m === 'auto' ? 'unspecified' : 'light');
+  Appearance.setColorScheme?.(m === 'night' ? 'dark' : m === 'auto' ? 'unspecified' : 'light');
 }
 
 // Loaded once in App.tsx. Bundled with the app, so they work offline.

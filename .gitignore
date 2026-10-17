@@ -28,3 +28,6 @@ npm-debug.*
 /.agents/
 
 graphify-out/
+
+# UI conformance harness output
+/tools/render/out/

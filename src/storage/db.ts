@@ -1,6 +1,7 @@
 // The small database interface the store uses. expo-sqlite backs it on the phone
 // (openExpoDb below); tests back it with node:sqlite (tests/nodeDb.ts). Same SQL.
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 export type Param = string | number | null;
 
@@ -20,7 +21,8 @@ function wrap(q: Queryable, db: SQLite.SQLiteDatabase): Db {
     exec: (sql) => q.execAsync(sql),
     run: async (sql, params = []) => { await q.runAsync(sql, params); },
     all: (sql, params = []) => q.getAllAsync(sql, params),
-    transaction: (fn) => db.withExclusiveTransactionAsync((txn) => fn(wrap(txn, db))),
+    // Web (the render harness only) has no exclusive transactions; one page holds one connection, so a plain one is safe there.
+    transaction: (fn) => (Platform.OS === 'web' ? db.withTransactionAsync(() => fn(wrap(db, db))) : db.withExclusiveTransactionAsync((txn) => fn(wrap(txn, db)))),
     close: () => db.closeAsync(),
   };
 }

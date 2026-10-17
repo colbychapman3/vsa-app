@@ -60,6 +60,7 @@ import { Settings } from './src/app/screens/Settings.tsx';
 import glovisJson from './docs/reference/glovis-condor-101-baseline.json';
 import { siriPrefill } from './src/app/siri.ts';
 import { takeSiriPending } from './modules/vsa-intents/index.ts';
+import { useRenderHook } from './src/app/renderHook'; // no extension, so Metro picks renderHook.web.ts on web
 
 const DEMO = 'TEST-GLOVIS-101';
 const glovis = glovisJson as Baseline;
@@ -267,6 +268,15 @@ export default function App() {
   }), [ctx]);
 
   const openTab = useCallback((t: Tab) => { setNotice(null); setTab(t); }, []);
+
+  // Web render harness only (renderHook.ts does nothing on the phone): a board's vessel, tab, sheet and theme.
+  useRenderHook({
+    ready: () => vessel?.id ?? null,
+    load: async (text: string) => { const r = await importLog(store.current!, text); if (!r.ok) return r.error; await openVessel(r.operationId); return null; },
+    tab: (t: Tab) => openTab(t), sheet: (s: typeof sheet) => setSheet(s), log: (on: boolean) => { before.current = latest.current; setLogOpen(on); },
+    deck: (id: string | null) => setDeckOpen(id), drawer: (on: boolean) => setDrawer(on),
+    appearance: (m: AppearanceMode) => { applyAppearance(m); setAppearance(m); }, sun: (on: boolean) => { setSun(on); setSunPalette(on); },
+  } as never);
 
   // Read save/error messages aloud for VoiceOver (a role alone doesn't announce on iOS).
   useEffect(() => { if (notice) AccessibilityInfo.announceForAccessibility(notice.text); }, [notice]);
