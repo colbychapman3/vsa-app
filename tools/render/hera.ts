@@ -55,6 +55,8 @@ export function steps(): [string, (c: E.Ctx) => VsaEvent[] | Reject][] {
     ['11:42', (c) => E.deckEvents(c, deck('DK3', 'complete', '11:42', { H4: 0, H3: 0, H2: 0, H1: 0 }))],
     ['11:50', (c) => E.deckEvents(c, deck('DK7', 'paused', '11:44', { H4: 49, H3: 0 }))],
     ['11:51', (c) => E.deckEvents(c, deck('DK4', 'paused', '11:44', { H3: 30, H2: 0 }))],
+    // Board 1.3 shows 📷 2 on DK4: one poor-stowage record with two photos (paths only; the harness never opens them).
+    ['11:52', (c) => E.addEvidenceEvents(c, { type: 'poor-stowage', deck: 'DK4', hatch: 'H3', reason: '', vins: [], time: t('11:52'), photo: `evidence/${OP}/${OP}-${c.state.log.events.length + 1}.jpg`, more: [`evidence/${OP}/dk4-h3-2.jpg`] })],
     ['12:00', (c) => E.hourEvents(c, hour('11:00', 60, 57, 7, { stopMin: 45 }))],
     ['12:01', (c) => E.breakStartEvents(c, t('12:00'))],
     ['13:00', (c) => E.breakEndEvents(c, t('13:00'))],

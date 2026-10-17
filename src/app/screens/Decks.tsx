@@ -11,7 +11,7 @@ import { decksRemaining, decksView } from '../view.ts';
 import { bcolor, color, MAX_BIG_SCALE, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
 import { ShipBox } from './SnapshotBoxes.tsx';
-import { Body, Card, Chip, InfoNote, Note, Pill, SectionHead, Seg, u } from './ui.tsx';
+import { Body, Card, Chip, Note, Pill, Seg, u } from './ui.tsx';
 
 const acc = (r: { photoTypes: { type: string; photos: number }[] }) => r.photoTypes.find((t) => t.type === 'accident')?.photos ?? 0;
 
@@ -41,8 +41,6 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
       )}
       <WhatIfCard state={state} baseline={baseline} />
       <View style={{ gap: 10 }}>
-        <SectionHead title="Deck heights" />
-        <InfoNote><Note>Shuttle vans need a deck height of 1.85 m or more. A deck below that gets a low-deck warning.</Note></InfoNote>
         {v.low.length === 0 && <Card style={u.pad}><Note>No low decks with cargo remaining.</Note></Card>}
         {v.low.map((d) => (
           <View key={d.id} style={s.lowAlert} accessibilityRole="alert">

@@ -1,6 +1,8 @@
 # Design questions from the UI conformance trial (2026-10-17)
 
-Boards checked: 103 Decks, 201 Log › Hourly, 903 Night (`tools/render`, Hera Highway 13A fixture). Each question is where the board and the app differ because of a later decision or a rule. Answer each one before the loop "fixes" it. Recommended answer first.
+Boards checked: 103 Decks, 201 Log › Hourly, 903 Night (`tools/render`, Hera Highway 13A fixture). Each question is where the board and the app differ because of a later decision or a rule. **Decided by Colby, 2026-10-17: every recommended answer** (the last column). Done in the app: #4 (Deck heights heading dropped), #12 (sheet grabber, TEST/LIVE chip beside close, divider), #8 (fixture: DK4 has its 2 photos). Everything else keeps the app as it is.
+
+**Board updates owed to the VSA Every Screen artifact** (the boards are frozen here; update the artifact, then refresh the copy): #1 ship card (2026-10-16), #2 What if on Decks, #3 tab bar, #5 Finish 16:02, #6 no Now card / traces in Ask / bar not ring, #7 "About N left now (est.)", #9 "Can be lowered" on every unconfirmed deck, #10 "✓ Complete", #11 20 px margins, #13 no clerk's text link, #14 the app's type sizes.
 
 | # | Board · element | Board shows | App does (why) | Decision needed (recommended) |
 |---|---|---|---|---|

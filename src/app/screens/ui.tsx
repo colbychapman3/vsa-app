@@ -367,12 +367,14 @@ export function Sheet({ title, isTest, onClose, children, scrollKey, scrollTopOn
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} allowSwipeDismissal={guardSwipe}>
       <ScrollView ref={ref} key={scrollKey} style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 14 }}
         keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag">
-          <View style={u.secH}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
-              {isTest && <Text style={{ flexShrink: 0, fontFamily: f.bodySemi, fontSize: 13, backgroundColor: color.accent, color: color.onAccent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' }}>TEST</Text>}
-              <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_BIG_SCALE}>{title}</Text>
+          {/* Board 2.1: grabber, title, the vessel's TEST/LIVE chip beside close, a full-width divider. */}
+          <View style={{ alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: color.line, marginTop: -8 }} />
+          <View style={[u.secH, { marginHorizontal: -20, paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: bcolor.line }]}>
+            <Text style={{ fontFamily: f.display, fontSize: 28, color: color.ink, flexShrink: 1 }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_BIG_SCALE}>{title}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 13, backgroundColor: isTest ? color.accent : color.green, color: isTest ? color.onAccent : color.card, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' }}>{isTest ? 'TEST' : 'LIVE'}</Text>
+              <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 17, color: color.ink }}>✕</Text></Pressable>
             </View>
-            <Pressable onPress={onClose} style={({ pressed }) => [u.x, pressed && u.pressed]} accessibilityRole="button" accessibilityLabel="Close"><Text style={{ fontSize: 17, color: color.ink }}>✕</Text></Pressable>
           </View>
           {children}
       </ScrollView>
