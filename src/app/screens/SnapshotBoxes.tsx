@@ -263,7 +263,8 @@ export function ShipBox({ state, onOpen, onOpenDeck }: { state: State; onOpen: (
         <Pressable key={r.id} onPress={() => (onOpenDeck ? onOpenDeck(r.id) : onOpen())} accessibilityRole="button" accessibilityLabel={`${r.a11y}. Opens the deck.`}
           style={({ pressed }) => [s.deckRow, r.low && s.deckLow, pressed && { opacity: 0.7 }]}>
           <View style={s.deckLabelBox}><Text style={[s.deckLabel, { fontFamily: f.mono, color: r.tone === 'clear' ? color.deckMuted : color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text></View>
-          <View style={s.segs}>{r.segs.length === 1 ? seg(r.segs[0], 'all') : r.segs.map((g, i) => seg(g, String(i)))}</View>
+          {/* One band (a ramp, or a deck with only a brand split): one hatch-sized cell, not the full width (Colby, 2026-10-17). */}
+          <View style={s.segs}>{r.segs.length === 1 ? HATCH_SLOTS.map((h, i) => seg(i === 0 ? r.segs[0] : null, h)) : r.segs.map((g, i) => seg(g, String(i)))}</View>
           <View style={s.deckRightBox}><Text style={[s.deckRight, { fontFamily: f.bodySemi, color: r.tone === 'clear' ? color.deckMuted : color.deckInk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.right}</Text></View>
         </Pressable>
       ))}

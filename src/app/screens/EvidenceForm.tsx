@@ -263,7 +263,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
         </View>
       )}
       <Go label={item ? 'Save changes' : 'Save photo'} disabled={busy} onPress={() => submit()} />
-      {!item && <Go ghost label="Save and add another" disabled={busy} onPress={() => submit(true)} />}
+      {!item && <Go ghost blue label="Save and add another" disabled={busy} onPress={() => submit(true)} />}
       {item && (
         <>
           <Go ghost label="Remove this photo" onPress={remove} />

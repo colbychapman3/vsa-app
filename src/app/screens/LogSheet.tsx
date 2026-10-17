@@ -23,8 +23,7 @@ export type HourPrefill = { count: number; start: string | null };
 const num = (v: string) => (v.trim() === '' ? null : /^\d+$/.test(v.trim()) ? Number(v.trim()) : NaN);
 
 export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'hour', prefill }: Props) {
-  const f = useType();
-  const [deck, setDeck] = useState<string | null>(null); // a deck opened from Deck mode, shown in this same sheet
+  const [deck, setDeck] = useState<string | null>(null); // the deck picked in Deck mode (null: the first working deck); its editor shows below the picker
   const [mode, setMode] = useState<Mode>((initial as string) === 'break' ? 'hour' : initial);
   // The error shows right under the part that raised it (the hourly form or the break box), not at the end of a long sheet.
   const [err, setErr] = useState<{ text: string; where: 'hour' | 'break' | 'other' } | null>(null);
@@ -57,15 +56,6 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
     { value: 'photo', label: 'Photo' },
   ];
 
-  if (deck) {
-    return (
-      // The deck's own name is the title (like the tracker), so a mis-tap can't go unnoticed.
-      <Sheet title={deckSheet(state.decks.find((x) => x.id === deck)!, baseline).title} isTest={isTest} onClose={() => onClose()} scrollKey={deck}>
-        <Pressable onPress={() => setDeck(null)} style={({ pressed }) => [s.back, pressed && u.pressed]} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>‹ All decks</Text></Pressable>
-        <DeckForm state={state} baseline={baseline} deckId={deck} save={save} onClose={(done) => (done ? onClose(done) : setDeck(null))} />
-      </Sheet>
-    );
-  }
   return (
     <Sheet title="Log" isTest={isTest} onClose={() => onClose()}>
           <Seg columns={5} options={modes} value={mode} onChange={(m) => { setMode(m); setErr(null); }} />
@@ -75,7 +65,7 @@ export function LogSheet({ state, baseline, isTest, save, onClose, initial = 'ho
           {mode === 'hour' && errorAt('hour')}
           {mode === 'hour' && phase === 'working' && <BreakBox baseline={baseline} state={state} run={runAt('break')} now={now} timeOf={timeOf} setError={setErrorAt('break')} />}
           {mode === 'hour' && phase === 'working' && errorAt('break')}
-          {mode === 'deck' && <DeckList state={state} onOpenDeck={setDeck} />}
+          {mode === 'deck' && <DeckPick state={state} baseline={baseline} save={save} picked={deck} onPick={setDeck} onClose={onClose} />}
           {mode === 'hh' && <HhForm state={state} run={run} now={now} timeOf={timeOf} setError={setErrorAt('other')} />}
           {mode === 'issue' && <IssueForm run={run} now={now} timeOf={timeOf} setError={setErrorAt('other')} />}
           {mode === 'photo' && <EvidenceForm state={state} baseline={baseline} save={save} onClose={(done) => onClose(done)} />}
@@ -256,20 +246,41 @@ function HourStrip({ hours, value, onChange, all }: { hours: { start: string; en
   );
 }
 
-// ---------- Deck (opens the deck sheet) ----------
+// ---------- Deck (board 2.5: pick a deck, its editor opens below) ----------
 
-function DeckList({ state, onOpenDeck }: { state: State; onOpenDeck: (id: string) => void }) {
+const WORK_ORDER: Record<string, number> = { active: 0, paused: 1, notStarted: 2, unknown: 3, complete: 4 };
+function DeckPick({ state, baseline, save, picked, onPick, onClose }: { state: State; baseline: Baseline; save: Save; picked: string | null; onPick: (id: string) => void; onClose: (done?: string) => void }) {
   const f = useType();
+  const rows = [...decksView(state).rows].sort((a, b) => (WORK_ORDER[a.status] ?? 3) - (WORK_ORDER[b.status] ?? 3)); // working first; stable within a group
+  const id = picked ?? rows[0]?.id ?? null;
+  const d = id ? state.decks.find((x) => x.id === id) : undefined;
   return (
-    <View style={u.card}>
-      {decksView(state).rows.map((r, i) => (
-        <Pressable key={r.id} onPress={() => onOpenDeck(r.id)} style={({ pressed }) => [s.deckRow, i > 0 && { borderTopWidth: 1, borderTopColor: bcolor.row }, pressed && u.pressed]} accessibilityRole="button">
-          <Text style={{ fontFamily: f.display, fontSize: 22, minWidth: 72, flexShrink: 0, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}</Text>
-          <Body style={{ color: color.muted }}>{r.pill}</Body>
-          <Text style={{ marginLeft: 'auto', fontFamily: f.display, fontSize: 22, color: color.ink }}>{r.remaining}<Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}> of {r.start}</Text></Text>
-        </Pressable>
-      ))}
-    </View>
+    <>
+      <View style={[u.card, u.pad, { gap: 10 }]}>
+        <View style={u.secH}>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>Which deck</Text>
+          <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>working first</Text>
+        </View>
+        <View style={s.deckGrid}>
+          {rows.map((r) => {
+            const on = r.id === id;
+            return (
+              <Pressable key={r.id} onPress={() => onPick(r.id)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${r.label}, ${r.pill}`}
+                style={({ pressed }) => [s.deckCell, on && s.deckCellOn, pressed && u.pressed]}>
+                <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: on ? color.onBlue : color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.label}{r.status === 'complete' ? ' ✓' : ''}</Text>
+                <Text style={{ fontFamily: f.body, fontSize: 13, color: on ? color.onBlue : color.muted }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.pill}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+      {d && (
+        <View style={[u.card, u.pad, { gap: 12 }]}>
+          <Text style={{ fontFamily: f.display, fontSize: 20, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{(() => { const r = rows.find((x) => x.id === d.id); return r ? `${r.label} · ${r.heightShort}` : deckSheet(d, baseline).title; })()}</Text>
+          <DeckForm key={d.id} state={state} baseline={baseline} deckId={d.id} save={save} onClose={(done) => onClose(done)} />
+        </View>
+      )}
+    </>
   );
 }
 
@@ -443,19 +454,20 @@ function IssueForm({ run, now, timeOf, setError }: { run: Run; now: () => string
     <View style={{ gap: 14 }}>
       <Field label="What doesn’t match" value={text} onChange={setText} keyboard="default" maxLength={200} accessoryId="issue-add" />
       <TimeField accessoryId="issue-add" label="Noticed at" value={t} onChange={setT} onNow={() => { const n = now(); if (n) setT(n); }} />
-      <Go label="Add to open discrepancies" onPress={add} />
-      <KeyboardSave id="issue-add" label="Add to open discrepancies" onPress={add} />
+      <Go label="Add" onPress={add} />
+      <KeyboardSave id="issue-add" label="Add" onPress={add} />
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  back: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 24 },
   row2: { flexDirection: 'row', gap: 10 },
   strip: { gap: 8, paddingRight: 8 },
   stripChip: { flexGrow: 0, minWidth: 84, paddingHorizontal: 12 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
   brandBox: { width: 104, fontSize: 20, textAlign: 'right' },
-  deckRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
+  deckGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  deckCell: { width: '23%', minHeight: TAP, paddingVertical: 6, paddingHorizontal: 4, borderRadius: 12, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
+  deckCellOn: { backgroundColor: color.ink, borderColor: bcolor.ink },
   hr: { borderTopWidth: 1, borderTopColor: bcolor.soft, paddingTop: 14, gap: 14 },
 });

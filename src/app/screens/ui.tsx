@@ -285,13 +285,14 @@ export function Reasons({ options, value, onChange, other, onOther }: { options:
   );
 }
 
-export function Go({ label, onPress, ghost, disabled }: { label: string; onPress: () => void; ghost?: boolean; disabled?: boolean }) {
+// blue: a second action beside the peach one that must not read as plain white (Save and add another, Colby 2026-10-17).
+export function Go({ label, onPress, ghost, blue, disabled }: { label: string; onPress: () => void; ghost?: boolean; blue?: boolean; disabled?: boolean }) {
   const f = useType(), edge = useEdge();
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button"
-      style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, ghost && edge, pressed && { transform: [{ scale: 0.98 }] }, (pressed || disabled) && { opacity: 0.6 }]}>
+      style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, ghost && edge, ghost && blue && { backgroundColor: color.blue, borderColor: bcolor.blue }, pressed && { transform: [{ scale: 0.98 }] }, (pressed || disabled) && { opacity: 0.6 }]}>
       {/* A one-word label ("Unarchive" beside Delete) stays on one line and shrinks; it never splits mid-word. Sentences wrap between words. */}
-      <Text style={{ fontFamily: ghost ? f.bodySemi : f.displaySemi, fontSize: ghost ? 15 : 18, color: ghost ? color.ink : color.onAction }}
+      <Text style={{ fontFamily: ghost ? f.bodySemi : f.displaySemi, fontSize: ghost ? 15 : 18, color: ghost ? (blue ? color.onBlue : color.ink) : color.onAction }}
         {...(/\s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 })}>{label}</Text>
     </Pressable>
   );

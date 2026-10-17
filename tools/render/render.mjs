@@ -71,6 +71,7 @@ async function capture(list, suffix = '') {
     const err = await page.evaluate((t) => globalThis.__vsa.load(t), fixtures[st.until]);
     if (err) throw new Error(`${id}: fixture refused: ${err}`);
     await page.evaluate((s) => { const v = globalThis.__vsa; v.appearance(s.theme ?? 'light'); v.sun(!!s.sun); v.tab(s.tab ?? 'snap'); if (s.sheet) v.sheet(s.sheet); if (s.log) v.log(true); if (s.deck) v.deck(s.deck); if (s.drawer) v.drawer(true); }, st);
+    for (const t of st.click ?? []) { await page.getByText(t, { exact: true }).last().click(); await page.waitForTimeout(400); } // taps inside the open sheet (e.g. its Deck tab)
     for (const [i, v] of (st.type ?? []).entries()) await page.locator('input').nth(i).fill(v); // typed values the board shows, in input order
     await page.addStyleTag({ content: STILL });
     // The boards draw a 54 px iPhone status bar in the header color; web has no safe area, so add the same band.
