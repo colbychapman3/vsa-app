@@ -95,6 +95,7 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
   const logged = new Map(state.periods.filter((p) => p.day === day).map((p) => [p.start, p]));
   const firstOpen = prefill?.start && opts.hours.some((h) => h.start === prefill.start) ? prefill.start : opts.defaultStart ?? opts.hours[0]?.start ?? baseline.start;
   const [hour, setHour] = useState(firstOpen);
+  const [allHours, setAllHours] = useState(false);
   const existing = logged.get(hour);
   const [count, setCount] = useState(prefill ? String(prefill.count) : existing ? String(existing.count) : '');
   // Only the hour's own driver count; the day's setting (Plan › Labor) covers the rest.
@@ -157,7 +158,11 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
   return (
     <View style={{ gap: 14 }}>
       <Panel title={day > 1 ? `Hour · Day ${day}` : 'Hour'} right={`${hour}–${endHM}${existing ? ' · logged' : ''}`}>
-        <HourStrip hours={opts.hours} value={hour} onChange={pick} />
+        <HourStrip hours={opts.hours} value={hour} onChange={pick} all={allHours} />
+        {/* ponytail: "Paste clerk's text" has no action in the app yet (designQ); "All hours" opens the full scrolling list. */}
+        <Pressable onPress={() => setAllHours(!allHours)} accessibilityRole="button" accessibilityState={{ expanded: allHours }} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', alignSelf: 'flex-start' }, pressed && u.pressed]}>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{allHours ? 'Fewer hours' : 'All hours'}</Text>
+        </Pressable>
         {short && (
           <View style={{ gap: 8 }}>
             <Label wrap>Before the break: when did production stop?</Label>
@@ -174,11 +179,11 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
         </View>
         {state.hh.passes.some((p) => p.end && p.end.abs >= (day - 1) * 1440 + parseHM(hour)! - 60 && p.end.abs < (day - 1) * 1440 + parseHM(hour)! + 60) && <Note>H/H finished near this hour. If drivers moved to cars, enter this hour’s driver count.</Note>}
         {existing && count.trim() === '0' && <Note>0 saves a real hour with nothing counted. Wrong hour? Use Remove below.</Note>}
-        <Note>This hour only, not the running total.{dayDrivers != null ? ` Empty drivers means the day’s ${dayDrivers}.` : ''}</Note>
+        <Note>The count for this hour only, not the running total.{dayDrivers != null ? ` Empty drivers means the day’s ${dayDrivers}.` : ''}</Note>
       </Panel>
 
       {state.brands.length > 0 && (
-        <Panel title="By brand" right={split > 0 ? `${split.toLocaleString('en-US')}${c0 != null && !Number.isNaN(c0) ? ` of ${c0.toLocaleString('en-US')}` : ''}` : 'optional'}>
+        <Panel title="By brand" right={split > 0 ? `${split.toLocaleString('en-US')}${c0 != null && !Number.isNaN(c0) ? ` of ${c0.toLocaleString('en-US')}${split === c0 ? ' ✓' : ''}` : ''}` : 'optional'}>
           {state.brands.map((b, i) => (
             <View key={b.name} style={[s.brandRow, i > 0 && { borderTopWidth: 1, borderTopColor: bcolor.row }]}>
               <Text style={{ flex: 1, fontFamily: f.bodySemi, fontSize: 17, color: color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{b.name}</Text>
@@ -211,12 +216,30 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
   );
 }
 
-// Every hour of the day in one row that scrolls sideways, opened on the hour picked (the due hour by default).
-function HourStrip({ hours, value, onChange }: { hours: { start: string; end: string; logged?: boolean }[]; value: string; onChange: (h: string) => void }) {
+// Four chips in one row around the hour picked (two before, the next after); "All hours" swaps in every hour of the day
+// in one row that scrolls sideways, opened on the hour picked (the due hour by default).
+function HourStrip({ hours, value, onChange, all }: { hours: { start: string; end: string; logged?: boolean }[]; value: string; onChange: (h: string) => void; all: boolean }) {
   const f = useType();
   const ref = useRef<ScrollView>(null);
   const opened = useRef(false);
   const label = (h: { start: string; end: string; logged?: boolean }) => `${h.start.slice(0, 2)}${h.start.endsWith(':00') ? '' : h.start.slice(2)}–${h.end.slice(0, 2)}${h.logged ? ' ✓' : ''}`;
+  if (!all) {
+    const i = Math.max(0, hours.findIndex((h) => h.start === value));
+    const from = Math.max(0, Math.min(i - 2, hours.length - 4));
+    return (
+      <View style={{ flexDirection: 'row', gap: 8 }} accessibilityRole="radiogroup">
+        {hours.slice(from, from + 4).map((h) => {
+          const on = h.start === value;
+          return (
+            <Pressable key={h.start} onPress={() => onChange(h.start)} accessibilityRole="radio" accessibilityState={{ selected: on }}
+              style={({ pressed }) => [u.segBtn, { flex: 1 }, on && u.segOn, pressed && u.pressed]}>
+              <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: on ? color.bg : color.ink }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label(h)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  }
   return (
     <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={s.strip} accessibilityRole="radiogroup">
       {hours.map((h) => {
@@ -266,7 +289,7 @@ function BreakBox(p: BreakProps) {
     <View style={[u.card, u.pad, { gap: 12 }]}>
       <Pressable disabled={!working} onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
         <Text style={{ fontFamily: f.displaySemi, fontSize: 17, color: color.ink, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
-        {working && <Text style={{ marginLeft: 'auto', fontSize: 17, color: color.blue }}>{open ? '▴' : '▾'}</Text>}
+        {working && <Text style={{ marginLeft: 'auto', fontSize: 22, color: color.muted, transform: [{ rotate: open ? '-90deg' : '0deg' }] }}>›</Text>}
       </Pressable>
       {open && <BreakForm {...p} />}
     </View>

@@ -324,7 +324,7 @@ export function ErrorBox({ text }: { text: string }) {
 // Deck status pill (tracker .pill p-active / p-paused / p-not / p-done / p-unk).
 const PILL: Record<string, { bg: ColorValue; ink: ColorValue; border: ColorValue; dashed?: boolean }> = {
   Active: { bg: color.blue, ink: color.onBlue, border: color.blue },
-  Paused: { bg: color.oBg, ink: color.oInk, border: color.orange },
+  Paused: { bg: 'transparent', ink: color.ink, border: color.ink }, // board 1.3: black outline
   Skipped: { bg: color.oBg, ink: color.oInk, border: color.orange },
   'Not started': { bg: 'transparent', ink: color.ink, border: color.ink },
   Complete: { bg: color.gBg, ink: color.gInk, border: color.green },
@@ -342,11 +342,11 @@ export function Pill({ text }: { text: string }) {
 }
 
 // Small rounded chip (tracker .bchip); tone colors a height warning.
-export function Chip({ text, tone = 'plain', tall, square }: { text: string; tone?: 'plain' | 'red' | 'orange' | 'blue' | 'green'; tall?: boolean; square?: boolean }) {
+export function Chip({ text, tone = 'plain', tall, square }: { text: string; tone?: 'plain' | 'soft' | 'red' | 'orange' | 'blue' | 'green'; tall?: boolean; square?: boolean }) {
   const f = useType(), sun = useSun();
-  const c = tone === 'red' ? { bg: color.rBg, ink: color.rInk, b: color.red } : tone === 'green' ? { bg: color.gBg, ink: color.gInk, b: color.green } : tone === 'blue' ? { bg: color.card, ink: color.blue, b: color.blue } : tone === 'orange' ? { bg: color.oBg, ink: color.oInk, b: color.orange } : { bg: color.card, ink: color.ink, b: color.line };
+  const c = tone === 'red' ? { bg: color.rBg, ink: color.rInk, b: color.red } : tone === 'green' ? { bg: color.gBg, ink: color.gInk, b: color.green } : tone === 'blue' ? { bg: color.card, ink: color.blue, b: color.blue } : tone === 'orange' ? { bg: color.oBg, ink: color.oInk, b: color.orange } : tone === 'soft' ? { bg: color.soft, ink: color.ink, b: color.soft } : { bg: color.card, ink: color.ink, b: color.line };
   const label = <Text style={{ fontFamily: f.body, fontSize: 13, color: c.ink }}>{text}</Text>;
-  const box = { backgroundColor: c.bg, borderColor: c.b, borderWidth: sun ? 2 : 1, borderRadius: square ? 6 : 999, paddingHorizontal: tall ? 16 : 10, paddingVertical: tall ? 0 : 3 };
+  const box = { backgroundColor: c.bg, borderColor: c.b, borderWidth: sun ? 2 : 1, borderRadius: square ? 6 : 999, paddingHorizontal: tall ? 16 : tone === 'soft' ? 8 : 10, paddingVertical: tall ? 0 : 3 };
   return tall ? <View style={[box, { minHeight: TAP, justifyContent: 'center' }]}>{label}</View> : <Text style={[box, { fontFamily: f.body, fontSize: 13, color: c.ink, overflow: 'hidden' }]}>{text}</Text>;
 }
 

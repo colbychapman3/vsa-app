@@ -160,7 +160,7 @@ test('snapshot: unknown vessel remaining shows field balance, never a number for
 test('screen 04–05: Decks and deck sheet (tracker demo)', () => {
   const s = demo();
   const v = decksView(s);
-  assert.deepEqual(v.low, [{ id: 'D7', title: 'D7 is a low deck: 1.70 m · shuttle vans can’t drive on', sub: 'Confirmed 08:05 · 163 autos remaining' }]);
+  assert.deepEqual(v.low, [{ id: 'D7', title: 'D7 · 1.70 m · low deck', sub: 'Vans need 1.85 m or more · Skipped · 163 left' }]);
   assert.equal(v.unconfirmed, 1);
   const row = (id: string) => v.rows.find((r) => r.id === id)!;
   assert.deepEqual([row('UPP').pill, row('UPP').remaining, row('UPP').start, row('UPP').cleared], ['Complete', '0', '199', 'Cleared 199 Kia · at 13:40']);

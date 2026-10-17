@@ -93,7 +93,7 @@ test('deck height confirmation clears the Plan badge; a low deck shows on Decks'
   await s.ok(E.heightEvents(s.ctx(), 'D7', 1.7, t('08:05')));
   await s.ok(E.heightEvents(s.ctx(), 'D9', 2.0, t('08:06')));
   const d = decksView(s.state);
-  assert.deepEqual(d.low.map((x) => x.sub), ['Confirmed 08:05 · 163 autos remaining']);
+  assert.deepEqual(d.low.map((x) => x.sub), ['Vans need 1.85 m or more · Not started · 163 left']);
   assert.deepEqual(planView(s.state, glovis).heights.confirmed.map((x) => x.text), ['D9 2.00 m ✓ · change', 'D7 1.70 m ✓ · change']);
 });
 

@@ -53,13 +53,16 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
         {v.unconfirmed > 0 && (
           <Pressable onPress={onOpenPlan} style={({ pressed }) => [u.card, s.strip, pressed && u.pressed]} accessibilityRole="button">
             <Body semi>{v.unconfirmed} deck height{v.unconfirmed === 1 ? '' : 's'} unconfirmed</Body>
-            <Text style={{ marginLeft: 'auto', fontFamily: f.body, fontSize: 15, color: color.muted }}>Confirm on Plan ›</Text>
+            <View style={s.stripLine}>
+              <Text style={{ flexShrink: 1, fontFamily: f.body, fontSize: 15, color: color.muted }} numberOfLines={1}>{v.unconfirmedLabels.join(' · ')}</Text>
+              <Text style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: f.body, fontSize: 15, color: color.blue }}>Confirm on Plan ›</Text>
+            </View>
           </Pressable>
         )}
       </View>
 
       <Seg<'all' | 'remaining'> columns={2} value={show} onChange={setShow}
-        options={[{ value: 'all', label: `All (${v.rows.length})` }, { value: 'remaining', label: `Remaining (${left.length})` }]} />
+        options={[{ value: 'all', label: `All decks (${v.rows.length})` }, { value: 'remaining', label: `Decks remaining (${left.length})` }]} />
       {rows.length === 0 && <Card style={u.pad}><Note>Every deck is complete.</Note></Card>}
       <Card>
         {rows.map((r, i) => (
@@ -72,23 +75,22 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
                 {r.photos > 0 && <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[s.badge, { fontFamily: f.bodySemi }]} accessibilityLabel={`${r.photos} photo${r.photos === 1 ? '' : 's'} on this deck`}>📷 {r.photos}</Text>}
                 {acc(r) > 0 && <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[s.badge, s.accBadge, { fontFamily: f.bodySemi }]} accessibilityLabel={`${acc(r)} accident photo${acc(r) === 1 ? '' : 's'} on this deck`}>🚨 {acc(r)}</Text>}
               </View>
+              <View style={{ flexShrink: 0 }}><Pill text={r.pill} /></View>
               <Text style={s.rn} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_BIG_SCALE}>
-                <Text style={{ fontFamily: f.display, fontSize: 22, color: r.status === 'complete' ? color.done : color.ink }}>{r.remaining}</Text>
+                <Text style={{ fontFamily: f.display, fontSize: 22, color: r.status === 'complete' ? color.green : color.ink }}>{r.remaining}</Text>
                 <Text style={{ fontFamily: f.body, fontSize: 15, color: color.muted }}> of {r.start}</Text>
               </Text>
               <Icon name="chev" color={color.muted} />
             </View>
-            {r.clearedShort && <Note style={s.indent}>Cleared: {r.clearedShort}</Note>}
+            {r.clearedShort && <Note style={s.indent}>Cleared {r.clearedShort}</Note>}
             {!r.cleared && r.split && <Note style={s.indent}>Deck split: {r.split} · counts per hatch not on paperwork</Note>}
-            <View style={[s.chips, s.indent]}>
-              <Pill text={r.pill} />
-              {r.height.tone !== 'plain' && <Chip text={r.height.text} tone={r.height.tone} />}
-              {r.hatches.map((h) => <Chip key={h.h} text={h.chip} tone={h.left?.tone} />)}
-            </View>
+            {r.heightTag && <View style={[s.chips, s.indent]}><Chip text={r.heightTag.text} tone={r.heightTag.tone} /></View>}
+            {r.hatchesLeft.length > 0 && <View style={[s.chips, s.indent]}>{r.hatchesLeft.map((t) => <Chip key={t} text={t} tone="soft" />)}</View>}
+            {r.lowerable && <Note style={s.indent}>Can be lowered. Confirm the height before vans go in.</Note>}
           </Pressable>
         ))}
       </Card>
-      <InfoNote><Note>Heights come from the stow plan until confirmed on the Plan tab. Red rows are low decks.</Note></InfoNote>
+      <View style={s.foot}><Note>Heights come from the stow plan until confirmed on Plan. Red: low deck. Orange: height not confirmed.</Note></View>
     </View>
   );
 }
@@ -97,16 +99,18 @@ const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
   warn: { backgroundColor: color.oBg, borderWidth: 1.5, borderColor: bcolor.orange, borderRadius: 12, padding: 14, gap: 8 },
   lowAlert: { backgroundColor: color.rBg, borderBottomWidth: 3, borderBottomColor: bcolor.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, gap: 2 },
-  strip: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 16 },
+  strip: { gap: 2, minHeight: 56, paddingVertical: 10, paddingHorizontal: 16, justifyContent: 'center' },
+  stripLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  foot: { borderLeftWidth: 3, borderLeftColor: color.line, paddingLeft: 10 },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8, minHeight: 56 },
   rowLine: { borderTopWidth: 1, borderTopColor: bcolor.row },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dnBox: { minWidth: 56, flexShrink: 0 },
+  dnBox: { width: 84, flexShrink: 0 }, // fixed, so every row's status pill starts in one column (board 1.3)
   dn: { fontSize: 22, color: color.ink },
   hm: { fontSize: 17 },
   accBadge: { backgroundColor: color.rBg, color: color.rInk, borderWidth: 1, borderColor: bcolor.red },
   badge: { alignSelf: 'flex-start', marginTop: 4, fontSize: 13, color: color.onBlue, backgroundColor: color.red, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
   rn: { marginLeft: 'auto', textAlign: 'right', flexShrink: 1 },
-  indent: { paddingLeft: 68 },
+  indent: { paddingLeft: 96 }, // under the pill column: name column 84 + gap 12
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

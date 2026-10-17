@@ -392,10 +392,11 @@ export const orderForList = <T extends { status: string }>(rows: T[]): T[] => [.
 export function decksView(s: State) {
   const low = s.decks.filter(isLow).map((d) => ({
     id: d.id,
-    title: `${d.label} is a low deck: ${m2(d.height.current!)} · shuttle vans can’t drive on`,
-    sub: `${d.height.confirmed ? `Confirmed ${d.height.confirmed.time}` : 'Per stow plan'} · ${d.rem == null ? 'remaining count needed' : `${fmt(d.rem)} autos remaining`}`,
+    title: `${d.label} · ${m2(d.height.current!)} · low deck`,
+    sub: `Vans need 1.85 m or more · ${pill(d)} · ${d.rem == null ? 'remaining count needed' : `${fmt(d.rem)} left`}`,
   }));
-  const unconfirmed = s.decks.filter(isUnconfirmed).length;
+  const unconfirmedList = s.decks.filter(isUnconfirmed);
+  const unconfirmed = unconfirmedList.length;
   const rows = orderForList(s.decks).map((d) => ({
     id: d.id,
     label: d.label,
@@ -410,14 +411,18 @@ export function decksView(s: State) {
     // Short line under the deck: the clock only (a save time is marked 'logged').
     clearedShort: d.status === 'complete' ? (d.time == null ? 'time not provided' : /^Logged/.test(d.time) ? `logged ${d.time.match(/\d{1,2}:\d{2}/)?.[0] ?? ''}`.trim() : d.time) : null,
     height: heightChip(d),
-    heightShort: d.height.current == null ? '— m' : m2(d.height.current), // shown under the deck number
+    heightShort: d.height.current == null ? '— m' : `${m2(d.height.current)}${d.height.level === 'soft' ? '?' : ''}`, // shown under the deck number; ? = not confirmed
+    heightTag: d.height.level === 'hard' ? { tone: 'red' as const, text: 'Low deck · below 1.85 m' } : d.height.level === 'soft' ? { tone: 'orange' as const, text: 'Height not confirmed' } : null,
+    lowerable: d.height.level === 'soft', // engine: unconfirmed and can be lowered below 1.85 m
+    // Compact hatch chips: remaining only, hatches with cars left (a hatch with no count keeps its bare name: unknown stays unknown).
+    hatchesLeft: d.status === 'complete' ? [] : d.hatches.filter((h) => h.rem == null || h.rem > 0).map((h) => (h.rem == null ? h.h : `${h.h} ${fmt(h.rem)}`)),
     photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id)),
     photoTypes: deckPhotoTypes(s, d.id),
     // Deck-level split (game plan): one line for the deck; hatch chips show the hatch name only.
     split: h0(d) ? null : Object.entries(d.brandStart).map(([b, q]) => `${fmt(q)} ${b}`).join(' + '),
     hatches: d.hatches.map((h) => ({ h: h.h, text: h.qty == null ? '' : h.items.map((i) => `${i.brand} ${i.qty}`).join(' + '), left: hatchLeft(h.qty, h.rem), chip: hatchChip(h), photos: photosIn(livePhotos(s).filter((x) => x.deck === d.id && x.hatch === h.h)) })),
   }));
-  return { low, unconfirmed, rows };
+  return { low, unconfirmed, unconfirmedLabels: unconfirmedList.map((d) => d.label), rows };
 }
 
 // Decks still to work: everything not Complete (Not started, Active, Paused, Unknown, skipped ones included: they still hold cargo).
