@@ -86,12 +86,12 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
           <InfoNote><Note>Deck heights are confirmed on the Plan tab.</Note></InfoNote>
 
           <View style={s.rule} />
-          <Label>Edit · status</Label>
+          <Label>Status</Label>
           <Seg options={STATUSES.map((x) => ({ value: x, label: STATUS_PILL[x] }))} value={status} onChange={setStatus} />
           {status === 'notStarted' && (
             <Pressable onPress={() => setSkipped(!skipped)} style={s.check} accessibilityRole="checkbox" accessibilityState={{ checked: skipped }}>
               <View style={[s.box, skipped && s.boxOn]}>{skipped && <Text style={{ color: color.bg, fontWeight: '700' }}>✓</Text>}</View>
-              <Body semi style={{ flexShrink: 1 }}>Skipped: passed over, still aboard</Body>
+              <Body semi style={{ flexShrink: 1 }}>Skipped (still aboard)</Body>
             </Pressable>
           )}
 
@@ -114,8 +114,8 @@ export function DeckForm({ state, baseline, deckId, save, onClose }: { state: St
           <TimeField accessoryId="deck-save" label="Time of this update" value={t} onChange={setT}
             onNow={() => { const n = E.nowOpTime(operationDate(baseline)!, new Date()); if (n) setT(n.hm); else setError('The phone’s date is before this operation’s Day 1.'); }} />
           {error && <ErrorBox text={error} />}
-          <Go label="Save deck update" onPress={submit} />
-          <KeyboardSave id="deck-save" label="Save deck update" onPress={submit} />
+          <Go label="Save deck" onPress={submit} />
+          <KeyboardSave id="deck-save" label="Save deck" onPress={submit} />
           <DeckPhotoTypes state={state} deckId={d.id} onOpen={(t) => setPv({ kind: 'type', type: t })} onAdd={() => setPv({ kind: 'add', type: null })} />
         </View>
   );

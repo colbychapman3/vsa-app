@@ -13,7 +13,7 @@ import { saveToCameraRoll } from '../evidenceFiles.ts';
 import { EVIDENCE_REPORTS, type EvidenceReportKind } from '../evidenceReport.ts';
 import { AI_STATUS_TEXT, aiStatus, ocrAvailable, readPhotos } from '../ai.ts';
 import { reportStatus } from '../complete.ts';
-import { bcolor, color, TAP, useType } from '../theme.ts';
+import { bcolor, color, useType } from '../theme.ts';
 import { Vans } from './Vans.tsx';
 import { ImportPhotos } from './ImportPhotos.tsx';
 import { Big, Body, Card, Chip, Collapse, ErrorBox, Field, Go, InfoNote, Label, Note, Reasons, SectionHead, Seg, Sheet, TimeField, u } from './ui.tsx';
@@ -206,9 +206,7 @@ export function Plan({ vesselId, state, baseline, isTest, save, backup, reports,
         <Label>Shift reports</Label>
         <ReportRow title="Break / shift-end report" sub="Ship vs field at a break or end of shift" busy={making === 'break'} onPress={() => makeReport('break', () => reports.onReport('break'))} />
         <ReportRow title="Vessel completion report" sub="Totals, notes and open items" busy={making === 'completion'} onPress={() => makeReport('completion', () => reports.onReport('completion'))} />
-        <Pressable onPress={() => setNotesOpen(true)} accessibilityRole="button" style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', paddingLeft: 14 }, pressed && u.pressed]}>
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>Completion report notes ›</Text>
-        </Pressable>
+        <Go to label="Completion report notes" onPress={() => setNotesOpen(true)} />
         {/* Photo reports exist only for photo types that have photos. */}
         {photoTypesPresent(state).length > 0 && <Label>Photo reports</Label>}
         {photoTypesPresent(state).map((t) => {
@@ -222,9 +220,9 @@ export function Plan({ vesselId, state, baseline, isTest, save, backup, reports,
         <SectionHead title="Backup" />
         <Body>Last exported: {backup.lastAt ? `${backup.lastAt.replace('T', ' ').slice(0, 16)} ` : 'never'}</Body>
         {backup.unsaved > 0 && <Note>{backup.unsaved} {backup.unsaved === 1 ? 'entry' : 'entries'} not backed up.</Note>}
-        <Go label="Export vessel log" disabled={busy} onPress={async () => { setBusy(true); try { await backup.onExport(); } finally { setBusy(false); } }} />
-        <Go ghost label="Import vessel log" onPress={() => setImportOpen(true)} />
-        <Go ghost label="Save all photos to camera roll" disabled={busy} onPress={async () => {
+        <Go label="Export log" disabled={busy} onPress={async () => { setBusy(true); try { await backup.onExport(); } finally { setBusy(false); } }} />
+        <Go ghost label="Import log" onPress={() => setImportOpen(true)} />
+        <Go ghost label="Save photos" disabled={busy} onPress={async () => {
           setBusy(true);
           try {
             const files = allPhotoFiles(state);
@@ -573,19 +571,9 @@ function ImportSheet({ isTest, backup, onClose }: { isTest: boolean; backup: Bac
 }
 
 // Typed notes for the completion report's analysis sections. The app never writes conclusions itself.
-// One report: a white row with its title and what it holds; the chevron says it is tappable.
+// One report: a "go to" button (buttons, 2026-10-17); what it holds is read out by VoiceOver, not printed.
 function ReportRow({ title, sub, busy, onPress }: { title: string; sub: string; busy: boolean; onPress: () => void }) {
-  const f = useType();
-  return (
-    <Pressable onPress={onPress} disabled={busy} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`}
-      style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card }, (pressed || busy) && u.pressed]}>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>{busy ? 'Preparing report…' : title}</Text>
-        <Note>{sub}</Note>
-      </View>
-      <Text style={{ fontSize: 22, color: color.blue }}>›</Text>
-    </Pressable>
-  );
+  return <View accessible accessibilityLabel={`${title}. ${sub}`}><Go to label={busy ? 'Preparing report…' : title} disabled={busy} onPress={onPress} /></View>;
 }
 
 function NotesSheet({ isTest, reports, onClose }: { isTest: boolean; reports: Reports; onClose: () => void }) {
@@ -609,7 +597,7 @@ function NotesSheet({ isTest, reports, onClose }: { isTest: boolean; reports: Re
 const s = StyleSheet.create({
   main: { padding: 20, gap: 16 },
   logRow: { minHeight: 56, justifyContent: 'center', gap: 2, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: bcolor.row },
-  edit: { fontSize: 13, color: color.blue, alignSelf: 'flex-end' },
+  edit: { fontSize: 15, color: color.muted, alignSelf: 'flex-end' }, // a row's tap hint, not a link (buttons, 2026-10-17)
   pending: { gap: 8, paddingVertical: 10, borderTopWidth: 1, borderTopColor: bcolor.row },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   issue: { gap: 6, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: bcolor.row },

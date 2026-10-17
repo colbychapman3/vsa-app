@@ -9,7 +9,7 @@ import type { State } from '../../storage/store.ts';
 import * as E from '../entries.ts';
 import { photoExists, photoUri, saveToCameraRoll } from '../evidenceFiles.ts';
 import { deckPhotoTypes, TYPE_ICON, typePage } from '../view.ts';
-import { bcolor, color, useType } from '../theme.ts';
+import { bcolor, color } from '../theme.ts';
 import { EvidenceForm } from './EvidenceForm.tsx';
 import { Body, Chip, ErrorBox, Field, Go, Label, Note, Seg, u } from './ui.tsx';
 
@@ -42,9 +42,8 @@ export function DeckPhotoTypes({ state, deckId, onOpen, onAdd }: { state: State;
 export function PhotoPages({ state, baseline, save, deckId, deckLabel, view, setView, onClose }: {
   state: State; baseline: Baseline; save: Save; deckId: string; deckLabel: string; view: PhotoView; setView: (v: PhotoView | null) => void; onClose: (done?: string) => void;
 }) {
-  const f = useType();
   const back = (label: string, to: PhotoView | null) => (
-    <Pressable onPress={() => setView(to)} style={s.back} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>‹ {label}</Text></Pressable>
+    <View style={{ alignSelf: 'flex-start' }}><Go ghost small label={`‹ ${label}`} onPress={() => setView(to)} /></View>
   );
   if (view.kind === 'add') {
     return (
@@ -82,7 +81,6 @@ function TypePage({ state, save, deckId, deckLabel, type, setView, back }: {
   state: State; baseline: Baseline; save: Save; deckId: string; deckLabel: string; type: EvidenceType; setView: (v: PhotoView | null) => void; onBack: () => void;
   back: (label: string, to: PhotoView | null) => React.ReactNode;
 }) {
-  const f = useType();
   const page = typePage(state, deckId, type);
   const label = deckPhotoTypes(state, deckId).find((t) => t.type === type)?.label ?? type;
   const [picking, setPicking] = useState(false);
@@ -151,7 +149,7 @@ function TypePage({ state, save, deckId, deckLabel, type, setView, back }: {
               );
             })}
           </View>
-          {!picking && <Pressable onPress={() => setView({ kind: 'edit', id: i.id })} accessibilityRole="button" style={({ pressed }) => [s.edit, pressed && u.pressed]}><Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>Edit or move ›</Text></Pressable>}
+          {!picking && <View style={{ alignSelf: 'flex-start' }}><Go ghost small label="Edit or move" onPress={() => setView({ kind: 'edit', id: i.id })} /></View>}
         </View>
       ))}
 
@@ -169,7 +167,6 @@ function TypePage({ state, save, deckId, deckLabel, type, setView, back }: {
 }
 
 const s = StyleSheet.create({
-  back: { minHeight: 56, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 24 },
   typeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 14, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card },
   card: { gap: 6, padding: 12, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },

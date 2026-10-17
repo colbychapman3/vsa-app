@@ -100,7 +100,7 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   step: { width: TAP + 12, height: TAP + 12, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', gap: 6 },
-  chip: { flex: 1, minWidth: 0, minHeight: TAP, paddingHorizontal: 2, borderRadius: 999, borderWidth: 1.5, borderColor: bcolor.ink, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
-  chipOn: { backgroundColor: color.ink },
+  chip: { flex: 1, minWidth: 0, minHeight: TAP, paddingHorizontal: 2, borderRadius: 999, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center' },
+  chipOn: { backgroundColor: color.ink, borderColor: bcolor.ink },
   reset: { minHeight: TAP, alignSelf: 'flex-start', paddingHorizontal: 16, borderRadius: 999, borderWidth: 1.5, borderColor: bcolor.line, justifyContent: 'center' },
 });

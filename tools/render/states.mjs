@@ -5,4 +5,6 @@ export const STATES = {
   '201-Log-Hourly': { clock: '15:04', until: '23:59', log: true, type: ['158', '70', '100', '52', '6'] },
   '903-Night': { clock: '15:04', until: '23:59', theme: 'night' },
   '205-Log-Deck': { clock: '15:02', until: '23:59', log: true, click: ['Deck'] },
+  '107-Plan-lower': { clock: '15:04', until: '23:59', tab: 'plan' },
+  '208-Log-Photo': { clock: '15:15', until: '23:59', log: true, click: ['Photo'] },
 };

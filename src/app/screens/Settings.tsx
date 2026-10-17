@@ -124,7 +124,7 @@ function BackupPicker({ rows, onExportVessel }: { rows: VesselRow[]; onExportVes
         const on = picked.includes(r.operationId);
         return (
           <Pressable key={r.operationId} onPress={() => toggle(r.operationId)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={r.name}
-            style={({ pressed }) => [u.ghostBtn, { flexDirection: 'row', justifyContent: 'flex-start', gap: 12 }, on && { borderColor: bcolor.ink, borderWidth: 2 }, pressed && u.pressed]}>
+            style={({ pressed }) => [u.segBtn, { flexDirection: 'row', justifyContent: 'flex-start', gap: 12 }, on && { borderColor: bcolor.ink, borderWidth: 2 }, pressed && u.pressed]}>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 22, color: color.ink }}>{on ? '☑' : '☐'}</Text>
             <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{r.name}</Text>
             <Chip text={r.isTest ? 'TEST' : 'LIVE'} tone={r.isTest ? 'orange' : 'plain'} />

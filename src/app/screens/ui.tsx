@@ -125,7 +125,7 @@ export function Collapse({ title, right, open: startOpen = false, children }: { 
         style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
         <Text style={{ fontFamily: f.displaySemi, fontSize: 17, color: color.ink, flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{title}</Text>
         {right ? <Text style={[u.secRight, { fontFamily: f.body, marginLeft: 'auto' }]}>{right}</Text> : <View style={{ marginLeft: 'auto' }} />}
-        <Text style={{ fontSize: 17, color: color.blue }}>{open ? '▴' : '▾'}</Text>
+        <Text style={{ fontSize: 17, color: color.ink }}>{open ? '▴' : '▾'}</Text>
       </Pressable>
       {open && children}
     </View>
@@ -211,11 +211,16 @@ export const u = StyleSheet.create({
   tap: { minHeight: TAP },
   pressed: { opacity: 0.6 },
   input: { minHeight: TAP, borderWidth: 1.5, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card, paddingHorizontal: 14, color: color.ink },
-  segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  segOn: { backgroundColor: color.ink, borderColor: bcolor.ink, ...elev.raised },
-  goBtn: { minHeight: 58, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.action, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, ...elev.raised },
-  ghostBtn: { minHeight: TAP, borderRadius: 999, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, ...elev.card },
-  x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, ...elev.card, alignItems: 'center', justifyContent: 'center' },
+  // Buttons, one family (Colby, 2026-10-17, docs/mockups/buttons-2026-10-17.html): pill, 52 tall (44 small), navy 2 pt edge, no shadow.
+  // Primary = peach (one per screen), secondary = white, danger = red edge and text. Choices: pill, thin grey edge, picked = navy.
+  segBtn: { minHeight: TAP, flexGrow: 1, borderWidth: 1.5, borderColor: bcolor.line, backgroundColor: color.card, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, paddingVertical: 4 },
+  segOn: { backgroundColor: color.ink, borderColor: bcolor.ink },
+  goBtn: { minHeight: 52, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.action, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+  ghostBtn: { minHeight: 52, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+  smallBtn: { minHeight: TAP, paddingHorizontal: 16 },
+  dangerBtn: { borderColor: bcolor.red },
+  toBtn: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  x: { minWidth: TAP, minHeight: TAP, borderRadius: 999, backgroundColor: color.soft, alignItems: 'center', justifyContent: 'center' },
   errBox: { backgroundColor: color.rBg, color: color.rInk, borderRadius: 12, padding: 12, fontSize: 15, overflow: 'hidden' },
 });
 
@@ -250,7 +255,7 @@ export function TimeField({ label, value, onChange, onNow, required, hint, acces
         </Pressable>
       </View>
       {/* A required time says nothing (the error names it); an optional one says it can stay empty. */}
-      {hint || !required ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>{[required ? null : 'Leave empty if unknown.', hint].filter(Boolean).join(' ')}</Text> : null}
+      {hint || !required ? <Text style={{ fontFamily: f.body, fontSize: 13, color: color.muted }}>{[required ? null : 'Blank = unknown.', hint].filter(Boolean).join(' ')}</Text> : null}
     </View>
   );
 }
@@ -266,7 +271,7 @@ export function Seg<T extends string | number>({ options, value, onChange, colum
         return (
           <Pressable key={String(o.value)} onPress={() => onChange(o.value)} accessibilityRole="radio" accessibilityState={{ selected: on }}
             style={({ pressed }) => [u.segBtn, { flexBasis: `${100 / columns - 2}%` }, edge, on && u.segOn, pressed && u.pressed]}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: on ? color.bg : color.ink, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{o.label}</Text>
+            <Text style={{ fontFamily: f.bodySemi, fontSize: 16, color: on ? color.bg : color.ink, textAlign: 'center' }} {...oneWord(o.label)}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -285,18 +290,21 @@ export function Reasons({ options, value, onChange, other, onOther }: { options:
   );
 }
 
-// blue: a second action beside the peach one that must not read as plain white (Save and add another, Colby 2026-10-17).
-export function Go({ label, onPress, ghost, blue, disabled }: { label: string; onPress: () => void; ghost?: boolean; blue?: boolean; disabled?: boolean }) {
+// The one button. Default = primary (peach); ghost = secondary (white); danger = red; to = opens another step (›); small = 44 tall (Now, Add VIN).
+export function Go({ label, onPress, ghost, danger, to, small, disabled }: { label: string; onPress: () => void; ghost?: boolean; danger?: boolean; to?: boolean; small?: boolean; disabled?: boolean }) {
   const f = useType(), edge = useEdge();
+  const white = ghost || danger || to;
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button"
-      style={({ pressed }) => [ghost ? u.ghostBtn : u.goBtn, ghost && edge, ghost && blue && { backgroundColor: color.blue, borderColor: bcolor.blue }, pressed && { transform: [{ scale: 0.98 }] }, (pressed || disabled) && { opacity: 0.6 }]}>
-      {/* A one-word label ("Unarchive" beside Delete) stays on one line and shrinks; it never splits mid-word. Sentences wrap between words. */}
-      <Text style={{ fontFamily: ghost ? f.bodySemi : f.displaySemi, fontSize: ghost ? 15 : 18, color: ghost ? (blue ? color.onBlue : color.ink) : color.onAction }}
-        {...(/\s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 })}>{label}</Text>
+      style={({ pressed }) => [white ? u.ghostBtn : u.goBtn, edge, danger && u.dangerBtn, to && u.toBtn, small && u.smallBtn, (pressed || disabled) && { opacity: 0.6 }]}>
+      <Text style={{ fontFamily: f.displaySemi, fontSize: small ? 17 : 18, color: danger ? color.red : white ? color.ink : color.onAction, flexShrink: 1 }} {...oneWord(label)}>{label}</Text>
+      {to && <Text style={{ fontFamily: f.displaySemi, fontSize: 24, color: color.ink }}>›</Text>}
     </Pressable>
   );
 }
+
+// A one-word label stays on one line and shrinks; it never splits mid-word. Labels with spaces wrap between words.
+export const oneWord = (label: string) => (/s/.test(label.trim()) ? {} : { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.6 });
 
 // The form's main action, riding on top of the iOS keyboard while a box is being typed in (number pads have no Return key).
 // Each box of the form passes the same `accessoryId`. The Save button in the form itself never moves; this is a second way

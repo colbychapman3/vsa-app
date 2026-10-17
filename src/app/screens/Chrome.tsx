@@ -108,6 +108,6 @@ const s = StyleSheet.create({
   tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%', flexShrink: 1 },
   tabLabel: { fontSize: 13, flexShrink: 1 },
   badge: { backgroundColor: color.red, color: color.onRed, borderRadius: 999, paddingHorizontal: 6, fontSize: 13, overflow: 'hidden' },
-  log: { alignSelf: 'center', minHeight: 56, paddingHorizontal: 16, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 4, marginHorizontal: 2, ...elev.raised },
+  log: { alignSelf: 'center', minHeight: 56, paddingHorizontal: 16, borderRadius: 999, borderWidth: 2, borderColor: bcolor.ink, backgroundColor: color.action, flexDirection: 'row', alignItems: 'center', gap: 4, marginHorizontal: 2 },
   logText: { color: color.onAction, fontSize: 17 },
 });

@@ -44,7 +44,7 @@ export function Vans({ state, baseline, isTest, save, onNotice }: {
               <Body>{v.gassing}</Body>
             </>
           )}
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{v.exists ? 'Open the van list ›' : 'Create the van list ›'}</Text>
+          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{v.exists ? 'Open the van list ›' : 'Create the van list ›'}</Text>
         </Card>
       </Pressable>
 

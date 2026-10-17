@@ -177,7 +177,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
       ) : (
         <View style={{ gap: 10 }}>
           <Go label="Open camera" onPress={open} />
-          <Go ghost label="Choose from camera roll (one or many)" onPress={choose} />
+          <Go ghost label="Choose photos" onPress={choose} />
         </View>
       )}
 
@@ -215,7 +215,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
       })}
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
         <View style={{ flex: 1 }}><Input label="VIN (17 characters)" value={vinText} onChange={setVinText} maxLength={17} caps /></View>
-        <Pressable onPress={addVin} style={[u.ghostBtn, { paddingHorizontal: 18 }]} accessibilityRole="button"><Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.ink }}>Add VIN</Text></Pressable>
+        <Go ghost small label="Add VIN" onPress={addVin} />
       </View>
       {ocrAvailable() && <Go ghost label="Scan a VIN with the camera" disabled={busy} onPress={scanVin} />}
       {found && (found.length === 0 ? <Note>No VIN found. Type it or scan again.</Note> : (
@@ -230,7 +230,7 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
           ))}
         </View>
       ))}
-      <Note>Typed or scanned exactly as on the car. A VIN is never corrected for you; a check digit that does not pass only warns.</Note>
+      <Note>Exactly as on the car; never corrected. A failed check digit only warns.</Note>
 
       <View style={{ gap: 6 }}>
         <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>Notes (optional)</Text>
@@ -263,13 +263,13 @@ export function EvidenceForm({ state, baseline, save, item = null, start, onClos
         </View>
       )}
       <Go label={item ? 'Save changes' : 'Save photo'} disabled={busy} onPress={() => submit()} />
-      {!item && <Go ghost blue label="Save and add another" disabled={busy} onPress={() => submit(true)} />}
+      {!item && <Go ghost label="Save and add another" disabled={busy} onPress={() => submit(true)} />}
       {item && (
         <>
           <Go ghost label="Remove this photo" onPress={remove} />
         </>
       )}
-      <Note>{item ? 'Nothing is overwritten: the old values and the photo file stay.' : 'The photo stays on this phone only (not in the camera roll and not in the backup export). It never changes a count.'}</Note>
+      <Note>{item ? 'Nothing is overwritten: the old values and the photo stay.' : 'Stays on this phone (not the camera roll or the backup). Never changes a count.'}</Note>
     </View>
   );
 }
@@ -297,5 +297,5 @@ const s = StyleSheet.create({
   mini: { width: 72, height: 72, borderRadius: 8, backgroundColor: color.soft },
   vin: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   card: { gap: 4, padding: 12, borderWidth: 1, borderColor: bcolor.line, borderRadius: 12, backgroundColor: color.card, minHeight: 56 },
-  edit: { fontSize: 13, color: color.blue, alignSelf: 'flex-end' },
+  edit: { fontSize: 15, color: color.muted, alignSelf: 'flex-end' }, // a row's tap hint, not a link
 });

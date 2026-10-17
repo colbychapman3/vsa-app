@@ -11,7 +11,7 @@ import { decksRemaining, decksView } from '../view.ts';
 import { bcolor, color, MAX_BIG_SCALE, useType } from '../theme.ts';
 import { Icon } from './Chrome.tsx';
 import { ShipBox } from './SnapshotBoxes.tsx';
-import { Body, Card, Chip, Note, Pill, Seg, u } from './ui.tsx';
+import { Body, Card, Chip, Go, Note, Pill, Seg, u } from './ui.tsx';
 
 const acc = (r: { photoTypes: { type: string; photos: number }[] }) => r.photoTypes.find((t) => t.type === 'accident')?.photos ?? 0;
 
@@ -32,9 +32,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
           <Text style={{ fontFamily: f.bodySemi, fontSize: 17, color: color.oInk }}>{warn.text}</Text>
           {warn.advice && <Body>{warn.advice}</Body>}
           {warn.action?.deck && (
-            <Pressable onPress={() => onOpenDeck(warn.action!.deck!)} accessibilityRole="button" style={({ pressed }) => [u.ghostBtn, pressed && u.pressed]}>
-              <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>{warn.action.label}</Text>
-            </Pressable>
+            <Go ghost label={warn.action.label} onPress={() => onOpenDeck(warn.action!.deck!)} />
           )}
           {notUseful && <NotUseful key={warn.text} {...notUseful(warn.advice ? `${warn.text} ${warn.advice}` : warn.text)} />}
         </View>
@@ -53,7 +51,7 @@ export function Decks({ state, baseline, nowMin, onOpenDeck, onOpenPlan, showShi
             <Body semi>{v.unconfirmed} deck height{v.unconfirmed === 1 ? '' : 's'} unconfirmed</Body>
             <View style={s.stripLine}>
               <Text style={{ flexShrink: 1, fontFamily: f.body, fontSize: 15, color: color.muted }} numberOfLines={1}>{v.unconfirmedLabels.join(' · ')}</Text>
-              <Text style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: f.body, fontSize: 15, color: color.blue }}>Confirm on Plan ›</Text>
+              <Text style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: f.bodySemi, fontSize: 15, color: color.ink }}>Confirm on Plan ›</Text>
             </View>
           </Pressable>
         )}

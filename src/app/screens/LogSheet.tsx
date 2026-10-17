@@ -150,9 +150,7 @@ function HourForm({ state, baseline, run, setError, prefill }: { state: State; b
       <Panel title={day > 1 ? `Hour · Day ${day}` : 'Hour'} right={`${hour}–${endHM}${existing ? ' · logged' : ''}`}>
         <HourStrip hours={opts.hours} value={hour} onChange={pick} all={allHours} />
         {/* ponytail: "Paste clerk's text" has no action in the app yet (designQ); "All hours" opens the full scrolling list. */}
-        <Pressable onPress={() => setAllHours(!allHours)} accessibilityRole="button" accessibilityState={{ expanded: allHours }} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center', alignSelf: 'flex-start' }, pressed && u.pressed]}>
-          <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{allHours ? 'Fewer hours' : 'All hours'}</Text>
-        </Pressable>
+        <View style={{ alignSelf: 'flex-start' }}><Go ghost small label={allHours ? 'Fewer hours' : 'All hours'} onPress={() => setAllHours(!allHours)} /></View>
         {short && (
           <View style={{ gap: 8 }}>
             <Label wrap>Before the break: when did production stop?</Label>
@@ -296,6 +294,7 @@ function BreakBox(p: BreakProps) {
   const working = phase === 'working';
   const [open, setOpen] = useState(!working);
   const title = phase === 'break' ? `On break since ${breakStart}` : phase === 'shift_end' ? `Shift ended ${shiftEnd}` : 'Break or end of shift';
+  if (working && !open) return <Go to label={title} onPress={() => setOpen(true)} />; // one "go to" button until it is opened (buttons, 2026-10-17)
   return (
     <View style={[u.card, u.pad, { gap: 12 }]}>
       <Pressable disabled={!working} onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: TAP, flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && u.pressed]}>
@@ -420,8 +419,8 @@ function HhForm({ state, run, now, timeOf, setError }: { state: State; run: Run;
     <View style={{ gap: 14 }}>
       <Body semi>{hh.text}</Body>
       <TimeField label="Time (optional)" value={t} onChange={setT} onNow={fill(setT)} />
-      <Go label="Start H/H" disabled={active} onPress={() => log('started')} />
-      <Go label="H/H complete" disabled={!needsEnd} onPress={() => log('completed')} />
+      <Go ghost={active} label="Start H/H" disabled={active} onPress={() => log('started')} />{/* the next step is the one peach button */}
+      <Go ghost={!needsEnd} label="H/H complete" disabled={!needsEnd} onPress={() => log('completed')} />
       {hh.passes.map((p, i) => (
         <View key={p.start.id} style={s.hr}>
           <Body semi>Pass {i + 1}</Body>
@@ -463,7 +462,7 @@ function IssueForm({ run, now, timeOf, setError }: { run: Run; now: () => string
 const s = StyleSheet.create({
   row2: { flexDirection: 'row', gap: 10 },
   strip: { gap: 8, paddingRight: 8 },
-  stripChip: { flexGrow: 0, minWidth: 84, paddingHorizontal: 12 },
+  stripChip: { flexGrow: 0, minWidth: 76, paddingHorizontal: 6 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
   brandBox: { width: 104, fontSize: 20, textAlign: 'right' },
   deckGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

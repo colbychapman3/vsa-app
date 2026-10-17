@@ -288,7 +288,7 @@ const s =StyleSheet.create({
   doneTrack: { height: 14, borderRadius: 7, backgroundColor: color.soft, overflow: 'hidden', marginVertical: 4 },
   doneFill: { height: '100%', borderRadius: 7, backgroundColor: color.blue },
   haRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, paddingTop: 4 },
-  link: { fontSize: 13, color: color.blue, marginTop: 2 },
+  link: { fontSize: 13, color: color.muted, marginTop: 2 }, // a tile's tap hint, not a link
   sec: { gap: 10 },
   banner: { backgroundColor: color.head, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   row: { paddingVertical: 12, paddingHorizontal: 16, gap: 8 },

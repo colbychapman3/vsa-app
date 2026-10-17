@@ -1,16 +1,16 @@
 // Hourly tab (reference: docs/reference/screens/06–07). Layout only; values and graph
 // geometry come from view.hourlyView() (the tracker's viewHourly/hourGraph).
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text } from './text.tsx';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import type { Baseline } from '../../engine/index.ts';
 import type { State } from '../../storage/store.ts';
 import { hourlyView } from '../view.ts';
-import { bcolor, color, HA_COLOR, PACE_COLOR, TAP, useType } from '../theme.ts';
+import { bcolor, color, HA_COLOR, PACE_COLOR, useType } from '../theme.ts';
 import { NeededCard } from './NeededCard.tsx';
 import { BrandTable } from './BrandTable.tsx';
-import { Bar, Big, Body, Card, Chip, FlipTile, InfoNote, Label, Note, SectionHead, Seg, u } from './ui.tsx';
+import { Bar, Big, Body, Card, Chip, FlipTile, Go, InfoNote, Label, Note, SectionHead, Seg, u } from './ui.tsx';
 
 export function Hourly({ state, baseline }: { state: State; baseline: Baseline }) {
   const f = useType();
@@ -118,9 +118,7 @@ function HourRow({ r, first }: { r: HourRowData; first: boolean }) {
         {r.brands.length > 0 && <View style={s.tagRow}>{r.brands.map((b) => <Chip key={b.b} text={`${b.b} ${b.v}`} />)}</View>}
         {r.photos.map((p) => <Note key={p} style={{ color: color.ink }}>Photo: {p}</Note>)}
         {details.length > 0 && (
-          <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={({ pressed }) => [{ minHeight: TAP, justifyContent: 'center' }, pressed && u.pressed]}>
-            <Text style={{ fontFamily: f.bodySemi, fontSize: 15, color: color.blue }}>{open ? 'Hide details ▴' : 'Details ▾'}</Text>
-          </Pressable>
+          <View style={{ alignSelf: 'flex-start' }}><Go ghost small label={open ? 'Hide details' : 'Details'} onPress={() => setOpen(!open)} /></View>
         )}
         {open && details.map((d) => <Note key={d}>{d}</Note>)}
       </View>

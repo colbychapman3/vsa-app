@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>VSA buttons: one family (mockup 2026-10-17)</title>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF1F4;--card:#FFF;--ink:#0E1A2B;--muted:#3A4B60;--line:#CBD3DC;--soft:#DCE3EC;--head:#14243B;--action:#FFD6A5;--blue:#1D4ED8;--red:#B91C1C;--green:#15803D}
+*{box-sizing:border-box}body{margin:0;background:#D9DEE5;font-family:'Schibsted Grotesk',system-ui,sans-serif;color:var(--ink)}
+h1{font-size:26px;margin:24px 24px 4px}p.lead{margin:0 24px 16px;color:var(--muted);max-width:900px;font-size:15px}
+.row{display:flex;gap:28px;flex-wrap:wrap;padding:0 24px 24px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:8px}.cap{font-weight:700;font-size:15px}.cap small{font-weight:500;color:var(--muted)}
+.phone{width:393px;background:var(--bg);border-radius:40px;padding:22px 20px 26px;display:flex;flex-direction:column;gap:14px;border:8px solid #111}
+.card{background:var(--card);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.t{font-weight:700;font-size:20px}.note{color:var(--muted);font-size:15px;line-height:1.35}.lbl{font-weight:600;font-size:16px}
+.input{height:52px;border:1.5px solid var(--line);border-radius:12px;background:#fff;padding:0 14px;display:flex;align-items:center;font-size:22px;color:#7C8797}
+/* NOW: what the phone shows today */
+.now-go{height:58px;border-radius:999px;border:2px solid var(--ink);background:var(--action);font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 6px rgba(0,0,0,.18)}
+.now-ghost{height:48px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-weight:600;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.12)}
+.now-blue{height:48px;border-radius:999px;background:var(--blue);color:#fff;font-weight:600;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.now-rowcard{background:#fff;border-radius:16px;padding:18px 16px;font-weight:700;font-size:18px;display:flex;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.now-link{color:var(--blue);font-weight:600;font-size:17px}
+.now-seg{display:flex;gap:8px;flex-wrap:wrap}.now-seg span{flex:1 1 28%;height:48px;border:1.5px solid var(--line);border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px}
+.now-seg span.on{background:var(--ink);color:#fff;font-size:13px;box-shadow:0 3px 6px rgba(0,0,0,.2)}
+/* PROPOSED: one family. Every button: pill, 52 tall, 2 pt navy edge, no shadow. */
+.btn{height:52px;border-radius:999px;border:2px solid var(--ink);background:#fff;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 18px}
+.btn.primary{background:var(--action)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.small{height:44px;font-size:17px;padding:0 16px}
+.btn.go{justify-content:space-between}.btn.go::after{content:'›';font-size:24px;line-height:1}
+.pair{display:flex;gap:10px}.pair .btn{flex:1}
+.choice{display:flex;gap:8px;flex-wrap:wrap}.choice span{flex:1 1 28%;height:48px;border:1.5px solid var(--line);border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:16px;text-align:center}
+.choice span.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.i{display:inline-flex;width:22px;height:22px;border:1.5px solid var(--blue);border-radius:50%;color:var(--blue);font-size:13px;font-weight:700;align-items:center;justify-content:center;margin-left:6px;vertical-align:middle}
+.kit{background:#fff;border-radius:16px;padding:18px;display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center;max-width:820px}
+.kit .k{font-weight:700}.kit .d{color:var(--muted);font-size:14px}
+ol.dec{max-width:900px;margin:0 24px 40px;padding-left:20px;font-size:15px;line-height:1.5}ol.dec li{margin-bottom:8px}ol.dec b{color:var(--ink)}
+.head{background:var(--head);border-radius:16px;padding:14px;display:flex;gap:10px}.head .btn{border-color:#fff;color:#fff;background:transparent;height:44px;font-size:17px}
+</style></head><body>
+<h1>Buttons: one family, mockup</h1>
+<p class="lead">Left in each pair: what your phone shows now. Right: proposed. Three button kinds, one shape, one edge, no shadows. Each screen has at most one peach button. Choices (tabs, status, hours) stay a separate look because they pick, they don't act. Text is shorter, and the longer explanations sit behind (i).</p>
+
+<div class="row">
+  <div class="kit">
+    <span class="k">Primary</span><div><div class="btn primary" style="width:260px">Save photo</div><div class="d" style="margin-top:6px">Peach, navy 2 pt edge. One per screen: the thing you came to do.</div></div>
+    <span class="k">Secondary</span><div><div class="btn" style="width:260px">Save and add another</div><div class="d" style="margin-top:6px">White, the same navy 2 pt edge, the same shape and size. Everything else that acts: Import, Add photos, Now, Add VIN.</div></div>
+    <span class="k">Go to</span><div><div class="btn go" style="width:260px">Break or end of shift</div><div class="d" style="margin-top:6px">A secondary button with › when it opens another step. Replaces the row-cards and blue text links ("Completion report notes ›").</div></div>
+    <span class="k">Danger</span><div><div class="btn danger" style="width:260px">Delete</div><div class="d" style="margin-top:6px">Red edge and text. Only for delete and remove.</div></div>
+    <span class="k">Choice</span><div><div class="choice" style="width:320px"><span class="on">Active</span><span>Paused</span><span>Not started</span></div><div class="d" style="margin-top:6px">Pill, thin grey edge; picked = navy. Every label the same size ("Not started" no longer shrinks).</div></div>
+    <span class="k">On the navy header</span><div><div class="head" style="width:260px"><div class="btn">Ask</div><div class="btn">Map</div></div></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col"><div class="cap">Log › Hourly, bottom <small>now</small></div>
+    <div class="phone">
+      <div class="now-go">Save hourly count</div>
+      <div class="now-rowcard"><span>Break or end of shift</span><span>›</span></div>
+      <div class="now-link">Fewer hours</div>
+    </div></div>
+  <div class="col"><div class="cap">Log › Hourly, bottom <small>proposed</small></div>
+    <div class="phone">
+      <div class="btn primary">Save hourly count</div>
+      <div class="btn go">Break or end of shift</div>
+      <div class="btn small" style="align-self:flex-start">Fewer hours</div>
+    </div></div>
+
+  <div class="col"><div class="cap">Photo, bottom <small>now</small></div>
+    <div class="phone">
+      <div class="now-go">Save photo</div>
+      <div class="now-blue">Save and add another</div>
+      <div class="note">The photo stays on this phone only (not in the camera roll and not in the backup export). It never changes a count.</div>
+    </div></div>
+  <div class="col"><div class="cap">Photo, bottom <small>proposed</small></div>
+    <div class="phone">
+      <div class="btn primary">Save photo</div>
+      <div class="btn">Save and add another</div>
+      <div class="note">Stays on this phone. Never changes a count.<span class="i">i</span></div>
+    </div></div>
+</div>
+
+<div class="row">
+  <div class="col"><div class="cap">Plan › Backup <small>now</small></div>
+    <div class="phone"><div class="card">
+      <div class="t">Backup</div><div style="font-size:18px">Last exported: never</div><div class="note">1 entry not backed up.</div>
+      <div class="now-go">Export vessel log</div><div class="now-ghost">Import vessel log</div><div class="now-ghost" style="height:64px">Save all photos to camera roll</div><span class="i">i</span>
+    </div></div></div>
+  <div class="col"><div class="cap">Plan › Backup <small>proposed</small></div>
+    <div class="phone"><div class="card">
+      <div class="t">Backup</div><div class="note">Never exported · 1 entry not backed up<span class="i">i</span></div>
+      <div class="btn primary">Export log</div>
+      <div class="btn">Import log</div><div class="btn">Save photos</div>
+    </div></div></div>
+
+  <div class="col"><div class="cap">Deck editor <small>now</small></div>
+    <div class="phone"><div class="card">
+      <div class="lbl">Edit · status</div>
+      <div class="now-seg"><span>Active</span><span>Paused</span><span class="on">Not started</span><span>Complete</span><span>Unknown</span></div>
+      <div class="lbl">☐ Skipped: passed over, still aboard</div>
+      <div class="lbl">Time of this update</div>
+      <div class="pair"><div class="input" style="flex:1">HH:MM</div><div class="now-ghost" style="width:110px">Now</div></div>
+      <div class="note">Leave empty if unknown.</div>
+      <div class="now-go">Save deck update</div>
+      <div class="now-ghost">Add photos</div>
+    </div></div></div>
+  <div class="col"><div class="cap">Deck editor <small>proposed</small></div>
+    <div class="phone"><div class="card">
+      <div class="lbl">Status</div>
+      <div class="choice"><span>Active</span><span>Paused</span><span class="on">Not started</span><span>Complete</span><span>Unknown</span></div>
+      <div class="lbl">☐ Skipped (still aboard)</div>
+      <div class="lbl">Time <span class="note">· blank = unknown</span></div>
+      <div class="pair"><div class="input" style="flex:1">HH:MM</div><div class="btn small" style="flex:0 0 96px">Now</div></div>
+      <div class="btn primary">Save deck</div>
+      <div class="btn go">Photos (0)</div>
+    </div></div></div>
+</div>
+
+<h1 style="font-size:20px">Decisions (recommended answer in bold)</h1>
+<ol class="dec">
+  <li><b>Three button kinds only</b> (primary peach, secondary white, danger red), all pill-shaped, 52 tall (44 for small inline ones like Now), with the same navy 2 pt edge. <b>No shadows on any button.</b> The blue fill goes away.</li>
+  <li><b>At most one peach button per screen.</b> "Export vessel log" stays peach on Backup; Import and Save photos become white.</li>
+  <li><b>"Go to" buttons</b> (white with ›) replace the row-cards ("Break or end of shift") and the blue text links ("Completion report notes ›", "Fewer hours").</li>
+  <li><b>Choices</b> (Log tabs, status, hours, deck grid): pill, thin grey edge, picked = navy, <b>one text size for every label</b> (nothing shrinks to fit; a long label wraps between words).</li>
+  <li><b>Shorter words:</b> "Save deck", "Export log", "Import log", "Save photos", "Skipped (still aboard)", "blank = unknown". Longer explanations move behind (i). Data-honesty wording stays (unknown is still said, just shorter).</li>
+  <li><b>The same rules in Night and Extra visible</b> (the edge uses the theme's ink color; Extra visible keeps its heavier edges).</li>
+  <li>Scope: one shared button style in <code>ui.tsx</code>, then a sweep of the ~86 hand-made buttons on the screens to use it. JS only, so it ships as an over-the-air update after the harness check.</li>
+</ol>
+</body></html>
