@@ -23,9 +23,9 @@ export function Label({ children, style, wrap }: { children: ReactNode; style?: 
 // Big numbers stay on one line and shrink to fit instead of wrapping mid-digit. With Extra visible the number sits in a
 // tinted box; that box needs a full line height or the digits stick out of it (phone check 2026-10-11, H.A. tile).
 export function Big({ children, size, style }: { children: ReactNode; size: number; style?: StyleProp<TextStyle> }) {
-  const f = useType(), sun = useSun();
+  const f = useType();
   return (
-    <Text style={[{ fontSize: size, lineHeight: size * 0.95, letterSpacing: -size * 0.025, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, sun && { lineHeight: size * 1.2 }, style]}
+    <Text style={[{ fontSize: size, lineHeight: size * 1.2, letterSpacing: -size * 0.025, color: color.ink, fontFamily: f.display, fontWeight: f.display ? undefined : '700', fontVariant: ['tabular-nums'] }, style]}
       numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} maxFontSizeMultiplier={MAX_BIG_SCALE}>
       {children}
     </Text>

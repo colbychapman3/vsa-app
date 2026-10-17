@@ -46,7 +46,7 @@ export const TEXT_PAIRS: [Token, Token][] = [
   ['onBlue', 'blue'], ['onOrange', 'orange'], ['onRed', 'red'], ['card', 'green'],
   ['pace', 'card'], ['blue', 'card'], ['blue', 'bg'], ['red', 'card'], ['green', 'card'], ['orange', 'card'],
   ['oInk', 'oBg'], ['oInk', 'card'], ['oInk', 'bg'], ['rInk', 'rBg'], ['gInk', 'gBg'],
-  ['headInk', 'head'], ['headMuted', 'head'], ['accent', 'head'],
+  ['headInk', 'head'], ['headMuted', 'head'], ['accent', 'head'], ['action', 'head'],
   ['onAction', 'action'], ['deckInk', 'hull'], ['deckMuted', 'hull'], ['deckInk', 'deckTrack'],
 ];
 
