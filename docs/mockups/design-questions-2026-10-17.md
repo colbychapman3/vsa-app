@@ -12,7 +12,6 @@ Boards checked: 103 Decks, 201 Log › Hourly, 903 Night (`tools/render`, Hera H
 | 6 | 1.1 / 9.3 Snapshot · Now card, (i) traces, ring | "14–15 count is due" card on top, open "How this is worked out" boxes, a ring | Now card moved out, traces in Ask, percent with bar instead of ring (2026-10-14) | Keep the app; update the board |
 | 7 | 1.1 / 9.3 Snapshot · Vessel remaining | Number and Ship progress row only | Adds "About 160 left now (est.)" FORECAST line | Keep (labeled FORECAST); add to the board |
 | 8 | 1.3 Decks · DK4 photo badge | Camera badge "2" on DK4 | No badge (the fixture has no photos yet) | Harness: add 2 photos to the fixture; no app change |
-
 | 9 | 1.3 Decks · "Can be lowered" line | Only on DK7 | On every unconfirmed deck (DK9 and DK7): the engine's "unconfirmed" already means "can be lowered below 1.85 m" | Keep the app, or name the rule that separates DK7 from DK9 |
 | 10 | 1.3 Decks · Complete pill | "Complete" | "✓ Complete" (the check is a shape cue for sun and color blindness) | Keep the ✓ |
 | 11 | All screens · side margins | About 12 px | 20 px on every tab (so DK12's four hatch chips wrap to two lines) | Keep 20 px, or move every screen to the board's margin in one change |
