@@ -1,0 +1,3 @@
+# Harness output and its own packages (kept out of the root .gitignore and package.json: both feed the native fingerprint)
+out/
+node_modules/

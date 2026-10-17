@@ -3,14 +3,14 @@
 ## Phase gate: one message to Colby, then build without asking
 
 Check what's still true, then ask once, with a default for each item:
-1. **No web target.** Default: add `react-native-web`, `react-dom` and `@expo/metro-runtime` as dev deps, add `"web": "expo start --web"`, and give native-only modules (`modules/vsa-text`, `modules/vsa-intents`, `@react-native-ai/apple`, the document picker) a `.web.ts` stub that reports "not available". Keep `expo-sqlite` if its web build works; otherwise use an in-memory store behind the same `store` API (STORAGE-BOUNDARY still holds). It must still pass `npm run verify:release`.
+1. **Web target (built 2026-10-17).** No web packages in the app's `package.json`: they change the native fingerprint (see CLAUDE.md Gotchas). `render.mjs export` installs `react-native-web`, `react-dom` and `@expo/metro-runtime` with `--no-save`, exports, and removes them. The harness's own packages are in `tools/render/package.json` (run `npm install` there once). Never add lines to the root `.gitignore` for the harness; use `tools/render/.gitignore`.
 2. **Boards render without `support.js`** (checked 2026-10-17): replace `{{mode}}` with `''`, `'night'` or `'xv'`, drop the `support.js` script tag, and open the file. Fonts load from Google, so the one-time board render needs the network. Boards are 393 px wide and full scroll height (Decks is 1789 px), so render boards and the app at **393 px wide, full page**, not 402×874. The sample vessel is Hera Highway 13A, 1,352 autos, Berth 2 (made up); a copy of the artifact is in `C:Userscolbysa-mockups-archive-2026-10-14`.
 3. **Web is not iOS.** Pass means a reviewer's verdict, not a pixel score. Optional final check on real iOS: the EAS cloud simulator (`mcp__plugin_expo_expo__simulator_*`) is billed, needs a development build, and takes screenshots at 0.3 scale, so use it only to spot-check fonts and safe areas on 3 or 4 boards, never in the loop.
 4. **Cost.** Default: a pilot on 3 boards (one Snapshot, one sheet, Night), report the tokens per board, then at most 3 rounds over the rest.
 
 ## Harness (`tools/render/`, the render harness ROADMAP deferred to Phase B)
 
-Node scripts with `playwright-core` with the installed Edge (`channel: "msedge"`; never run `playwright install`), plus `pixelmatch` and `pngjs` as dev deps. Gitignore `shots/`, `diff/`, `boards/`, `boards-src/`.
+Node scripts with `playwright-core` (installed in `tools/render/`) with the installed Edge (`channel: "msedge"`; never run `playwright install`), plus `pixelmatch` and `pngjs`. Outputs go to `tools/render/out/` (ignored by `tools/render/.gitignore`).
 
 - Every capture: viewport 393 wide, full-page screenshots, deviceScaleFactor 1, `reducedMotion: "reduce"`, CSS that turns off animations, transitions and the caret, `page.clock` fixed per state, then `document.fonts.ready`.
 - `render-boards.mjs`: renders each board once to `boards/<id>.png`. Open one board first and look at it: crop to the phone frame by selector if a board holds notes or several phones. Light, Night (`903`) and sun are separate ids.

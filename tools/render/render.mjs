@@ -1,4 +1,5 @@
 // UI conformance harness (.claude/skills/ui-conformance). One CLI, Edge through playwright-core, outputs in tools/render/out/ (gitignored).
+//   (first: npm install in tools/render)
 //   node tools/render/render.mjs boards [id...]     board HTML → out/boards/<id>.png (once; needs the network for Google Fonts)
 //   node tools/render/render.mjs export             web build of the app → out/web (rerun after app changes)
 //   node tools/render/render.mjs capture [id...]    app at each board's state → out/shots/<id>.png
@@ -143,7 +144,14 @@ async function noise(list) {
 
 const [cmd, ...args] = process.argv.slice(2);
 if (cmd === 'boards') await boards(ids(args));
-else if (cmd === 'export') execSync(`npx expo export --platform web --output-dir "${join(OUT, 'web')}"`, { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
+else if (cmd === 'export') {
+  // The web packages are installed only for the export and removed after: in node_modules they change the Expo config and so
+  // the native fingerprint, and an `eas update` sent while they're there would miss every installed build (2026-10-17).
+  const web = 'react-native-web@^0.21.2 react-dom@19.2.3 @expo/metro-runtime@~57.0.17';
+  const run = (c) => execSync(c, { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
+  run(`npm install --no-save --silent ${web}`);
+  try { run(`npx expo export --platform web --output-dir "${join(OUT, 'web')}"`); } finally { run('npm uninstall --no-save --silent react-native-web react-dom @expo/metro-runtime'); }
+}
 else if (cmd === 'capture') await capture(ids(args));
 else if (cmd === 'diff') diff(ids(args));
 else if (cmd === 'zoom') zoom(args[0], ...args.slice(1).map(Number));
