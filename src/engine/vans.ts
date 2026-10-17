@@ -103,7 +103,8 @@ export function gassingAlert(slots: readonly VanSlot[], vesselRemaining: number 
 }
 
 // Back vans only: the shortcut never touches a van that is Out, unassigned, removed or already marked either way.
-export const backNotMarked = (slots: readonly VanSlot[]) => slots.filter((s) => !s.removed && s.status === 'back' && s.gassed == null);
+// Mark all gassed (Colby, 2026-10-17): every van with a number that is not yet marked Gassed or Not gassed, checked in or not.
+export const notMarked = (slots: readonly VanSlot[]) => slots.filter((s) => !s.removed && s.number != null && s.gassed == null);
 
 // The row that already holds a van number (compared as typed, ignoring case), or null.
 export function numberHeldBy(slots: readonly VanSlot[], number: string, exceptId?: string): VanSlot | null {

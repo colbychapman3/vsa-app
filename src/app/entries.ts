@@ -2,7 +2,7 @@
 // saves them all or none after the engine accepts them. No math here.
 // Times: only what Colby entered or confirmed with "Now" becomes occurred_at;
 // an empty time is null ("time not provided"). recorded_at is the phone's clock.
-import { activeEvents, backNotMarked, BLANK_VAN, checkEvidence, checkVan, evidencePath, MAX_VANS, needsReason, numberHeldBy, trimVan, type VanData, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
+import { activeEvents, notMarked, BLANK_VAN, checkEvidence, checkVan, evidencePath, MAX_VANS, needsReason, numberHeldBy, trimVan, type VanData, dayStartProblem, formatHM, parseHM, preBreak, toAbs, type BreakEntry, type DeckStatus, type EvidenceData, type EvidenceType, type OpTime, type Reject, type VsaEvent } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 import { completeBlockers } from './complete.ts';
 
@@ -700,12 +700,12 @@ export function removeVanEvents(ctx: Ctx, id: string, reason: string | null): Vs
   return out;
 }
 
-// The shortcut: mark these Back vans Gassed (optional time). Only vans that are Back and not yet marked either way qualify.
+// Mark all gassed (optional time): every van with a number not yet marked either way. Marked vans are never touched.
 export function markGassedEvents(ctx: Ctx, ids: string[], time: OpTime | null): VsaEvent[] | Reject {
-  const ok = new Set(backNotMarked(ctx.state.vans).map((v) => v.id));
+  const ok = new Set(notMarked(ctx.state.vans).map((v) => v.id));
   const wrong = ids.find((i) => !ok.has(i));
-  if (wrong) return reject('Only vans that are checked in and not yet marked can be marked gassed this way.');
-  if (!ids.length) return reject('No vans to mark: none are checked in and unmarked.');
+  if (wrong) return reject('Only vans with a number that are not yet marked can be marked gassed this way.');
+  if (!ids.length) return reject('No vans to mark: every numbered van is already marked.');
   if (time) { const bt = badTimes(time); if (bt) return bt; }
   const { add, out } = builder(ctx);
   for (const id of ids) {

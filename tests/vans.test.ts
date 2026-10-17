@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { backNotMarked, gassingAlert, parseVanSheet, project, vanTally, type Reject, type VsaEvent } from '../src/engine/index.ts';
+import { notMarked, gassingAlert, parseVanSheet, project, vanTally, type Reject, type VsaEvent } from '../src/engine/index.ts';
 import { openStore, type State } from '../src/storage/store.ts';
 import * as E from '../src/app/entries.ts';
 import { openNodeDb } from './nodeDb.ts';
@@ -99,7 +99,7 @@ test('lasher label, driver and number histories are separate and every field cha
   assert.equal(v.changes.find((c) => c.field === 'remarks')!.note, 'moved to autos');
 });
 
-test('gassing: three states, tally excludes unassigned slots, time only with Gassed, the shortcut marks only Back vans', async (tc) => {
+test('gassing: three states, tally excludes unassigned slots, time only with Gassed, Mark all gassed marks every numbered van not yet marked', async (tc) => {
   const s = await setup(tc);
   await s.ok(E.addVanSlotsEvents(s.ctx(), 5));
   await s.ok(E.editVanEvents(s.ctx(), s.id(1), { number: '109', out: { day: 1, hm: '08:00' }, in: { day: 1, hm: '12:00' } }, null)); // Back
@@ -110,14 +110,14 @@ test('gassing: three states, tally excludes unassigned slots, time only with Gas
   assert.deepEqual(vanTally(s.state.vans), { total: 5, assigned: 4, out: 1, back: 2, notOut: 1, lashers: 0, gassed: 0, notGassed: 0, notRecorded: 4 });
   assert.equal(s.err(E.editVanEvents(s.ctx(), s.id(1), { gassedAt: { day: 1, hm: '17:00' } }, null)), 'A gassed time only goes with the status Gassed.');
   await s.ok(E.editVanEvents(s.ctx(), s.id(4), { gassed: 'not_gassed', gassedNote: 'out of service' }, 'never left the lot'));
-  assert.deepEqual(backNotMarked(s.state.vans).map((v) => v.number), ['109', '129']);
-  assert.equal(s.err(E.markGassedEvents(s.ctx(), [s.id(2)], null)), 'Only vans that are checked in and not yet marked can be marked gassed this way.');
-  assert.equal(s.err(E.markGassedEvents(s.ctx(), [s.id(5)], null)), 'Only vans that are checked in and not yet marked can be marked gassed this way.');
-  await s.ok(E.markGassedEvents(s.ctx(), backNotMarked(s.state.vans).map((v) => v.id), { day: 1, hm: '18:20' }));
+  assert.deepEqual(notMarked(s.state.vans).map((v) => v.number), ['109', '120', '129']); // Back, Out and Back; 130 is marked Not gassed
+  assert.equal(s.err(E.markGassedEvents(s.ctx(), [s.id(4)], null)), 'Only vans with a number that are not yet marked can be marked gassed this way.'); // already Not gassed
+  assert.equal(s.err(E.markGassedEvents(s.ctx(), [s.id(5)], null)), 'Only vans with a number that are not yet marked can be marked gassed this way.'); // unassigned
+  await s.ok(E.markGassedEvents(s.ctx(), notMarked(s.state.vans).map((v) => v.id), { day: 1, hm: '18:20' }));
   const t = vanTally(s.state.vans);
-  assert.deepEqual([t.gassed, t.notGassed, t.notRecorded], [2, 1, 1]);
+  assert.deepEqual([t.gassed, t.notGassed, t.notRecorded], [3, 1, 0]); // the Not gassed van stays Not gassed
   assert.deepEqual(s.state.vans[0].gassedAt, { day: 1, hm: '18:20' });
-  assert.equal(s.err(E.markGassedEvents(s.ctx(), [], null)), 'No vans to mark: none are checked in and unmarked.');
+  assert.equal(s.err(E.markGassedEvents(s.ctx(), [], null)), 'No vans to mark: every numbered van is already marked.');
   // Moving a van from Gassed back to not recorded keeps the history.
   await s.ok(E.editVanEvents(s.ctx(), s.id(1), { gassed: null }, 'tapped by mistake'));
   assert.equal(s.state.vans[0].gassed, null);

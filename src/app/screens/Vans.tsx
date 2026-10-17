@@ -55,7 +55,7 @@ export function Vans({ state, baseline, isTest, save, onNotice }: {
           <Body>{v.counts}</Body>
           <Body>{v.lashers}</Body>
           <Body>{v.gassing}</Body>
-          {v.backToMark.length > 0 && <Go ghost label={`Mark Back vans gassed (${v.backToMark.length})`} onPress={() => setWhich({ k: 'mark' })} />}
+          {v.backToMark.length > 0 && <Go ghost label={`Mark all gassed (${v.backToMark.length})`} onPress={() => setWhich({ k: 'mark' })} />}
           {v.rows.map((r) => <VanRowView key={r.id} r={r} onOpen={() => setWhich({ k: 'edit', id: r.id })} />)}
           {ocrAvailable() && <Go ghost label="Read van sheet from a photo" onPress={() => setWhich({ k: 'photo' })} />}
           <Go ghost label="Add more slots" onPress={() => setWhich({ k: 'create', more: true })} />
@@ -226,8 +226,8 @@ function MarkSheet({ opDate, state, isTest, save, onClose }: { opDate: string; s
     if (r.ok) onClose(`${v.backToMark.length} van${v.backToMark.length === 1 ? '' : 's'} marked gassed.`); else setError(r.error);
   };
   return (
-    <Sheet title="Mark Back vans gassed" isTest={isTest} onClose={() => onClose()}>
-      <InfoNote><Note>These vans are checked in and not yet marked. Vans that are Out, Not assigned or already marked are not touched.</Note></InfoNote>
+    <Sheet title="Mark all gassed" isTest={isTest} onClose={() => onClose()}>
+      <InfoNote><Note>Every van with a number that isn't marked yet. Vans already marked Gassed or Not gassed are not touched.</Note></InfoNote>
       {v.backToMark.map((x) => <Body key={x.id} semi>{x.label}</Body>)}
       <TimeField label="Gassed at (optional)" value={t} onChange={setT} onNow={() => { const n = E.nowOpTime(opDate, new Date()); if (n) setT(n.hm); else setError('The phone’s date is before this operation’s Day 1.'); }} />
       {error && <ErrorBox text={error} />}

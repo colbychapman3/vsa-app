@@ -2,7 +2,7 @@
 // (viewSnap, viewDecks, viewHourly, hourGraph, viewPlan). No protocol math here:
 // every number comes from the engine's project() state; this only picks, rounds
 // and words it the way the tracker does. Pure and tested (tests/view.test.ts).
-import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, requiredRate, scheduleOf, southRemaining, brandMiles, mixMiles, mixReference, withTerminalMiles, formatHM, parseHM, preBreak, toAbs, backNotMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
+import { CLEAR_BY_MIN, SHIFT_END_STOP_MIN, TYPE_LABEL, nowEstimate, requiredRate, scheduleOf, southRemaining, brandMiles, mixMiles, mixReference, withTerminalMiles, formatHM, parseHM, preBreak, toAbs, notMarked, gassingAlert, STATUS_LABEL, vanTally, type Baseline } from '../engine/index.ts';
 import type { State } from '../storage/store.ts';
 
 export type Tone = 'break' | 'red' | 'orange' | 'green';
@@ -761,7 +761,7 @@ export function vanView(s: State) {
     lashers: `Lasher vans ${t.lashers}`,
     gassing: `Gassed ${t.gassed} · Not gassed ${t.notGassed} · Not recorded ${t.notRecorded} (of ${t.assigned})`,
     alert: gassingAlert(s.vans, s.vesselRemaining),
-    backToMark: backNotMarked(s.vans).map((v) => ({ id: v.id, label: `Van ${v.number}` })),
+    backToMark: notMarked(s.vans).map((v) => ({ id: v.id, label: `Van ${v.number}` })),
     rows: [...rows.filter((r) => !r.removed), ...rows.filter((r) => r.removed)],
   };
 }
